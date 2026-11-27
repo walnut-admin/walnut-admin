@@ -25,7 +25,7 @@ interface ILockMocks {
   runWithLock: ReturnType<typeof vi.fn>
 }
 
-function createGuard(lockFree = false): { guard: WalnutAdminGuardLock, mocks: ILockMocks } {
+function createGuard(lockFree = false): { guard: WalnutAdminGuardLock; mocks: ILockMocks } {
   const mocks: ILockMocks = {
     checkIsLocked: vi.fn(async () => null),
     setDeviceLockCache: vi.fn(async () => undefined),
@@ -43,7 +43,7 @@ function createGuard(lockFree = false): { guard: WalnutAdminGuardLock, mocks: IL
   return { guard, mocks }
 }
 
-function createContext(options: { deviceId?: unknown, user?: unknown } = {}): ExecutionContext {
+function createContext(options: { deviceId?: unknown; user?: unknown } = {}): ExecutionContext {
   const signedCookies: Record<string, unknown> = {}
 
   if ('deviceId' in options) {
@@ -65,7 +65,10 @@ function createContext(options: { deviceId?: unknown, user?: unknown } = {}): Ex
 }
 
 async function caught(promise: Promise<unknown>): Promise<unknown> {
-  return promise.then(() => null, (error: unknown) => error)
+  return promise.then(
+    () => null,
+    (error: unknown) => error,
+  )
 }
 
 describe('lock guard：deviceId 判空（isNil 语义，不再是 === null）', () => {
@@ -128,11 +131,15 @@ describe('lock guard：deviceId 判空（isNil 语义，不再是 === null）', 
 
   it('lockFree 端点 / 无 user 仍然直接放行（既有语义不变）', async () => {
     const free = createGuard(true)
-    await expect(free.guard.canActivate(createContext({ deviceId: 'device-1' }))).resolves.toBe(true)
+    await expect(free.guard.canActivate(createContext({ deviceId: 'device-1' }))).resolves.toBe(
+      true,
+    )
     expect(free.mocks.checkIsLocked).not.toHaveBeenCalled()
 
     const noUser = createGuard()
-    await expect(noUser.guard.canActivate(createContext({ user: undefined, deviceId: 'device-1' }))).resolves.toBe(true)
+    await expect(
+      noUser.guard.canActivate(createContext({ user: undefined, deviceId: 'device-1' })),
+    ).resolves.toBe(true)
     expect(noUser.mocks.checkIsLocked).not.toHaveBeenCalled()
   })
 })

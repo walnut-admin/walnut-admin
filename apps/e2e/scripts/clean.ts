@@ -42,7 +42,9 @@ export const KEPT_ARTIFACTS: readonly string[] = [
 ]
 
 /** 命名 profile 的基线子目录名（`.e2e/smoke` 等；清理会递归进去但保留活文件） */
-export const PROFILE_ARTIFACT_DIRS: readonly string[] = NAMED_STACK_PROFILES.map(name => path.basename(STACK_PROFILES[name].artifactDir))
+export const PROFILE_ARTIFACT_DIRS: readonly string[] = NAMED_STACK_PROFILES.map((name) =>
+  path.basename(STACK_PROFILES[name].artifactDir),
+)
 
 export interface CleanEntry {
   /** 绝对路径 */
@@ -64,7 +66,7 @@ export interface CleanPlan {
 }
 
 /** 递归统计目录（不跟随符号链接；坏链接按 0 字节的文件算） */
-function measure(target: string): { bytes: number, files: number } {
+function measure(target: string): { bytes: number; files: number } {
   const info = lstatSync(target)
   if (!info.isDirectory()) {
     return { bytes: info.size, files: 1 }
@@ -158,9 +160,12 @@ export function applyCleanPlan(plan: CleanPlan): void {
     const resolved = path.resolve(entry.path)
     const parent = path.dirname(resolved)
     const directChild = parent === root
-    const profileChild = path.dirname(parent) === root && PROFILE_ARTIFACT_DIRS.includes(path.basename(parent))
+    const profileChild =
+      path.dirname(parent) === root && PROFILE_ARTIFACT_DIRS.includes(path.basename(parent))
     if ((!directChild && !profileChild) || KEPT_ARTIFACTS.includes(path.basename(resolved))) {
-      throw new Error(`拒绝清理 ${resolved}：它不在 ${root}（或其 profile 子目录）的直接子项里，或命中了保留名单`)
+      throw new Error(
+        `拒绝清理 ${resolved}：它不在 ${root}（或其 profile 子目录）的直接子项里，或命中了保留名单`,
+      )
     }
     rmSync(resolved, { recursive: true, force: true })
   }
@@ -173,7 +178,9 @@ function printPlan(plan: CleanPlan, apply: boolean): void {
   }
   for (const entry of plan.removable) {
     const suffix = entry.kind === 'dir' ? `（目录，${entry.files} 个文件）` : ''
-    console.log(`[e2e/clean] ${apply ? '删除' : '将删'} ${entry.name}${suffix} ${formatBytes(entry.bytes)}`)
+    console.log(
+      `[e2e/clean] ${apply ? '删除' : '将删'} ${entry.name}${suffix} ${formatBytes(entry.bytes)}`,
+    )
   }
   if (plan.kept.length > 0) {
     console.log(`[e2e/clean] 保留：${plan.kept.join(' / ')}`)
@@ -185,14 +192,14 @@ function printPlan(plan: CleanPlan, apply: boolean): void {
     return
   }
   console.log(
-    `[e2e/clean] dry-run：将清理 ${count} 个条目（${plan.removableFiles} 个文件，${size}）。`
-    + ' 确认后加 --force 真删（保留 baseline 三件套与 stack.json）',
+    `[e2e/clean] dry-run：将清理 ${count} 个条目（${plan.removableFiles} 个文件，${size}）。` +
+      ' 确认后加 --force 真删（保留 baseline 三件套与 stack.json）',
   )
 }
 
 /** 入口：`node scripts/clean.ts [--force]` */
 export function main(argv: readonly string[] = process.argv.slice(2)): number {
-  const unknown = argv.filter(arg => arg !== '--force')
+  const unknown = argv.filter((arg) => arg !== '--force')
   if (unknown.length > 0) {
     console.error(`[e2e/clean] 不认识的参数：${unknown.join(' ')}（只接受 --force）`)
     return 2
@@ -206,8 +213,8 @@ export function main(argv: readonly string[] = process.argv.slice(2)): number {
   return 0
 }
 
-const invokedDirectly = process.argv[1] !== undefined
-  && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+const invokedDirectly =
+  process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 
 if (invokedDirectly) {
   process.exitCode = main()

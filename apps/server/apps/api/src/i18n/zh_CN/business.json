@@ -1,60 +1,60 @@
 {
-    "system": {
-        "locale": {
-            "updateExist": "i18n关键字已存在"
-        },
-        "delete": {
-            "recoverFail": "还原失败"
-        },
-        "dept": {
-            "parentNotFound": "父部门不存在",
-            "parentCycle": "父部门不能是自身或自身的子部门",
-            "hasChildren": "该部门下存在子部门，不能删除",
-            "hasEmployees": "该部门下存在职工，不能删除"
-        },
-        "post": {
-            "hasEmployees": "该岗位下存在职工，不能删除"
-        },
-        "employee": {
-            "deptNotFound": "部门不存在",
-            "postNotFound": "岗位不存在",
-            "userNotFound": "账号不存在"
-        },
-        "user": {
-            "unLock": {
-                "pwdErr": "解锁密码错误",
-                "pwdRequired": "该账户已启用安全锁屏，请输入解锁密码",
-                "pwdLocked": "解锁尝试过于频繁，请稍后再试",
-                "pwdLength": "锁屏密码长度需为 6-64 位"
-            }
-        }
+  "system": {
+    "locale": {
+      "updateExist": "i18n关键字已存在"
     },
-    "auth": {
-        "opaque": {
-            "passwordError": "用户名或密码错误",
-            "serverStaticKeyMismatch": "服务器静态密钥不匹配"
-        },
-        "sendVerifyCodeError": "验证码发送失败",
-        "verifyCodeError": "验证码错误",
-        "invalidOtpType": "验证码类型不合法",
-        "authFailed": "登录认证失败",
-        "emailAlreadyBound": "该邮箱已被其他账号绑定，请更换登录方式或联系管理员",
-        "identityAlreadyBound": "该身份已被您绑定",
-        "identityAlreadyUsed": "该身份已被其他用户使用",
-        "useVerifyEndpoint": "请使用验证接口进行身份验证",
-        "noVerifyMethodAvailable": "没有可用的验证方式，请先绑定安全手机或邮箱",
-        "verifyMethodNotAllowed": "该验证方式不可用",
-        "verificationFailed": "验证失败",
-        "sensitiveVerificationRequired": "敏感操作需要额外验证",
-        "unbindAtLeastOneLoginMethodRequired": "解绑失败：至少需要保留一种可用的登录方式（已验证的手机、邮箱或密码）",
-        "mfa": {
-            "verifyFail": "MFA验证失败",
-            "totp": {
-                "alreadyBound": "TOTP设备已绑定"
-            },
-            "webauthn": {
-                "alreadyBound": "WebAuthn设备已绑定"
-            }
-        }
+    "delete": {
+      "recoverFail": "还原失败"
+    },
+    "dept": {
+      "parentNotFound": "父部门不存在",
+      "parentCycle": "父部门不能是自身或自身的子部门",
+      "hasChildren": "该部门下存在子部门，不能删除",
+      "hasEmployees": "该部门下存在职工，不能删除"
+    },
+    "post": {
+      "hasEmployees": "该岗位下存在职工，不能删除"
+    },
+    "employee": {
+      "deptNotFound": "部门不存在",
+      "postNotFound": "岗位不存在",
+      "userNotFound": "账号不存在"
+    },
+    "user": {
+      "unLock": {
+        "pwdErr": "解锁密码错误",
+        "pwdRequired": "该账户已启用安全锁屏，请输入解锁密码",
+        "pwdLocked": "解锁尝试过于频繁，请稍后再试",
+        "pwdLength": "锁屏密码长度需为 6-64 位"
+      }
     }
+  },
+  "auth": {
+    "opaque": {
+      "passwordError": "用户名或密码错误",
+      "serverStaticKeyMismatch": "服务器静态密钥不匹配"
+    },
+    "sendVerifyCodeError": "验证码发送失败",
+    "verifyCodeError": "验证码错误",
+    "invalidOtpType": "验证码类型不合法",
+    "authFailed": "登录认证失败",
+    "emailAlreadyBound": "该邮箱已被其他账号绑定，请更换登录方式或联系管理员",
+    "identityAlreadyBound": "该身份已被您绑定",
+    "identityAlreadyUsed": "该身份已被其他用户使用",
+    "useVerifyEndpoint": "请使用验证接口进行身份验证",
+    "noVerifyMethodAvailable": "没有可用的验证方式，请先绑定安全手机或邮箱",
+    "verifyMethodNotAllowed": "该验证方式不可用",
+    "verificationFailed": "验证失败",
+    "sensitiveVerificationRequired": "敏感操作需要额外验证",
+    "unbindAtLeastOneLoginMethodRequired": "解绑失败：至少需要保留一种可用的登录方式（已验证的手机、邮箱或密码）",
+    "mfa": {
+      "verifyFail": "MFA验证失败",
+      "totp": {
+        "alreadyBound": "TOTP设备已绑定"
+      },
+      "webauthn": {
+        "alreadyBound": "WebAuthn设备已绑定"
+      }
+    }
+  }
 }

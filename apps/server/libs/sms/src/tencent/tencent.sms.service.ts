@@ -69,12 +69,10 @@ export class TencentSmsService {
 
       if (res.SendStatusSet && res.SendStatusSet[0].Code === 'Ok') {
         return { success: true }
-      }
-      else {
+      } else {
         throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.auth.sendVerifyCodeError' })
       }
-    }
-    catch {
+    } catch {
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.auth.sendVerifyCodeError' })
     }
   }

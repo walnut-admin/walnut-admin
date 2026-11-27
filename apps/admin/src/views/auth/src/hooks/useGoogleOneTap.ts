@@ -13,8 +13,7 @@ export function useGoogleOneTap() {
           credential: response.credential!,
           select_by: response.select_by!,
         })
-      }
-      finally {
+      } finally {
         userStoreAuth.setLoading(false)
       }
     },

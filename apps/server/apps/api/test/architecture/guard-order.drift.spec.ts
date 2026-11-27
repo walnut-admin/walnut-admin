@@ -41,8 +41,8 @@ const GOLDEN_APP_GUARD_SEQUENCE = [
 const moduleGraph = walkModuleGraph(APP_MODULE_ENTRY)
 
 /** 按模块扫描序把每条 APP_GUARD 摊平，并记住它来自哪个文件（失败时能直接定位） */
-const flattenedGuards = moduleGraph.flatMap(node =>
-  node.guardClasses.map(className => ({ className, file: node.file })),
+const flattenedGuards = moduleGraph.flatMap((node) =>
+  node.guardClasses.map((className) => ({ className, file: node.file })),
 )
 
 describe('g2 · APP_GUARD 黄金序列（拍板 D1）', () => {
@@ -53,7 +53,7 @@ describe('g2 · APP_GUARD 黄金序列（拍板 D1）', () => {
   })
 
   it('12 条 APP_GUARD 的 useClass 序列逐位等于黄金表', () => {
-    expect(flattenedGuards.map(guard => guard.className)).toEqual(GOLDEN_APP_GUARD_SEQUENCE)
+    expect(flattenedGuards.map((guard) => guard.className)).toEqual(GOLDEN_APP_GUARD_SEQUENCE)
   })
 
   it('第 12 位 Throttler 来自 tech.module.ts —— 证明「顺序跨模块」这条 C1 前提仍成立', () => {
@@ -63,8 +63,8 @@ describe('g2 · APP_GUARD 黄金序列（拍板 D1）', () => {
 
     // 反证：只看 app.module.ts 一个文件只能数到 11 条，第 12 条必然漏
     const rootOnly = moduleGraph
-      .filter(node => node.file === APP_MODULE_ENTRY)
-      .flatMap(node => node.guardClasses)
+      .filter((node) => node.file === APP_MODULE_ENTRY)
+      .flatMap((node) => node.guardClasses)
     expect(rootOnly).toHaveLength(11)
     expect(rootOnly).not.toContain('WalnutAdminGuardThrottler')
   })
@@ -72,8 +72,8 @@ describe('g2 · APP_GUARD 黄金序列（拍板 D1）', () => {
   it('顺序：CAP 的两条都在 JWT 前后各一（认证前 + 认证后）', () => {
     const capIndexes = flattenedGuards
       .map((guard, index) => (guard.className === 'WalnutAdminGuardCap' ? index : -1))
-      .filter(index => index >= 0)
-    const jwtIndex = flattenedGuards.findIndex(guard => guard.className === 'JwtAccessGuard')
+      .filter((index) => index >= 0)
+    const jwtIndex = flattenedGuards.findIndex((guard) => guard.className === 'JwtAccessGuard')
 
     expect(capIndexes).toHaveLength(2)
     expect(capIndexes[0]).toBeLessThan(jwtIndex)

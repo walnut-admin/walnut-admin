@@ -34,10 +34,7 @@ export class AppTechCryptoService {
       cipher.setAAD(Buffer.from(aad, 'utf8'))
     }
 
-    const encrypted = Buffer.concat([
-      cipher.update(text, 'utf8'),
-      cipher.final(),
-    ])
+    const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()])
     const authTag = cipher.getAuthTag()
 
     // 直接按二进制顺序拼接：iv || ciphertext || authTag
@@ -78,10 +75,7 @@ export class AppTechCryptoService {
       decipher.setAAD(Buffer.from(aad, 'utf8'))
     }
 
-    const decrypted = Buffer.concat([
-      decipher.update(encrypted),
-      decipher.final(),
-    ])
+    const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()])
 
     return decrypted.toString('utf8')
   }
@@ -99,18 +93,11 @@ export class AppTechCryptoService {
    * @param salt 盐值（可选，默认生成）
    * @param encoding 输出编码格式，默认 hex
    */
-  hash(
-    text: string,
-    salt?: string,
-    encoding: 'hex' | 'base64' = 'hex',
-  ): string {
+  hash(text: string, salt?: string, encoding: 'hex' | 'base64' = 'hex'): string {
     if (isNil(salt)) {
       salt = this.generateSalt()
     }
-    return crypto
-      .createHmac('sha256', salt)
-      .update(text)
-      .digest(encoding)
+    return crypto.createHmac('sha256', salt).update(text).digest(encoding)
   }
 
   /**

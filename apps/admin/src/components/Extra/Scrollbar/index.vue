@@ -25,30 +25,27 @@ const value = defineModel<number>('value', { default: 0 })
 
 const userStorePreference = useAppStoreUserPreference()
 
-const getBehavior = computed(() =>
-  userStorePreference.getReducedMotion ? 'instant' : behavior,
-)
+const getBehavior = computed(() => (userStorePreference.getReducedMotion ? 'instant' : behavior))
 
 const wrapperRef = useTemplateRef<HTMLDivElement>('wrapperRef')
 const scrollRef = useTemplateRef<ScrollbarInst & { scrollbarInstRef: Recordable }>('scrollRef')
 const isHovered = useElementHover(wrapperRef)
 
 function onScroll(e: Event) {
-  value.value = Number((e.target as HTMLElement)[xScrollable ? 'scrollLeft' : 'scrollTop'].toFixed(2))
+  value.value = Number(
+    (e.target as HTMLElement)[xScrollable ? 'scrollLeft' : 'scrollTop'].toFixed(2),
+  )
 
   emits('scroll')
 }
 
 function onInitXScrollHijack() {
-  if (!xScrollable)
-    return
+  if (!xScrollable) return
 
-  if (!hijackXScrollbar)
-    return
+  if (!hijackXScrollbar) return
 
   useEventListener(wrapperRef, 'wheel', (e: WheelEvent) => {
-    if (!isHovered.value)
-      return
+    if (!isHovered.value) return
 
     e.preventDefault()
 
@@ -59,8 +56,7 @@ function onInitXScrollHijack() {
         left: node.scrollLeft + xStep,
         behavior: 'instant',
       })
-    }
-    else {
+    } else {
       scrollRef.value!.scrollTo({
         left: node.scrollLeft - xStep,
         behavior: 'instant',
@@ -74,9 +70,7 @@ function onInitXScrollHijack() {
 function onInitScrollbar() {
   if (!scrollbar) {
     const target = wrapperRef.value?.querySelector(
-      `.w-scrollbar-rail--${
-        xScrollable ? 'vertical' : 'horizontal'
-      }`,
+      `.w-scrollbar-rail--${xScrollable ? 'vertical' : 'horizontal'}`,
     ) as HTMLElement
 
     if (target) {
@@ -117,15 +111,12 @@ defineExpose<ICompExtraScrollbarInst>({
   },
 
   scrollToIndex: (index) => {
-    if (index < 0)
-      return
+    if (index < 0) return
 
     // TODO optimise below
-    const node = scrollRef.value?.scrollbarInstRef?.containerRef?.children[0]
-      ?.children[index]
-      ?? scrollRef.value?.scrollbarInstRef?.containerRef?.children[0]
-        ?.children[0]
-        ?.children[index]
+    const node =
+      scrollRef.value?.scrollbarInstRef?.containerRef?.children[0]?.children[index] ??
+      scrollRef.value?.scrollbarInstRef?.containerRef?.children[0]?.children[0]?.children[index]
 
     scrollRef.value!.scrollTo(
       xScrollable
@@ -143,14 +134,13 @@ defineExpose<ICompExtraScrollbarInst>({
   getIsOverflow: () => {
     if (xScrollable) {
       return (
-        scrollRef.value!.scrollbarInstRef.containerRef.scrollWidth
-        > scrollRef.value!.scrollbarInstRef.containerRef.clientWidth
+        scrollRef.value!.scrollbarInstRef.containerRef.scrollWidth >
+        scrollRef.value!.scrollbarInstRef.containerRef.clientWidth
       )
-    }
-    else {
+    } else {
       return (
-        scrollRef.value!.scrollbarInstRef.containerRef.scrollHeight
-        > scrollRef.value!.scrollbarInstRef.containerRef.clientHeight
+        scrollRef.value!.scrollbarInstRef.containerRef.scrollHeight >
+        scrollRef.value!.scrollbarInstRef.containerRef.clientHeight
       )
     }
   },

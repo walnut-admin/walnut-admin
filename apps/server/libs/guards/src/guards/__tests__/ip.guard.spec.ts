@@ -56,8 +56,8 @@ interface ITempBanHash {
 }
 
 interface IFakeRedisLog {
-  hSet: Array<{ key: string, value: ITempBanHash }>
-  expire: Array<{ key: string, seconds: number }>
+  hSet: Array<{ key: string; value: ITempBanHash }>
+  expire: Array<{ key: string; seconds: number }>
   exists: string[]
   del: string[]
 }
@@ -130,7 +130,7 @@ interface IEnv {
   advance: (seconds: number) => void
 }
 
-function createEnv(options: { ipFree?: boolean, permanentBlackList?: string } = {}): IEnv {
+function createEnv(options: { ipFree?: boolean; permanentBlackList?: string } = {}): IEnv {
   // 假 Redis 的过期判定与 service 的 AppDayjs 读的是同一个（被冻结的）时钟
   const clock = () => Date.now()
   const redis = createFakeRedis(clock)
@@ -180,7 +180,10 @@ function createContext(realIp: string): ExecutionContext {
 }
 
 async function caught(promise: Promise<unknown>): Promise<unknown> {
-  return promise.then(() => null, (error: unknown) => error)
+  return promise.then(
+    () => null,
+    (error: unknown) => error,
+  )
 }
 
 /** 响应壳里的业务码（40603 …）—— 拒绝路径的可观测值 */
@@ -255,9 +258,9 @@ describe('ip guard：临时名单（Redis，含 TTL）', () => {
 
     env.advance(TEMP_BAN_TTL_SECONDS - 1)
 
-    await expect(env.guard.canActivate(createContext(BANNED_IP_TEMP)))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionIPNotAcceptable)
+    await expect(env.guard.canActivate(createContext(BANNED_IP_TEMP))).rejects.toBeInstanceOf(
+      WalnutAdminExceptionIPNotAcceptable,
+    )
     expect(env.redis.has(`risk:ip_blacklist:${BANNED_IP_TEMP}`)).toBe(true)
   })
 
@@ -282,9 +285,9 @@ describe('ip guard：临时名单（Redis，含 TTL）', () => {
     await env.service.addToTemporaryBlacklist(BANNED_IP_TEMP)
 
     await expect(env.guard.canActivate(createContext(PROBE_IP))).resolves.toBe(true)
-    await expect(env.guard.canActivate(createContext(BANNED_IP_TEMP)))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionIPNotAcceptable)
+    await expect(env.guard.canActivate(createContext(BANNED_IP_TEMP))).rejects.toBeInstanceOf(
+      WalnutAdminExceptionIPNotAcceptable,
+    )
   })
 
   it('边界：IPv6 走 normalizeIp 归一（冒号换下划线）后同样命中', async () => {
@@ -295,9 +298,9 @@ describe('ip guard：临时名单（Redis，含 TTL）', () => {
     const key = env.redis.log.hSet[0].key
     expect(key).toBe('risk:ip_blacklist:2001_db8__42')
 
-    await expect(env.guard.canActivate(createContext(ipv6)))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionIPNotAcceptable)
+    await expect(env.guard.canActivate(createContext(ipv6))).rejects.toBeInstanceOf(
+      WalnutAdminExceptionIPNotAcceptable,
+    )
   })
 })
 

@@ -55,7 +55,9 @@ describe('D 段：auth/otp send+verify（functional 开关 + OtpGuard 真实闭�
 
     // 目标 email 身份（login purpose，服务级造 —— 走真实加密/hash 通道）：
     // OtpGuard 的 validateIdentity 按 valueHash 命中 fixture 用户（不发新用户）
-    await app.get(SysUserIdentitySharedService).createIdentity(fixture.userId, 'emailAddress', 'login', identifier)
+    await app
+      .get(SysUserIdentitySharedService)
+      .createIdentity(fixture.userId, 'emailAddress', 'login', identifier)
   })
 
   afterAll(async () => {
@@ -65,11 +67,21 @@ describe('D 段：auth/otp send+verify（functional 开关 + OtpGuard 真实闭�
       }
       // 闭环换发把验证码/会话/MFA 键清干净（visitor 码缓存键带 identifier 片段）
       await verifyCodeService.delVerifyCodeForVisitorCache(identifier)
-      await api.pgDataSource.query('DELETE FROM sys_user_identity WHERE user_id = $1', [fixture.userId])
+      await api.pgDataSource.query('DELETE FROM sys_user_identity WHERE user_id = $1', [
+        fixture.userId,
+      ])
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
-      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [[api.deviceId, anonClient.deviceId]])
-      await api.cleanupWalnutCacheKeys(seed8, api.deviceId, anonClient.deviceId, fixture.userId, identifier)
+      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [
+        [api.deviceId, anonClient.deviceId],
+      ])
+      await api.cleanupWalnutCacheKeys(
+        seed8,
+        api.deviceId,
+        anonClient.deviceId,
+        fixture.userId,
+        identifier,
+      )
     }
     await app.close()
   })
@@ -173,11 +185,11 @@ describe('D 段：auth/otp send+verify（functional 开关 + OtpGuard 真实闭�
       verifyCode: code,
     })
     expectOk(res, 'otp verify')
-    const data = bodyOf<{ accessToken: string, sessionKey: string }>(res).data
+    const data = bodyOf<{ accessToken: string; sessionKey: string }>(res).data
     expect(typeof data.accessToken).toBe('string')
     expect(typeof data.sessionKey).toBe('string')
     const setCookies = res.headers['set-cookie'] as unknown as string[] | undefined
-    expect(setCookies?.some(raw => raw.startsWith('__Host-RT_JTI='))).toBe(true)
+    expect(setCookies?.some((raw) => raw.startsWith('__Host-RT_JTI='))).toBe(true)
 
     // identity（emailAddress/login，由 OtpGuard validateIdentity 按 valueHash 命中 fixture 用户）标记 verified
     const identityRows: Array<{ verified: boolean }> = await api.pgDataSource.query(
@@ -191,15 +203,24 @@ describe('D 段：auth/otp send+verify（functional 开关 + OtpGuard 真实闭�
     expect(await verifyCodeService.getVerifyCodeForVisitorCache(identifier)).toBeNull()
 
     // 换发的会话真实落键：AUTH:SESSIONS:<userId>:<deviceId>:<sid>（createAuthSession 痕迹）
-    const sid = JSON.parse(Buffer.from(data.accessToken.split('.')[1], 'base64url').toString('utf8')) as { sid?: string }
+    const sid = JSON.parse(
+      Buffer.from(data.accessToken.split('.')[1], 'base64url').toString('utf8'),
+    ) as { sid?: string }
     expect(typeof sid.sid).toBe('string')
-    expect(await anonClient.hasWalnutCacheKey(
-      `${WalnutAdminConstAppCacheKeys.AUTH_SESSIONS}:${fixture!.userId}:${anonClient.deviceId}:${sid.sid}`,
-    )).toBe(true)
+    expect(
+      await anonClient.hasWalnutCacheKey(
+        `${WalnutAdminConstAppCacheKeys.AUTH_SESSIONS}:${fixture!.userId}:${anonClient.deviceId}:${sid.sid}`,
+      ),
+    ).toBe(true)
 
     // 换发的令牌真实可用：新 sessionKey 派生双因子签名过 Sign guard（挑一条与菜单表
     // 无关的登录态端点 —— permissions 在空菜单表上 50000，见 auth-session spec 头注）
-    anonClient.setAuth({ userId: fixture!.userId, userName: fixture!.userName, accessToken: data.accessToken, sessionKey: data.sessionKey })
+    anonClient.setAuth({
+      userId: fixture!.userId,
+      userName: fixture!.userName,
+      accessToken: data.accessToken,
+      sessionKey: data.sessionKey,
+    })
     await anonClient.seedMfaVerifiedCache(fixture!.userId)
     const probe = await anonClient.root('GET', anonClient.apiPath('/system/user/me/security-tab2'))
     expectOk(probe, 'security-tab2 with otp-issued session')

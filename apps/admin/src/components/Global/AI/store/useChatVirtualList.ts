@@ -2,7 +2,18 @@ import { useVirtualizer } from '@tanstack/vue-virtual'
 import { createGlobalState } from '@vueuse/core'
 import { nextTick, ref, watch } from 'vue'
 import { BUSINESS_TYPE_HEIGHTS } from '../config/business/registry'
-import { DEFAULT_VIRTUAL_ITEM_HEIGHT, HEIGHTS_CACHE_MAX, ITEM_HEIGHT_BASE, ITEM_HEIGHT_MAX_LINES, ITEM_HEIGHT_PER_LINE, SCROLL_NEAR_BOTTOM_PX, SCROLL_SUPPRESS_MS, THINKING_ITEM_HEIGHT, VIRTUAL_LIST_GAP, VIRTUAL_LIST_OVERSCAN } from '../config/constants'
+import {
+  DEFAULT_VIRTUAL_ITEM_HEIGHT,
+  HEIGHTS_CACHE_MAX,
+  ITEM_HEIGHT_BASE,
+  ITEM_HEIGHT_MAX_LINES,
+  ITEM_HEIGHT_PER_LINE,
+  SCROLL_NEAR_BOTTOM_PX,
+  SCROLL_SUPPRESS_MS,
+  THINKING_ITEM_HEIGHT,
+  VIRTUAL_LIST_GAP,
+  VIRTUAL_LIST_OVERSCAN,
+} from '../config/constants'
 import { LRUMap } from '../utils/cache'
 import { useConversationStore } from './useConversationStore'
 
@@ -17,20 +28,18 @@ export const useChatVirtualList = createGlobalState(() => {
   let suppressUntil = 0
 
   const virtualizer = useVirtualizer({
-    get count() { return messages.value.length },
+    get count() {
+      return messages.value.length
+    },
     getScrollElement: () => scrollContainerRef.value,
     estimateSize: (index: number) => {
       const msg = messages.value[index]
-      if (!msg)
-        return DEFAULT_VIRTUAL_ITEM_HEIGHT
+      if (!msg) return DEFAULT_VIRTUAL_ITEM_HEIGHT
       const cached = measuredHeights.get(msg.id)
-      if (cached)
-        return cached
+      if (cached) return cached
       const meta = msg.businessContent && BUSINESS_TYPE_HEIGHTS[msg.businessContent.type]
-      if (meta)
-        return meta
-      if (msg.role === 'assistant' && msg.thinkingContent)
-        return THINKING_ITEM_HEIGHT
+      if (meta) return meta
+      if (msg.role === 'assistant' && msg.thinkingContent) return THINKING_ITEM_HEIGHT
       const lines = Math.min(msg.content?.split('\n').length || 1, ITEM_HEIGHT_MAX_LINES)
       return ITEM_HEIGHT_BASE + lines * ITEM_HEIGHT_PER_LINE
     },
@@ -45,13 +54,9 @@ export const useChatVirtualList = createGlobalState(() => {
    * Side effect: Calls virtualizer.scrollToIndex(); skipped if user scrolled up (showScrollButton is true)
    */
   watch(
-    () => [
-      messages.value.length,
-      messages.value[messages.value.length - 1]?.content,
-    ] as const,
+    () => [messages.value.length, messages.value[messages.value.length - 1]?.content] as const,
     () => {
-      if (showScrollButton.value)
-        return
+      if (showScrollButton.value) return
       nextTick(() => {
         const v = virtualizer.value
         v.measure()
@@ -80,10 +85,8 @@ export const useChatVirtualList = createGlobalState(() => {
 
   /** Scroll virtual list to the last message. If force=false, respects showScrollButton state */
   function scrollToBottom(force = true) {
-    if (!force && showScrollButton.value)
-      return
-    if (messages.value.length === 0)
-      return
+    if (!force && showScrollButton.value) return
+    if (messages.value.length === 0) return
     scrollToBottomInternal()
     showScrollButton.value = false
 
@@ -104,8 +107,7 @@ export const useChatVirtualList = createGlobalState(() => {
       return
     }
 
-    if (Date.now() < suppressUntil)
-      return
+    if (Date.now() < suppressUntil) return
 
     const v = virtualizer.value
     const offset = v.scrollOffset ?? 0
@@ -117,15 +119,12 @@ export const useChatVirtualList = createGlobalState(() => {
 
   /** Measure a real DOM element's rendered height and cache it for future estimateSize calls */
   function measureAndCache(el: unknown, index: number) {
-    if (!(el instanceof HTMLElement))
-      return
+    if (!(el instanceof HTMLElement)) return
     const msg = messages.value[index]
-    if (!msg)
-      return
+    if (!msg) return
     const prevHeight = measuredHeights.get(msg.id)
     virtualizer.value.measureElement(el)
-    if (el.offsetHeight > 0)
-      measuredHeights.set(msg.id, el.offsetHeight)
+    if (el.offsetHeight > 0) measuredHeights.set(msg.id, el.offsetHeight)
     // Business card actual height may differ from estimate; correct scroll position for last item
     if (index === messages.value.length - 1 && prevHeight && prevHeight !== el.offsetHeight) {
       requestAnimationFrame(() => {

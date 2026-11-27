@@ -20,8 +20,7 @@ function ok(argv: string[]): ReleaseArgs {
 /** 解析失败并取回文案；成功即用例失败 */
 function fail(argv: string[]): string {
   const parsed = parseReleaseArgs(argv)
-  if (parsed.ok)
-    throw new Error(`期望解析失败，实际成功（argv: ${argv.join(' ')}）`)
+  if (parsed.ok) throw new Error(`期望解析失败，实际成功（argv: ${argv.join(' ')}）`)
   return parsed.message
 }
 
@@ -99,7 +98,9 @@ describe('parseReleaseArgs —— 值 flag 的校验', () => {
     expect(ok(['--consume-attempts', '20']).consumeAttempts).toBe(20)
     for (const value of ['0', '21', '-1', '3.5', 'abc', '1e2']) {
       const message = fail(['--consume-attempts', value])
-      expect(message, `--consume-attempts ${value} 应当被拒绝`).toContain('--consume-attempts 只能是 1..20 的整数')
+      expect(message, `--consume-attempts ${value} 应当被拒绝`).toContain(
+        '--consume-attempts 只能是 1..20 的整数',
+      )
     }
   })
 
@@ -136,7 +137,9 @@ describe('parseReleaseArgs —— --skip-gates（唯一允许裸用的 flag）',
   it('skipGatesLabel 复述三种形状', () => {
     expect(skipGatesLabel(null)).toBe('')
     expect(skipGatesLabel('all')).toBe('已跳过发版前门禁与全量电池（--skip-gates）')
-    expect(skipGatesLabel(['lint', 'test'])).toBe('已跳过发版前门禁项：lint / test（--skip-gates=…）')
+    expect(skipGatesLabel(['lint', 'test'])).toBe(
+      '已跳过发版前门禁项：lint / test（--skip-gates=…）',
+    )
   })
 })
 
@@ -148,11 +151,12 @@ describe('parseReleaseArgs —— 入口点互斥矩阵', () => {
     const specialPair = new Set(['--plan|--status', '--status|--plan'])
     for (const first of ENTRIES) {
       for (const second of ENTRIES) {
-        if (first === second)
-          continue
+        if (first === second) continue
         const message = fail([first, second])
         expect(message, `${first} + ${second} 应当被拒绝`).toMatch(
-          specialPair.has(`${first}|${second}`) ? /同一个只读面的两种措辞/ : /这些入口一次只能用一个/,
+          specialPair.has(`${first}|${second}`)
+            ? /同一个只读面的两种措辞/
+            : /这些入口一次只能用一个/,
         )
       }
     }
@@ -178,6 +182,10 @@ describe('parseReleaseArgs —— 入口点互斥矩阵', () => {
     expect(fail(['--status', '--dry-run'])).toContain('--dry-run 是「演练发版」')
     expect(fail(['--plan', '--dry-run'])).toContain('--dry-run 是「演练发版」')
     expect(ok(['--dry-run']).dryRun).toBe(true)
-    expect(ok(['--dry-run', '--yes', '--bump', 'patch'])).toMatchObject({ dryRun: true, yes: true, bump: 'patch' })
+    expect(ok(['--dry-run', '--yes', '--bump', 'patch'])).toMatchObject({
+      dryRun: true,
+      yes: true,
+      bump: 'patch',
+    })
   })
 })

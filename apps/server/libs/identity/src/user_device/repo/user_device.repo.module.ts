@@ -12,11 +12,9 @@ import { SysUserDeviceRepositoryService } from './user_device.repo.service'
  */
 @Global()
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([SysUserDeviceEntity], WalnutPGConnectionName),
-  ],
+  imports: [TypeOrmModule.forFeature([SysUserDeviceEntity], WalnutPGConnectionName)],
   controllers: [],
   providers: [SysUserDeviceRepositoryService],
   exports: [SysUserDeviceRepositoryService],
 })
-export class SysUserDeviceRepositoryModule { }
+export class SysUserDeviceRepositoryModule {}

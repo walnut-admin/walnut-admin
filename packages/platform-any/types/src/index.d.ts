@@ -16,29 +16,10 @@
  * 靠这段注释。四个模块之间目前**没有重名**。
  */
 
-export type {
-  IsFunction,
-  IsPrimitive,
-  NextDepth,
-  NoDistribute,
-  RecursionLimit,
-} from './deep-ref'
+export type { IsFunction, IsPrimitive, NextDepth, NoDistribute, RecursionLimit } from './deep-ref'
 
-export type {
-  RecordToUnion,
-  ShortEmits,
-  UnionToIntersection,
-} from './object-key'
+export type { RecordToUnion, ShortEmits, UnionToIntersection } from './object-key'
 
-export type {
-  IStorageAsync,
-  IStorageData,
-  IStorageOptions,
-  IStorageSync,
-} from './storage'
+export type { IStorageAsync, IStorageData, IStorageOptions, IStorageSync } from './storage'
 
-export type {
-  Fn,
-  IActionType,
-  PromiseFn,
-} from './universal'
+export type { Fn, IActionType, PromiseFn } from './universal'

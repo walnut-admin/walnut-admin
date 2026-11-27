@@ -1,14 +1,9 @@
 <script lang="ts" setup>
-import type {
-  PublicKeyCredentialCreationOptionsJSON,
-} from '@simplewebauthn/browser'
+import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/browser'
 import type { InputInst } from 'naive-ui'
 import { startRegistration } from '@simplewebauthn/browser'
 import { computed, nextTick, ref, useTemplateRef } from 'vue'
-import {
-  authMfaWebauthnRegisterOptionsAPI,
-  authMfaWebauthnRegisterVerifyAPI,
-} from '@/api/auth/mfa'
+import { authMfaWebauthnRegisterOptionsAPI, authMfaWebauthnRegisterVerifyAPI } from '@/api/auth/mfa'
 import { useAppMsgWarning } from '@/hooks/component/useMessage'
 import { useAppI18n } from '@/locales/index'
 import { useAppStoreFingerprint } from '@/store/modules/app/app-fingerprint'
@@ -50,8 +45,7 @@ async function onBind() {
 
 // Step 1 -> Step 2: start register
 async function startRegister() {
-  if (!canRegister.value)
-    return
+  if (!canRegister.value) return
 
   try {
     loading.value = true
@@ -68,21 +62,18 @@ async function startRegister() {
     // 2. wait for UI update, then call browser API
     await nextTick()
     await performBrowserRegistration()
-  }
-  catch (error: any) {
+  } catch (error: any) {
     console.error(error)
     errorMessage.value = error.message
     currentStep.value = 1
-  }
-  finally {
+  } finally {
     loading.value = false
   }
 }
 
 //  perform browser WebAuthn registration
 async function performBrowserRegistration() {
-  if (!registrationOptions.value)
-    return
+  if (!registrationOptions.value) return
 
   try {
     loading.value = true
@@ -101,13 +92,11 @@ async function performBrowserRegistration() {
     currentStep.value = 3
 
     emits('success')
-  }
-  catch (error: any) {
+  } catch (error: any) {
     console.error(error)
     errorMessage.value = getWebAuthnErrorMessage(error)
     currentStep.value = 1
-  }
-  finally {
+  } finally {
     loading.value = false
   }
 }
@@ -224,12 +213,7 @@ defineExpose({
         <NButton @click="onCloseModal">
           {{ $t('app.base.no') }}
         </NButton>
-        <NButton
-          type="primary"
-          :disabled="!canRegister"
-          :loading="loading"
-          @click="startRegister"
-        >
+        <NButton type="primary" :disabled="!canRegister" :loading="loading" @click="startRegister">
           {{ $t('auth.register.start') }}
         </NButton>
       </NSpace>

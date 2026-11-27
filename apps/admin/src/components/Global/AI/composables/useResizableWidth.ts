@@ -9,10 +9,12 @@ export function useResizableWidth() {
   let startWidth = 0
 
   function onPointerMove(e: PointerEvent) {
-    if (!isResizing.value)
-      return
+    if (!isResizing.value) return
     const delta = startX - e.clientX
-    aiPrefs.value.asideWidth = Math.min(CONTENT_ASIDE_THRESHOLD.max, Math.max(CONTENT_ASIDE_THRESHOLD.min, startWidth + delta))
+    aiPrefs.value.asideWidth = Math.min(
+      CONTENT_ASIDE_THRESHOLD.max,
+      Math.max(CONTENT_ASIDE_THRESHOLD.min, startWidth + delta),
+    )
   }
 
   function cleanup() {

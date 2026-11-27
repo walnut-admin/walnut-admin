@@ -13,9 +13,7 @@ import { SysDeptService } from './dept.service'
  * 不提前装载部门 controller（见 dept.repo.module.ts 头注释）。
  */
 @Module({
-  imports: [
-    SysDeptRepoModule,
-  ],
+  imports: [SysDeptRepoModule],
   controllers: [],
   providers: [SysDeptService, sysDeptRecoverableProvider],
   exports: [SysDeptRepoModule, SysDeptService],

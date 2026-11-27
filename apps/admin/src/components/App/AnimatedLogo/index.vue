@@ -1,11 +1,14 @@
 <script setup lang="ts">
 defineOptions({ name: 'AnimatedLogo' })
 
-withDefaults(defineProps<{
-  size?: number
-}>(), {
-  size: 24,
-})
+withDefaults(
+  defineProps<{
+    size?: number
+  }>(),
+  {
+    size: 24,
+  },
+)
 </script>
 
 <template>
@@ -14,5 +17,5 @@ withDefaults(defineProps<{
     alt="Logo"
     :style="{ width: `${size}px`, height: `${size}px` }"
     class="rounded object-contain"
-  >
+  />
 </template>

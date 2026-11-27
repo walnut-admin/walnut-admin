@@ -1,11 +1,5 @@
 import type { ArgumentsHost } from '@nestjs/common'
-import {
-  Catch,
-  ExceptionFilter,
-  HttpStatus,
-  Inject,
-  Logger,
-} from '@nestjs/common'
+import { Catch, ExceptionFilter, HttpStatus, Inject, Logger } from '@nestjs/common'
 
 import { SharedBLPathService } from '@walnut-server/blpath'
 import { setCustomHeaders } from '@walnut-server/utils/headers'
@@ -34,8 +28,7 @@ export async function translateResponseMessage(res: IWalnutAdminResponseBase, i1
  * 无法判定响应码（理论上 handler 一定给）时**保守入队**：宁可多一条记录，也不要漏掉真故障。
  */
 export function shouldReportException(code?: number): boolean {
-  if (typeof code !== 'number' || !Number.isFinite(code))
-    return true
+  if (typeof code !== 'number' || !Number.isFinite(code)) return true
 
   return code >= WalnutAdminConstAppResponseCode.INTERNAL_SERVER_ERROR
 }
@@ -50,10 +43,7 @@ export class WalnutAdminFilterExceptionAll implements ExceptionFilter {
     private readonly errorReporter: IWalnutAdminErrorReporter,
   ) {}
 
-  async catch(
-    exception: Error,
-    host: ArgumentsHost,
-  ) {
+  async catch(exception: Error, host: ArgumentsHost) {
     const ctx = host.switchToHttp()
     const response = ctx.getResponse<IWalnutAdminExpressResponse>()
     const request = ctx.getRequest<IWalnutAdminExpressRequest>()
@@ -73,10 +63,7 @@ export class WalnutAdminFilterExceptionAll implements ExceptionFilter {
 
     const walnutErrorResponse = WalnutAdminExceptionHandler(exception, request.id, i18n)
 
-    const translatedErrorMsg = await translateResponseMessage(
-      walnutErrorResponse,
-      i18n,
-    )
+    const translatedErrorMsg = await translateResponseMessage(walnutErrorResponse, i18n)
 
     // insert error to db（F-13：只有 5xx / 未预期异常入库 —— 判据与理由见 shouldReportException；
     // skipObservation 的 blpath 名单仍然先兜一层：favicon/health/metrics/*/state、*/heartbeat 类噪声

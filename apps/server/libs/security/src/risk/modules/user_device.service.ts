@@ -33,22 +33,23 @@ export class SecurityRiskUserDeviceService {
     return `${key}:${userId}:${deviceId}`
   }
 
-  async evaluateUserDevice(userId: string, deviceId: string): Promise<IWalnutAdminRiskEvaluationResult<IWalnutAdminUserDeviceRiskInfo>> {
+  async evaluateUserDevice(
+    userId: string,
+    deviceId: string,
+  ): Promise<IWalnutAdminRiskEvaluationResult<IWalnutAdminUserDeviceRiskInfo>> {
     const infoKey = this.getInfoKey(userId, deviceId)
-    const cached = await this.redis.get(infoKey) as string
+    const cached = (await this.redis.get(infoKey)) as string
 
     let userDeviceInfo: IWalnutAdminUserDeviceRiskInfo | null
 
     if (cached) {
       try {
         userDeviceInfo = JSON.parse(cached) as IWalnutAdminUserDeviceRiskInfo
-      }
-      catch {
+      } catch {
         this.logger.warn(`Failed to parse cached user device info for ${userId}:${deviceId}`)
         userDeviceInfo = await this.evaluateUserDeviceWithLock(userId, deviceId)
       }
-    }
-    else {
+    } else {
       userDeviceInfo = await this.evaluateUserDeviceWithLock(userId, deviceId)
     }
 
@@ -76,23 +77,18 @@ export class SecurityRiskUserDeviceService {
   private async evaluateUserDeviceWithLock(userId: string, deviceId: string) {
     const lockKey = `${WalnutAdminConstAppCacheKeys.APP_MURLOCK}:RISK:USER_DEVICE:${userId}:${deviceId}`
 
-    return this.lockService.runWithLock(
-      lockKey,
-      200,
-      async () => {
-        const infoKey = this.getInfoKey(userId, deviceId)
-        const doubleCheck = await this.redis.get(infoKey) as string
+    return this.lockService.runWithLock(lockKey, 200, async () => {
+      const infoKey = this.getInfoKey(userId, deviceId)
+      const doubleCheck = (await this.redis.get(infoKey)) as string
 
-        if (doubleCheck) {
-          try {
-            return JSON.parse(doubleCheck) as IWalnutAdminUserDeviceRiskInfo
-          }
-          catch {}
-        }
+      if (doubleCheck) {
+        try {
+          return JSON.parse(doubleCheck) as IWalnutAdminUserDeviceRiskInfo
+        } catch {}
+      }
 
-        return this.performUserDeviceEvaluation(userId, deviceId)
-      },
-    )
+      return this.performUserDeviceEvaluation(userId, deviceId)
+    })
   }
 
   private async performUserDeviceEvaluation(userId: string, deviceId: string) {
@@ -120,7 +116,12 @@ export class SecurityRiskUserDeviceService {
       factors.push(WalnutAdminConstRiskFactor.USER_DEVICE_LOCKED)
     }
 
-    if (this.userDeviceRepo.getIsDeviceInactive(userDevice.lastActiveAt, this.configService.thresholds.userDevice.inactiveDays)) {
+    if (
+      this.userDeviceRepo.getIsDeviceInactive(
+        userDevice.lastActiveAt,
+        this.configService.thresholds.userDevice.inactiveDays,
+      )
+    ) {
       score += this.configService.getWeight(WalnutAdminConstRiskFactor.USER_DEVICE_INACTIVE)
       factors.push(WalnutAdminConstRiskFactor.USER_DEVICE_INACTIVE)
     }
@@ -141,15 +142,11 @@ export class SecurityRiskUserDeviceService {
     }
 
     const infoKey = this.getInfoKey(userId, deviceId)
-    await this.redis.setEx(
-      infoKey,
-      this.configService.ttl.userDeviceInfo,
-      JSON.stringify(result),
-    )
+    await this.redis.setEx(infoKey, this.configService.ttl.userDeviceInfo, JSON.stringify(result))
 
     this.logger.debug(
-      `UserDevice evaluated - User: ${userId}, Device: ${deviceId}, Score: ${finalScore.toFixed(3)}, `
-      + `Level: ${level}, Factors: [${factors.join(', ')}]`,
+      `UserDevice evaluated - User: ${userId}, Device: ${deviceId}, Score: ${finalScore.toFixed(3)}, ` +
+        `Level: ${level}, Factors: [${factors.join(', ')}]`,
     )
 
     return result

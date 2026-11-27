@@ -104,24 +104,21 @@ export class SysDictTypeDTOSafe extends SysDictTypeDTO {
 export class SysDictTypeDTOListRequest extends CreateWalnutAdminRequestListDTO(
   RealPartialType(SysDictTypeDTOSafe),
   { sortOnlyIn: ['status', 'createdAt', 'updatedAt'] },
-) { }
+) {}
 
 export class SysDictTypeDTOListResponse extends CreateWalnutAdminResponseListDTO(
   RealPartialType(SysDictTypeDTOSafe),
-) { }
+) {}
 
 // create
-export class SysDictTypeDTOCreateRequest extends IntersectionType(RealPickType(
-  SysDictTypeDTOSafe,
-  ['type', 'name', 'status'] as const,
-), RealPartialType(RealPickType(
-  SysDictTypeDTOSafe,
-  ['description'] as const,
-))) { }
-export class SysDictTypeDTOCreateResponse extends SysDictTypeDTOSafe { }
+export class SysDictTypeDTOCreateRequest extends IntersectionType(
+  RealPickType(SysDictTypeDTOSafe, ['type', 'name', 'status'] as const),
+  RealPartialType(RealPickType(SysDictTypeDTOSafe, ['description'] as const)),
+) {}
+export class SysDictTypeDTOCreateResponse extends SysDictTypeDTOSafe {}
 
 // read
-export class SysDictTypeDTOReadResponse extends SysDictTypeDTOSafe { }
+export class SysDictTypeDTOReadResponse extends SysDictTypeDTOSafe {}
 
 // update —— 白名单同 create 的可选形态 + 真 PATCH 语义（preserveAbsent，2026-11 F2）：
 // 请求里没出现的键保持 undefined（不被字段装饰器的 nil→null 伪造），service 滤掉后
@@ -129,17 +126,17 @@ export class SysDictTypeDTOReadResponse extends SysDictTypeDTOSafe { }
 export class SysDictTypeDTOUpdateRequest extends RealPartialType(
   RealPickType(SysDictTypeDTOSafe, ['type', 'name', 'status', 'description'] as const),
   { preserveAbsent: true },
-) { }
-export class SysDictTypeDTOUpdateResponse extends SysDictTypeDTOSafe { }
+) {}
+export class SysDictTypeDTOUpdateResponse extends SysDictTypeDTOSafe {}
 
 // delete
-export class SysDictTypeDTODeleteResponse extends SysDictTypeDTOSafe { }
+export class SysDictTypeDTODeleteResponse extends SysDictTypeDTOSafe {}
 
 // get by type
-export class SysDictTypeDTOWithDictDataResponse extends RealPickType(
-  SysDictTypeDTOSafe,
-  ['type', 'name'] as const,
-) {
+export class SysDictTypeDTOWithDictDataResponse extends RealPickType(SysDictTypeDTOSafe, [
+  'type',
+  'name',
+] as const) {
   constructor(partial?: Partial<SysDictTypeDTOWithDictDataResponse>) {
     super()
     Object.assign(this, partial)

@@ -18,7 +18,10 @@ export function WalnutAdminDecoratorFunctionalGuard<T>(
   return applyDecorators(
     SetMetadata(WalnutAdminConstDecoratorFunctionalMetadataKey.MAIN_KEY, mainKey),
     SetMetadata(WalnutAdminConstDecoratorFunctionalMetadataKey.DETAIL_KEY, detailKey),
-    SetMetadata(WalnutAdminConstDecoratorFunctionalMetadataKey.DEFAULT_CLOSED, options?.defaultClosed === true),
+    SetMetadata(
+      WalnutAdminConstDecoratorFunctionalMetadataKey.DEFAULT_CLOSED,
+      options?.defaultClosed === true,
+    ),
     UseGuards(WalnutAdminGuardFunctional),
   )
 }

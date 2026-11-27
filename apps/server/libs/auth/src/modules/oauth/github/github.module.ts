@@ -7,12 +7,7 @@ import { OAuthGitHubService } from './github.service'
 import { OAuthGitHubStrategy } from './github.strategy'
 
 @Module({
-  imports: [
-    AppTechSseModule,
-    AuthSharedModule,
-    OAuthStateModule,
-    SysUserIdentitySharedModule,
-  ],
+  imports: [AppTechSseModule, AuthSharedModule, OAuthStateModule, SysUserIdentitySharedModule],
   providers: [OAuthGitHubService, OAuthGitHubStrategy],
   exports: [OAuthGitHubService],
 })

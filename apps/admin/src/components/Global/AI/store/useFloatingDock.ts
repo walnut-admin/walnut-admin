@@ -1,6 +1,10 @@
 import { createGlobalState } from '@vueuse/core'
 import { computed, onBeforeUnmount, ref } from 'vue'
-import { DOCK_CLAMP_MARGIN_PCT, DOCK_DRAG_CLICK_THRESHOLD_PCT, DOCK_TRIGGER_HEIGHT_PX } from '../config/constants'
+import {
+  DOCK_CLAMP_MARGIN_PCT,
+  DOCK_DRAG_CLICK_THRESHOLD_PCT,
+  DOCK_TRIGGER_HEIGHT_PX,
+} from '../config/constants'
 import { useAIPreferences } from './useAIPreferences'
 import { usePanelState } from './usePanelState'
 
@@ -54,29 +58,25 @@ export const useFloatingDock = createGlobalState(() => {
 
   /** Update dock Y position based on pointer delta during drag */
   function onPointerMove(e: PointerEvent) {
-    if (!isDragging.value)
-      return
-    const dy = (e.clientY - dragStartY) / window.innerHeight * 100
+    if (!isDragging.value) return
+    const dy = ((e.clientY - dragStartY) / window.innerHeight) * 100
     aiPrefs.value.dockY = clampY(dragStartTriggerY + dy)
   }
 
   /** End drag; if barely moved (<0.5%), treat as a click and open the panel */
   function onPointerUp(_e: PointerEvent) {
-    if (!isDragging.value)
-      return
+    if (!isDragging.value) return
     isDragging.value = false
 
     const moved = Math.abs(aiPrefs.value.dockY - dragStartTriggerY)
-    if (moved < DOCK_DRAG_CLICK_THRESHOLD_PCT)
-      open()
+    if (moved < DOCK_DRAG_CLICK_THRESHOLD_PCT) open()
 
     unlockUserSelect()
   }
 
   /** Cancel drag (e.g. pointer lost); restore text selection */
   function onPointerCancel() {
-    if (!isDragging.value)
-      return
+    if (!isDragging.value) return
     isDragging.value = false
     unlockUserSelect()
   }

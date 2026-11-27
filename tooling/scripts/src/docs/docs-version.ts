@@ -44,9 +44,9 @@ const BODY_SNIPPET_LIMIT = 300
 export type DocsVersionSource = 'release' | 'local-tag'
 
 /** 一次 HTTP 查询的两种结果：拿到响应（含非 200）或压根没发出去 */
-export type ReleaseLookup
-  = { ok: true, status: number, body: string }
-    | { ok: false, reason: string }
+export type ReleaseLookup =
+  | { ok: true; status: number; body: string }
+  | { ok: false; reason: string }
 
 export interface DocsVersionInput {
   /** `git remote get-url origin`；null = 读不到（不在检出内 / 没配 origin） */
@@ -76,12 +76,14 @@ export const DOCS_VERSION_FILE = join(REPO_ROOT, 'apps/docs/version.json')
  */
 export function resolveRepo(remoteUrl: string | null): GithubRepo {
   if (remoteUrl === null || remoteUrl.trim() === '')
-    throw new PreconditionError('读不到 git remote `origin`：请在仓库检出内运行，或先 `git remote add origin <url>`。')
+    throw new PreconditionError(
+      '读不到 git remote `origin`：请在仓库检出内运行，或先 `git remote add origin <url>`。',
+    )
   const repo = parseGithubRemote(remoteUrl)
   if (repo === null) {
     throw new PreconditionError(
-      `无法从 git remote 解析出 GitHub 仓库坐标：${remoteUrl}\n`
-      + '支持的形态：https://<host>/<owner>/<repo>(.git)、git@<host>:<owner>/<repo>(.git)（含企业域名）。',
+      `无法从 git remote 解析出 GitHub 仓库坐标：${remoteUrl}\n` +
+        '支持的形态：https://<host>/<owner>/<repo>(.git)、git@<host>:<owner>/<repo>(.git)（含企业域名）。',
     )
   }
   return repo
@@ -92,24 +94,23 @@ export function latestTagFromBody(body: string): string | null {
   let raw: unknown
   try {
     raw = JSON.parse(body)
-  }
-  catch {
+  } catch {
     return null
   }
-  if (raw === null || typeof raw !== 'object' || Array.isArray(raw))
-    return null
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null
   const tag = (raw as Record<string, unknown>).tag_name
-  if (typeof tag !== 'string')
-    return null
+  if (typeof tag !== 'string') return null
   const trimmed = tag.trim()
   return trimmed === '' ? null : trimmed
 }
 
 /** 本机最新 tag（列表已按 `-v:refname` 排好序）；一个都没有就抛前置条件错误 */
 export function localLatestTag(localTags: readonly string[]): string {
-  const first = localTags.map(tag => tag.trim()).find(Boolean)
+  const first = localTags.map((tag) => tag.trim()).find(Boolean)
   if (first === undefined)
-    throw new PreconditionError('GitHub 仓库还没有任何 Release（HTTP 404），本机也没有任何 tag：先打一个 tag 或建一个 Release，再重跑。')
+    throw new PreconditionError(
+      'GitHub 仓库还没有任何 Release（HTTP 404），本机也没有任何 tag：先打一个 tag 或建一个 Release，再重跑。',
+    )
   return first
 }
 
@@ -122,29 +123,31 @@ function snippet(text: string): string {
 /**
  * 判定该写哪个版本（纯函数）：给定 HTTP 结果与本机 tag 列表，返回版本与来源，或抛前置条件错误。
  */
-export function decideVersion(lookup: ReleaseLookup, localTags: readonly string[]): { version: string, source: DocsVersionSource } {
+export function decideVersion(
+  lookup: ReleaseLookup,
+  localTags: readonly string[],
+): { version: string; source: DocsVersionSource } {
   if (!lookup.ok)
     throw new PreconditionError(`查询 GitHub 最新 Release 失败（网络错误或超时）：${lookup.reason}`)
   if (lookup.status === 200) {
     const tag = latestTagFromBody(lookup.body)
-    if (tag !== null)
-      return { version: tag, source: 'release' }
-    throw new PreconditionError(`GitHub API 返回 200，但响应体里没有有效的 tag_name（不是 JSON、或字段为空）：${snippet(lookup.body)}`)
+    if (tag !== null) return { version: tag, source: 'release' }
+    throw new PreconditionError(
+      `GitHub API 返回 200，但响应体里没有有效的 tag_name（不是 JSON、或字段为空）：${snippet(lookup.body)}`,
+    )
   }
-  if (lookup.status === 404)
-    return { version: localLatestTag(localTags), source: 'local-tag' }
+  if (lookup.status === 404) return { version: localLatestTag(localTags), source: 'local-tag' }
   throw new PreconditionError(`GitHub API 返回 HTTP ${lookup.status}：${snippet(lookup.body)}`)
 }
 
 /** 请求头：凭据只走 Authorization 头，不进 URL */
 function requestHeaders(token: string | null): Record<string, string> {
   const headers: Record<string, string> = {
-    'Accept': 'application/vnd.github+json',
+    Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': API_VERSION,
     'User-Agent': 'walnut-admin-docs-version',
   }
-  if (token)
-    headers.Authorization = `Bearer ${token}`
+  if (token) headers.Authorization = `Bearer ${token}`
   return headers
 }
 
@@ -152,7 +155,11 @@ function requestHeaders(token: string | null): Record<string, string> {
  * 查最新 Release。网络错误 / 超时收敛成 `{ ok: false }`（由 `decideVersion` 统一翻译成前置条件错误），
  * 非 200 的响应体照样带回 —— 截断与判据都留给调用方。
  */
-async function lookupLatestRelease(repo: GithubRepo, token: string | null, fetchImpl: typeof fetch): Promise<ReleaseLookup> {
+async function lookupLatestRelease(
+  repo: GithubRepo,
+  token: string | null,
+  fetchImpl: typeof fetch,
+): Promise<ReleaseLookup> {
   const url = `${apiBase(repo)}/repos/${repo.owner}/${repo.repo}/releases/latest`
   try {
     const response = await fetchImpl(url, {
@@ -161,8 +168,7 @@ async function lookupLatestRelease(repo: GithubRepo, token: string | null, fetch
       signal: AbortSignal.timeout(TIMEOUT_MS),
     })
     return { ok: true, status: response.status, body: await response.text() }
-  }
-  catch (error) {
+  } catch (error) {
     return { ok: false, reason: error instanceof Error ? error.message : String(error) }
   }
 }
@@ -180,7 +186,10 @@ function previousVersion(file: string): string | null {
  * `fetchImpl` 是参数而不是直接读全局：用例用 `vi.stubGlobal('fetch', …)` 注入，
  * 本函数本身仍走真实实现（默认值）。
  */
-export async function runDocsVersion(input: DocsVersionInput, fetchImpl: typeof fetch = fetch): Promise<DocsVersionResult> {
+export async function runDocsVersion(
+  input: DocsVersionInput,
+  fetchImpl: typeof fetch = fetch,
+): Promise<DocsVersionResult> {
   const repo = resolveRepo(input.remoteUrl)
   const lookup = await lookupLatestRelease(repo, input.token, fetchImpl)
   const { version, source } = decideVersion(lookup, input.localTags)
@@ -198,6 +207,7 @@ export async function main(): Promise<void> {
     token,
     versionFile: DOCS_VERSION_FILE,
   })
-  const from = result.source === 'release' ? 'GitHub 最新 Release' : '本机最新 tag（仓库还没有 Release）'
+  const from =
+    result.source === 'release' ? 'GitHub 最新 Release' : '本机最新 tag（仓库还没有 Release）'
   line('ok', `文档站版本号：${result.previous ?? '(无)'} → ${result.version}（来源：${from}）`)
 }

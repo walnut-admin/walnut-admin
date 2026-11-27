@@ -1,16 +1,9 @@
-import {
-  CallHandler,
-  ExecutionContext,
-  Injectable,
-  NestInterceptor,
-} from '@nestjs/common'
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { WalnutAdminConstDecoratorFreeResponseMetadataKey } from '@walnut-server/const/decorator/response'
 
 import { setCustomHeaders } from '@walnut-server/utils/headers'
-import {
-  WalnutAdminResponseSuccess,
-} from '@walnut-server/utils/response'
+import { WalnutAdminResponseSuccess } from '@walnut-server/utils/response'
 import { I18nContext } from 'nestjs-i18n'
 import { Observable } from 'rxjs'
 import { map } from 'rxjs/operators'
@@ -49,9 +42,8 @@ export class WalnutAdminInterceptorResponseSuccess implements NestInterceptor {
           // 是既定口径，但「这条 200 是在机器人防护缺席时放行的」必须能被排查到 ——
           // 前端排障、运维看请求日志、自动化回归都能直接读到。
           // 敏感端点在 guard 层就已 40667 拒绝，永远走不到这条 200。
-          const meta = request.riskDegraded === undefined
-            ? undefined
-            : { riskDegraded: request.riskDegraded }
+          const meta =
+            request.riskDegraded === undefined ? undefined : { riskDegraded: request.riskDegraded }
 
           return WalnutAdminResponseSuccess(data, request.id, successMsg, meta)
         }),

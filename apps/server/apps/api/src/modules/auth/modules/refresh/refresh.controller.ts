@@ -1,17 +1,22 @@
-import {
-  Controller,
-  HttpCode,
-  HttpStatus,
-  Post,
-  Req,
-  UseGuards,
-} from '@nestjs/common'
+import { Controller, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { AuthCookieService, AuthRefreshSharedService, AuthSuccessDTO, WalnutAdminGuardJwtFree } from '@walnut-server/auth'
+import {
+  AuthCookieService,
+  AuthRefreshSharedService,
+  AuthSuccessDTO,
+  WalnutAdminGuardJwtFree,
+} from '@walnut-server/auth'
 
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { WalnutAdminDecoratorDataScopeSystemChannel, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorJti, WalnutAdminGuardLockFree, WalnutAdminGuardMFAFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import {
+  WalnutAdminDecoratorDataScopeSystemChannel,
+  WalnutAdminDecoratorDeviceId,
+  WalnutAdminDecoratorJti,
+  WalnutAdminGuardLockFree,
+  WalnutAdminGuardMFAFree,
+  WalnutAdminGuardSignFree,
+} from '@walnut-server/guards'
 import { AuthRoutes } from '@walnut/contract'
 import { JwtRefreshGuard } from './refresh.guard'
 
@@ -23,7 +28,7 @@ export class AuthRefreshController {
   constructor(
     private readonly authRefreshSharedService: AuthRefreshSharedService,
     private readonly authCookieService: AuthCookieService,
-  ) { }
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.OK)
@@ -36,8 +41,7 @@ export class AuthRefreshController {
   // 带 DEVICE_ID cookie（RT 行按 deviceId 校验），拆掉 DeviceFree 不会影响可用性。
   @WalnutTx()
   @ApiWalnutOkResponse({
-    description:
-      'Use jti to get new accessToken & refresh token',
+    description: 'Use jti to get new accessToken & refresh token',
     DTO: AuthSuccessDTO,
   })
   @UseGuards(JwtRefreshGuard)

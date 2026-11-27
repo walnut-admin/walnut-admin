@@ -7,11 +7,7 @@ defineOptions({
   name: 'WCompExtraJSON',
 })
 
-const {
-  value = {},
-  height = '100px',
-  copy = true,
-} = defineProps<ICompExtraJSONProps>()
+const { value = {}, height = '100px', copy = true } = defineProps<ICompExtraJSONProps>()
 
 const jsonRef = useTemplateRef('jsonRef')
 const getJSON = computed(() =>
@@ -29,11 +25,7 @@ const isHovered = useElementHover(jsonRef)
       <n-code :code="getJSON" language="json" word-wrap :trim="false" />
 
       <WTransition v-if="copy" appear transition-name="fade-right">
-        <WCopy
-          v-show="isHovered"
-          :source="getJSON"
-          class="absolute right-2 top-2"
-        />
+        <WCopy v-show="isHovered" :source="getJSON" class="absolute right-2 top-2" />
       </WTransition>
     </div>
   </WScrollbar>

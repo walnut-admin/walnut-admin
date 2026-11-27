@@ -28,7 +28,11 @@ describe('deptId DTO 入参变换（批 4 / B1 回归）', () => {
 
   it('显式 null 保留为自有属性（清空语义可与「未提交」区分）', () => {
     const user = plainToInstance(SysUserDTOUpdateRequest, { userName: 'u', deptId: null }, options)
-    const demo = plainToInstance(AppDemoDTOUpdateRequest, { demoString: 'X', deptId: null }, options)
+    const demo = plainToInstance(
+      AppDemoDTOUpdateRequest,
+      { demoString: 'X', deptId: null },
+      options,
+    )
 
     expect(Object.hasOwn(user, 'deptId')).toBe(true)
     expect(user.deptId).toBeNull()
@@ -39,7 +43,11 @@ describe('deptId DTO 入参变换（批 4 / B1 回归）', () => {
   it('显式值原样保留（大写 UUID 不被改写）', () => {
     const value = 'AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA'
     const user = plainToInstance(SysUserDTOUpdateRequest, { userName: 'u', deptId: value }, options)
-    const employee = plainToInstance(SysEmployeeDTOUpdateRequest, { employeeNo: 'e', deptId: value }, options)
+    const employee = plainToInstance(
+      SysEmployeeDTOUpdateRequest,
+      { employeeNo: 'e', deptId: value },
+      options,
+    )
 
     expect(user.deptId).toBe(value)
     expect(employee.deptId).toBe(value)

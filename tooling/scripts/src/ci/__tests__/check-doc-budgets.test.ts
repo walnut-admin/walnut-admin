@@ -48,7 +48,10 @@ describe('evaluateBudgets —— 下界（预算过期）', () => {
   it('阈值就是导出的 STALE_RATIO（改常量不会让用例说谎）', () => {
     const maxChars = 1000
     const justUnder = Math.floor(maxChars * STALE_RATIO) - 1
-    const [findings] = evaluateBudgets([budget('a.md', maxChars)], readerOfLengths({ 'a.md': justUnder }))
+    const [findings] = evaluateBudgets(
+      [budget('a.md', maxChars)],
+      readerOfLengths({ 'a.md': justUnder }),
+    )
     expect(findings[0]?.kind).toBe('stale')
   })
 })
@@ -78,7 +81,7 @@ describe('仓库真实预算表', () => {
   })
 
   it('没有重复文件', () => {
-    const files = DOC_BUDGETS.map(b => b.file)
+    const files = DOC_BUDGETS.map((b) => b.file)
     expect(new Set(files).size).toBe(files.length)
   })
 
@@ -86,12 +89,18 @@ describe('仓库真实预算表', () => {
     // 它一度 16150 字符 / 537 行（官方建议的 2.5 倍），当时**刻意排除**而不是让门禁当场红；
     // 2026-09-23 拆成「常驻规矩留原文件 + 参考型内容进文档站 content/backend/ 五篇」后降到 ~6035，
     // 于是纳入。这条用例守的是「别再把它漏回去」。
-    expect(DOC_BUDGETS.map(b => b.file)).toContain('apps/server/AGENTS.md')
+    expect(DOC_BUDGETS.map((b) => b.file)).toContain('apps/server/AGENTS.md')
   })
 
   it('全仓五份常驻指引都在表里（根两份 + 3 个 app 各一份）', () => {
-    const files = DOC_BUDGETS.map(b => b.file)
-    for (const f of ['AGENTS.md', 'CLAUDE.md', 'apps/admin/AGENTS.md', 'apps/docs/AGENTS.md', 'apps/server/AGENTS.md'])
+    const files = DOC_BUDGETS.map((b) => b.file)
+    for (const f of [
+      'AGENTS.md',
+      'CLAUDE.md',
+      'apps/admin/AGENTS.md',
+      'apps/docs/AGENTS.md',
+      'apps/server/AGENTS.md',
+    ])
       expect(files, `${f} 不在预算表里`).toContain(f)
   })
 })

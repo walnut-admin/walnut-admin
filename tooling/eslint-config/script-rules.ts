@@ -48,10 +48,16 @@ interface ExitCodeOptions {
  * （本规则的用例里就有这一条，第一版正是这么挂的）。
  */
 function numericLiteral(node: unknown): number | null {
-  const n = node as { type?: string, value?: unknown, operator?: string, argument?: unknown } | undefined
-  if (n?.type === 'Literal' && typeof n.value === 'number')
-    return n.value
-  if (n?.type === 'UnaryExpression' && n.operator === '-' && typeof n.argument === 'object' && n.argument !== null) {
+  const n = node as
+    | { type?: string; value?: unknown; operator?: string; argument?: unknown }
+    | undefined
+  if (n?.type === 'Literal' && typeof n.value === 'number') return n.value
+  if (
+    n?.type === 'UnaryExpression' &&
+    n.operator === '-' &&
+    typeof n.argument === 'object' &&
+    n.argument !== null
+  ) {
     const inner = numericLiteral(n.argument)
     return inner === null ? null : -inner
   }
@@ -66,7 +72,8 @@ const scriptHeader: Rule.RuleModule = {
     },
     schema: [],
     messages: {
-      missing: '脚本入口必须有文件头注释（说明这个脚本做什么）—— 本仓 bin 的惯例是开头一段 `//` 或 `/** */`。',
+      missing:
+        '脚本入口必须有文件头注释（说明这个脚本做什么）—— 本仓 bin 的惯例是开头一段 `//` 或 `/** */`。',
     },
   },
 
@@ -75,8 +82,7 @@ const scriptHeader: Rule.RuleModule = {
     return {
       Program(node) {
         const first = node.body[0]
-        if (first === undefined)
-          return
+        if (first === undefined) return
         // `range[1] <= first.range[0]` = 只认**第一个语句之前**的注释。
         // （ESLint 的类型把 `range` 标成可选，但解析器一定会给 —— 拿不到就当没有，
         //   宁可漏报也不误报。）
@@ -86,12 +92,10 @@ const scriptHeader: Rule.RuleModule = {
           // 必须按运行期的 `type === 'Shebang'` 判：ESLint 的**类型定义里没有这一支**
           // （`Comment` 只声明 `Line | Block`），所以这里要显式放宽成 string 再比 ——
           // 直接写 `!== 'Shebang'` 会被 TS 判成「两个类型没有交集」的恒真比较。
-          if ((comment.type as string) === 'Shebang')
-            return false
+          if ((comment.type as string) === 'Shebang') return false
           return (comment.range?.[1] ?? Number.POSITIVE_INFINITY) <= head
         })
-        if (!header)
-          context.report({ node: first, messageId: 'missing' })
+        if (!header) context.report({ node: first, messageId: 'missing' })
       },
     }
   },
@@ -103,11 +107,13 @@ const scriptExitCode: Rule.RuleModule = {
     docs: {
       description: 'Restrict script exit codes to the repo four-state convention (0/1/2/3)',
     },
-    schema: [{
-      type: 'object',
-      properties: { allowed: { type: 'array', items: { type: 'number' } } },
-      additionalProperties: false,
-    }],
+    schema: [
+      {
+        type: 'object',
+        properties: { allowed: { type: 'array', items: { type: 'number' } } },
+        additionalProperties: false,
+      },
+    ],
     messages: {
       exit: '退出码只能是 0（通过）/ 1（查出违规）/ 2（前置未满足）/ 3（未验证：压根没跑），这里写的是 {{value}}。',
       mainReturn: '`main()` 的返回值就是退出码，只能是 0 / 1 / 2 / 3，这里返回的是 {{value}}。',
@@ -122,11 +128,12 @@ const scriptExitCode: Rule.RuleModule = {
     function insideMain(node: unknown): boolean {
       const ancestors = context.sourceCode.getAncestors(node as never)
       for (let i = ancestors.length - 1; i >= 0; i--) {
-        const a = ancestors[i] as { type?: string, id?: { name?: string } | null }
-        const isFunction = a.type === 'FunctionDeclaration' || a.type === 'FunctionExpression'
-          || a.type === 'ArrowFunctionExpression'
-        if (!isFunction)
-          continue
+        const a = ancestors[i] as { type?: string; id?: { name?: string } | null }
+        const isFunction =
+          a.type === 'FunctionDeclaration' ||
+          a.type === 'FunctionExpression' ||
+          a.type === 'ArrowFunctionExpression'
+        if (!isFunction) continue
         return a.type === 'FunctionDeclaration' && a.id?.name === 'main'
       }
       return false
@@ -134,25 +141,30 @@ const scriptExitCode: Rule.RuleModule = {
 
     return {
       CallExpression(node) {
-        const callee = node.callee as { type?: string, object?: { name?: string }, property?: { name?: string } }
-        const isProcessExit = callee.type === 'MemberExpression'
-          && callee.object?.name === 'process'
-          && callee.property?.name === 'exit'
-        if (!isProcessExit || node.arguments.length !== 1)
-          return
+        const callee = node.callee as {
+          type?: string
+          object?: { name?: string }
+          property?: { name?: string }
+        }
+        const isProcessExit =
+          callee.type === 'MemberExpression' &&
+          callee.object?.name === 'process' &&
+          callee.property?.name === 'exit'
+        if (!isProcessExit || node.arguments.length !== 1) return
         const value = numericLiteral(node.arguments[0])
-        if (value === null || allowed.has(value))
-          return
+        if (value === null || allowed.has(value)) return
         context.report({ node, messageId: 'exit', data: { value: String(value) } })
       },
 
       ReturnStatement(node) {
         const value = numericLiteral(node.argument)
-        if (value === null || allowed.has(value))
-          return
-        if (!insideMain(node))
-          return
-        context.report({ node: node.argument as never, messageId: 'mainReturn', data: { value: String(value) } })
+        if (value === null || allowed.has(value)) return
+        if (!insideMain(node)) return
+        context.report({
+          node: node.argument as never,
+          messageId: 'mainReturn',
+          data: { value: String(value) },
+        })
       },
     }
   },

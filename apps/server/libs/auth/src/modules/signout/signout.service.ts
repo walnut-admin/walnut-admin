@@ -3,7 +3,10 @@ import type { EntityManager } from 'typeorm'
 import type { IAuthMonitorService, IAuthRiskService } from '../../auth.ports'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { AppTechCacheMfaService } from '@walnut-server/cache'
-import { IWalnutAdminConstRevokeRTType, WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
+import {
+  IWalnutAdminConstRevokeRTType,
+  WalnutAdminConstRevokeRTType,
+} from '@walnut-server/const/app/setting'
 import { registerAfterCommitHook, runAfterCommit } from '@walnut-server/db'
 import { WalnutAdminExceptionRefreshTokenExpired } from '@walnut-server/exceptions/business/auth'
 import { SysMenuSharedService } from '@walnut-server/system'
@@ -35,7 +38,7 @@ export class AuthSignoutService implements IIdentitySignoutService {
     private readonly riskService: IAuthRiskService,
     @Inject(WALNUT_ADMIN_AUTH_MONITOR_SERVICE)
     private readonly appMonitorUserSharedService: IAuthMonitorService,
-  ) { }
+  ) {}
 
   /**
    * Execute logout operation
@@ -71,7 +74,7 @@ export class AuthSignoutService implements IIdentitySignoutService {
    * deviceId」同口径，防的是「A 设备的 cookie 去撤 B 设备的 RT」。
    */
   async signoutByRefreshJti(
-    payload: { jti: string, sid: string, deviceId: string, ip: string },
+    payload: { jti: string; sid: string; deviceId: string; ip: string },
     em?: EntityManager,
   ) {
     const owner = await this.authRefreshSharedService.getRefreshSessionOwner(payload.jti)
@@ -79,12 +82,16 @@ export class AuthSignoutService implements IIdentitySignoutService {
       throw new WalnutAdminExceptionRefreshTokenExpired()
     }
 
-    await this.doSignout(owner.userId, {
-      trigger: 'user-logout',
-      deviceId: owner.deviceId,
-      sid: payload.sid,
-      ip: payload.ip,
-    }, em)
+    await this.doSignout(
+      owner.userId,
+      {
+        trigger: 'user-logout',
+        deviceId: owner.deviceId,
+        sid: payload.sid,
+        ip: payload.ip,
+      },
+      em,
+    )
   }
 
   /**
@@ -114,9 +121,15 @@ export class AuthSignoutService implements IIdentitySignoutService {
       return []
     }
 
-    const userIds = await this.authRefreshSharedService.revokeRTForDevice(deviceId, em, revokeReason)
+    const userIds = await this.authRefreshSharedService.revokeRTForDevice(
+      deviceId,
+      em,
+      revokeReason,
+    )
 
-    this.logger.log(`Device kick - revoked RT for device: ${deviceId}, affected users: ${userIds.length}`)
+    this.logger.log(
+      `Device kick - revoked RT for device: ${deviceId}, affected users: ${userIds.length}`,
+    )
 
     await runAfterCommit(async () => {
       for (const userId of userIds) {
@@ -176,12 +189,21 @@ export class AuthSignoutService implements IIdentitySignoutService {
     }
 
     // revoke RT + 更新revoke reason
-    await this.authRefreshSharedService.revokeRTForUserDevice(userId, deviceId, em, WalnutAdminConstRevokeRTType.userKickOther)
+    await this.authRefreshSharedService.revokeRTForUserDevice(
+      userId,
+      deviceId,
+      em,
+      WalnutAdminConstRevokeRTType.userKickOther,
+    )
     this.logger.log(`User kick other - revoked RT for offline device: ${deviceId}`)
 
     // 在线设备：发 socket 通知（使用用户踢其他设备的提示）
     if (isOnline) {
-      await this.appMonitorUserSharedService.forceQuitMonitorBySocket(userId, fingerprint, WalnutAdminConstRevokeRTType.userKickOther)
+      await this.appMonitorUserSharedService.forceQuitMonitorBySocket(
+        userId,
+        fingerprint,
+        WalnutAdminConstRevokeRTType.userKickOther,
+      )
       this.logger.log(`User kick other - notified online device: ${deviceId}`)
     }
 
@@ -216,7 +238,11 @@ export class AuthSignoutService implements IIdentitySignoutService {
 
     if (isOnline) {
       // 在线设备：只发 socket 通知
-      await this.appMonitorUserSharedService.forceQuitMonitorBySocket(userId, fingerprint, revokeReason)
+      await this.appMonitorUserSharedService.forceQuitMonitorBySocket(
+        userId,
+        fingerprint,
+        revokeReason,
+      )
       this.logger.log(`Admin kick - notified online device: ${deviceId}`)
     }
 
@@ -256,7 +282,9 @@ export class AuthSignoutService implements IIdentitySignoutService {
         this.cacheMfaService.delVerifiedCacheForUser(userId),
       ])
       await this.appMonitorUserSharedService.forceQuitMonitorsBySocket(userId, revokeReason)
-      this.logger.log(`Security policy - revoked all RT and cleared all-device caches for user: ${userId}`)
+      this.logger.log(
+        `Security policy - revoked all RT and cleared all-device caches for user: ${userId}`,
+      )
     })
   }
 
@@ -264,12 +292,7 @@ export class AuthSignoutService implements IIdentitySignoutService {
    * 清理单个设备的缓存
    * @description 只在用户主动退出登录时调用
    */
-  private async clearDeviceCache(
-    userId: string,
-    deviceId: string,
-    sid: string,
-    ip: string,
-  ) {
+  private async clearDeviceCache(userId: string, deviceId: string, sid: string, ip: string) {
     await Promise.all([
       this.sysMenuSharedService.delPermissionFromCache(userId, deviceId),
       this.authSessionService.revokeSession(userId, deviceId, sid),

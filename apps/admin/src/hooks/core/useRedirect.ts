@@ -11,7 +11,7 @@ export function useRedirect(): Promise<boolean> {
 
   const path = layoutConst.redirect.path + currentRoute.value.fullPath
 
-  return new Promise(resolve =>
+  return new Promise((resolve) =>
     replace({
       path,
       query,

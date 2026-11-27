@@ -1,13 +1,11 @@
 import { Buffer } from 'node:buffer'
-import {
-  createHash,
-  hkdfSync,
-  randomBytes,
-  timingSafeEqual,
-} from 'node:crypto'
+import { createHash, hkdfSync, randomBytes, timingSafeEqual } from 'node:crypto'
 import { Injectable, Logger } from '@nestjs/common'
 import { AppTechCacheAppSettingsService, AppTechCacheService } from '@walnut-server/cache'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+} from '@walnut-server/const/app/cache'
 import { AppTokenService } from '@walnut-server/token'
 import { isNil } from 'lodash'
 
@@ -68,7 +66,7 @@ export class AuthSessionService {
     private readonly cacheService: AppTechCacheService,
     private readonly tokenService: AppTokenService,
     private readonly appSettingCahceService: AppTechCacheAppSettingsService,
-  ) { }
+  ) {}
 
   /**
    * 生成 Session Cache Key
@@ -94,20 +92,15 @@ export class AuthSessionService {
    * @param deviceId Device ID
    * @param sessionId 会话 ID
    */
-  async touchAuthSessionTTL(
-    userId: string,
-    deviceId: string,
-    sessionId: string,
-  ): Promise<void> {
+  async touchAuthSessionTTL(userId: string, deviceId: string, sessionId: string): Promise<void> {
     const ttl = this.tokenService.getRefreshTokenExpireSeconds()
     const cacheKey = this.getCacheKey(userId, deviceId, sessionId)
 
-    await this.cacheService.expire(
-      cacheKey,
-      ttl,
-    )
+    await this.cacheService.expire(cacheKey, ttl)
 
-    this.logger.debug(`Auth session TTL touched: user=${userId}, device=${deviceId}, session=${sessionId}`)
+    this.logger.debug(
+      `Auth session TTL touched: user=${userId}, device=${deviceId}, session=${sessionId}`,
+    )
   }
 
   /**
@@ -151,14 +144,10 @@ export class AuthSessionService {
     // 5. 存储到 Cache
     const ttl = this.tokenService.getRefreshTokenExpireSeconds()
 
-    await this.cacheService.set(
-      this.getCacheKey(userId, deviceId, sessionId),
-      session,
-      {
-        t: WalnutAdminConstAppCacheType.AUTH,
-        ttl,
-      },
-    )
+    await this.cacheService.set(this.getCacheKey(userId, deviceId, sessionId), session, {
+      t: WalnutAdminConstAppCacheType.AUTH,
+      ttl,
+    })
 
     this.logger.log(
       `Auth session created: user=${userId}, device=${deviceId}, session=${sessionId}, ttl=${ttl}s`,
@@ -196,8 +185,7 @@ export class AuthSessionService {
       }
 
       return session.authSessionKeyHash
-    }
-    catch (error: any) {
+    } catch (error: any) {
       this.logger.error(`Failed to get auth session key hash: ${error}`)
       return null
     }
@@ -230,12 +218,7 @@ export class AuthSessionService {
    * @param aesKey 客户端握手时协商的 AES 密钥（作为 salt）
    * @returns 派生的签名密钥（32 字节 Buffer）
    */
-  async deriveApiSignKey(
-    userId: string,
-    deviceId: string,
-    sessionId: string,
-    aesKey: string,
-  ) {
+  async deriveApiSignKey(userId: string, deviceId: string, sessionId: string, aesKey: string) {
     try {
       // 1. 获取 Session Key Hash
       const authSessionKeyHash = await this.getAuthSessionKeyHash(userId, deviceId, sessionId)
@@ -263,8 +246,7 @@ export class AuthSessionService {
       )
 
       return derivedKey
-    }
-    catch (error: any) {
+    } catch (error: any) {
       this.logger.error(`Failed to derive API sign key: ${error}`)
       return null
     }
@@ -313,8 +295,7 @@ export class AuthSessionService {
       )
 
       return isValid
-    }
-    catch (error: any) {
+    } catch (error: any) {
       this.logger.error(`Failed to verify session key: ${error}`)
       return false
     }
@@ -333,11 +314,7 @@ export class AuthSessionService {
    * @param deviceId Device ID（可选，不传则吊销该用户所有设备的会话）
    * @param sessionId 会话 ID（可选，不传则吊销该设备的所有会话）
    */
-  async revokeSession(
-    userId: string,
-    deviceId?: string,
-    sessionId?: string,
-  ): Promise<void> {
+  async revokeSession(userId: string, deviceId?: string, sessionId?: string): Promise<void> {
     try {
       let pattern: string
 
@@ -347,27 +324,20 @@ export class AuthSessionService {
         this.logger.log(
           `Revoking specific session: user=${userId}, device=${deviceId}, session=${sessionId}`,
         )
-      }
-      else if (!isNil(deviceId)) {
+      } else if (!isNil(deviceId)) {
         // 吊销该设备的所有会话
         pattern = this.getCacheKey(userId, deviceId, '*')
-        this.logger.log(
-          `Revoking all sessions for device: user=${userId}, device=${deviceId}`,
-        )
-      }
-      else {
+        this.logger.log(`Revoking all sessions for device: user=${userId}, device=${deviceId}`)
+      } else {
         // 吊销该用户的所有会话（所有设备）
         pattern = `${WalnutAdminConstAppCacheKeys.AUTH_SESSIONS}:${userId}:*`
-        this.logger.log(
-          `Revoking all sessions for user: user=${userId}`,
-        )
+        this.logger.log(`Revoking all sessions for user: user=${userId}`)
       }
 
       await this.cacheService.delByPattern(pattern)
 
       this.logger.log(`Session(s) revoked successfully: pattern=${pattern}`)
-    }
-    catch (error: any) {
+    } catch (error: any) {
       this.logger.error(`Failed to revoke session: ${error}`)
       throw error
     }

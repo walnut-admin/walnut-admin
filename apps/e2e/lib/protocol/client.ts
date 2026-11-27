@@ -16,10 +16,7 @@ import type { EndpointData, HttpMethod } from './api-types.ts'
 import { randomUUID } from 'node:crypto'
 import * as opaque from '@serenity-kit/opaque'
 import { generateSync } from 'otplib'
-import {
-  BACKEND_API_BASE,
-  BACKEND_ORIGIN,
-} from '../../scripts/env.ts'
+import { BACKEND_API_BASE, BACKEND_ORIGIN } from '../../scripts/env.ts'
 import { uniqueLocalIp } from '../device-fixtures.ts'
 import {
   AuthRoutes,
@@ -75,7 +72,14 @@ export class WalnutProtocolRequestError extends Error {
   readonly status: number
   readonly meta?: Record<string, unknown>
 
-  constructor(method: string, path: string, status: number, code: number, msg?: string, meta?: Record<string, unknown>) {
+  constructor(
+    method: string,
+    path: string,
+    status: number,
+    code: number,
+    msg?: string,
+    meta?: Record<string, unknown>,
+  ) {
     super(`[e2e/protocol] ${method} ${path} 失败：HTTP ${status} code=${code} msg=${msg ?? ''}`)
     this.name = 'WalnutProtocolRequestError'
     this.code = code
@@ -115,7 +119,7 @@ export class WalnutProtocolClient {
    */
   private realIp: string | null
 
-  constructor(options: { apiBase?: string, realIp?: string } = {}) {
+  constructor(options: { apiBase?: string; realIp?: string } = {}) {
     this.apiBase = options.apiBase ?? BACKEND_API_BASE
     this.realIp = options.realIp ?? null
   }
@@ -159,7 +163,11 @@ export class WalnutProtocolClient {
   }
 
   /** 裸 fetch（不带签名头）。XFF / UA 等完全由调用方决定 */
-  async rawFetch(method: HttpMethod, path: string, options: { body?: unknown, headers?: Record<string, string> } = {}): Promise<Response> {
+  async rawFetch(
+    method: HttpMethod,
+    path: string,
+    options: { body?: unknown; headers?: Record<string, string> } = {},
+  ): Promise<Response> {
     const response = await fetch(`${this.apiBase}${path}`, {
       method,
       headers: {
@@ -188,11 +196,7 @@ export class WalnutProtocolClient {
     path: P,
     options?: RequestOptions,
   ): Promise<WalnutEnvelope<EndpointData<P, M>>>
-  request<T>(
-    method: HttpMethod,
-    path: string,
-    options?: RequestOptions,
-  ): Promise<WalnutEnvelope<T>>
+  request<T>(method: HttpMethod, path: string, options?: RequestOptions): Promise<WalnutEnvelope<T>>
   async request<T = Record<string, unknown>>(
     method: HttpMethod,
     path: string,
@@ -203,13 +207,21 @@ export class WalnutProtocolClient {
     let body: WalnutEnvelope<T>
     try {
       body = JSON.parse(text) as WalnutEnvelope<T>
-    }
-    catch {
-      throw new Error(`[e2e/protocol] ${method} ${path} 返回非 JSON（HTTP ${response.status}）：${text.slice(0, 300)}`)
+    } catch {
+      throw new Error(
+        `[e2e/protocol] ${method} ${path} 返回非 JSON（HTTP ${response.status}）：${text.slice(0, 300)}`,
+      )
     }
 
     if (body.code !== WalnutAdminConstAppResponseCode.SUCCESS) {
-      throw new WalnutProtocolRequestError(method, path, response.status, body.code, body.msg, body.meta)
+      throw new WalnutProtocolRequestError(
+        method,
+        path,
+        response.status,
+        body.code,
+        body.msg,
+        body.meta,
+      )
     }
 
     return body
@@ -219,18 +231,15 @@ export class WalnutProtocolClient {
    * FreeResponse 端点的裸请求（CAP challenge / redeem 不套统一响应壳，见
    * `@WalnutAdminDecoratorFreeResponse`）—— 仍走签名规则与 cookie jar。
    */
-  async requestFree<T>(
-    method: HttpMethod,
-    path: string,
-    options: RequestOptions = {},
-  ): Promise<T> {
+  async requestFree<T>(method: HttpMethod, path: string, options: RequestOptions = {}): Promise<T> {
     const response = await this.signedFetch(method, path, options)
     const text = await response.text()
     try {
       return JSON.parse(text) as T
-    }
-    catch {
-      throw new Error(`[e2e/protocol] ${method} ${path} 返回非 JSON（HTTP ${response.status}）：${text.slice(0, 300)}`)
+    } catch {
+      throw new Error(
+        `[e2e/protocol] ${method} ${path} 返回非 JSON（HTTP ${response.status}）：${text.slice(0, 300)}`,
+      )
     }
   }
 
@@ -271,9 +280,13 @@ export class WalnutProtocolClient {
         ua: SIGN_USER_AGENT,
       })
 
-      headers['x-sign'] = this.auth !== null
-        ? computeDualFactorSign(raw, deriveApiSignKey(this.auth.sessionKey, this.aesKey, this.hkdfInfo))
-        : computeSingleFactorSign(raw, this.aesKey)
+      headers['x-sign'] =
+        this.auth !== null
+          ? computeDualFactorSign(
+              raw,
+              deriveApiSignKey(this.auth.sessionKey, this.aesKey, this.hkdfInfo),
+            )
+          : computeSingleFactorSign(raw, this.aesKey)
       headers['x-timestamp'] = String(timestamp)
       headers['x-nonce'] = nonce
     }
@@ -354,21 +367,28 @@ export class WalnutProtocolClient {
         const device = await this.request('POST', SystemEndpointRoutes.DEVICE_INITIAL, {
           sign: false,
           headers: options.headers,
-          body: { deviceInfo: {}, hardwareInfo: {}, sr: { height: 1080, width: 1920 }, vp: { height: 900, width: 1600 }, private: false },
+          body: {
+            deviceInfo: {},
+            hardwareInfo: {},
+            sr: { height: 1080, width: 1920 },
+            vp: { height: 900, width: 1600 },
+            private: false,
+          },
         })
         // 字段级判据（P1-4）：生成类型已把这里的 `deviceId` 钉成 string；运行时再确认一次，
         // 缺字段 / 改名时错误消息直接说明是响应形态漂移，而不是后面某个用例拿到 undefined 才炸。
         if (typeof device.data.deviceId !== 'string' || device.data.deviceId === '') {
-          throw new Error(`[e2e/protocol] device/initial 响应缺 deviceId（生成类型与运行时不一致？）：${JSON.stringify(device.data)}`)
+          throw new Error(
+            `[e2e/protocol] device/initial 响应缺 deviceId（生成类型与运行时不一致？）：${JSON.stringify(device.data)}`,
+          )
         }
         this._deviceId = device.data.deviceId
         break
-      }
-      catch (error) {
+      } catch (error) {
         if (
-          attempt < BOOTSTRAP_REAL_IP_RETRY_LIMIT
-          && error instanceof WalnutProtocolRequestError
-          && error.code === WalnutAdminConstAppResponseCode.TOO_MANY_REQUESTS
+          attempt < BOOTSTRAP_REAL_IP_RETRY_LIMIT &&
+          error instanceof WalnutProtocolRequestError &&
+          error.code === WalnutAdminConstAppResponseCode.TOO_MANY_REQUESTS
         ) {
           this.realIp = uniqueLocalIp()
           continue
@@ -398,16 +418,19 @@ export class WalnutProtocolClient {
    * 服务端在 redeem 里用 Set-Cookie 种新的 `CAPJS_TOKEN`（signed），本方法靠 cookie jar 自动接住。
    */
   async refreshCapToken(): Promise<void> {
-    const challenge = await this.requestFree<{ challenge: { c: number, s: number, d: number }, token: string }>(
-      'POST',
-      SecurityRoutes.CAP_CHALLENGE,
-      { sign: false },
-    )
+    const challenge = await this.requestFree<{
+      challenge: { c: number; s: number; d: number }
+      token: string
+    }>('POST', SecurityRoutes.CAP_CHALLENGE, { sign: false })
     const solutions = solveCapChallenge(challenge.challenge, challenge.token)
-    const redeem = await this.requestFree<{ success?: boolean, message?: string }>('POST', SecurityRoutes.CAP_REDEEM, {
-      sign: false,
-      body: { token: challenge.token, solutions },
-    })
+    const redeem = await this.requestFree<{ success?: boolean; message?: string }>(
+      'POST',
+      SecurityRoutes.CAP_REDEEM,
+      {
+        sign: false,
+        body: { token: challenge.token, solutions },
+      },
+    )
     if (redeem.success !== true) {
       throw new Error(`[e2e/protocol] CAP redeem 失败：${JSON.stringify(redeem)}`)
     }
@@ -434,10 +457,12 @@ export class WalnutProtocolClient {
     })
 
     if (!loginResult) {
-      throw new Error('[e2e/protocol] opaque client finishLogin 返回 undefined（口令错 / identifiers 不一致）')
+      throw new Error(
+        '[e2e/protocol] opaque client finishLogin 返回 undefined（口令错 / identifiers 不一致）',
+      )
     }
 
-    const finish = await this.request<{ accessToken: string, sessionKey: string }>(
+    const finish = await this.request<{ accessToken: string; sessionKey: string }>(
       'POST',
       AuthRoutes.OPAQUE_USER_LOGIN_FINISH,
       { body: { userName, finish: loginResult.finishLoginRequest } },
@@ -466,21 +491,32 @@ export class WalnutProtocolClient {
    * 备用码只在 bind 响应里出现一次（服务端只存哈希后的密文，没有回读通道）——
    * 需要一次性验证的用例必须在这里接住，不能事后再取。
    */
-  async bindTotpWithBackupCodes(): Promise<{ secret: string, backupCodes: string[] }> {
-    const generated = await this.root<{ totpId: string, secret: string }>('POST', SystemEndpointRoutes.USER_MFA_TOTP_GENERATE)
+  async bindTotpWithBackupCodes(): Promise<{ secret: string; backupCodes: string[] }> {
+    const generated = await this.root<{ totpId: string; secret: string }>(
+      'POST',
+      SystemEndpointRoutes.USER_MFA_TOTP_GENERATE,
+    )
     const code = generateSync({ secret: generated.secret })
 
-    const bound = await this.root<{ backupCodes: string[] }>('POST', SystemEndpointRoutes.USER_MFA_TOTP_BIND, {
-      name: 'e2e-totp',
-      code,
-      tempTotpId: generated.totpId,
-    })
+    const bound = await this.root<{ backupCodes: string[] }>(
+      'POST',
+      SystemEndpointRoutes.USER_MFA_TOTP_BIND,
+      {
+        name: 'e2e-totp',
+        code,
+        tempTotpId: generated.totpId,
+      },
+    )
 
     if (!Array.isArray(bound.backupCodes) || bound.backupCodes.length === 0) {
-      throw new Error(`[e2e/protocol] totp/bind 响应缺 backupCodes（生成类型与运行时不一致？）：${JSON.stringify(bound)}`)
+      throw new Error(
+        `[e2e/protocol] totp/bind 响应缺 backupCodes（生成类型与运行时不一致？）：${JSON.stringify(bound)}`,
+      )
     }
 
-    const verified = await this.root<{ accessToken: string }>('POST', AuthRoutes.MFA_VERIFY, { trusted: true })
+    const verified = await this.root<{ accessToken: string }>('POST', AuthRoutes.MFA_VERIFY, {
+      trusted: true,
+    })
     if (this.auth !== null && verified.accessToken !== undefined) {
       // verify 轮换 AT（revoke-and-insert 的 RT 轮换由 Set-Cookie 回写 jar 负责）
       this.auth = { ...this.auth, accessToken: verified.accessToken }
@@ -500,7 +536,10 @@ export class WalnutProtocolClient {
    * 与 {@link bindTotp} 的 `/auth/mfa/verify` 不是同一条：那是「刚绑完、确认状态」；
    * 这条是日常登录链上的 `/system/user/mfa/totp/verify`（revoke-and-insert 轮换 RT）。
    */
-  async verifyTotpForDevice(totpSecret: string, options: { trusted?: boolean } = {}): Promise<void> {
+  async verifyTotpForDevice(
+    totpSecret: string,
+    options: { trusted?: boolean } = {},
+  ): Promise<void> {
     return this.verifyMfaCode(generateSync({ secret: totpSecret }), options)
   }
 
@@ -512,10 +551,14 @@ export class WalnutProtocolClient {
    * 响应里拿到（一次性，见 {@link bindTotpWithBackupCodes}）。
    */
   async verifyMfaCode(code: string, options: { trusted?: boolean } = {}): Promise<void> {
-    const verified = await this.root<{ accessToken: string }>('POST', SystemEndpointRoutes.USER_MFA_TOTP_VERIFY, {
-      code,
-      trusted: options.trusted ?? true,
-    })
+    const verified = await this.root<{ accessToken: string }>(
+      'POST',
+      SystemEndpointRoutes.USER_MFA_TOTP_VERIFY,
+      {
+        code,
+        trusted: options.trusted ?? true,
+      },
+    )
     if (this.auth !== null && verified.accessToken !== undefined) {
       this.auth = { ...this.auth, accessToken: verified.accessToken }
     }
@@ -530,14 +573,15 @@ export class WalnutProtocolClient {
         if (response.ok) {
           return
         }
-      }
-      catch {
+      } catch {
         // 后端还没监听
       }
       if (Date.now() - started > timeoutMs) {
-        throw new Error(`[e2e/protocol] 后端 ${BACKEND_ORIGIN}/health/ready 在 ${timeoutMs}ms 内没有就绪`)
+        throw new Error(
+          `[e2e/protocol] 后端 ${BACKEND_ORIGIN}/health/ready 在 ${timeoutMs}ms 内没有就绪`,
+        )
       }
-      await new Promise(resolve => setTimeout(resolve, 500))
+      await new Promise((resolve) => setTimeout(resolve, 500))
     }
   }
 }

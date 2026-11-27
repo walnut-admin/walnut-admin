@@ -31,9 +31,7 @@ const UP_SECTIONS: string[][] = [
   // ============================================================
   // 0. 扩展依赖（pg_trgm：PG 18 trusted extension，无需超级用户；phase2 第 6 节）
   // ============================================================
-  [
-    'CREATE EXTENSION IF NOT EXISTS pg_trgm',
-  ],
+  ['CREATE EXTENSION IF NOT EXISTS pg_trgm'],
 
   // ============================================================
   // 1. 无依赖表

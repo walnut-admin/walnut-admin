@@ -1,5 +1,8 @@
 import { IntersectionType } from '@nestjs/swagger'
-import { WalnutAdminDecoratorFieldObject, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
+import {
+  WalnutAdminDecoratorFieldObject,
+  WalnutAdminDecoratorFieldString,
+} from '@walnut-server/decorators/field'
 
 // 批 4 结构重构：meta 基座类随 menu 的 schema/ 并入改名 SysMenuMetaDTOBase。
 // 这里是 IntersectionType/RealPickType 的**值**用法（mixin 工厂需要带装饰器的类），
@@ -20,10 +23,17 @@ export class AuthSuccessDTO {
   sessionKey: string
 }
 
-class VueRouteMetaDTO extends IntersectionType(SysMenuMetaDTOBase, RealPickType(SysMenuDTOSafe, ['type', 'title', 'icon'] as const)) {}
+class VueRouteMetaDTO extends IntersectionType(
+  SysMenuMetaDTOBase,
+  RealPickType(SysMenuDTOSafe, ['type', 'title', 'icon'] as const),
+) {}
 
 // route tree dto
-class AuthPermissionRouteTreeDTO extends RealPickType(SysMenuDTOSafe, ['name', 'path', 'component']) {
+class AuthPermissionRouteTreeDTO extends RealPickType(SysMenuDTOSafe, [
+  'name',
+  'path',
+  'component',
+]) {
   @WalnutAdminDecoratorFieldObject(VueRouteMetaDTO, {})
   meta: VueRouteMetaDTO
 
@@ -44,13 +54,8 @@ class AuthPermissionAffixedTabsDTO extends RealPickType(SysMenuDTOSafe, ['name',
 
 // internal iframe list dto
 class AuthPermissionInternalIframeDTO extends IntersectionType(
-  RealPickType(SysMenuDTOSafe, [
-    'name',
-  ] as const),
-  RealPickType(SysMenuMetaDTOBase, [
-    'url',
-    'cache',
-  ] as const),
+  RealPickType(SysMenuDTOSafe, ['name'] as const),
+  RealPickType(SysMenuMetaDTOBase, ['url', 'cache'] as const),
 ) {
   constructor(partial: Partial<AuthPermissionInternalIframeDTO>) {
     super()
@@ -130,7 +135,8 @@ export class AuthSecretKeysResponseDTO {
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
       title: 'Baidu AK',
-      description: 'RSA envelope payload string (decrypt with the client private key from the sign handshake)',
+      description:
+        'RSA envelope payload string (decrypt with the client private key from the sign handshake)',
     },
   })
   B: string

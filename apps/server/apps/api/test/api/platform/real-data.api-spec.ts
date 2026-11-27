@@ -69,13 +69,13 @@ interface MenuTreeNode {
 interface MenuTreeResponse {
   fullTree: MenuTreeNode[]
   treeWithoutTypeElement: MenuTreeNode[]
-  menuActiveNamesOptions: Array<{ name: string | null, title: string | null }>
+  menuActiveNamesOptions: Array<{ name: string | null; title: string | null }>
 }
 
 interface DictTypeRow {
   type: string
   name: string
-  dictData: Array<{ label: string, value: string | boolean }>
+  dictData: Array<{ label: string; value: string | boolean }>
 }
 
 interface AreaRow {
@@ -117,7 +117,9 @@ describe('真实数据只读 suite：菜单 / 字典 / 国际化 / 区划 / 角�
     if (REAL_MODE) {
       return
     }
-    await api.pgDataSource.query('DELETE FROM shared_area WHERE code LIKE $1', [`${AREA_FIXTURE_PROVINCE}%`])
+    await api.pgDataSource.query('DELETE FROM shared_area WHERE code LIKE $1', [
+      `${AREA_FIXTURE_PROVINCE}%`,
+    ])
     await clearAreaCaches()
   }
 
@@ -166,14 +168,14 @@ describe('真实数据只读 suite：菜单 / 字典 / 国际化 / 区划 / 角�
       const permission = node.meta?.permission
       return typeof permission === 'string' && permission !== ''
     })
-    const permissionSet = new Set(permissionNodes.map(node => node.meta!.permission!))
+    const permissionSet = new Set(permissionNodes.map((node) => node.meta!.permission!))
     for (const permission of EXPECTED_ORG_PERMISSIONS) {
       expect(permissionSet.has(permission), `missing menu permission: ${permission}`).toBe(true)
     }
     // 权限点都是 element 行（menu.shared.getStrings 只认 permission 列，类型不参与，
     // 但 seed 的语义就是 element；错型说明 seed 落库映射出了问题）
     for (const permission of EXPECTED_ORG_PERMISSIONS) {
-      const node = permissionNodes.find(item => item.meta?.permission === permission)
+      const node = permissionNodes.find((item) => item.meta?.permission === permission)
       expect(node?.type).toBe('element')
     }
   })
@@ -186,7 +188,7 @@ describe('真实数据只读 suite：菜单 / 字典 / 国际化 / 区划 / 角�
     expectOk(res, 'dict type s')
 
     const rows = bodyOf<DictTypeRow[]>(res).data
-    expect(rows.map(row => row.type).sort()).toEqual([...SEED_DICT_TYPES].sort())
+    expect(rows.map((row) => row.type).sort()).toEqual([...SEED_DICT_TYPES].sort())
     for (const row of rows) {
       expect(row.name).toBeTruthy()
       expect(Array.isArray(row.dictData)).toBe(true)
@@ -216,11 +218,14 @@ describe('真实数据只读 suite：菜单 / 字典 / 国际化 / 区划 / 角�
     const topRes = await api.root('GET', api.apiPath('/shared/area/children?pcode=0'))
     expectOk(topRes, 'area children top')
     const top = bodyOf<AreaRow[]>(topRes).data
-    const province = top.find(row => row.code === AREA_FIXTURE_PROVINCE)
+    const province = top.find((row) => row.code === AREA_FIXTURE_PROVINCE)
     expect(province).toBeDefined()
     expect(province?.pcode).toBe('0')
 
-    const childRes = await api.root('GET', api.apiPath(`/shared/area/children?pcode=${AREA_FIXTURE_PROVINCE}`))
+    const childRes = await api.root(
+      'GET',
+      api.apiPath(`/shared/area/children?pcode=${AREA_FIXTURE_PROVINCE}`),
+    )
     expectOk(childRes, 'area children city')
     const cities = bodyOf<AreaRow[]>(childRes).data
     expect(cities).toHaveLength(1)
@@ -235,7 +240,7 @@ describe('真实数据只读 suite：菜单 / 字典 / 国际化 / 区划 / 角�
     expectOk(topRes, 'area children top (real)')
     const provinces = bodyOf<AreaRow[]>(topRes).data
     expect(provinces.length).toBeGreaterThanOrEqual(20)
-    expect(provinces.every(row => row.pcode === '0')).toBe(true)
+    expect(provinces.every((row) => row.pcode === '0')).toBe(true)
 
     const first = provinces[0]
     expect(first.code.length).toBe(2)
@@ -243,7 +248,7 @@ describe('真实数据只读 suite：菜单 / 字典 / 国际化 / 区划 / 角�
     expectOk(childRes, 'area children city (real)')
     const cities = bodyOf<AreaRow[]>(childRes).data
     expect(cities.length).toBeGreaterThanOrEqual(1)
-    expect(cities.every(row => row.pcode === first.code)).toBe(true)
+    expect(cities.every((row) => row.pcode === first.code)).toBe(true)
   })
 
   it('角色（root 视角）：list 包含 seed 角色，total 不低于 seed 角色数下界', async () => {
@@ -256,7 +261,7 @@ describe('真实数据只读 suite：菜单 / 字典 / 国际化 / 区划 / 角�
 
     const list = bodyOf<RoleListData>(res).data
     expect(list.total).toBeGreaterThanOrEqual(SEED_ROLE_NAMES.length)
-    const roleNames = new Set(list.data.map(row => row.roleName))
+    const roleNames = new Set(list.data.map((row) => row.roleName))
     for (const roleName of SEED_ROLE_NAMES) {
       expect(roleNames.has(roleName), `missing seed role: ${roleName}`).toBe(true)
     }

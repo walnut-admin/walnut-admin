@@ -9,10 +9,28 @@
 
 import type { ReleaseFacts, ReleaseStep } from './plan.ts'
 import path from 'node:path'
-import { branchIsPushed, commitCount, currentBranch, gitRemoteUrl, headSubject, lastTag, porcelain, tagExistsLocally, tagExistsRemotely, trackedDirtyFiles } from '@walnut/scripts/lib/git'
+import {
+  branchIsPushed,
+  commitCount,
+  currentBranch,
+  gitRemoteUrl,
+  headSubject,
+  lastTag,
+  porcelain,
+  tagExistsLocally,
+  tagExistsRemotely,
+  trackedDirtyFiles,
+} from '@walnut/scripts/lib/git'
 import { REPO_ROOT } from '@walnut/scripts/lib/repo-root'
 import { findRelease, parseGithubRemote } from './github.ts'
-import { currentVersion, LEDGER_PATH, packagesNotAtVersion, unconsumedIntents, unrelatedChanges, versionAtRef } from './workspace.ts'
+import {
+  currentVersion,
+  LEDGER_PATH,
+  packagesNotAtVersion,
+  unconsumedIntents,
+  unrelatedChanges,
+  versionAtRef,
+} from './workspace.ts'
 
 /** release 提交的主题形状（`git log` 里认出「HEAD 就是本次 release 提交」） */
 const RELEASE_COMMIT_PATTERN = /^chore\(release\):\s*v(\d+\.\d+\.\d+)$/
@@ -38,7 +56,7 @@ export interface CollateFactsInput {
 /** `ledger.yaml` 是否有未提交改动（= 「版本已消费但没提交」，只作显示） */
 function ledgerHasUncommittedChanges(): boolean {
   const relative = path.relative(REPO_ROOT, LEDGER_PATH).replace(/\\/g, '/')
-  return porcelain(true).some(line => line.includes(relative))
+  return porcelain(true).some((line) => line.includes(relative))
 }
 
 export async function collateFacts(input: CollateFactsInput): Promise<CollectedFacts> {
@@ -94,18 +112,17 @@ export async function collateFacts(input: CollateFactsInput): Promise<CollectedF
  * 不需要凭据也能查**公开仓**（匿名 60 次/小时）；有 GITHUB_TOKEN 时配额更高。
  * 探测失败返回 `null`（而不是 false）：把查询失败当成「远端没有 Release」会让阶梯误判。
  */
-export function makeReleaseProbe(token: string | null): ((tag: string) => Promise<boolean | null>) | undefined {
+export function makeReleaseProbe(
+  token: string | null,
+): ((tag: string) => Promise<boolean | null>) | undefined {
   const remote = gitRemoteUrl()
-  if (!remote)
-    return undefined
+  if (!remote) return undefined
   const repo = parseGithubRemote(remote)
-  if (!repo)
-    return undefined
+  if (!repo) return undefined
   return async (tag: string) => {
     try {
       return (await findRelease({ token, repo }, tag)) !== null
-    }
-    catch {
+    } catch {
       return null
     }
   }

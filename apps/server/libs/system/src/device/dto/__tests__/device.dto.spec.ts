@@ -50,7 +50,7 @@ describe('sysDeviceDTOInitialRequest：deviceName 已不在入参白名单（P4�
       deviceName: 'client-side-name',
     })
 
-    const hit = errors.find(error => error.property === 'deviceName')
+    const hit = errors.find((error) => error.property === 'deviceName')
     expect(hit).toBeDefined()
     expect(hit!.constraints).toHaveProperty('whitelistValidation')
   })

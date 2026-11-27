@@ -63,14 +63,20 @@ export class AppTechCacheCronLockService {
    *   回调返回**非 void** 时，`undefined` 才能与「任务体的结果」区分开（回调返回 void
    *   的入口不依赖这个返回值判断是否执行）。
    */
-  async runExclusive<T>(taskName: string, ttlSeconds: number, fn: () => Promise<T>): Promise<T | undefined> {
+  async runExclusive<T>(
+    taskName: string,
+    ttlSeconds: number,
+    fn: () => Promise<T>,
+  ): Promise<T | undefined> {
     const key = `CRON_LOCK:${taskName}`
     const token = randomUUID()
 
     const outcome = await this.tryAcquire(key, token, ttlSeconds, taskName)
 
     if (outcome === 'occupied') {
-      this.logger.warn(`[CronLock] "${taskName}" is already running on another instance, skip this tick`)
+      this.logger.warn(
+        `[CronLock] "${taskName}" is already running on another instance, skip this tick`,
+      )
       return undefined
     }
 
@@ -80,8 +86,7 @@ export class AppTechCacheCronLockService {
 
     try {
       return await fn()
-    }
-    finally {
+    } finally {
       if (!abandoned) {
         await this.releaseWithTimeout(key, token, taskName)
       }
@@ -114,13 +119,15 @@ export class AppTechCacheCronLockService {
       })
 
       const acquired = await Promise.race([
-        this.cache.setIfAbsent(key, token, { ttl: ttlSeconds, t: WalnutAdminConstAppCacheType.BUILT_IN }),
+        this.cache.setIfAbsent(key, token, {
+          ttl: ttlSeconds,
+          t: WalnutAdminConstAppCacheType.BUILT_IN,
+        }),
         timeout,
       ])
 
       return acquired ? 'acquired' : 'occupied'
-    }
-    catch (e) {
+    } catch (e) {
       if (e instanceof CronLockAcquireTimeoutError) {
         // fail-open ②：锁状态未知（Redis 可能只是断连重连中，命令仍挂在 offline queue）
         this.logger.warn(
@@ -132,8 +139,7 @@ export class AppTechCacheCronLockService {
       // fail-open ①：Redis 命令异常（见类注释）。Redis 故障不应让清理/预热任务停摆。
       this.logger.warn(`[CronLock] acquire failed for "${taskName}", run without lock`, e)
       return 'unknown'
-    }
-    finally {
+    } finally {
       if (timer) {
         clearTimeout(timer)
       }
@@ -164,8 +170,7 @@ export class AppTechCacheCronLockService {
         // 键已过期（TTL 兜底）或被别的实例重新持有：都不能再动它
         this.logger.warn(`[CronLock] "${taskName}" lock token mismatch or expired, skip release`)
       }
-    }
-    catch (e) {
+    } catch (e) {
       // 释放失败不阻断任务完成；锁随 TTL 自然过期
       this.logger.warn(`[CronLock] release failed for "${taskName}", wait for TTL`, e)
     }

@@ -61,7 +61,7 @@ export class SysLocaleService {
     const data = await this.localeRepoService.findByKey(key, em)
 
     // langId 在 PG 侧即 uuid 字符串（Mongo 版的 ObjectId.toString() 不再需要）
-    const result: Recordable = Object.fromEntries(data.map(i => [i.langId, i.value]))
+    const result: Recordable = Object.fromEntries(data.map((i) => [i.langId, i.value]))
 
     return {
       ...result,
@@ -82,7 +82,11 @@ export class SysLocaleService {
 
     const res: SysLocaleEntity[] = []
     for (const i of payload) {
-      const target = await this.localeBasicRepo.updateByField({ key: i.oldKey, langId: i.langId }, { ...i }, em)
+      const target = await this.localeBasicRepo.updateByField(
+        { key: i.oldKey, langId: i.langId },
+        { ...i },
+        em,
+      )
       res.push(target)
     }
 

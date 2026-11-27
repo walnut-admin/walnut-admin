@@ -13,10 +13,19 @@ export function useChatScroll() {
   const { currentId } = useConversationStore()
   const { visible: isExpanded } = usePanelState()
   const aiPrefs = useAIPreferences()
-  const { virtualizer, scrollContainerRef, scrollToBottom, handleScroll: handleVirtualScroll } = useChatVirtualList()
+  const {
+    virtualizer,
+    scrollContainerRef,
+    scrollToBottom,
+    handleScroll: handleVirtualScroll,
+  } = useChatVirtualList()
 
   // ── Sticky user question bar ──
-  const { showStickyBar, activeStickyMessage, update: updateStickyBar } = useStickyUserMessage(virtualizer, scrollContainerRef)
+  const {
+    showStickyBar,
+    activeStickyMessage,
+    update: updateStickyBar,
+  } = useStickyUserMessage(virtualizer, scrollContainerRef)
 
   function handleMessagesScroll() {
     handleVirtualScroll()
@@ -24,22 +33,28 @@ export function useChatScroll() {
   }
 
   // Scroll to bottom when panel becomes visible
-  watch(isExpanded, (expanded) => {
-    if (expanded) {
+  watch(
+    isExpanded,
+    (expanded) => {
+      if (expanded) {
+        nextTick(() => {
+          scrollToBottom()
+        })
+      }
+    },
+    { immediate: true },
+  )
+
+  // Scroll to bottom after panel mode transitions (panel large-panel content-aside)
+  watch(
+    () => aiPrefs.value.panelMode,
+    (newMode, oldMode) => {
+      if (newMode === oldMode || !isExpanded.value) return
       nextTick(() => {
         scrollToBottom()
       })
-    }
-  }, { immediate: true })
-
-  // Scroll to bottom after panel mode transitions (panel large-panel content-aside)
-  watch(() => aiPrefs.value.panelMode, (newMode, oldMode) => {
-    if (newMode === oldMode || !isExpanded.value)
-      return
-    nextTick(() => {
-      scrollToBottom()
-    })
-  })
+    },
+  )
 
   // Reset sticky bar and scroll to bottom on conversation switch
   watch(currentId, () => {

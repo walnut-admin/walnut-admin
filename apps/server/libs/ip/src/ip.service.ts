@@ -102,8 +102,7 @@ export class SharedIpService implements IWalnutAdminIpLocationResolver {
 
       // 将冒号替换为下划线
       return rawIp.replace(/:/g, '_')
-    }
-    catch {
+    } catch {
       return null
     }
   }
@@ -129,9 +128,12 @@ export class SharedIpService implements IWalnutAdminIpLocationResolver {
   async getPermanentBlackList(): Promise<string[]> {
     try {
       const appSetting = await this.cacheAppSettingsService.getAppSettings()
-      return JSON.parse(appSetting[WalnutAdminConstAppSettingKeys.APP_GLOBAL_IP_BLACKLIST as keyof typeof appSetting]) as string[]
-    }
-    catch (error) {
+      return JSON.parse(
+        appSetting[
+          WalnutAdminConstAppSettingKeys.APP_GLOBAL_IP_BLACKLIST as keyof typeof appSetting
+        ],
+      ) as string[]
+    } catch (error) {
       this.logger.error(error)
       return []
     }
@@ -153,17 +155,14 @@ export class SharedIpService implements IWalnutAdminIpLocationResolver {
   async removeFromPermanentBlackList(ip: string, em?: EntityManager) {
     const ipKey = WalnutAdminConstAppSettingKeys.APP_GLOBAL_IP_BLACKLIST
     const oldValue = await this.appSettingRepo.findAppSettingByKey<string[]>(ipKey, em)
-    const newValue = oldValue ? oldValue.filter(item => item !== ip) : []
+    const newValue = oldValue ? oldValue.filter((item) => item !== ip) : []
     await this.appSettingRepo.updateAppSettingByKey(ipKey, JSON.stringify(newValue), em)
   }
 
   /**
    * @description add ip to temporary blacklist
    */
-  async addToTemporaryBlacklist(
-    ip: string,
-    reason: string = 'TEMPORARY_BAN',
-  ): Promise<void> {
+  async addToTemporaryBlacklist(ip: string, reason: string = 'TEMPORARY_BAN'): Promise<void> {
     const infoKey = await this.getTempBlackListRedisKey(ip)
     const ttlSeconds = this.ipTempBanTtl
 
@@ -176,9 +175,7 @@ export class SharedIpService implements IWalnutAdminIpLocationResolver {
     })
     await this.redis.expire(infoKey, ttlSeconds)
 
-    this.logger.warn(
-      `IP ${ip} added to temporary blacklist for ${ttlSeconds}s, reason: ${reason}`,
-    )
+    this.logger.warn(`IP ${ip} added to temporary blacklist for ${ttlSeconds}s, reason: ${reason}`)
   }
 
   /**
@@ -218,7 +215,9 @@ export class SharedIpService implements IWalnutAdminIpLocationResolver {
     try {
       this.logger.log(`Fetching IP location for ${ip}`)
 
-      const { data } = await firstValueFrom(this.httpService.get<Recordable>(`https://api.ip.sb/geoip/${ip}`))
+      const { data } = await firstValueFrom(
+        this.httpService.get<Recordable>(`https://api.ip.sb/geoip/${ip}`),
+      )
 
       // F-06：原日志 dump 全量地理位置响应（含经纬度/ISP 等），改为最小可排障字段
       this.logger.log(`IP location API resolved: ${data.country_code ?? '?'} / ${data.city ?? '?'}`)
@@ -235,13 +234,10 @@ export class SharedIpService implements IWalnutAdminIpLocationResolver {
         timezone: data.timezone as string,
       }
 
-      this.logger.debug(
-        `IP location resolved: ${ip} -> ${location.country}, ${location.city}`,
-      )
+      this.logger.debug(`IP location resolved: ${ip} -> ${location.country}, ${location.city}`)
 
       return location
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.error(`Failed to fetch IP location for ${ip}`)
       this.logger.error(error)
       throw new WalnutAdminExceptionServiceUnavailableDependencyDown()
@@ -266,7 +262,7 @@ export class SharedIpService implements IWalnutAdminIpLocationResolver {
 
     try {
       const { data } = await firstValueFrom(
-        this.httpService.get<{ status: number, content: Recordable }>(
+        this.httpService.get<{ status: number; content: Recordable }>(
           `http://api.map.baidu.com/location/ip`,
           {
             params: { ak: baiduAK, ip },
@@ -282,8 +278,7 @@ export class SharedIpService implements IWalnutAdminIpLocationResolver {
       }
 
       return data.content.address as string
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.error('baidu api error', error)
       throw new WalnutAdminExceptionServiceUnavailableDependencyDown()
     }

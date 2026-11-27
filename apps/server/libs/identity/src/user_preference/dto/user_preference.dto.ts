@@ -7,7 +7,17 @@ import { RealPickType } from '@walnut-server/utils/dto'
 import { Locale, LocaleType } from '@walnut/contract'
 import { Expose } from 'class-transformer'
 import { WalnutAdminCommonBasicModel } from '../../shared/base.model'
-import { colorModeConst, CVDConst, fontSizeConst, fontSizeValues, IColorModeConst, ICVDConst, IFontSizeConst, ILayoutModeConst, layoutModeConst } from '../preference.const'
+import {
+  colorModeConst,
+  CVDConst,
+  fontSizeConst,
+  fontSizeValues,
+  IColorModeConst,
+  ICVDConst,
+  IFontSizeConst,
+  ILayoutModeConst,
+  layoutModeConst,
+} from '../preference.const'
 
 // 批 4 结构重构：schema/ 并入 dto/（原 schema/user_preference.schema.ts 的
 // SysUserPreferenceModel 改名 SysUserPreferenceDTOBase），装饰器与字段本体零改动
@@ -97,28 +107,38 @@ export class SysUserPreferenceDTO extends SysUserPreferenceDTOBase {
   }
 }
 
-export class SysUserPreferenceDTOBasicRequest extends RealPickType(SysUserPreferenceDTOBase, ['locale']) {
+export class SysUserPreferenceDTOBasicRequest extends RealPickType(SysUserPreferenceDTOBase, [
+  'locale',
+]) {
   constructor(partial: Partial<SysUserPreferenceDTOBasicRequest>) {
     super()
     Object.assign(this, partial)
   }
 }
 
-export class SysUserPreferenceDTOAccessibilityRequest extends RealPickType(SysUserPreferenceDTOBase, ['fontSize', 'reducedMotion', 'CVD', 'colorMode']) {
+export class SysUserPreferenceDTOAccessibilityRequest extends RealPickType(
+  SysUserPreferenceDTOBase,
+  ['fontSize', 'reducedMotion', 'CVD', 'colorMode'],
+) {
   constructor(partial: Partial<SysUserPreferenceDTOAccessibilityRequest>) {
     super()
     Object.assign(this, partial)
   }
 }
 
-export class SysUserPreferenceDTOThemeRequest extends RealPickType(SysUserPreferenceDTOBase, ['dark']) {
+export class SysUserPreferenceDTOThemeRequest extends RealPickType(SysUserPreferenceDTOBase, [
+  'dark',
+]) {
   constructor(partial: Partial<SysUserPreferenceDTOThemeRequest>) {
     super()
     Object.assign(this, partial)
   }
 }
 
-export class SysUserPreferenceDTOLayoutRequest extends RealPickType(SysUserPreferenceDTOBase, ['layoutMode', 'layout']) {
+export class SysUserPreferenceDTOLayoutRequest extends RealPickType(SysUserPreferenceDTOBase, [
+  'layoutMode',
+  'layout',
+]) {
   constructor(partial: Partial<SysUserPreferenceDTOLayoutRequest>) {
     super()
     Object.assign(this, partial)

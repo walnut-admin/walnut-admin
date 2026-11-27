@@ -25,8 +25,7 @@ export function createLockGuard(router: Router) {
   // beforeEach
   router.beforeEach((to) => {
     // 1. If already on the lock screen page (or the MFA escape hatch), allow direct passage
-    if (to.name !== undefined && LOCK_FREE_ROUTE_NAMES.includes(to.name as string))
-      return true
+    if (to.name !== undefined && LOCK_FREE_ROUTE_NAMES.includes(to.name as string)) return true
 
     // 2. Locked status && target lock route is specified
     if (appStoreLock.getLocked && appStoreLock.getLockRoute) {
@@ -37,7 +36,11 @@ export function createLockGuard(router: Router) {
     }
 
     // 3. Unlocked status but still on lock screen page → redirect to homepage
-    if (!appStoreLock.getLocked && router.hasRoute(mainoutConst.lock.name) && to.name === mainoutConst.lock.name) {
+    if (
+      !appStoreLock.getLocked &&
+      router.hasRoute(mainoutConst.lock.name) &&
+      to.name === mainoutConst.lock.name
+    ) {
       return { name: appStoreMenu.getIndexMenuName, replace: true }
     }
 

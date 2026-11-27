@@ -39,18 +39,14 @@ export class SysUserPreferenceBasicRepository extends WalnutAdminCommonPgBaseRep
    * @description 该账号是否已有偏好行（bindPreferenceForUser 的幂等前置，SQL 仍是 exists 点查）
    */
   async existsByUserId(userId: string, em?: EntityManager): Promise<boolean> {
-    return this.getManager(em)
-      .getRepository(SysUserPreferenceEntity)
-      .exists({ where: { userId } })
+    return this.getManager(em).getRepository(SysUserPreferenceEntity).exists({ where: { userId } })
   }
 
   /**
    * @description 按 userId 点查偏好行（查无返回 null，由 service 组装默认偏好）
    */
   async findByUserId(userId: string, em?: EntityManager): Promise<SysUserPreferenceEntity | null> {
-    return this.getManager(em)
-      .getRepository(SysUserPreferenceEntity)
-      .findOne({ where: { userId } })
+    return this.getManager(em).getRepository(SysUserPreferenceEntity).findOne({ where: { userId } })
   }
 
   /**
@@ -58,10 +54,14 @@ export class SysUserPreferenceBasicRepository extends WalnutAdminCommonPgBaseRep
    * ON CONFLICT (user_id) DO UPDATE（只回写 payload 携带的列），未提供列两边都走默认值。
    * payload 为空对象时 Mongo 版只做首插，PG 版对应 ON CONFLICT DO NOTHING（orIgnore）。
    */
-  async upsertByUserId(userId: string, payload: Partial<SysUserPreferenceEntity>, em?: EntityManager): Promise<void> {
+  async upsertByUserId(
+    userId: string,
+    payload: Partial<SysUserPreferenceEntity>,
+    em?: EntityManager,
+  ): Promise<void> {
     const overwriteColumns = Object.keys(payload)
-      .filter(k => k !== 'userId' && payload[k as keyof SysUserPreferenceEntity] !== undefined)
-      .map(k => this.getPropertyColumnName(k))
+      .filter((k) => k !== 'userId' && payload[k as keyof SysUserPreferenceEntity] !== undefined)
+      .map((k) => this.getPropertyColumnName(k))
 
     const query = this.getManager(em)
       .createQueryBuilder()
@@ -73,8 +73,7 @@ export class SysUserPreferenceBasicRepository extends WalnutAdminCommonPgBaseRep
 
     if (overwriteColumns.length > 0) {
       await query.orUpdate(overwriteColumns, ['user_id']).execute()
-    }
-    else {
+    } else {
       await query.orIgnore().execute()
     }
   }

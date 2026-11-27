@@ -2,7 +2,10 @@ import type { BeforeApplicationShutdown } from '@nestjs/common'
 import Cap, { Solution } from '@cap.js/server'
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
-import { resolveCapChallengeExpiresMs, resolveCapCookieMaxAgeMs } from '@walnut-server/const/app/cap'
+import {
+  resolveCapChallengeExpiresMs,
+  resolveCapCookieMaxAgeMs,
+} from '@walnut-server/const/app/cap'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { AppTechCookieService } from '@walnut-server/cookie'
 
@@ -42,7 +45,7 @@ export class SecurityCapService implements OnModuleInit, BeforeApplicationShutdo
   constructor(
     private readonly cacheAppSettingsService: AppTechCacheAppSettingsService,
     private readonly cookieService: AppTechCookieService,
-  ) { }
+  ) {}
 
   /**
    * 单实例前提的**启动期显式声明**（review CAP-3 的 (a) 方案：本轮不做分布式存储改造）。
@@ -52,10 +55,10 @@ export class SecurityCapService implements OnModuleInit, BeforeApplicationShutdo
    */
   onModuleInit() {
     this.logger.warn(
-      `CAP token store = local file (${WALNUT_ADMIN_CAP_TOKEN_STORE_PATH}) — `
-      + 'CAP MUST run as a SINGLE instance (or all replicas must share this file via a persistent volume). '
-      + 'Multi-replica deployments without shared storage always fail validation (40116/40117 storm); '
-      + 'diagnosis and reasoning live in the CAP section of the backend docs.',
+      `CAP token store = local file (${WALNUT_ADMIN_CAP_TOKEN_STORE_PATH}) — ` +
+        'CAP MUST run as a SINGLE instance (or all replicas must share this file via a persistent volume). ' +
+        'Multi-replica deployments without shared storage always fail validation (40116/40117 storm); ' +
+        'diagnosis and reasoning live in the CAP section of the backend docs.',
     )
   }
 
@@ -78,8 +81,7 @@ export class SecurityCapService implements OnModuleInit, BeforeApplicationShutdo
       this.logger.log(
         `[shutdown] CAP token store flushed in ${Date.now() - startedAt}ms (signal=${signal ?? 'app.close()'})`,
       )
-    }
-    catch (err) {
+    } catch (err) {
       this.logger.error(
         `[shutdown] CAP cleanup failed: ${err instanceof Error ? err.message : String(err)}`,
       )
@@ -105,7 +107,13 @@ export class SecurityCapService implements OnModuleInit, BeforeApplicationShutdo
 
     // 注意 cap.js 的 token 本体寿命是硬编码 20 分钟（与 ttl 无关），cookie 的 maxAge 跟着 ttl 走
     // 只表示「浏览器何时丢掉这枚凭据」，不表示「服务端认它多久」—— 权威解释见 const/app/cap.ts
-    this.cookieService.setResponseCookie(req, [{ key: WalnutAdminConstCookieKeys.CAPJS_TOKEN, value: res.token!, options: { maxAge: resolveCapCookieMaxAgeMs(config.ttl) } }])
+    this.cookieService.setResponseCookie(req, [
+      {
+        key: WalnutAdminConstCookieKeys.CAPJS_TOKEN,
+        value: res.token!,
+        options: { maxAge: resolveCapCookieMaxAgeMs(config.ttl) },
+      },
+    ])
 
     return res
   }

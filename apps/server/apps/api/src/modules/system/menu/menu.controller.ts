@@ -9,7 +9,11 @@ import { WalnutAdminDecoratorQueryDeleteCascade } from '@walnut-server/decorator
 
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
-import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser, WalnutAdminDecoratorVisitorDeny } from '@walnut-server/guards'
+import {
+  WalnutAdminDecoratorHasPermission,
+  WalnutAdminDecoratorUser,
+  WalnutAdminDecoratorVisitorDeny,
+} from '@walnut-server/guards'
 
 import {
   assembleSysMenu,
@@ -58,7 +62,7 @@ const {
 @Controller(SystemRoutes.MENU)
 @ApiTags('system/menu')
 export class SysMenuController {
-  constructor(private readonly menuService: SysMenuService) { }
+  constructor(private readonly menuService: SysMenuService) {}
 
   // need to put this in front
   @Get('tree')
@@ -84,7 +88,10 @@ export class SysMenuController {
   @WalnutAdminDecoratorHasPermission(Permissions.CREATE)
   @WalnutAdminDecoratorCreate()
   async create(@Body() payload: SysMenuDTOCreateRequest) {
-    return plainToInstance(SysMenuDTOCreateResponse, assembleSysMenu(await this.menuService.create(payload)))
+    return plainToInstance(
+      SysMenuDTOCreateResponse,
+      assembleSysMenu(await this.menuService.create(payload)),
+    )
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
@@ -99,7 +106,10 @@ export class SysMenuController {
     @Body() payload: SysMenuDTOUpdateRequest,
     @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return plainToInstance(SysMenuDTOUpdateResponse, assembleSysMenu(await this.menuService.update(id, payload)))
+    return plainToInstance(
+      SysMenuDTOUpdateResponse,
+      assembleSysMenu(await this.menuService.update(id, payload)),
+    )
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE)
@@ -113,7 +123,8 @@ export class SysMenuController {
     required: false,
     type: Number,
     enum: [0, 1],
-    description: '0 (default) = soft-delete the menu only; 1 = also cascade soft-delete the locale rows sharing the same title',
+    description:
+      '0 (default) = soft-delete the menu only; 1 = also cascade soft-delete the locale rows sharing the same title',
   })
   async delete(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
@@ -133,7 +144,7 @@ export class SysMenuController {
     const res = await this.menuService.list(payload)
 
     return plainToInstance(SysMenuDTOListResponse, {
-      data: res.data.map(entity => assembleSysMenu(entity)),
+      data: res.data.map((entity) => assembleSysMenu(entity)),
       total: res.total,
     })
   }

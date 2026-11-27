@@ -17,7 +17,7 @@ import { PreconditionError, SKIPPED_EXIT_CODE, SkippedError, ViolationError } fr
 
 describe('runCli —— 错误 → 退出码', () => {
   const originalExitCode = process.exitCode
-  let written: { fd: number, text: string }[]
+  let written: { fd: number; text: string }[]
 
   beforeEach(() => {
     written = []
@@ -33,8 +33,16 @@ describe('runCli —— 错误 → 退出码', () => {
     process.exitCode = originalExitCode
   })
 
-  const stderrText = () => written.filter(w => w.fd === 2).map(w => w.text).join('')
-  const stdoutText = () => written.filter(w => w.fd !== 2).map(w => w.text).join('')
+  const stderrText = () =>
+    written
+      .filter((w) => w.fd === 2)
+      .map((w) => w.text)
+      .join('')
+  const stdoutText = () =>
+    written
+      .filter((w) => w.fd !== 2)
+      .map((w) => w.text)
+      .join('')
 
   it('正常返回 → 0，且什么都不打', async () => {
     await runCli(() => {})

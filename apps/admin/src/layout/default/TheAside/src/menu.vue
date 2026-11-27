@@ -38,27 +38,21 @@ const { currentRoute } = useAppRouter()
 
 const expandedKeys = ref<string[]>()
 
-const getCurrentMenuName = computed((): string =>
-  currentRoute.value.meta?.menuActiveName ?? currentRoute.value.name as string,
+const getCurrentMenuName = computed(
+  (): string => currentRoute.value.meta?.menuActiveName ?? (currentRoute.value.name as string),
 )
 
 // format to naive-ui menu option data structure
 const getMenuOptions = computed(() =>
-  formatTree<SystemMenu, MenuOption>(toRaw(appStoreMenu.menus), node => ({
+  formatTree<SystemMenu, MenuOption>(toRaw(appStoreMenu.menus), (node) => ({
     key: node.name,
     label: t(node.title!),
     icon: () => {
       if (
-        (node.type === AppConstMenuType.CATALOG
-          && expandedKeys.value?.includes(node.name!))
-        || node.name === getCurrentMenuName.value
+        (node.type === AppConstMenuType.CATALOG && expandedKeys.value?.includes(node.name!)) ||
+        node.name === getCurrentMenuName.value
       ) {
-        return (
-          <WIcon
-            icon={node.meta?.activeIcon ?? node.icon!}
-          >
-          </WIcon>
-        )
+        return <WIcon icon={node.meta?.activeIcon ?? node.icon!}></WIcon>
       }
 
       return <WIcon icon={node.icon!}></WIcon>
@@ -69,8 +63,7 @@ const getMenuOptions = computed(() =>
       url: node.meta?.url,
     } as MenuMeta,
     show: node.meta?.show,
-    extra: () =>
-      node.meta?.badge && <n-badge size="small" value={node.meta?.badge}></n-badge>,
+    extra: () => node.meta?.badge && <n-badge size="small" value={node.meta?.badge}></n-badge>,
   })),
 )
 
@@ -78,27 +71,21 @@ const getMenuOptions = computed(() =>
 watch(
   () => getCurrentMenuName.value,
   async (v, oldV) => {
-    const paths = findPath<SystemMenu>(
-      appStoreMenu.menus,
-      n => n.name === v,
-    )
+    const paths = findPath<SystemMenu>(appStoreMenu.menus, (n) => n.name === v)
 
-    if (!paths)
-      return
+    if (!paths) return
 
     if (appStoreSettingDev.getMenuAccordion) {
-      expandedKeys.value = (paths as SystemMenu[]).map(i => i.name!)
-    }
-    else {
-      const oldPaths = findPath<SystemMenu>(
-        appStoreMenu.menus,
-        n => n.name === oldV,
-      )
+      expandedKeys.value = (paths as SystemMenu[]).map((i) => i.name!)
+    } else {
+      const oldPaths = findPath<SystemMenu>(appStoreMenu.menus, (n) => n.name === oldV)
 
-      if (!oldPaths)
-        return
+      if (!oldPaths) return
 
-      expandedKeys.value = [...(oldPaths as SystemMenu[]).map(i => i.name!), ...(paths as SystemMenu[]).map(i => i.name!)]
+      expandedKeys.value = [
+        ...(oldPaths as SystemMenu[]).map((i) => i.name!),
+        ...(paths as SystemMenu[]).map((i) => i.name!),
+      ]
     }
 
     await nextTick()
@@ -109,8 +96,7 @@ watch(
 
 async function onUpdateValue(key: string, item: MenuOption & { meta?: MenuMeta }) {
   // If isMobile and showAside true, set showAside to false to close drawer
-  if (appStoreAdapter.isMobile && appStoreMenu.getShowAside)
-    appStoreMenu.setShowAside(false)
+  if (appStoreAdapter.isMobile && appStoreMenu.getShowAside) appStoreMenu.setShowAside(false)
 
   // normal won't trigger the if below if the routers are configed correctly
   // only trigger when one catelog menu has no children menus
@@ -127,16 +113,15 @@ async function onUpdateValue(key: string, item: MenuOption & { meta?: MenuMeta }
 
   // omit the query field when click the side menu
   // should do so, otherwise once the route has query, user cannot get rid of it
-  const targetTab = appStoreTab.tabs.find(i => i.name === key)
-  if (targetTab)
-    appStoreTab.setTabByName(key, omit(targetTab, 'query'))
+  const targetTab = appStoreTab.tabs.find((i) => i.name === key)
+  if (targetTab) appStoreTab.setTabByName(key, omit(targetTab, 'query'))
 
   await useAppRouterPush({ name: key })
 }
 
 function onNodeProps(option: MenuOption) {
   return {
-    'id': `${option.key}-menu-item`,
+    id: `${option.key}-menu-item`,
     // E2E 稳定选择器：侧边栏菜单项（每个节点都带，选第一条即「菜单已渲染」）
     'data-testid': 'sidebar-menu-item',
   }
@@ -149,15 +134,18 @@ function onNodeProps(option: MenuOption) {
       v-if="appStoreSettingDev.getMenuShow"
       height="100%"
       class="transition-all"
-      :class="[{
-        'pb-8': appStoreSettingDev.getMenuCollapseButtonStatus,
-        'absolute': appStoreSettingDev.getLogoFixed,
-      }]"
+      :class="[
+        {
+          'pb-8': appStoreSettingDev.getMenuCollapseButtonStatus,
+          absolute: appStoreSettingDev.getLogoFixed,
+        },
+      ]"
       :style="{
-        paddingTop:
-          `${appStoreSettingDev.getLogoShow && appStoreSettingDev.getLogoFixed
+        paddingTop: `${
+          appStoreSettingDev.getLogoShow && appStoreSettingDev.getLogoFixed
             ? appStoreSettingDev.header.height
-            : 0}rem`,
+            : 0
+        }rem`,
       }"
     >
       <!-- data-testid：E2E 的应用外壳判据（登录成功后必须出现侧边栏菜单容器） -->
@@ -165,9 +153,13 @@ function onNodeProps(option: MenuOption) {
         :id="appStoreSettingDev.getMenuId"
         v-model:expanded-keys="expandedKeys"
         :inverted="userStorePreference.getMenuInverted"
-        :collapsed-width="appStoreSettingDev.getMenuCollapsedWidth * userStorePreference.getFontSize"
+        :collapsed-width="
+          appStoreSettingDev.getMenuCollapsedWidth * userStorePreference.getFontSize
+        "
         :accordion="appStoreSettingDev.getMenuAccordion"
-        :collapsed-icon-size="appStoreSettingDev.getMenuCollapsedIconSize * userStorePreference.getFontSize"
+        :collapsed-icon-size="
+          appStoreSettingDev.getMenuCollapsedIconSize * userStorePreference.getFontSize
+        "
         :icon-size="appStoreSettingDev.getMenuIconSize * userStorePreference.getFontSize"
         :indent="appStoreSettingDev.getMenuIndent * userStorePreference.getFontSize"
         :options="getMenuOptions"

@@ -1,6 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { IWalnutAdminConstAppHTTPMethods, WalnutAdminConstAppHTTPMethods } from '@walnut-server/const/app/methods'
-import { IWalnutAdminConstDecoratorLogOperateAction, IWalnutAdminConstDecoratorLogOperateType, WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
+import {
+  IWalnutAdminConstAppHTTPMethods,
+  WalnutAdminConstAppHTTPMethods,
+} from '@walnut-server/const/app/methods'
+import {
+  IWalnutAdminConstDecoratorLogOperateAction,
+  IWalnutAdminConstDecoratorLogOperateType,
+  WalnutAdminConstDecoratorLogOperateAction,
+  WalnutAdminConstDecoratorLogOperateType,
+} from '@walnut-server/const/decorator/logOperate'
 import {
   WalnutAdminDecoratorFieldBoolean,
   WalnutAdminDecoratorFieldDate,
@@ -232,17 +240,19 @@ export class SysLogOperateDTO extends SysLogOperateDTOBase {
 
 // Safe 层曾是「剔除 Mongo `_id`」的派生（B1 模板）；_id 已随 PG 迁移退役后仅存名，
 // 快照列仍需对响应侧剔除
-export class SysLogOperateDTOSafe extends RealOmitType(
-  SysLogOperateDTO,
-  ['snapshotBefore', 'snapshotAfter'] as const,
-) {
+export class SysLogOperateDTOSafe extends RealOmitType(SysLogOperateDTO, [
+  'snapshotBefore',
+  'snapshotAfter',
+] as const) {
   constructor(partial?: Partial<SysLogOperateDTOSafe>) {
     super()
     Object.assign(this, partial)
   }
 }
 
-class SysLogOperateDTOSafeRequest extends RealPartialType(RealOmitType(SysLogOperateDTOSafe, ['actionType', 'operation', 'operatedAt', 'method'] as const)) {
+class SysLogOperateDTOSafeRequest extends RealPartialType(
+  RealOmitType(SysLogOperateDTOSafe, ['actionType', 'operation', 'operatedAt', 'method'] as const),
+) {
   @WalnutAdminDecoratorFieldString({
     isArray: true,
     swaggerOptions: {
@@ -296,22 +306,25 @@ class SysLogOperateDTOSafeRequest extends RealPartialType(RealOmitType(SysLogOpe
 // success/operatedAt（views/system/log/operate 七列 sorter，operatedAt 为
 // defaultSortOrder descend，有 idx_log_operate_at DESC）；其余列无索引但 admin 在用
 // → 保留，见报告建议补索引。实体只有 operated_at 一个时间列，无 createdAt/updatedAt
-export class SysLogOperateDTOListRequest extends CreateWalnutAdminRequestListDTO(SysLogOperateDTOSafeRequest, {
-  sortOnlyIn: ['title', 'actionType', 'operation', 'method', 'userName', 'success', 'operatedAt'],
-}) { }
+export class SysLogOperateDTOListRequest extends CreateWalnutAdminRequestListDTO(
+  SysLogOperateDTOSafeRequest,
+  {
+    sortOnlyIn: ['title', 'actionType', 'operation', 'method', 'userName', 'success', 'operatedAt'],
+  },
+) {}
 
 export class SysLogOperateDTOListResponse extends CreateWalnutAdminResponseListDTO(
   RealPartialType(SysLogOperateDTOSafe),
-) { }
+) {}
 
 // read
-export class SysLogOperateDTOReadResponse extends SysLogOperateDTOSafe { }
+export class SysLogOperateDTOReadResponse extends SysLogOperateDTOSafe {}
 
 // snapshot
-export class SysLogOperateDTOSnapshotResponse extends RealPickType(
-  SysLogOperateDTO,
-  ['snapshotBefore', 'snapshotAfter'] as const,
-) {
+export class SysLogOperateDTOSnapshotResponse extends RealPickType(SysLogOperateDTO, [
+  'snapshotBefore',
+  'snapshotAfter',
+] as const) {
   constructor(partial?: Partial<SysLogOperateDTOSnapshotResponse>) {
     super()
     Object.assign(this, partial)

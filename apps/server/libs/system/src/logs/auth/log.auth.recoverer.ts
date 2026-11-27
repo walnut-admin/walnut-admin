@@ -1,6 +1,9 @@
 import type { WalnutAdminRecoverableRegistry } from '@walnut-server/repository'
 import { WalnutModelName } from '@walnut-server/db'
-import { createWalnutAdminRecoverableRegistrar, createWalnutAdminSnapshotRecoverer } from '@walnut-server/repository'
+import {
+  createWalnutAdminRecoverableRegistrar,
+  createWalnutAdminSnapshotRecoverer,
+} from '@walnut-server/repository'
 import { SysLogAuthEntity } from './entity/log-auth.entity'
 
 /**
@@ -14,4 +17,6 @@ export function registerSysLogAuthRecoverable(registry: WalnutAdminRecoverableRe
   })
 }
 
-export const sysLogAuthRecoverableProvider = createWalnutAdminRecoverableRegistrar(registerSysLogAuthRecoverable)
+export const sysLogAuthRecoverableProvider = createWalnutAdminRecoverableRegistrar(
+  registerSysLogAuthRecoverable,
+)

@@ -83,8 +83,15 @@ export class SharedAreaBasicRepository extends WalnutAdminCommonPgBaseRepository
   public async findChildrenByPcode(pcode: string, em?: EntityManager): Promise<SharedAreaEntity[]> {
     const rows = await this.getManager(em)
       .getRepository(SharedAreaEntity)
-      .find({ where: { pcode }, select: { name: true, code: true, pcode: true }, order: { code: 'ASC' } })
-    return rows.map(({ name, code, pcode: parentPcode }) => ({ name, code, pcode: parentPcode }) as SharedAreaEntity)
+      .find({
+        where: { pcode },
+        select: { name: true, code: true, pcode: true },
+        order: { code: 'ASC' },
+      })
+    return rows.map(
+      ({ name, code, pcode: parentPcode }) =>
+        ({ name, code, pcode: parentPcode }) as SharedAreaEntity,
+    )
   }
 
   /**
@@ -101,8 +108,9 @@ export class SharedAreaBasicRepository extends WalnutAdminCommonPgBaseRepository
     const maxDepth = options?.maxDepth
 
     // 递归项带 WHERE s.depth < $2：边界深度不再向下展开（整子树时无此谓词）
-    const sql = maxDepth === undefined
-      ? `WITH RECURSIVE subtree AS (
+    const sql =
+      maxDepth === undefined
+        ? `WITH RECURSIVE subtree AS (
           SELECT code, name, pcode, 0 AS depth
           FROM shared_area
           WHERE code = $1
@@ -112,7 +120,7 @@ export class SharedAreaBasicRepository extends WalnutAdminCommonPgBaseRepository
           JOIN subtree s ON a.pcode = s.code
         ) CYCLE code SET is_cycle USING path
         SELECT code, name, pcode, depth, is_cycle FROM subtree`
-      : `WITH RECURSIVE subtree AS (
+        : `WITH RECURSIVE subtree AS (
           SELECT code, name, pcode, 0 AS depth
           FROM shared_area
           WHERE code = $1
@@ -129,7 +137,7 @@ export class SharedAreaBasicRepository extends WalnutAdminCommonPgBaseRepository
     const raw = await this.getManager(em).query<Array<Record<string, unknown>>>(sql, parameters)
 
     // pg 驱动回 bigint（depth 计数）与 boolean：统一收敛为 number / boolean
-    return raw.map(row => ({
+    return raw.map((row) => ({
       code: row.code as string,
       name: row.name as string,
       pcode: row.pcode as string,
@@ -158,8 +166,7 @@ export class SharedAreaBasicRepository extends WalnutAdminCommonPgBaseRepository
       const parent = nodes.get(node.pcode)
       if (parent && node.code !== node.pcode) {
         parent.children.push(node)
-      }
-      else {
+      } else {
         roots.push(node)
       }
     }

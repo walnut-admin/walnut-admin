@@ -60,9 +60,7 @@ const [register4] = useForm<typeof breadcrumbRelatives>({
         path: 'transition',
       },
       componentProp: {
-        disabled: computed(
-          () => !breadcrumbRelatives.status || getCanAnimate.value,
-        ),
+        disabled: computed(() => !breadcrumbRelatives.status || getCanAnimate.value),
         tooltip: true,
       },
     },
@@ -73,7 +71,7 @@ const [register4] = useForm<typeof breadcrumbRelatives>({
         path: 'separator',
       },
       componentProp: {
-        options: ['>', '/'].map(i => ({ value: i, label: i })),
+        options: ['>', '/'].map((i) => ({ value: i, label: i })),
       },
     },
   ],

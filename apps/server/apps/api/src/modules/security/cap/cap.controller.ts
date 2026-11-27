@@ -3,7 +3,14 @@ import { Solution } from '@cap.js/server'
 import { Body, Controller, HttpCode, HttpStatus, Post, Req } from '@nestjs/common'
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { WalnutAdminGuardJwtFree } from '@walnut-server/auth'
-import { WalnutAdminDecoratorFreeResponse, WalnutAdminDecoratorThrottle, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardLockFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import {
+  WalnutAdminDecoratorFreeResponse,
+  WalnutAdminDecoratorThrottle,
+  WalnutAdminGuardCapFree,
+  WalnutAdminGuardDeviceFree,
+  WalnutAdminGuardLockFree,
+  WalnutAdminGuardSignFree,
+} from '@walnut-server/guards'
 import { SecurityCapService, SecurityCapSettingService } from '@walnut-server/security'
 import { SecurityRoutes } from '@walnut/contract'
 
@@ -22,7 +29,8 @@ const CAP_CHALLENGE_SCHEMA: SchemaObject = {
     challenge: {
       type: 'object',
       required: ['c', 's', 'd'],
-      description: 'proof-of-work parameters: c = challenge count, s = challenge size (bytes), d = difficulty',
+      description:
+        'proof-of-work parameters: c = challenge count, s = challenge size (bytes), d = difficulty',
       properties: {
         c: { type: 'number' },
         s: { type: 'number' },
@@ -72,15 +80,14 @@ const CAP_REDEEM_SCHEMA: SchemaObject = {
 @WalnutAdminGuardLockFree()
 @WalnutAdminDecoratorThrottle(SecurityCapSettingService)
 export class SecurityCapController {
-  constructor(
-    private readonly capService: SecurityCapService,
-  ) { }
+  constructor(private readonly capService: SecurityCapService) {}
 
   @Post('/challenge')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminGuardSignFree()
   @ApiOkResponse({
-    description: 'create a cap.js proof-of-work challenge (raw cap.js body, no response shell on this endpoint)',
+    description:
+      'create a cap.js proof-of-work challenge (raw cap.js body, no response shell on this endpoint)',
     schema: CAP_CHALLENGE_SCHEMA,
   })
   // 4A：13 个缺 summary 的 op 之一（原先只有 ApiOkResponse 的 response description，
@@ -97,7 +104,8 @@ export class SecurityCapController {
   @HttpCode(HttpStatus.OK)
   @WalnutAdminGuardSignFree()
   @ApiOkResponse({
-    description: 'redeem a cap.js challenge solution for a token (raw cap.js body, no response shell on this endpoint; the token is also set as the CAPJS_TOKEN cookie)',
+    description:
+      'redeem a cap.js challenge solution for a token (raw cap.js body, no response shell on this endpoint; the token is also set as the CAPJS_TOKEN cookie)',
     schema: CAP_REDEEM_SCHEMA,
   })
   @ApiOperation({

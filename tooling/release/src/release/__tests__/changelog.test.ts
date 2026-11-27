@@ -23,7 +23,12 @@ import {
 } from '../changelog.ts'
 
 /** 真实仓库里的包目录形状：`apps/<x>` + 单层的 `tooling/<x>` + 更深一层的 `packages/<group>/<x>` */
-const PACKAGE_DIRS = ['apps/admin', 'apps/server', 'tooling/scripts', 'packages/platform-any/utils-core']
+const PACKAGE_DIRS = [
+  'apps/admin',
+  'apps/server',
+  'tooling/scripts',
+  'packages/platform-any/utils-core',
+]
 
 const TRACKED_FILES = [
   'apps/README.md',
@@ -69,23 +74,40 @@ describe('outsidePackagePatterns —— 包外路径的两种粒度', () => {
   })
 
   it('没有包目录时（退化输入）不会把根文件当目录', () => {
-    expect(outsidePackagePatterns([], ['turbo.json', 'apps/admin/package.json'])).toEqual(['apps/**', 'turbo.json'])
+    expect(outsidePackagePatterns([], ['turbo.json', 'apps/admin/package.json'])).toEqual([
+      'apps/**',
+      'turbo.json',
+    ])
   })
 })
 
 describe('includePathsFor / excludePathsFor', () => {
   it('只有主应用额外带上「包外路径」', () => {
-    expect(includePathsFor('apps/admin', ['turbo.json', 'deploy/**'], 'apps/admin')).toEqual(['apps/admin/**', 'turbo.json', 'deploy/**'])
+    expect(includePathsFor('apps/admin', ['turbo.json', 'deploy/**'], 'apps/admin')).toEqual([
+      'apps/admin/**',
+      'turbo.json',
+      'deploy/**',
+    ])
     expect(includePathsFor('apps/server', ['turbo.json'], 'apps/admin')).toEqual(['apps/server/**'])
     expect(includePathsFor('tooling/scripts', [], 'apps/admin')).toEqual(['tooling/scripts/**'])
   })
 
   it('排除住得更深的嵌套包（否则父子包的 changelog 会跨包重复）', () => {
-    const allDirs = ['apps/admin', 'tooling/scripts', 'tooling/scripts/nested', 'tooling/scripts/nested/deeper']
-    expect(excludePathsFor('tooling/scripts', allDirs)).toEqual(['tooling/scripts/nested/**', 'tooling/scripts/nested/deeper/**'])
+    const allDirs = [
+      'apps/admin',
+      'tooling/scripts',
+      'tooling/scripts/nested',
+      'tooling/scripts/nested/deeper',
+    ]
+    expect(excludePathsFor('tooling/scripts', allDirs)).toEqual([
+      'tooling/scripts/nested/**',
+      'tooling/scripts/nested/deeper/**',
+    ])
     expect(excludePathsFor('apps/admin', allDirs)).toEqual([])
     // 自己不是自己的嵌套包；同级的兄弟目录也不算
-    expect(excludePathsFor('tooling/scripts/nested', allDirs)).toEqual(['tooling/scripts/nested/deeper/**'])
+    expect(excludePathsFor('tooling/scripts/nested', allDirs)).toEqual([
+      'tooling/scripts/nested/deeper/**',
+    ])
     expect(excludePathsFor('tooling/scripts', ['tooling/scripts', 'apps/admin'])).toEqual([])
   })
 })
@@ -106,11 +128,15 @@ describe('composeChangelog —— 一级标题恰好处理一次', () => {
   const EXPECTED = '# @walnut/admin\n\n## 1.1.0\n\n- new\n\n## 1.0.0\n\n- old\n'
 
   it('旧内容的一级标题与期望逐字相同 ⇒ 剥掉它再重写', () => {
-    expect(composeChangelog({ existing: '# @walnut/admin\n\n## 1.0.0\n\n- old\n', header, section })).toBe(EXPECTED)
+    expect(
+      composeChangelog({ existing: '# @walnut/admin\n\n## 1.0.0\n\n- old\n', header, section }),
+    ).toBe(EXPECTED)
   })
 
   it('旧内容的一级标题是**别的**标题（包改名 / 历史格式）⇒ 用期望标题替换它', () => {
-    expect(composeChangelog({ existing: '# Old Name\n\n## 1.0.0\n\n- old\n', header, section })).toBe(EXPECTED)
+    expect(
+      composeChangelog({ existing: '# Old Name\n\n## 1.0.0\n\n- old\n', header, section }),
+    ).toBe(EXPECTED)
   })
 
   it('旧内容没有一级标题 ⇒ 原样接在后面', () => {
@@ -118,16 +144,26 @@ describe('composeChangelog —— 一级标题恰好处理一次', () => {
   })
 
   it('文件不存在（空串）⇒ 只写标题 + 新段', () => {
-    expect(composeChangelog({ existing: '', header, section })).toBe('# @walnut/admin\n\n## 1.1.0\n\n- new\n')
+    expect(composeChangelog({ existing: '', header, section })).toBe(
+      '# @walnut/admin\n\n## 1.1.0\n\n- new\n',
+    )
   })
 
   it('旧内容只有空白 ⇒ 也不留多余空段', () => {
-    expect(composeChangelog({ existing: '\n\n\n', header, section })).toBe('# @walnut/admin\n\n## 1.1.0\n\n- new\n')
+    expect(composeChangelog({ existing: '\n\n\n', header, section })).toBe(
+      '# @walnut/admin\n\n## 1.1.0\n\n- new\n',
+    )
   })
 
   it('结果里的一级标题恰好一个（两个 H1 会让面板认错包名）', () => {
-    const composed = composeChangelog({ existing: '# Old Name\n\n## 1.0.0\n\n- old\n', header, section })
-    expect(composed.split('\n').filter(line => line.startsWith('# '))).toEqual(['# @walnut/admin'])
+    const composed = composeChangelog({
+      existing: '# Old Name\n\n## 1.0.0\n\n- old\n',
+      header,
+      section,
+    })
+    expect(composed.split('\n').filter((line) => line.startsWith('# '))).toEqual([
+      '# @walnut/admin',
+    ])
   })
 })
 
@@ -153,11 +189,13 @@ describe('git-cliff 参数构造', () => {
   })
 
   it('changelog 用参数：未打 tag 的提交 + 指定版本 + 配置 + 纳入/排除模式', () => {
-    expect(cliffArgsForChangelog({
-      version: '1.2.3',
-      includePaths: ['apps/admin/**', 'turbo.json'],
-      excludePaths: ['apps/admin/nested/**'],
-    })).toEqual([
+    expect(
+      cliffArgsForChangelog({
+        version: '1.2.3',
+        includePaths: ['apps/admin/**', 'turbo.json'],
+        excludePaths: ['apps/admin/nested/**'],
+      }),
+    ).toEqual([
       '--unreleased',
       '--tag',
       'v1.2.3',

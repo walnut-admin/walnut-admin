@@ -11,10 +11,7 @@ import { SysRoleSharedService } from './role.shared.service'
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature(
-      [SysRoleEntity, SysRoleMenuEntity],
-      WalnutPGConnectionName,
-    ),
+    TypeOrmModule.forFeature([SysRoleEntity, SysRoleMenuEntity], WalnutPGConnectionName),
     SharedScopeResolverModule,
   ],
   controllers: [],

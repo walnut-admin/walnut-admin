@@ -132,25 +132,15 @@ export class SysLocaleDTOListResponse extends CreateWalnutAdminResponseListDTO(
 
 // create
 export class SysLocaleDTOCreateRequest extends IntersectionType(
-  RealPickType(SysLocaleDTOSafe, [
-    'langId',
-    'key',
-  ] as const),
-  RealPartialType(RealPickType(SysLocaleDTOSafe, [
-    'value',
-  ] as const)),
+  RealPickType(SysLocaleDTOSafe, ['langId', 'key'] as const),
+  RealPartialType(RealPickType(SysLocaleDTOSafe, ['value'] as const)),
 ) {}
 export class SysLocaleDTOCreateResponse extends SysLocaleDTOSafe {}
 
 // update
 export class SysLocaleDTOUpdateRequest extends IntersectionType(
-  RealPickType(SysLocaleDTOSafe, [
-    'langId',
-    'key',
-  ] as const),
-  RealPartialType(RealPickType(SysLocaleDTOSafe, [
-    'value',
-  ] as const)),
+  RealPickType(SysLocaleDTOSafe, ['langId', 'key'] as const),
+  RealPartialType(RealPickType(SysLocaleDTOSafe, ['value'] as const)),
 ) {
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {

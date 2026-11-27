@@ -94,11 +94,14 @@ export function resolveStackShape(
 }
 
 /** 按形态拼出目标（容器名可用 `E2E_PG_CONTAINER` 覆盖 PG 一项；Redis 跟随 compose 文件） */
-export function stackTargetOf(shape: StackShape, execMode: PgExecMode, explicitContainer?: string): StackTarget {
+export function stackTargetOf(
+  shape: StackShape,
+  execMode: PgExecMode,
+  explicitContainer?: string,
+): StackTarget {
   const trimmed = (explicitContainer ?? '').trim()
-  const pgContainer = trimmed !== ''
-    ? trimmed
-    : shape === 'wsl' ? WSL_PG_CONTAINER : GENERIC_PG_CONTAINER
+  const pgContainer =
+    trimmed !== '' ? trimmed : shape === 'wsl' ? WSL_PG_CONTAINER : GENERIC_PG_CONTAINER
   return {
     shape,
     composeFile: COMPOSE_FILES[shape],
@@ -117,7 +120,9 @@ export function stackTargetOf(shape: StackShape, execMode: PgExecMode, explicitC
  */
 export function composeArgv(target: StackTarget, args: readonly string[]): string[] {
   if (target.execMode === 'wsl-bash') {
-    const script = ['docker', 'compose', '-f', `'${toWslPath(target.composeFile)}'`, ...args].join(' ')
+    const script = ['docker', 'compose', '-f', `'${toWslPath(target.composeFile)}'`, ...args].join(
+      ' ',
+    )
     return ['wsl', '-e', 'bash', '-c', script]
   }
   return ['docker', 'compose', '-f', target.composeFile, ...args]
@@ -134,15 +139,19 @@ function log(message: string): void {
  * status 把两者都摆出来，避免「栈健康就以为某个 profile 的基线也在」的误读。
  */
 export function profileStatusLine(): string {
-  const others = NAMED_STACK_PROFILES
-    .filter(name => name !== STACK_PROFILE.name)
-    .map((name) => {
-      const manifestFile = path.join(E2E_ROOT, STACK_PROFILES[name].artifactDir, 'baseline.manifest.json')
-      return `${name}=${existsSync(manifestFile) ? '有基线' : '无基线'}`
-    })
-  return `profile=${STACK_PROFILE.name}（库 ${STACK_PROFILE.database}，端口 ${BACKEND_PORT}/${SOCKET_PORT}/${WEB_PORT}，`
-    + `基线目录 ${STACK_PROFILE.artifactDir}；E2E_STACK_PROFILE 选择，不设 = default）`
-    + `\n  profile 基线：${others.join('，')}（当前 profile 的基线判定见下一行）`
+  const others = NAMED_STACK_PROFILES.filter((name) => name !== STACK_PROFILE.name).map((name) => {
+    const manifestFile = path.join(
+      E2E_ROOT,
+      STACK_PROFILES[name].artifactDir,
+      'baseline.manifest.json',
+    )
+    return `${name}=${existsSync(manifestFile) ? '有基线' : '无基线'}`
+  })
+  return (
+    `profile=${STACK_PROFILE.name}（库 ${STACK_PROFILE.database}，端口 ${BACKEND_PORT}/${SOCKET_PORT}/${WEB_PORT}，` +
+    `基线目录 ${STACK_PROFILE.artifactDir}；E2E_STACK_PROFILE 选择，不设 = default）` +
+    `\n  profile 基线：${others.join('，')}（当前 profile 的基线判定见下一行）`
+  )
 }
 
 function runCompose(target: StackTarget, args: readonly string[]): void {
@@ -150,15 +159,15 @@ function runCompose(target: StackTarget, args: readonly string[]): void {
   const result = spawnSync(argv[0]!, argv.slice(1), { stdio: 'inherit', windowsHide: true })
   if (result.error !== undefined) {
     throw new E2ePreconditionError(
-      `compose 命令没跑起来（${argv[0]}）：${result.error.message}\n`
-      + '  WSL 形态确认 wsl 可执行且发行版在跑；Docker Desktop 形态确认 docker CLI 在 PATH 上，'
-      + '并用 E2E_PG_EXEC_MODE=docker 显式改走原生 docker（见 apps/e2e/README.md「数据栈的两种形态」）。',
+      `compose 命令没跑起来（${argv[0]}）：${result.error.message}\n` +
+        '  WSL 形态确认 wsl 可执行且发行版在跑；Docker Desktop 形态确认 docker CLI 在 PATH 上，' +
+        '并用 E2E_PG_EXEC_MODE=docker 显式改走原生 docker（见 apps/e2e/README.md「数据栈的两种形态」）。',
     )
   }
   if (result.status !== 0) {
     throw new E2ePreconditionError(
-      `compose 命令失败（exit ${result.status ?? 'signal'}）：${argv.join(' ')}\n`
-      + '  数据栈的两种形态与容器名见 apps/e2e/README.md；E2E_PG_CONTAINER / E2E_PG_EXEC_MODE 可覆盖容器名与投递方式。',
+      `compose 命令失败（exit ${result.status ?? 'signal'}）：${argv.join(' ')}\n` +
+        '  数据栈的两种形态与容器名见 apps/e2e/README.md；E2E_PG_CONTAINER / E2E_PG_EXEC_MODE 可覆盖容器名与投递方式。',
     )
   }
 }
@@ -173,8 +182,8 @@ export function detectStackTarget(): StackTarget {
 
 function describeTarget(target: StackTarget): void {
   log(
-    `形态：${target.shape === 'wsl' ? 'WSL 常驻栈' : '通用栈'}（${path.relative(process.cwd(), target.composeFile)}；`
-    + `compose 项目 ${target.projectName}；投递 ${target.execMode}）`,
+    `形态：${target.shape === 'wsl' ? 'WSL 常驻栈' : '通用栈'}（${path.relative(process.cwd(), target.composeFile)}；` +
+      `compose 项目 ${target.projectName}；投递 ${target.execMode}）`,
   )
 }
 
@@ -201,18 +210,18 @@ export function baselineStatusLine(): string {
       case 'invalid':
         return `不可用：${usage.reason}`
       case 'drifted': {
-        const dirty = usage.dirtyPaths.length > 0 ? `；数据路径有未提交改动 ${usage.dirtyPaths.length} 项` : ''
+        const dirty =
+          usage.dirtyPaths.length > 0 ? `；数据路径有未提交改动 ${usage.dirtyPaths.length} 项` : ''
         return `漂移（dataKey ${usage.dataKey.slice(0, 12)}… 与清单不一致${dirty}）—— 用 --rebuild-baseline 重新封板`
       }
     }
-  }
-  catch (error) {
+  } catch (error) {
     return `读取失败：${error instanceof Error ? error.message : String(error)}`
   }
 }
 
 async function status(args: readonly string[]): Promise<number> {
-  const unknown = args.filter(arg => arg !== '--strict')
+  const unknown = args.filter((arg) => arg !== '--strict')
   if (unknown.length > 0) {
     throw new E2ePreconditionError(
       `e2e:stack:status 不认识的参数：${unknown.join(' ')}（只接受 --strict）`,
@@ -239,7 +248,11 @@ async function status(args: readonly string[]): Promise<number> {
 
   for (const service of [
     { name: `PG ${E2E_PG_HOST}:${E2E_PG_PORT}`, host: E2E_PG_HOST, port: E2E_PG_PORT },
-    { name: `Redis ${E2E_REDIS_HOST}:${E2E_REDIS_PORT}`, host: E2E_REDIS_HOST, port: E2E_REDIS_PORT },
+    {
+      name: `Redis ${E2E_REDIS_HOST}:${E2E_REDIS_PORT}`,
+      host: E2E_REDIS_HOST,
+      port: E2E_REDIS_PORT,
+    },
   ]) {
     const tcp = await checkTcp(service.host, service.port)
     log(`${tcp.ok ? 'ok  ' : 'FAIL'} ${service.name}：${tcp.detail}`)
@@ -250,9 +263,13 @@ async function status(args: readonly string[]): Promise<number> {
 
   for (const port of [BACKEND_PORT, SOCKET_PORT, WEB_PORT]) {
     const free = await checkPortFree(port)
-    log(`info 端口 ${port}：${free.ok
-      ? '空闲（Playwright 会自己起后端 / 静态代理）'
-      : `被占用（${free.detail}）—— 默认配置会按退出码 2 失败；确认是本轮产物才用 E2E_REUSE_SERVER=1`}`)
+    log(
+      `info 端口 ${port}：${
+        free.ok
+          ? '空闲（Playwright 会自己起后端 / 静态代理）'
+          : `被占用（${free.detail}）—— 默认配置会按退出码 2 失败；确认是本轮产物才用 E2E_REUSE_SERVER=1`
+      }`,
+    )
   }
 
   log(`基线：${baselineStatusLine()}`)
@@ -261,9 +278,11 @@ async function status(args: readonly string[]): Promise<number> {
     log('status 只读：不抢锁、不动库、不启停任何服务（退出码恒 0；要门禁判据加 --strict）')
     return statusExitCode(false, failures)
   }
-  log(failures.length === 0
-    ? '--strict：容器 / PG·Redis 全部健康（退出码 0）'
-    : `--strict：${failures.length} 项不健康 → 退出码 1（明细见上面的 FAIL 行）`)
+  log(
+    failures.length === 0
+      ? '--strict：容器 / PG·Redis 全部健康（退出码 0）'
+      : `--strict：${failures.length} 项不健康 → 退出码 1（明细见上面的 FAIL 行）`,
+  )
   return statusExitCode(true, failures)
 }
 
@@ -277,7 +296,7 @@ async function up(): Promise<void> {
 }
 
 async function down(args: readonly string[]): Promise<void> {
-  const unknown = args.filter(arg => arg !== '--volumes' && arg !== '-v')
+  const unknown = args.filter((arg) => arg !== '--volumes' && arg !== '-v')
   if (unknown.length > 0) {
     throw new E2ePreconditionError(
       `e2e:stack:down 不认识的参数：${unknown.join(' ')}（只接受 --volumes / -v：连数据卷一起删）`,
@@ -287,11 +306,15 @@ async function down(args: readonly string[]): Promise<void> {
   const target = detectStackTarget()
   describeTarget(target)
   log(profileStatusLine())
-  log(`停止：docker compose -f ${target.composeFile} down${volumes ? ' -v（连数据卷一起删）' : '（保留数据卷）'}`)
+  log(
+    `停止：docker compose -f ${target.composeFile} down${volumes ? ' -v（连数据卷一起删）' : '（保留数据卷）'}`,
+  )
   runCompose(target, volumes ? ['down', '-v'] : ['down'])
-  log(volumes
-    ? '已停止并删除数据卷：下次 up 是全新的空实例（基线随之失效，首次 run 会全量 prepare 并重新封板）'
-    : '已停止（数据卷保留）；下次 up 后数据还在')
+  log(
+    volumes
+      ? '已停止并删除数据卷：下次 up 是全新的空实例（基线随之失效，首次 run 会全量 prepare 并重新封板）'
+      : '已停止（数据卷保留）；下次 up 后数据还在',
+  )
 }
 
 /** 入口：`node scripts/stack.ts up|down|status [--volumes]` */
@@ -309,15 +332,15 @@ async function main(): Promise<void> {
       return
     default:
       throw new E2ePreconditionError(
-        `用法：node scripts/stack.ts up|down|status [--volumes] [--strict]\n`
-        + '  对应 `pnpm walnut e2e:stack:up` / `e2e:stack:down` / `e2e:stack:status`（-- 之后可传 --volumes / --strict）\n'
-        + '  status 默认只读报告、退出码恒 0；--strict 时容器 / PG·Redis 任一 FAIL ⇒ 退出码 1',
+        `用法：node scripts/stack.ts up|down|status [--volumes] [--strict]\n` +
+          '  对应 `pnpm walnut e2e:stack:up` / `e2e:stack:down` / `e2e:stack:status`（-- 之后可传 --volumes / --strict）\n' +
+          '  status 默认只读报告、退出码恒 0；--strict 时容器 / PG·Redis 任一 FAIL ⇒ 退出码 1',
       )
   }
 }
 
-const invokedDirectly = process.argv[1] !== undefined
-  && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+const invokedDirectly =
+  process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 
 if (invokedDirectly) {
   main().catch((error) => {

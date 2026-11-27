@@ -14,9 +14,7 @@ import { SysUserPreferenceBasicRepository } from './user_preference.basic.reposi
  * 的其他 lib 仓库一致，本模块不需要额外的 imports。
  */
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([SysUserPreferenceEntity], WalnutPGConnectionName),
-  ],
+  imports: [TypeOrmModule.forFeature([SysUserPreferenceEntity], WalnutPGConnectionName)],
   // 批 6：controller 留 app（identity-http.module.ts）
   controllers: [],
   providers: [SysUserPreferenceBasicRepository, SysUserPreferenceService],

@@ -73,6 +73,8 @@ describe('parseDirtyPaths', () => {
   })
 
   it('兼容 CRLF（Windows 的 git 输出）', () => {
-    expect(parseDirtyPaths(' M apps/e2e/scripts/prepare-db.ts\r\n')).toEqual(['apps/e2e/scripts/prepare-db.ts'])
+    expect(parseDirtyPaths(' M apps/e2e/scripts/prepare-db.ts\r\n')).toEqual([
+      'apps/e2e/scripts/prepare-db.ts',
+    ])
   })
 })

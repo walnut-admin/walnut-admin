@@ -27,8 +27,7 @@ async function isBackendReady(): Promise<boolean> {
     // /health/ready 就绪时返回 2xx；503（PG/Redis 未就绪）或连接拒绝都算「未就绪」
     const response = await fetch(READY_URL, { signal: AbortSignal.timeout(1500) })
     return response.ok
-  }
-  catch {
+  } catch {
     return false
   }
 }
@@ -42,7 +41,7 @@ if (ready) {
 log(`后端未就绪，开始等待（${READY_URL}，最长 ${MAX_WAIT_MS / 1000}s）…`)
 
 while (Date.now() - startedAt < MAX_WAIT_MS) {
-  await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS))
+  await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
 
   if (await isBackendReady()) {
     log(`后端已就绪（等待 ${((Date.now() - startedAt) / 1000).toFixed(1)}s），启动 vite`)

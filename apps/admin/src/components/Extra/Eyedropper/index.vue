@@ -15,8 +15,7 @@ function onClick() {
 }
 
 watchEffect(() => {
-  if (!isSupported.value)
-    return
+  if (!isSupported.value) return
   if (sRGBHex.value) {
     // TODO now only sRGB
     emits('choose', sRGBHex.value)

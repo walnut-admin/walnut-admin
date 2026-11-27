@@ -70,7 +70,9 @@ describe('A 段试点：system/lang CRUD + public 响应缓存（真实 HTTP 全
   afterEach(async () => {
     // P2-17：lang create/update 会重算 SYS_LANG_ID_LIST 与全部语言的 SYS_LOCALE_MESSAGES
     // （locale 行随 lang 行 FK CASCADE 清理）；消息缓存键名是大写代号，逐键显式清
-    await api.pgDataSource.query('DELETE FROM sys_lang WHERE lang = ANY($1::text[])', [[langCodeA, langCodeB]])
+    await api.pgDataSource.query('DELETE FROM sys_lang WHERE lang = ANY($1::text[])', [
+      [langCodeA, langCodeB],
+    ])
     await api.cleanupFixedCacheKeys(
       publicCacheKey,
       WalnutAdminConstAppCacheKeys.SYS_LANG_ID_LIST,
@@ -174,7 +176,7 @@ describe('A 段试点：system/lang CRUD + public 响应缓存（真实 HTTP 全
     // 先拉一次 public 写缓存（冷态由 afterEach 的 cleanupFixedCacheKeys 保证）
     const beforeRes = await api.unsigned('GET', api.apiPath('/system/lang/list/public'))
     expectOk(beforeRes, 'lang list public before CRUD')
-    expect(bodyOf<LangRow[]>(beforeRes).data.some(row => row.lang === langCodeB)).toBe(false)
+    expect(bodyOf<LangRow[]>(beforeRes).data.some((row) => row.lang === langCodeB)).toBe(false)
     expect(await api.hasWalnutCacheKey(publicCacheKey)).toBe(true)
 
     const createRes = await api.root('POST', api.apiPath('/system/lang'), {
@@ -189,7 +191,7 @@ describe('A 段试点：system/lang CRUD + public 响应缓存（真实 HTTP 全
     // create 提交后缓存已失效 → 下一次 public 回源，命中新行
     const afterCreateRes = await api.unsigned('GET', api.apiPath('/system/lang/list/public'))
     expectOk(afterCreateRes, 'lang list public after create')
-    expect(bodyOf<LangRow[]>(afterCreateRes).data.some(row => row.lang === langCodeB)).toBe(true)
+    expect(bodyOf<LangRow[]>(afterCreateRes).data.some((row) => row.lang === langCodeB)).toBe(true)
 
     const updateRes = await api.root('PUT', api.apiPath(`/system/lang/${created.id}`), {
       lang: langCodeB,
@@ -202,7 +204,7 @@ describe('A 段试点：system/lang CRUD + public 响应缓存（真实 HTTP 全
     // update 提交后同样失效 → 新行已停用，public 不再包含
     const afterUpdateRes = await api.unsigned('GET', api.apiPath('/system/lang/list/public'))
     expectOk(afterUpdateRes, 'lang list public after update')
-    expect(bodyOf<LangRow[]>(afterUpdateRes).data.some(row => row.lang === langCodeB)).toBe(false)
+    expect(bodyOf<LangRow[]>(afterUpdateRes).data.some((row) => row.lang === langCodeB)).toBe(false)
   })
 
   it('P2-17：新建语言后立刻写翻译不再 40099（SYS_LANG_ID_LIST 随 lang create 重算）', async () => {
@@ -276,7 +278,9 @@ describe('A 段试点：system/lang CRUD + public 响应缓存（真实 HTTP 全
     expect(await api.hasWalnutCacheKey(localeMessagesKey(langCodeA))).toBe(false)
 
     const cacheService = app.get(AppTechCacheService)
-    const newMessages = await cacheService.get<Record<string, string | null>>(localeMessagesKey(langCodeB))
+    const newMessages = await cacheService.get<Record<string, string | null>>(
+      localeMessagesKey(langCodeB),
+    )
     expect(newMessages?.[key]).toBe('v-rename')
   })
 

@@ -44,8 +44,7 @@ export function useStickyUserMessage(
     let candidate: IAIMessage | null = null
 
     for (let i = messages.value.length - 1; i >= 0; i--) {
-      if (messages.value[i].role !== 'user')
-        continue
+      if (messages.value[i].role !== 'user') continue
       const item = v.measurementsCache[i]
       if (item && item.index === i && item.end < scrollTop) {
         candidate = messages.value[i]

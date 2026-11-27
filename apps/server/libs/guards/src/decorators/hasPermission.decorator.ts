@@ -10,7 +10,10 @@ import { WalnutAdminGuardPermission } from '../guards/permission.guard'
  * Otherwise `request.user` will be undefined in context access
  * @link https://github.com/nestjs/docs.nestjs.com/issues/1567#issuecomment-731808138
  */
-export function WalnutAdminDecoratorHasPermission(permission: string | string[], mode: IWalnutAdminConstDecoratorPermissionMode = 'and') {
+export function WalnutAdminDecoratorHasPermission(
+  permission: string | string[],
+  mode: IWalnutAdminConstDecoratorPermissionMode = 'and',
+) {
   return applyDecorators(
     SetMetadata(WalnutAdminConstDecoratorPermissionMetadataKey.PERMISSION, permission),
     SetMetadata(WalnutAdminConstDecoratorPermissionMetadataKey.PERMISSION_MODE, mode),

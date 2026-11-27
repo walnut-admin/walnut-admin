@@ -71,7 +71,7 @@ const MODE_FLAGS: ReadonlyMap<string, RunMode> = new Map([
 
 /** 报错里附上的「表里有哪些 id」（未知 id 与未知旗标共用，避免两处漂移） */
 function knownIdsHint(commands: readonly Command[]): string {
-  return `表里的 id：${commands.map(command => command.id).join(', ')}（表在 tooling/scripts/src/lib/commands.ts）`
+  return `表里的 id：${commands.map((command) => command.id).join(', ')}（表在 tooling/scripts/src/lib/commands.ts）`
 }
 
 /**
@@ -79,7 +79,7 @@ function knownIdsHint(commands: readonly Command[]): string {
  * 那是 `main.ts` 的编排（这里抛会让调用方来不及打印）。
  */
 export function parseRunArgs(argv: readonly string[], commands: readonly Command[]): RunArgs {
-  const byId = new Map(commands.map(command => [command.id, command] as const))
+  const byId = new Map(commands.map((command) => [command.id, command] as const))
   const ids: string[] = []
   let passthrough: string[] = []
   let dryRun = false
@@ -88,7 +88,9 @@ export function parseRunArgs(argv: readonly string[], commands: readonly Command
 
   const setMode = (next: RunMode, flag: string): void => {
     if (mode !== 'run' && mode !== next)
-      throw new PreconditionError(`${modeFlag} 与 ${flag} 不能同时给（它们各自就是一种输出）。\n${usageText()}`)
+      throw new PreconditionError(
+        `${modeFlag} 与 ${flag} 不能同时给（它们各自就是一种输出）。\n${usageText()}`,
+      )
     mode = next
     modeFlag = flag
   }
@@ -114,8 +116,8 @@ export function parseRunArgs(argv: readonly string[], commands: readonly Command
       }
       if (arg.startsWith('-')) {
         throw new PreconditionError(
-          `不认识的参数「${arg}」。入口自己的选项只有 --list / --json / --dry-run / --help，而且要写在第一个命令 id 之前`
-          + `（命令自己的旗标写在它的后面）。${knownIdsHint(commands)}\n${usageText()}`,
+          `不认识的参数「${arg}」。入口自己的选项只有 --list / --json / --dry-run / --help，而且要写在第一个命令 id 之前` +
+            `（命令自己的旗标写在它的后面）。${knownIdsHint(commands)}\n${usageText()}`,
         )
       }
       if (byId.has(arg)) {
@@ -142,20 +144,19 @@ export function parseRunArgs(argv: readonly string[], commands: readonly Command
       break
     }
     if (byId.has(arg)) {
-      if (!ids.includes(arg))
-        ids.push(arg)
+      if (!ids.includes(arg)) ids.push(arg)
       continue
     }
     throw new PreconditionError(
-      `未知命令 id「${arg}」。${knownIdsHint(commands)}`
-      + `（要把它当参数传给 ${ids.join(', ')} 的话，写在 -- 之后）`,
+      `未知命令 id「${arg}」。${knownIdsHint(commands)}` +
+        `（要把它当参数传给 ${ids.join(', ')} 的话，写在 -- 之后）`,
     )
   }
 
   if (passthrough.length > 0 && ids.length > 1) {
     throw new PreconditionError(
-      `透传参数只允许选中一条命令，现在选中了 ${ids.length} 条：${ids.join(', ')}。`
-      + '要给多条命令传参数就分别跑两次。',
+      `透传参数只允许选中一条命令，现在选中了 ${ids.length} 条：${ids.join(', ')}。` +
+        '要给多条命令传参数就分别跑两次。',
     )
   }
 
@@ -169,5 +170,5 @@ export function parseRunArgs(argv: readonly string[], commands: readonly Command
  */
 export function selectCommands(commands: readonly Command[], ids: readonly string[]): Command[] {
   const wanted = new Set(ids)
-  return commands.filter(command => wanted.has(command.id))
+  return commands.filter((command) => wanted.has(command.id))
 }

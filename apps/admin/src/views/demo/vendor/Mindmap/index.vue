@@ -270,6 +270,13 @@ const data: MindElixirData = {
 
 <template>
   <div>
-    <WMindmap :data="data" :options="options" :style="{ width: appStoreSettingDev.getCalcContentWidthWithPadding, height: appStoreSettingDev.getCalcContentHeightWithPadding }" />
+    <WMindmap
+      :data="data"
+      :options="options"
+      :style="{
+        width: appStoreSettingDev.getCalcContentWidthWithPadding,
+        height: appStoreSettingDev.getCalcContentHeightWithPadding,
+      }"
+    />
   </div>
 </template>

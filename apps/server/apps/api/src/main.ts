@@ -3,11 +3,7 @@ import type { ValidationError } from 'class-validator'
 import type { DataSource } from 'typeorm'
 import { join } from 'node:path'
 import process from 'node:process'
-import {
-  ClassSerializerInterceptor,
-  ValidationPipe,
-  VersioningType,
-} from '@nestjs/common'
+import { ClassSerializerInterceptor, ValidationPipe, VersioningType } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { NestFactory, Reflector } from '@nestjs/core'
 import { getDataSourceToken } from '@nestjs/typeorm'
@@ -90,9 +86,7 @@ async function bootstrap() {
   )
   app.set(
     'trust proxy',
-    Number.isInteger(trustProxyHops) && trustProxyHops >= 0
-      ? trustProxyHops
-      : 1,
+    Number.isInteger(trustProxyHops) && trustProxyHops >= 0 ? trustProxyHops : 1,
   )
 
   /*
@@ -143,9 +137,7 @@ async function bootstrap() {
         exposeUnsetFields: false,
       },
       exceptionFactory: (errors: ValidationError[]) =>
-        new WalnutAdminExceptionRequestDataError(
-          getAllConstraints(errors).join(','),
-        ),
+        new WalnutAdminExceptionRequestDataError(getAllConstraints(errors).join(',')),
     }),
   )
 
@@ -218,9 +210,7 @@ async function bootstrap() {
   console.log(`APP is running in ${env} mode on ${await app.getUrl()}`)
   // 与挂载条件同一判据：生产没挂文档就不要打「文档在这里」的日志（否则是误导性的暴露暗示）
   if (WalnutAdminEnv !== WalnutAdminConstAppEnv.PROD) {
-    console.log(
-      `Swagger document is host on ${await app.getUrl()}/${openapiPrefix}`,
-    )
+    console.log(`Swagger document is host on ${await app.getUrl()}/${openapiPrefix}`)
   }
 }
 void bootstrap()

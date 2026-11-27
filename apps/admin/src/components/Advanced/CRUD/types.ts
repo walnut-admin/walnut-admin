@@ -23,7 +23,10 @@ export declare namespace WCrud {
      * (the dialog stays open, e.g. after a "are you sure" confirm was rejected).
      * Runs after form validation and before the API call.
      */
-    onBeforeFormSubmit?: (payload: { formData: T, actionType: IActionType }) => boolean | Promise<boolean>
+    onBeforeFormSubmit?: (payload: {
+      formData: T
+      actionType: IActionType
+    }) => boolean | Promise<boolean>
 
     /**
      * @default false
@@ -86,7 +89,10 @@ export declare namespace WCrud {
    */
   namespace Hooks {
     namespace UseCRUD {
-      type Props<T extends { id: string }> = WCrud.Props<T> | ComputedRef<WCrud.Props<T>> | IDeepMaybeRef<WCrud.Props<T>>
+      type Props<T extends { id: string }> =
+        | WCrud.Props<T>
+        | ComputedRef<WCrud.Props<T>>
+        | IDeepMaybeRef<WCrud.Props<T>>
 
       type Methods<T extends { id: string }> = Omit<Inst.WCrudInst<T>, 'setProps'>
 

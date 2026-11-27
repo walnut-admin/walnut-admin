@@ -26,14 +26,7 @@ import { SysUserBasicRepository } from './user.basic.repository'
   ],
   // 批 6：controller 留 app（依赖 guard/decorator），见 identity-http.module.ts
   controllers: [],
-  providers: [
-    SysUserBasicRepository,
-    SysUserMeService,
-    SysUserCrudService,
-  ],
-  exports: [
-    SysUserMeService,
-    SysUserCrudService,
-  ],
+  providers: [SysUserBasicRepository, SysUserMeService, SysUserCrudService],
+  exports: [SysUserMeService, SysUserCrudService],
 })
 export class SysUserModule {}

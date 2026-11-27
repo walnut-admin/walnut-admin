@@ -22,12 +22,7 @@ export function WalnutAdminDecoratorFieldEnum<TEnum extends EnumAllowedTypes>(
   const decorators = [
     // used for list request payload sort field key
     Expose(),
-    WADVE(
-      getEnum,
-      options?.validateOptions,
-      options?.isArray,
-      options?.arrayOptions,
-    ),
+    WADVE(getEnum, options?.validateOptions, options?.isArray, options?.arrayOptions),
     WADTE(options?.transformOptions, options?.isArray),
   ]
 

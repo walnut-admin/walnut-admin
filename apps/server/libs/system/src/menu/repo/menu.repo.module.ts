@@ -12,11 +12,9 @@ import { SysMenuRepositoryService } from './menu.repo.service'
  * import 本模块。
  */
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([SysMenuEntity], WalnutPGConnectionName),
-  ],
+  imports: [TypeOrmModule.forFeature([SysMenuEntity], WalnutPGConnectionName)],
   controllers: [],
   providers: [SysMenuRepositoryService],
   exports: [SysMenuRepositoryService],
 })
-export class SysMenuRepositoryModule { }
+export class SysMenuRepositoryModule {}

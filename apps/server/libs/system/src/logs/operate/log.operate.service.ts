@@ -1,10 +1,7 @@
 import { Injectable } from '@nestjs/common'
 
 import { SysDeviceRepositoryService } from '../../device/repo/device.repo.service'
-import {
-  SysLogOperateDTO,
-  SysLogOperateDTOListRequest,
-} from './dto/log.operate.dto'
+import { SysLogOperateDTO, SysLogOperateDTOListRequest } from './dto/log.operate.dto'
 import { SysLogOperateBasicRepository } from './log.operate.basic.repository'
 import { SysLogOperateRepoService } from './repo/log.operate.repo.service'
 

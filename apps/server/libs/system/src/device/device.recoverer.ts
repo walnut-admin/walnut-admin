@@ -1,6 +1,9 @@
 import type { WalnutAdminRecoverableRegistry } from '@walnut-server/repository'
 import { WalnutModelName } from '@walnut-server/db'
-import { createWalnutAdminRecoverableRegistrar, createWalnutAdminSnapshotRecoverer } from '@walnut-server/repository'
+import {
+  createWalnutAdminRecoverableRegistrar,
+  createWalnutAdminSnapshotRecoverer,
+} from '@walnut-server/repository'
 import { SysDeviceEntity } from './entity/device.entity'
 
 /**
@@ -14,4 +17,6 @@ export function registerSysDeviceRecoverable(registry: WalnutAdminRecoverableReg
   })
 }
 
-export const sysDeviceRecoverableProvider = createWalnutAdminRecoverableRegistrar(registerSysDeviceRecoverable)
+export const sysDeviceRecoverableProvider = createWalnutAdminRecoverableRegistrar(
+  registerSysDeviceRecoverable,
+)

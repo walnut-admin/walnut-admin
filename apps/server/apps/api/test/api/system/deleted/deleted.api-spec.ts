@@ -40,7 +40,7 @@ interface DeletedRow {
   modelName?: string
   deletedBy?: string
   content?: Record<string, unknown>
-  user?: { id: string, userName: string | null } | null
+  user?: { id: string; userName: string | null } | null
 }
 
 interface DeletedListData {
@@ -88,7 +88,10 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
     const mineTokens = await performHttpOpaqueLogin(mineUser, app, mineFixture)
     mineUser.setAuth(mineTokens)
     await mineUser.seedMfaVerifiedCache(mineFixture.userId)
-    expectOk(await mineUser.root('GET', mineUser.apiPath('/auth/permissions')), 'mine user permissions cache')
+    expectOk(
+      await mineUser.root('GET', mineUser.apiPath('/auth/permissions')),
+      'mine user permissions cache',
+    )
 
     manageOnlyFixture = await seedPermissionChainUser(app, api.pgDataSource, {
       userNamePrefix: `deleted-manage-${seed8}`,
@@ -98,20 +101,30 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
     const manageOnlyTokens = await performHttpOpaqueLogin(manageOnlyUser, app, manageOnlyFixture)
     manageOnlyUser.setAuth(manageOnlyTokens)
     await manageOnlyUser.seedMfaVerifiedCache(manageOnlyFixture.userId)
-    expectOk(await manageOnlyUser.root('GET', manageOnlyUser.apiPath('/auth/permissions')), 'manage-only user permissions cache')
+    expectOk(
+      await manageOnlyUser.root('GET', manageOnlyUser.apiPath('/auth/permissions')),
+      'manage-only user permissions cache',
+    )
   })
 
   afterAll(async () => {
     if (api !== undefined && fixture !== null) {
       if (deletedDemoIds.length > 0) {
-        await api.pgDataSource.query('DELETE FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])', [deletedDemoIds])
+        await api.pgDataSource.query('DELETE FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])', [
+          deletedDemoIds,
+        ])
       }
       if (demoIds.length > 0) {
         await api.pgDataSource.query('DELETE FROM app_demo WHERE id = ANY($1::uuid[])', [demoIds])
       }
       if (recoveredUserIds.length > 0) {
-        await api.pgDataSource.query('DELETE FROM sys_deleted WHERE content ->> \'userId\' = ANY($1::text[])', [recoveredUserIds])
-        await api.pgDataSource.query('DELETE FROM sys_user WHERE id = ANY($1::uuid[])', [recoveredUserIds])
+        await api.pgDataSource.query(
+          "DELETE FROM sys_deleted WHERE content ->> 'userId' = ANY($1::text[])",
+          [recoveredUserIds],
+        )
+        await api.pgDataSource.query('DELETE FROM sys_user WHERE id = ANY($1::uuid[])', [
+          recoveredUserIds,
+        ])
       }
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
@@ -119,8 +132,12 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
       await api.cleanupWalnutCacheKeys(seed8, api.deviceId, fixture.userId)
 
       // P3-21 种子用户（user / role / element 菜单 / 权限缓存 + 设备行）
-      const seedFixtures = [mineFixture, manageOnlyFixture].filter((i): i is SeedPermissionChainFixture => i !== null)
-      const seedDevices = [mineUser?.deviceId, manageOnlyUser?.deviceId].filter((i): i is string => typeof i === 'string')
+      const seedFixtures = [mineFixture, manageOnlyFixture].filter(
+        (i): i is SeedPermissionChainFixture => i !== null,
+      )
+      const seedDevices = [mineUser?.deviceId, manageOnlyUser?.deviceId].filter(
+        (i): i is string => typeof i === 'string',
+      )
       if (seedFixtures.length > 0) {
         await cleanupPermissionChainSeed(api, seedFixtures, seedDevices)
       }
@@ -149,7 +166,7 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
     })
     expectOk(res, 'deleted list (locate snapshot)')
     const list = bodyOf<DeletedListData>(res).data
-    const hit = list.data.find(row => row.deletedId === deletedId)
+    const hit = list.data.find((row) => row.deletedId === deletedId)
     expect(hit).toBeTruthy()
     return hit!
   }
@@ -172,8 +189,9 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
     expect(read.deletedId).toBe(demo.id)
     expect(read.modelName).toBe(WalnutModelName.APP_DEMO)
     expect(read.deletedBy).toBe(fixture!.userId)
-    expect((read.content as { demoString?: string }).demoString)
-      .toBe(demo.demoString!.toUpperCase()) // 快照按存储原样带回（demoString 入库大写；create 响应面是大小写宽松的，A 段 list 断言同样 toUpperCase 对拍）
+    expect((read.content as { demoString?: string }).demoString).toBe(
+      demo.demoString!.toUpperCase(),
+    ) // 快照按存储原样带回（demoString 入库大写；create 响应面是大小写宽松的，A 段 list 断言同样 toUpperCase 对拍）
     expect(read.user).toMatchObject({ id: fixture!.userId, userName: fixture!.userName })
 
     // list：content ::text 关键字过滤（本组唯一标记）+ 分页
@@ -236,7 +254,11 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
 
   it('P3-21：me/recover 走 system:deleted:recover:mine —— 非 root 只有 recover:mine 可恢复自己删的行，只有管理端 recover 被拒 40105', async () => {
     // 用户 A（recover:mine）：自己建、自己删 → 快照 deletedBy = A（属主语义闭环）
-    const createdRes = await mineUser!.root('POST', mineUser!.apiPath('/app/demo'), makeDemo(`${group}-P21`))
+    const createdRes = await mineUser!.root(
+      'POST',
+      mineUser!.apiPath('/app/demo'),
+      makeDemo(`${group}-P21`),
+    )
     expectOk(createdRes, 'demo create by mine user')
     const demo = bodyOf<DemoRow>(createdRes).data
     demoIds.push(demo.id)
@@ -253,10 +275,14 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
     const snapshotId = snapshotRows[0].id
 
     // 用户 B（只有管理端 system:deleted:recover）→ 新权限点不命中，40105（权限点已解耦）
-    const deniedRes = await manageOnlyUser!.root('POST', manageOnlyUser!.apiPath('/system/deleted/me/recover'), {
-      id: snapshotId,
-      deletedId: demo.id,
-    })
+    const deniedRes = await manageOnlyUser!.root(
+      'POST',
+      manageOnlyUser!.apiPath('/system/deleted/me/recover'),
+      {
+        id: snapshotId,
+        deletedId: demo.id,
+      },
+    )
     expect(bodyOf(deniedRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_NO_PERMISSION)
 
     // 用户 A → recover:mine 命中，属主恢复成功
@@ -308,7 +334,7 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
 
     const res = await api.root('DELETE', api.apiPath(`/system/deleted/deleteMany/${snapshot.id}`))
     expectOk(res, 'deleted deleteReal')
-    expect(bodyOf<DeletedRow[]>(res).data.map(i => i.id)).toEqual([snapshot.id])
+    expect(bodyOf<DeletedRow[]>(res).data.map((i) => i.id)).toEqual([snapshot.id])
 
     const remainRows: Array<{ c: number }> = await api.pgDataSource.query(
       'SELECT count(*)::int AS c FROM sys_deleted WHERE id = $1',
@@ -339,11 +365,13 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
        VALUES ($1, 'password', 'login', 'cipher-value-p2-18', $2, '***')`,
       [created.id, `hash-${seed8}`],
     )
-    await api.pgDataSource.query('INSERT INTO sys_user_preference (user_id) VALUES ($1)', [created.id])
+    await api.pgDataSource.query('INSERT INTO sys_user_preference (user_id) VALUES ($1)', [
+      created.id,
+    ])
     // P2-22：OAuth 绑定（(provider, provider_id) 复合唯一，外部账号只绑一个用户）
     const providerId = `github-${seed8}`
     await api.pgDataSource.query(
-      'INSERT INTO sys_user_oauth (user_id, provider, provider_id, status) VALUES ($1, \'github\', $2, true)',
+      "INSERT INTO sys_user_oauth (user_id, provider, provider_id, status) VALUES ($1, 'github', $2, true)",
       [created.id, providerId],
     )
 
@@ -352,25 +380,31 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
 
     // 修复前：只有 SysUser 一份快照（外围行被 FK CASCADE 静默带走）。现在主行删除前
     // 已给外围行各落一份快照。
-    const snapshotRows: Array<{ id: string, model_name: string }> = await api.pgDataSource.query(
+    const snapshotRows: Array<{ id: string; model_name: string }> = await api.pgDataSource.query(
       `SELECT id, model_name FROM sys_deleted
        WHERE deleted_id = $1::uuid OR content ->> 'userId' = $1::text
        ORDER BY model_name`,
       [created.id],
     )
-    const models = snapshotRows.map(row => row.model_name)
-    expect(models).toEqual(expect.arrayContaining(['SysUser', 'SysUserIdentity', 'SysUserPreference', 'SysUserOAuth']))
+    const models = snapshotRows.map((row) => row.model_name)
+    expect(models).toEqual(
+      expect.arrayContaining(['SysUser', 'SysUserIdentity', 'SysUserPreference', 'SysUserOAuth']),
+    )
 
-    const userSnapshot = snapshotRows.find(row => row.model_name === 'SysUser')
+    const userSnapshot = snapshotRows.find((row) => row.model_name === 'SysUser')
     expect(userSnapshot).toBeTruthy()
 
     // F2：回收站 read 出参对凭据密文脱敏（identity.value / MFA 四列 → `***`），
     // 但恢复走实体读取 sys_deleted.content，密文本身不受影响（恢复后断言）
-    const identitySnapshot = snapshotRows.find(row => row.model_name === 'SysUserIdentity')
+    const identitySnapshot = snapshotRows.find((row) => row.model_name === 'SysUserIdentity')
     expect(identitySnapshot).toBeTruthy()
-    const identityReadRes = await api.root('GET', api.apiPath(`/system/deleted/${identitySnapshot!.id}`))
+    const identityReadRes = await api.root(
+      'GET',
+      api.apiPath(`/system/deleted/${identitySnapshot!.id}`),
+    )
     expectOk(identityReadRes, 'deleted read (identity snapshot)')
-    const identitySnapshotContent = bodyOf<{ content: Record<string, unknown> }>(identityReadRes).data.content
+    const identitySnapshotContent = bodyOf<{ content: Record<string, unknown> }>(identityReadRes)
+      .data.content
     expect(identitySnapshotContent.value).toBe('***')
     // 非密文字段原样（定位/可读性不受影响）
     expect(identitySnapshotContent.type).toBe('password')
@@ -390,10 +424,11 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
     expect(userRows[0].c).toBe(1)
 
     // 外围行联动恢复（identity 的密文 value 完整带回 —— 登录凭据可用）
-    const identityRows: Array<{ value: string, masked_value: string }> = await api.pgDataSource.query(
-      'SELECT value, masked_value FROM sys_user_identity WHERE user_id = $1',
-      [created.id],
-    )
+    const identityRows: Array<{ value: string; masked_value: string }> =
+      await api.pgDataSource.query(
+        'SELECT value, masked_value FROM sys_user_identity WHERE user_id = $1',
+        [created.id],
+      )
     expect(identityRows).toHaveLength(1)
     expect(identityRows[0].value).toBe('cipher-value-p2-18')
     expect(identityRows[0].masked_value).toBe('***')
@@ -405,10 +440,11 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
     expect(preferenceRows[0].c).toBe(1)
 
     // P2-22：oauth 绑定联动恢复（provider / providerId 原样）
-    const oauthRows: Array<{ provider: string, provider_id: string, status: boolean }> = await api.pgDataSource.query(
-      'SELECT provider, provider_id, status FROM sys_user_oauth WHERE user_id = $1',
-      [created.id],
-    )
+    const oauthRows: Array<{ provider: string; provider_id: string; status: boolean }> =
+      await api.pgDataSource.query(
+        'SELECT provider, provider_id, status FROM sys_user_oauth WHERE user_id = $1',
+        [created.id],
+      )
     expect(oauthRows).toHaveLength(1)
     expect(oauthRows[0].provider).toBe('github')
     expect(oauthRows[0].provider_id).toBe(providerId)

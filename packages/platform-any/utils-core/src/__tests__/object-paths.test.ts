@@ -20,8 +20,8 @@ describe('objectToPaths（默认行为 = 服务端/客户端旧实现并集）',
       'a.b': 1,
       'a.c[0]': 2,
       'a.c[1].d': 'x',
-      'e': null,
-      'f': false,
+      e: null,
+      f: false,
     })
   })
 
@@ -66,7 +66,7 @@ describe('objectToPaths ignoreKeys（= 客户端旧实现）', () => {
     expect(objectToPaths(fixture, ['watermark'])).toEqual({
       'meta.watermark': { status: true, content: 'w' },
       'meta.title': 't',
-      'watermark': 1,
+      watermark: 1,
     })
   })
 
@@ -74,13 +74,14 @@ describe('objectToPaths ignoreKeys（= 客户端旧实现）', () => {
     expect(objectToPaths(fixture, ['meta.watermark'])).toEqual({
       'meta.watermark': { status: true, content: 'w' },
       'meta.title': 't',
-      'watermark': 1,
+      watermark: 1,
     })
   })
 
   it('第二参数兼容客户端历史的 string[] 位置形式与新 options 形式', () => {
-    expect(objectToPaths(fixture, ['watermark']))
-      .toEqual(objectToPaths(fixture, { ignoreKeys: ['watermark'] }))
+    expect(objectToPaths(fixture, ['watermark'])).toEqual(
+      objectToPaths(fixture, { ignoreKeys: ['watermark'] }),
+    )
   })
 
   it('空 ignoreKeys 与省略参数产出一致', () => {
@@ -91,13 +92,15 @@ describe('objectToPaths ignoreKeys（= 客户端旧实现）', () => {
 
 describe('pathsToObject（= 客户端旧实现的 lodash set 行为）', () => {
   it('还原嵌套对象与数组', () => {
-    expect(pathsToObject({
-      'a.b': 1,
-      'a.c[0]': 2,
-      'a.c[1].d': 'x',
-      'e': null,
-      'f': false,
-    })).toEqual({
+    expect(
+      pathsToObject({
+        'a.b': 1,
+        'a.c[0]': 2,
+        'a.c[1].d': 'x',
+        e: null,
+        f: false,
+      }),
+    ).toEqual({
       a: { b: 1, c: [2, { d: 'x' }] },
       e: null,
       f: false,
@@ -117,7 +120,7 @@ describe('pathsToObject（= 客户端旧实现的 lodash set 行为）', () => {
 
   it('空 path / 特殊 key 与 lodash 一致', () => {
     expect(pathsToObject({ '': 'root' })).toEqual({ '': 'root' })
-    expect(pathsToObject({ 'a[b]': 1, 'x-y': 2 })).toEqual({ 'a': { b: 1 }, 'x-y': 2 })
+    expect(pathsToObject({ 'a[b]': 1, 'x-y': 2 })).toEqual({ a: { b: 1 }, 'x-y': 2 })
   })
 
   it('与 objectToPaths 往返（忽略空容器丢失，属旧实现既有行为）', () => {

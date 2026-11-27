@@ -97,7 +97,12 @@ describe('AuthRefreshTokenPgPurgeService (on real PG)', () => {
   it('job 注册：@Cron 任务已挂到 ScheduleModule', () => {
     const schedulerRegistry = app.get(SchedulerRegistry)
 
-    expect(schedulerRegistry.doesExist('cron', WalnutAdminConstAppCronTaskNames.AUTH_DELETE_REFRESH_PG_PURGE)).toBe(true)
+    expect(
+      schedulerRegistry.doesExist(
+        'cron',
+        WalnutAdminConstAppCronTaskNames.AUTH_DELETE_REFRESH_PG_PURGE,
+      ),
+    ).toBe(true)
   })
 
   it('purgeExpiredRefreshTokens：只删过期行，未过期（活跃）行保留', async () => {

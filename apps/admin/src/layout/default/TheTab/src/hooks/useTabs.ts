@@ -19,7 +19,7 @@ export function useTabs() {
   const isOverflow = ref(false)
 
   const getCurrentRouteTabIndex = computed(() =>
-    appStoreTab.tabs.findIndex(item => item.name === currentRoute.value.name),
+    appStoreTab.tabs.findIndex((item) => item.name === currentRoute.value.name),
   )
 
   const onScrollToCurrentTab = async () => {
@@ -27,9 +27,11 @@ export function useTabs() {
 
     // scroll by index
     // If is mobile, just scroll to current route tab index
-    scrollRef.value?.scrollToIndex(appStoreAdapter.isMobile
-      ? getCurrentRouteTabIndex.value
-      : appStoreTab.leaveRoomForTabs(getCurrentRouteTabIndex.value))
+    scrollRef.value?.scrollToIndex(
+      appStoreAdapter.isMobile
+        ? getCurrentRouteTabIndex.value
+        : appStoreTab.leaveRoomForTabs(getCurrentRouteTabIndex.value),
+    )
   }
 
   const onUpdateOverflow = () => {
@@ -45,7 +47,7 @@ export function useTabs() {
       await nextTick()
 
       // use device to trigger Scroll
-      appStoreAdapter.getDevice && await onScrollToCurrentTab()
+      appStoreAdapter.getDevice && (await onScrollToCurrentTab())
     },
     {
       immediate: true,

@@ -51,7 +51,10 @@ export interface MainDeps {
   execute?: CommandExecutor
 }
 
-export async function main(argv: readonly string[] = process.argv.slice(2), deps: MainDeps = {}): Promise<void> {
+export async function main(
+  argv: readonly string[] = process.argv.slice(2),
+  deps: MainDeps = {},
+): Promise<void> {
   const parsed = parseRunArgs(argv, COMMANDS)
 
   if (parsed.mode === 'help') {
@@ -95,7 +98,9 @@ export async function main(argv: readonly string[] = process.argv.slice(2), deps
   if (selected.length === 0) {
     out(usageText())
     out(renderList(COMMANDS))
-    throw new PreconditionError('没有选中任何命令：给至少一个 id（清单见上），或用 --list 查看全部。')
+    throw new PreconditionError(
+      '没有选中任何命令：给至少一个 id（清单见上），或用 --list 查看全部。',
+    )
   }
 
   if (parsed.dryRun) {

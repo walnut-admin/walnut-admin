@@ -29,8 +29,9 @@ const DEFAULT_HEARTBEAT_MS = 5_000
 /** 预算的环境变量名（调用方可用 `budgetEnv` 换成自己的业务口径名） */
 const DEFAULT_BUDGET_ENV = 'CMD_TIMEOUT_MS'
 /** 超时后那段归因文案（调用方可用 `timeoutHint` 按场景覆盖） */
-const DEFAULT_TIMEOUT_HINT = '   命令超过预算已被中止。先确认它没卡在交互提示上，再排查环境（网络 / 磁盘 / 依赖）：'
-  + '卡住不等于失败，重跑通常能接上。'
+const DEFAULT_TIMEOUT_HINT =
+  '   命令超过预算已被中止。先确认它没卡在交互提示上，再排查环境（网络 / 磁盘 / 依赖）：' +
+  '卡住不等于失败，重跑通常能接上。'
 
 /** 子进程输出的去向（模块内部的名字；对外只出现匿名结构，`--json` 时传 `streamOutput(true)` 全改道 stderr） */
 interface Sink {
@@ -84,14 +85,13 @@ export class ChildRunError extends Error {
  */
 export function sanitizeEnv(strip: readonly string[]): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env, GIT_TERMINAL_PROMPT: '0' }
-  for (const name of strip)
-    delete env[name]
+  for (const name of strip) delete env[name]
   return env
 }
 
 /** 本进程的 stdout / stderr 出口（TTY 与管道各走各的正确路径，见 lib/log.ts） */
 export function streamOutput(toStderr: boolean): { write: (text: string) => void } {
-  return { write: text => writeOut(text, toStderr) }
+  return { write: (text) => writeOut(text, toStderr) }
 }
 
 /** 缺省探针出口：人类进展一律走 stderr，stdout 留给机器可读结果 */
@@ -102,8 +102,7 @@ function defaultNote(msg: string): void {
 /** 预算：先看 `budgetEnv` 指名的环境变量，再退回 `budgetDefaultMs`，最后 15 分钟；`<= 0` = 不设上限 */
 function budgetMsOf(options: RunVisibleOptions): number {
   const fromEnv = Number(process.env[options.budgetEnv ?? DEFAULT_BUDGET_ENV])
-  if (Number.isFinite(fromEnv) && fromEnv > 0)
-    return fromEnv
+  if (Number.isFinite(fromEnv) && fromEnv > 0) return fromEnv
   const fallback = options.budgetDefaultMs ?? DEFAULT_BUDGET_MS
   return Number.isFinite(fallback) && fallback > 0 ? fallback : 0
 }
@@ -130,7 +129,11 @@ function relay(stream: Readable | null, sink: Sink, tail: TailBuffer): void {
  * ① 每 `heartbeatMs` 打一个心跳，人一眼能看出「还在跑」；② 到点能真的超时并杀掉子进程树；
  * ③ Ctrl+C 的 SIGINT 回调能立刻生效（不再被同步调用推迟）。
  */
-export async function runArgs(cmd: string, args: string[], opts: RunVisibleOptions = {}): Promise<{ code: number }> {
+export async function runArgs(
+  cmd: string,
+  args: string[],
+  opts: RunVisibleOptions = {},
+): Promise<{ code: number }> {
   const display = [cmd, ...args].join(' ')
   const note = opts.note ?? defaultNote
   const startedAt = Date.now()
@@ -141,8 +144,7 @@ export async function runArgs(cmd: string, args: string[], opts: RunVisibleOptio
   const stderrSink = opts.output ?? streamOutput(true)
 
   note(`$ ${display}`)
-  if (opts.hint)
-    note(`   ${opts.hint}`)
+  if (opts.hint) note(`   ${opts.hint}`)
 
   let child: ChildProcess
   try {
@@ -162,10 +164,12 @@ export async function runArgs(cmd: string, args: string[], opts: RunVisibleOptio
       detached: process.platform !== 'win32',
       windowsHide: process.platform === 'win32',
     })
-  }
-  catch (error) {
+  } catch (error) {
     // spawn 自身同步抛（cwd 不存在 / 参数非法）：这不是「子进程报了违规」，而是**根本没跑起来**
-    throw new ChildRunError(`启动失败（没跑起来）：${display} —— ${error instanceof Error ? error.message : String(error)}`, 2)
+    throw new ChildRunError(
+      `启动失败（没跑起来）：${display} —— ${error instanceof Error ? error.message : String(error)}`,
+      2,
+    )
   }
 
   // 登记进 child-tree：「它何时真的没了」由那边统一持有 —— 中断路径要**等**它再打印「已中止」
@@ -188,7 +192,9 @@ export async function runArgs(cmd: string, args: string[], opts: RunVisibleOptio
         const label = opts.hint ?? (display.length > 80 ? `${display.slice(0, 77)}…` : display)
         heartbeat = setInterval(() => {
           const ran = Math.round((Date.now() - startedAt) / 1000)
-          note(`   … ${label}｜仍在执行 ${ran}s${budgetMs > 0 ? `（上限 ${Math.round(budgetMs / 1000)}s）` : ''}`)
+          note(
+            `   … ${label}｜仍在执行 ${ran}s${budgetMs > 0 ? `（上限 ${Math.round(budgetMs / 1000)}s）` : ''}`,
+          )
         }, heartbeatMs)
       }
       if (budgetMs > 0) {
@@ -201,7 +207,9 @@ export async function runArgs(cmd: string, args: string[], opts: RunVisibleOptio
         // 由调用方走 child-tree 的 killActiveChild()，那是安全网，不是超时的实现。
         deadline = setTimeout(() => {
           timedOut = true
-          note(`❌ 超过 ${Math.round(budgetMs / 1000)}s 上限，结束它（可用 ${opts.budgetEnv ?? DEFAULT_BUDGET_ENV} 调整）`)
+          note(
+            `❌ 超过 ${Math.round(budgetMs / 1000)}s 上限，结束它（可用 ${opts.budgetEnv ?? DEFAULT_BUDGET_ENV} 调整）`,
+          )
           killChildTree(child)
         }, budgetMs)
       }
@@ -212,10 +220,12 @@ export async function runArgs(cmd: string, args: string[], opts: RunVisibleOptio
       child.once('close', (exitCode, signal) => {
         unregisterChild(child)
         if (timedOut) {
-          reject(new ChildRunError(
-            `超时（>${Math.round(budgetMs / 1000)}s）：${display}\n${renderFailureTail(tail.lines())}\n${opts.timeoutHint ?? DEFAULT_TIMEOUT_HINT}`,
-            2,
-          ))
+          reject(
+            new ChildRunError(
+              `超时（>${Math.round(budgetMs / 1000)}s）：${display}\n${renderFailureTail(tail.lines())}\n${opts.timeoutHint ?? DEFAULT_TIMEOUT_HINT}`,
+              2,
+            ),
+          )
           return
         }
         if (exitCode === 0) {
@@ -224,19 +234,18 @@ export async function runArgs(cmd: string, args: string[], opts: RunVisibleOptio
         }
         // 把退出码挂在错误上：调用方要按三态（1 违规 / 2 前置未满足）区分时，不能只看到「失败了」。
         // `exitCode === null` = 被信号结束（如 OOM 的 SIGKILL）：同样没得出判定，归 2。
-        reject(new ChildRunError(
-          `${display} 失败：${describeExit(exitCode, signal)}\n${renderFailureTail(tail.lines())}`,
-          exitCode ?? 2,
-        ))
+        reject(
+          new ChildRunError(
+            `${display} 失败：${describeExit(exitCode, signal)}\n${renderFailureTail(tail.lines())}`,
+            exitCode ?? 2,
+          ),
+        )
       })
     })
     return { code }
-  }
-  finally {
-    if (heartbeat)
-      clearInterval(heartbeat)
-    if (deadline)
-      clearTimeout(deadline)
+  } finally {
+    if (heartbeat) clearInterval(heartbeat)
+    if (deadline) clearTimeout(deadline)
     note(`   ↳ 用时 ${Date.now() - startedAt}ms`)
   }
 }
@@ -250,8 +259,8 @@ export async function runArgs(cmd: string, args: string[], opts: RunVisibleOptio
 export function runSync(
   cmd: string,
   args: string[],
-  opts: { cwd?: string, env?: NodeJS.ProcessEnv } = {},
-): { code: number, stdout: string, stderr: string } {
+  opts: { cwd?: string; env?: NodeJS.ProcessEnv } = {},
+): { code: number; stdout: string; stderr: string } {
   const result = spawnSync(cmd, args, {
     cwd: opts.cwd,
     env: opts.env ?? process.env,

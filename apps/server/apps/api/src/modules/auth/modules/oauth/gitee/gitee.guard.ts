@@ -9,7 +9,9 @@ import { WalnutAdminGuardAuth } from '@walnut-server/guards'
 import { isObservable, lastValueFrom } from 'rxjs'
 
 @Injectable()
-export class OAuthGiteeGuard extends WalnutAdminGuardAuth(WalnutAdminConstAppAuthStrategy.OAUTH_GITEE) {
+export class OAuthGiteeGuard extends WalnutAdminGuardAuth(
+  WalnutAdminConstAppAuthStrategy.OAUTH_GITEE,
+) {
   constructor(private readonly oauthStateService: OAuthStateService) {
     super()
   }

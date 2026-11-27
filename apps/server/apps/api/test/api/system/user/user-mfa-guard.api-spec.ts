@@ -74,7 +74,10 @@ describe('MFA guard：设备级 verified 缓存 + visitor 跳过（真实 HTTP �
    * 2. 清 auth 再用 anon 单因子签名 —— 登录链是 JwtFree，带登录态会按双因子签名算，服务端
    *    按单因子校验 ⇒ 40112。
    */
-  async function loginOn(client: WalnutApiClient, fixture: WalnutRootUserFixture): Promise<WalnutAuthTokens> {
+  async function loginOn(
+    client: WalnutApiClient,
+    fixture: WalnutRootUserFixture,
+  ): Promise<WalnutAuthTokens> {
     if (client.getAuth() !== null) {
       const signoutRes = await client.anon('POST', client.apiPath('/auth/signout'))
       expectOk(signoutRes, 'signout before re-login')
@@ -116,7 +119,11 @@ describe('MFA guard：设备级 verified 缓存 + visitor 跳过（真实 HTTP �
    * 把用户切成「switchable + currentRole」，junction 只留这一个角色。
    * AT payload 的 roleMode/currentRoleName 在登录时固化 ⇒ 调用后必须重新登录。
    */
-  async function switchUserRole(fixture: WalnutRootUserFixture, roleId: string, mfaSetup: boolean): Promise<void> {
+  async function switchUserRole(
+    fixture: WalnutRootUserFixture,
+    roleId: string,
+    mfaSetup: boolean,
+  ): Promise<void> {
     const pg = apiA.pgDataSource
     await pg.query('DELETE FROM sys_user_role WHERE user_id = $1', [fixture.userId])
     await pg.query(
@@ -150,7 +157,9 @@ describe('MFA guard：设备级 verified 缓存 + visitor 跳过（真实 HTTP �
           continue
         }
         await pg.query('DELETE FROM sys_user_lock WHERE user_id = $1', [fixture.userId])
-        await pg.query('UPDATE sys_user_device SET locked = false WHERE user_id = $1', [fixture.userId])
+        await pg.query('UPDATE sys_user_device SET locked = false WHERE user_id = $1', [
+          fixture.userId,
+        ])
         await pg.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
         await pg.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
       }
@@ -177,7 +186,7 @@ describe('MFA guard：设备级 verified 缓存 + visitor 跳过（真实 HTTP �
     // 登录时固化的 payload：mfa_setup=true（P5 放行）、mfaVerified=false（走 P7 缓存腿）
     const payload = JSON.parse(
       Buffer.from(tokensA!.accessToken.split('.')[1], 'base64url').toString('utf8'),
-    ) as { mfaSetup: boolean, mfaVerified: boolean }
+    ) as { mfaSetup: boolean; mfaVerified: boolean }
     expect(payload.mfaSetup).toBe(true)
     expect(payload.mfaVerified).toBe(false)
 
@@ -206,7 +215,9 @@ describe('MFA guard：设备级 verified 缓存 + visitor 跳过（真实 HTTP �
     tokensB = await loginOn(apiB, rootFixture!)
     // B 从没种过 verified 缓存（登录不写这条键）
     expect(await cacheMfa().getVerifiedCache(rootFixture!.userId, apiB.deviceId)).toBeNull()
-    expect(await apiB.hasWalnutCacheKey(mfaCacheKey(rootFixture!.userId, apiB.deviceId))).toBe(false)
+    expect(await apiB.hasWalnutCacheKey(mfaCacheKey(rootFixture!.userId, apiB.deviceId))).toBe(
+      false,
+    )
 
     // A 的缓存不受 B 登录影响，也不被 B 借用
     expect(await apiA.hasWalnutCacheKey(mfaCacheKey(rootFixture!.userId, apiA.deviceId))).toBe(true)
@@ -222,19 +233,23 @@ describe('MFA guard：设备级 verified 缓存 + visitor 跳过（真实 HTTP �
     // AT payload 自洽：switchable + currentRoleName=visitor + mfaSetup=false
     const payload = JSON.parse(
       Buffer.from(tokensB.accessToken.split('.')[1], 'base64url').toString('utf8'),
-    ) as { roleMode: string, currentRoleName: string, mfaSetup: boolean, mfaVerified: boolean }
+    ) as { roleMode: string; currentRoleName: string; mfaSetup: boolean; mfaVerified: boolean }
     expect(payload.roleMode).toBe(WalnutAdminConstRoleMode.SWITCH)
     expect(payload.currentRoleName).toBe(Role.VISITOR)
     expect(payload.mfaSetup).toBe(false)
     expect(payload.mfaVerified).toBe(false)
 
-    expect(await apiB.hasWalnutCacheKey(mfaCacheKey(switchFixture!.userId, apiB.deviceId))).toBe(false)
+    expect(await apiB.hasWalnutCacheKey(mfaCacheKey(switchFixture!.userId, apiB.deviceId))).toBe(
+      false,
+    )
 
     expect(await probe(apiB)).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
 
     // 跳过是 P4 短路 —— 请求过程不会顺手写 verified 缓存
     expect(await cacheMfa().getVerifiedCache(switchFixture!.userId, apiB.deviceId)).toBeNull()
-    expect(await apiB.hasWalnutCacheKey(mfaCacheKey(switchFixture!.userId, apiB.deviceId))).toBe(false)
+    expect(await apiB.hasWalnutCacheKey(mfaCacheKey(switchFixture!.userId, apiB.deviceId))).toBe(
+      false,
+    )
   })
 
   it('对照：同一用户切回 switchable+root（mfa_setup 仍 false）⇒ 40114 MfaRequired', async () => {
@@ -243,7 +258,7 @@ describe('MFA guard：设备级 verified 缓存 + visitor 跳过（真实 HTTP �
 
     const payload = JSON.parse(
       Buffer.from(tokensB.accessToken.split('.')[1], 'base64url').toString('utf8'),
-    ) as { roleMode: string, currentRoleName: string, mfaSetup: boolean }
+    ) as { roleMode: string; currentRoleName: string; mfaSetup: boolean }
     expect(payload.roleMode).toBe(WalnutAdminConstRoleMode.SWITCH)
     expect(payload.currentRoleName).toBe(Role.ROOT)
     expect(payload.mfaSetup).toBe(false)

@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { useBuildEnv } from '../use-build-env.ts'
 
-const PROXY = [[1, '/api', 'http://127.0.0.1:3000/w/v1'], [1, '/ws', 'ws://', '127.0.0.1:3000/w/v1']]
+const PROXY = [
+  [1, '/api', 'http://127.0.0.1:3000/w/v1'],
+  [1, '/ws', 'ws://', '127.0.0.1:3000/w/v1'],
+]
 
 /** 一份「什么开关都开着」的 env 源：断言各字段都映射到位，而不是恰好都是默认值 */
 function fullEnv(overrides: Record<string, string> = {}) {
@@ -39,7 +42,10 @@ describe('useBuildEnv', () => {
       host: '0.0.0.0',
       title: 'Walnut Admin',
       publicPath: '/admin/',
-      proxy: [[1, '/api', 'http://127.0.0.1:3000/w/v1'], [1, '/ws', 'ws://', '127.0.0.1:3000/w/v1']],
+      proxy: [
+        [1, '/api', 'http://127.0.0.1:3000/w/v1'],
+        [1, '/ws', 'ws://', '127.0.0.1:3000/w/v1'],
+      ],
       gaId: 'G-TEST',
       dev: { csp: true },
       build: {
@@ -70,28 +76,38 @@ describe('useBuildEnv', () => {
   })
 
   it('把 VITE_PROXY 按 JSON 解析，保留元组里的数字开关与各段', () => {
-    const env = useBuildEnv(fullEnv({
-      VITE_PROXY: JSON.stringify([[0, '/api', 'http://127.0.0.1:3000'], [1, '/ws', 'wss://', 'example.com/socket']]),
-    }))
+    const env = useBuildEnv(
+      fullEnv({
+        VITE_PROXY: JSON.stringify([
+          [0, '/api', 'http://127.0.0.1:3000'],
+          [1, '/ws', 'wss://', 'example.com/socket'],
+        ]),
+      }),
+    )
 
-    expect(env.proxy).toEqual([[0, '/api', 'http://127.0.0.1:3000'], [1, '/ws', 'wss://', 'example.com/socket']])
+    expect(env.proxy).toEqual([
+      [0, '/api', 'http://127.0.0.1:3000'],
+      [1, '/ws', 'wss://', 'example.com/socket'],
+    ])
   })
 
   it('布尔量只认字面量 true，false / 1 / 空串都是 false', () => {
     for (const value of ['false', '1', '', 'TRUE']) {
-      const env = useBuildEnv(fullEnv({
-        VITE_DEV_CSP: value,
-        VITE_BUILD_OBFUSCATOR: value,
-        VITE_BUILD_DROP_CONSOLE: value,
-        VITE_BUILD_COMPRESSION: value,
-        VITE_BUILD_ANALYZER: value,
-        VITE_BUILD_BANNER: value,
-        VITE_BUILD_CDN: value,
-        VITE_BUILD_DISABLE_BROWSER_DEVTOOL: value,
-        VITE_BUILD_CSP: value,
-        VITE_BUILD_LEGACY: value,
-        VITE_BUILD_SENTRY: value,
-      }))
+      const env = useBuildEnv(
+        fullEnv({
+          VITE_DEV_CSP: value,
+          VITE_BUILD_OBFUSCATOR: value,
+          VITE_BUILD_DROP_CONSOLE: value,
+          VITE_BUILD_COMPRESSION: value,
+          VITE_BUILD_ANALYZER: value,
+          VITE_BUILD_BANNER: value,
+          VITE_BUILD_CDN: value,
+          VITE_BUILD_DISABLE_BROWSER_DEVTOOL: value,
+          VITE_BUILD_CSP: value,
+          VITE_BUILD_LEGACY: value,
+          VITE_BUILD_SENTRY: value,
+        }),
+      )
 
       expect(env.dev.csp).toBe(false)
       expect(env.build.obfuscator).toBe(false)
@@ -119,7 +135,9 @@ describe('useBuildEnv', () => {
   })
 
   it('字符串字段不做默认值填充（空串就透出空串）', () => {
-    const env = useBuildEnv(fullEnv({ VITE_GA_ID: '', VITE_APP_TITLE: '', VITE_BUILD_SENTRY_DSN: '' }))
+    const env = useBuildEnv(
+      fullEnv({ VITE_GA_ID: '', VITE_APP_TITLE: '', VITE_BUILD_SENTRY_DSN: '' }),
+    )
 
     expect(env.gaId).toBe('')
     expect(env.title).toBe('')

@@ -21,7 +21,10 @@ import { expect, test } from '../fixtures.ts'
 
 async function visitorRoleId(): Promise<string> {
   return withPg(async (pg) => {
-    const { rows } = await pg.query<{ id: string }>('SELECT id FROM sys_role WHERE role_name = $1', ['visitor'])
+    const { rows } = await pg.query<{ id: string }>(
+      'SELECT id FROM sys_role WHERE role_name = $1',
+      ['visitor'],
+    )
     const id = rows[0]?.id
     if (id === undefined) {
       throw new Error('[e2e] seed 里没有 visitor 角色（sys_role.json）')
@@ -79,7 +82,9 @@ test('用户 CRUD：root 造 → 改 → 查列表 → 删', { tag: '@smoke' }, 
     expect(list.data).toHaveLength(1)
     const row = list.data[0]
     if (row === undefined) {
-      throw new Error('[e2e/user-crud] user/list 命中 1 条但 data[0] 为空 —— 生成类型与运行时不一致')
+      throw new Error(
+        '[e2e/user-crud] user/list 命中 1 条但 data[0] 为空 —— 生成类型与运行时不一致',
+      )
     }
     expect(typeof row.id).toBe('string')
     expect(typeof row.userName).toBe('string')
@@ -103,8 +108,7 @@ test('用户 CRUD：root 造 → 改 → 查列表 → 删', { tag: '@smoke' }, 
     expect(after.total).toBe(0)
     expect(Array.isArray(after.data)).toBe(true)
     expect(after.data).toHaveLength(0)
-  }
-  finally {
+  } finally {
     // 失败路径也要把半造的用户清掉（按用户名删除，避免留脏数据）；设备由清理 fixture 负责
     if (createdId !== '') {
       await withPg(async (pg) => {

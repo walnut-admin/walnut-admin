@@ -59,8 +59,7 @@ export class SysDictTypeService {
   async getByType(type: string) {
     const dictType = await this.dictTypeBasicRepo.findByType(type)
 
-    if (!dictType)
-      return []
+    if (!dictType) return []
 
     const data: SysDictDataEntity[] = await this.dictDataBasicRepo.findActiveByTypeId(dictType.id)
 
@@ -75,8 +74,6 @@ export class SysDictTypeService {
    * @description: get dict by type many
    */
   async getByTypeMany(types: string[]) {
-    return (
-      await Promise.all(types.map(async type => this.getByType(type)))
-    ).flat()
+    return (await Promise.all(types.map(async (type) => this.getByType(type)))).flat()
   }
 }

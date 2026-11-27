@@ -3,7 +3,9 @@ import type { ICompUIDropdownInst, ICompUIDropdownProps } from '.'
 import { isInSetup } from '@walnut/client/browser/shared'
 import { shallowRef, watchEffect } from 'vue'
 
-export function useDropdown(props: IDeepMaybeRef<ICompUIDropdownProps> | ICompUIDropdownProps): [(inst: ICompUIDropdownInst) => void, ICompUIDropdownInst] {
+export function useDropdown(
+  props: IDeepMaybeRef<ICompUIDropdownProps> | ICompUIDropdownProps,
+): [(inst: ICompUIDropdownInst) => void, ICompUIDropdownInst] {
   isInSetup()
 
   const wDropdownRef = shallowRef<ICompUIDropdownInst>()
@@ -17,8 +19,8 @@ export function useDropdown(props: IDeepMaybeRef<ICompUIDropdownProps> | ICompUI
   })
 
   const methods: ICompUIDropdownInst = {
-    setProps: props => wDropdownRef.value?.setProps!(props),
-    openDropdown: e => wDropdownRef.value?.openDropdown!(e),
+    setProps: (props) => wDropdownRef.value?.setProps!(props),
+    openDropdown: (e) => wDropdownRef.value?.openDropdown!(e),
     closeDropdown: () => wDropdownRef.value?.closeDropdown!(),
   }
 

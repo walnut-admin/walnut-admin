@@ -18,7 +18,11 @@ import { generateSync } from 'otplib'
 import { deleteLoginableUser } from '../../lib/account-fixtures.ts'
 import { openDevice, resolveDeviceId, trackDevice } from '../../lib/device-fixtures.ts'
 import { findTotpMfaRow, readUserMfaSetup, withPg } from '../../lib/pg.ts'
-import { AuthRoutes, SystemEndpointRoutes, WalnutAdminConstAppResponseCode } from '../../lib/protocol/contract.ts'
+import {
+  AuthRoutes,
+  SystemEndpointRoutes,
+  WalnutAdminConstAppResponseCode,
+} from '../../lib/protocol/contract.ts'
 import { rootClient } from '../../lib/protocol/root-client.ts'
 import { SIDEBAR_MENU_SELECTOR } from '../../lib/ui.ts'
 import { expect, test } from '../fixtures.ts'
@@ -35,7 +39,9 @@ const TOTP_BIND_API_PATH = `/api${SystemEndpointRoutes.USER_MFA_TOTP_BIND}`
 const MFA_VERIFY_API_PATH = `/api${AuthRoutes.MFA_VERIFY}`
 
 test.describe('MFA 强制绑定 journey', { tag: '@journey' }, () => {
-  test('J10 新用户强制绑定 TOTP：/mfa-required 扫码 → 6 位码 → 备用码 → 进系统', async ({ browser }) => {
+  test('J10 新用户强制绑定 TOTP：/mfa-required 扫码 → 6 位码 → 备用码 → 进系统', async ({
+    browser,
+  }) => {
     const root = await rootClient()
     // 新用户 mfa_setup=false ⇒ 登录后落 /mfa-required（不是 /mfa-verified）
     const { user } = await createJourneyUser(root, 'e2e-mfa-totp', { bindTotp: false })
@@ -57,12 +63,20 @@ test.describe('MFA 强制绑定 journey', { tag: '@journey' }, () => {
       // ─── 1. 点 TOTP 卡 → generate（扫码步）────────────────────────────────
       // waitForResponse 必须先挂：点卡片就是 generate 的触发点
       const generateResponse = page.waitForResponse(
-        response => response.request().method() === 'POST' && response.url().endsWith(TOTP_GENERATE_API_PATH),
+        (response) =>
+          response.request().method() === 'POST' && response.url().endsWith(TOTP_GENERATE_API_PATH),
       )
       await page.getByTestId('mfa-required-method-totp').click()
 
-      const generateBody = await (await generateResponse).json() as ServerEnvelope<{ totpId: string, secret: string, qrCode: string, account: string }>
-      expect(generateBody.code, `totp/generate 失败：${generateBody.msg ?? ''}`).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
+      const generateBody = (await (await generateResponse).json()) as ServerEnvelope<{
+        totpId: string
+        secret: string
+        qrCode: string
+        account: string
+      }>
+      expect(generateBody.code, `totp/generate 失败：${generateBody.msg ?? ''}`).toBe(
+        WalnutAdminConstAppResponseCode.SUCCESS,
+      )
       expect(generateBody.data.secret, 'generate 响应缺 secret（扫码步无法完成绑定）').not.toBe('')
       expect(generateBody.data.qrCode, 'generate 响应缺 QR data URL').toMatch(/^data:image\//)
 
@@ -78,12 +92,17 @@ test.describe('MFA 强制绑定 journey', { tag: '@journey' }, () => {
       await codeInput.fill(generateSync({ secret: generateBody.data.secret }))
 
       const bindResponse = page.waitForResponse(
-        response => response.request().method() === 'POST' && response.url().endsWith(TOTP_BIND_API_PATH),
+        (response) =>
+          response.request().method() === 'POST' && response.url().endsWith(TOTP_BIND_API_PATH),
       )
       await page.getByTestId('mfa-required-totp-verify-btn').click()
 
-      const bindBody = await (await bindResponse).json() as ServerEnvelope<{ backupCodes: string[] }>
-      expect(bindBody.code, `totp/bind 失败：${bindBody.msg ?? ''}`).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
+      const bindBody = (await (await bindResponse).json()) as ServerEnvelope<{
+        backupCodes: string[]
+      }>
+      expect(bindBody.code, `totp/bind 失败：${bindBody.msg ?? ''}`).toBe(
+        WalnutAdminConstAppResponseCode.SUCCESS,
+      )
       expect(bindBody.data.backupCodes, 'bind 应返回 10 枚备用码').toHaveLength(10)
 
       // ─── 3. 关闭完成弹窗 → 页面「验证」完成本次登录 ───────────────────────
@@ -92,27 +111,36 @@ test.describe('MFA 强制绑定 journey', { tag: '@journey' }, () => {
       await expect(modal, '完成弹窗没有关闭').toBeHidden({ timeout: 10_000 })
 
       const mfaVerifyResponse = page.waitForResponse(
-        response => response.request().method() === 'POST' && response.url().endsWith(MFA_VERIFY_API_PATH),
+        (response) =>
+          response.request().method() === 'POST' && response.url().endsWith(MFA_VERIFY_API_PATH),
       )
       await page.getByTestId('mfa-required-verify-btn').click()
 
-      const mfaVerifyBody = await (await mfaVerifyResponse).json() as ServerEnvelope<{ accessToken?: string }>
-      expect(mfaVerifyBody.code, `/auth/mfa/verify 失败：${mfaVerifyBody.msg ?? ''}`).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
+      const mfaVerifyBody = (await (await mfaVerifyResponse).json()) as ServerEnvelope<{
+        accessToken?: string
+      }>
+      expect(mfaVerifyBody.code, `/auth/mfa/verify 失败：${mfaVerifyBody.msg ?? ''}`).toBe(
+        WalnutAdminConstAppResponseCode.SUCCESS,
+      )
       expect(typeof mfaVerifyBody.data.accessToken, 'mfa/verify 应轮换并返回新 AT').toBe('string')
 
-      await page.waitForURL(url => url.pathname !== '/mfa-required', { timeout: 40_000 })
-      await expect(page.locator(SIDEBAR_MENU_SELECTOR).first(), '验证通过后应进入应用外壳').toBeVisible({ timeout: 30_000 })
+      await page.waitForURL((url) => url.pathname !== '/mfa-required', { timeout: 40_000 })
+      await expect(
+        page.locator(SIDEBAR_MENU_SELECTOR).first(),
+        '验证通过后应进入应用外壳',
+      ).toBeVisible({ timeout: 30_000 })
 
       // ─── 4. 落库：行存在 / 启用 / 备用码 10 枚 / mfa_setup 翻转 ───────────
-      await expect.poll(() => withPg(pg => readUserMfaSetup(pg, user.userId)), { timeout: 10_000 }).toBe(true)
+      await expect
+        .poll(() => withPg((pg) => readUserMfaSetup(pg, user.userId)), { timeout: 10_000 })
+        .toBe(true)
 
-      const totpRow = await withPg(pg => findTotpMfaRow(pg, user.userId))
+      const totpRow = await withPg((pg) => findTotpMfaRow(pg, user.userId))
       expect(totpRow, '绑定后没有 sys_user_mfa totp 行').not.toBeNull()
       expect(totpRow!.status, 'totp 行应为启用').toBe(true)
       expect(totpRow!.backupCodesLeft, '备用码密文数组应有 10 项').toBe(10)
       expect(totpRow!.deviceId, 'totp 行应记录绑定设备').toBe(session.deviceId)
-    }
-    finally {
+    } finally {
       await session.context.close()
       await deleteLoginableUser(user)
     }

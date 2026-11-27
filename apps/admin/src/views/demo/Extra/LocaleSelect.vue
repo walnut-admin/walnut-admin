@@ -21,53 +21,29 @@ const state = reactive({
 
     <n-list>
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Basic usage
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Basic usage </WTitle>
 
         <n-space vertical>
-          <WLocaleSelect
-            v-model:value="state.locale1"
-            class="w-96"
-          />
-          <WLocaleSelect
-            v-model:value="state.locale2"
-            class="w-96"
-          />
+          <WLocaleSelect v-model:value="state.locale1" class="w-96" />
+          <WLocaleSelect v-model:value="state.locale2" class="w-96" />
         </n-space>
       </n-list-item>
 
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          With prefix limit
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> With prefix limit </WTitle>
 
         <n-space vertical>
-          <WLocaleSelect
-            v-model:value="state.locale3"
-            class="w-96"
-            prefix="sys.menu."
-          />
+          <WLocaleSelect v-model:value="state.locale3" class="w-96" prefix="sys.menu." />
 
-          <WLocaleSelect
-            v-model:value="state.locale4"
-            class="w-96"
-            prefix="sys.menu."
-          />
+          <WLocaleSelect v-model:value="state.locale4" class="w-96" prefix="sys.menu." />
         </n-space>
       </n-list-item>
 
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Jump to locale manage page with a preset key
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Jump to locale manage page with a preset key </WTitle>
 
         <n-space vertical>
-          <WLocaleSelect
-            v-model:value="state.locale5"
-            class="w-96"
-            preset-key="sys.menu."
-          />
+          <WLocaleSelect v-model:value="state.locale5" class="w-96" preset-key="sys.menu." />
         </n-space>
       </n-list-item>
     </n-list>

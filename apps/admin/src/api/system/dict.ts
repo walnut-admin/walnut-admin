@@ -15,12 +15,10 @@ export const dictDataAPI = new BaseAPI<SystemDictData>({
 
 // default all dict will cacahed for 10 minutes
 export function getDictByTypeAPI(types: string | string[]) {
-  return AppAxios.get<SystemDictTypeWithDictData[]>(
-    {
-      url: SystemEndpointRoutes.DICT_TYPE_S,
-      params: { types },
-      _throttle: 500,
-      _cache: true,
-    },
-  )
+  return AppAxios.get<SystemDictTypeWithDictData[]>({
+    url: SystemEndpointRoutes.DICT_TYPE_S,
+    params: { types },
+    _throttle: 500,
+    _cache: true,
+  })
 }

@@ -27,12 +27,10 @@ export function createBeforeEachGuard(router: Router) {
     // default _auth would be undefined
     // this flag below should only works for hard-coded routes in frontend codes
     // no need to excute the logic below, like profile or permisison
-    if (!isUndefined(to.meta?._auth) && !to.meta._auth)
-      return true
+    if (!isUndefined(to.meta?._auth) && !to.meta._auth) return true
 
     // No token, next to auth page and return
-    if (!userStoreAuth.getAccessToken)
-      return { path: mainoutConst.auth.path, replace: true }
+    if (!userStoreAuth.getAccessToken) return { path: mainoutConst.auth.path, replace: true }
 
     // Get user info
     const userStoreProfile = useAppStoreUserProfile()
@@ -40,8 +38,7 @@ export function createBeforeEachGuard(router: Router) {
       try {
         // fetch profile
         await userStoreProfile.getProfile()
-      }
-      catch (error) {
+      } catch (error) {
         // 锁定态**硬刷新 / 新标签页**：`getProfile` 被 Lock guard 拦成 40118，响应拦截器
         // 已注册 `/lock` 路由并 replace 过去。这里必须接住并补读一次 LockFree 的锁状态 ——
         // 否则 app-lock store 停在默认值（`lockMode=default`），`/lock` 渲染成免密按钮，

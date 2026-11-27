@@ -40,9 +40,14 @@ export class AuthRefreshTokenPgPurgeService {
    * @returns 删除行数；`null` = 本次 tick 未拿到锁（另一实例在执行），与「没有过期行
    *   （返回 0）」区分。
    */
-  @Cron(CronExpression.EVERY_HOUR, { name: WalnutAdminConstAppCronTaskNames.AUTH_DELETE_REFRESH_PG_PURGE, waitForCompletion: true })
+  @Cron(CronExpression.EVERY_HOUR, {
+    name: WalnutAdminConstAppCronTaskNames.AUTH_DELETE_REFRESH_PG_PURGE,
+    waitForCompletion: true,
+  })
   async purgeExpiredRefreshTokens(): Promise<number | null> {
-    const purged = await this.cronLock.runExclusive('purgeExpiredRefreshTokens', 300, async () => this.doPurgeExpiredRefreshTokens())
+    const purged = await this.cronLock.runExclusive('purgeExpiredRefreshTokens', 300, async () =>
+      this.doPurgeExpiredRefreshTokens(),
+    )
 
     // runExclusive 的 undefined = 未拿到锁、本次 tick 被跳过（任务体未执行）；
     // 用 null 表达「本次没跑」，不伪装成「删了 0 行」

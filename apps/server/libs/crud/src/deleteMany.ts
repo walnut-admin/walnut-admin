@@ -6,13 +6,15 @@ import { WalnutAdminConstDecoratorLogOperateAction } from '@walnut-server/const/
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger'
 import { WalnutAdminDecoratorOperateLog } from './operate-log/operate-log.decorator'
 
-export function WalnutAdminDecoratorDeleteMany(options: IWalnutAdminCrudOptions, field: string = WalnutAdminConstAppConfig.deleteManyField) {
+export function WalnutAdminDecoratorDeleteMany(
+  options: IWalnutAdminCrudOptions,
+  field: string = WalnutAdminConstAppConfig.deleteManyField,
+) {
   const { operateLog, swagger } = options
 
   const { title, needOperateLog = true } = operateLog
 
-  const { DTO, description = `根据 ${field} (逗号分割)删除 ${title}` }
-    = swagger
+  const { DTO, description = `根据 ${field} (逗号分割)删除 ${title}` } = swagger
 
   const decorators = [
     Delete(`/deleteMany/:${field}`),

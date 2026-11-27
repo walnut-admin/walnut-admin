@@ -42,12 +42,11 @@ export class SysMenuMetaDTOBase implements IWalnutAdminMenuMeta {
     default: MenuTernal.NONE,
     swaggerOptions: {
       title: 'menu ternal type',
-      description:
-        'internal => no jump, iframe inside page. external => jump url, need to confirm',
+      description: 'internal => no jump, iframe inside page. external => jump url, need to confirm',
       example: MenuTernal.NONE,
     },
   })
-  ternal: typeof MenuTernal[keyof typeof MenuTernal]
+  ternal: (typeof MenuTernal)[keyof typeof MenuTernal]
 
   @WalnutAdminDecoratorFieldString({
     default: null,
@@ -121,8 +120,7 @@ export class SysMenuMetaDTOBase implements IWalnutAdminMenuMeta {
     default: false,
     swaggerOptions: {
       title: 'menu active same tab',
-      description:
-        'mostly used with `menuActiveName`, true => no new tab for show=false page',
+      description: 'mostly used with `menuActiveName`, true => no new tab for show=false page',
     },
   })
   menuActiveSameTab: boolean
@@ -131,8 +129,7 @@ export class SysMenuMetaDTOBase implements IWalnutAdminMenuMeta {
     default: null,
     swaggerOptions: {
       title: 'menu badge',
-      description:
-        'menu badge, normally red dot or a number or a ???character',
+      description: 'menu badge, normally red dot or a number or a ???character',
     },
   })
   badge: string
@@ -178,8 +175,7 @@ export class SysMenuMetaDTOBase implements IWalnutAdminMenuMeta {
     default: false,
     swaggerOptions: {
       title: 'hijack refresh token',
-      description:
-        'true => will hijack refresh token in front end',
+      description: 'true => will hijack refresh token in front end',
     },
   })
   hijackRefresh: boolean
@@ -199,8 +195,7 @@ export class SysMenuMetaDTOBase implements IWalnutAdminMenuMeta {
     default: 'fade',
     swaggerOptions: {
       title: 'transition name',
-      description:
-        'used for vue transition name',
+      description: 'used for vue transition name',
     },
   })
   transition: string
@@ -209,12 +204,11 @@ export class SysMenuMetaDTOBase implements IWalnutAdminMenuMeta {
     default: null,
     swaggerOptions: {
       title: 'cache key strategy',
-      description:
-        'name => use menu name as cache key. path => use menu path as cache key',
+      description: 'name => use menu name as cache key. path => use menu path as cache key',
       example: CacheKeyStrategy.NAME,
     },
   })
-  cacheKeyStrategy: typeof CacheKeyStrategy[keyof typeof CacheKeyStrategy]
+  cacheKeyStrategy: (typeof CacheKeyStrategy)[keyof typeof CacheKeyStrategy]
 }
 
 export class SysMenuDTOBase extends WalnutAdminCommonBasicModel {
@@ -232,7 +226,7 @@ export class SysMenuDTOBase extends WalnutAdminCommonBasicModel {
       example: MenuType.CATALOG,
     },
   })
-  type: typeof MenuType[keyof typeof MenuType]
+  type: (typeof MenuType)[keyof typeof MenuType]
 
   @WalnutAdminDecoratorFieldString({
     default: null,
@@ -247,8 +241,7 @@ export class SysMenuDTOBase extends WalnutAdminCommonBasicModel {
     default: null,
     swaggerOptions: {
       title: 'route name',
-      description:
-        'used for vue router name, should be unique, also used for keep-alive flags',
+      description: 'used for vue router name, should be unique, also used for keep-alive flags',
     },
   })
   name: string
@@ -356,16 +349,22 @@ export const SYS_MENU_META_FIELD_MAP = [
  * - 映射键在 entity 上找不到列时装配即抛错（拍平列被改名/删除不许静默回退）。
  */
 const SYS_MENU_META_COLUMN_DEFAULTS: Readonly<Record<string, unknown>> = (() => {
-  const columns = getMetadataArgsStorage().columns.filter(column => column.target === SysMenuEntity)
-  const defaultByProperty = new Map(columns.map(column => [column.propertyName, column.options.default as unknown]))
+  const columns = getMetadataArgsStorage().columns.filter(
+    (column) => column.target === SysMenuEntity,
+  )
+  const defaultByProperty = new Map(
+    columns.map((column) => [column.propertyName, column.options.default as unknown]),
+  )
 
   const entries: Array<[string, unknown]> = SYS_MENU_META_FIELD_MAP.map(([, columnKey]) => {
     if (!defaultByProperty.has(columnKey)) {
-      throw new Error(`[menu.dto] SYS_MENU_META_FIELD_MAP column "${columnKey}" not found on SysMenuEntity`)
+      throw new Error(
+        `[menu.dto] SYS_MENU_META_FIELD_MAP column "${columnKey}" not found on SysMenuEntity`,
+      )
     }
 
     const def = defaultByProperty.get(columnKey)
-    return [columnKey, typeof def === 'function' ? (def as () => unknown)() : def ?? null]
+    return [columnKey, typeof def === 'function' ? (def as () => unknown)() : (def ?? null)]
   })
 
   return Object.fromEntries(entries)
@@ -393,8 +392,13 @@ export function assembleSysMenuMeta(source: object): SysMenuMetaDTOBase {
  * 对齐 Mongo 版 `.toObject()` 的产出形态（meta 嵌套对象 + 顶层业务字段），供
  * plainToInstance 按名拷贝进 DTO。
  */
-export function assembleSysMenu<T extends SysMenuEntity>(entity: T): T & { meta: SysMenuMetaDTOBase } {
-  return Object.assign({ ...entity }, { meta: assembleSysMenuMeta(entity as unknown as Record<string, unknown>) })
+export function assembleSysMenu<T extends SysMenuEntity>(
+  entity: T,
+): T & { meta: SysMenuMetaDTOBase } {
+  return Object.assign(
+    { ...entity },
+    { meta: assembleSysMenuMeta(entity as unknown as Record<string, unknown>) },
+  )
 }
 
 /**
@@ -512,7 +516,7 @@ export class SysMenuDTOTreeResponse {
   @Type(() => MenuActiveNameItem)
   @ValidateNested({ each: true })
   @ApiProperty({ type: () => [MenuActiveNameItem] })
-  menuActiveNamesOptions: { name: string, title: string }[]
+  menuActiveNamesOptions: { name: string; title: string }[]
 }
 
 // list
@@ -540,15 +544,17 @@ export class SysMenuDTOListResponse extends CreateWalnutAdminResponseListDTO(
 // 与可选余部 Intersection 合并，保证 create 白名单仍是全量可写字段。
 export class SysMenuDTOCreateRequest extends IntersectionType(
   RealPickType(SysMenuDTOSafe, ['type'] as const),
-  RealPartialType(RealPickType(SysMenuDTOSafe, [
-    'pid',
-    'path',
-    'name',
-    'component',
-    'title',
-    'icon',
-    'meta',
-  ] as const)),
+  RealPartialType(
+    RealPickType(SysMenuDTOSafe, [
+      'pid',
+      'path',
+      'name',
+      'component',
+      'title',
+      'icon',
+      'meta',
+    ] as const),
+  ),
 ) {}
 export class SysMenuDTOCreateResponse extends SysMenuDTOSafe {}
 
@@ -561,7 +567,9 @@ export class SysMenuDTOReadResponse extends SysMenuDTOSafe {}
 //   nil→null 伪造），service 只把提供的列写进 UPDATE（menu.api-spec 钉住「只给 title 不再
 //   清掉 name/title 等未给列」）；
 // - meta 仍是「给了即整体替换 + 缺省键回默认值」（Mongo 子文档语义，见 flattenSysMenuMeta）。
-export class SysMenuDTOUpdateRequest extends RealPartialType(SysMenuDTOCreateRequest, { preserveAbsent: true }) {}
+export class SysMenuDTOUpdateRequest extends RealPartialType(SysMenuDTOCreateRequest, {
+  preserveAbsent: true,
+}) {}
 export class SysMenuDTOUpdateResponse extends SysMenuDTOSafe {}
 
 // delete

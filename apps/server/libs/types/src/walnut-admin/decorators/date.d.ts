@@ -17,20 +17,18 @@ declare global {
 
   type IWADTDateResOpt = IWalnutAdminDecoratorTransformerDateResponseOptions
 
-  interface IWalnutAdminDecoratorTransformDateOptions
-    extends IWalnutAdminDecoratorTransformOptions<
-      IWalnutAdminDecoratorTransformerDateRequestOptions,
-      IWalnutAdminDecoratorTransformerDateResponseOptions
-    > {}
+  interface IWalnutAdminDecoratorTransformDateOptions extends IWalnutAdminDecoratorTransformOptions<
+    IWalnutAdminDecoratorTransformerDateRequestOptions,
+    IWalnutAdminDecoratorTransformerDateResponseOptions
+  > {}
 
   type IWADTDateOpt = IWalnutAdminDecoratorTransformDateOptions
 
   // field option
-  interface IWalnutAdminDecoratorFieldDateOptions
-    extends IWalnutAdminDecoratorBasicOptions<
-      IWalnutAdminDecoratorValidatorDateOptions,
-      IWalnutAdminDecoratorTransformDateOptions
-    > {}
+  interface IWalnutAdminDecoratorFieldDateOptions extends IWalnutAdminDecoratorBasicOptions<
+    IWalnutAdminDecoratorValidatorDateOptions,
+    IWalnutAdminDecoratorTransformDateOptions
+  > {}
 
   type IWADDateOpt = IWalnutAdminDecoratorFieldDateOptions
 }

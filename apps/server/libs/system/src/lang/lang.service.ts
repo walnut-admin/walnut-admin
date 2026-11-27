@@ -77,9 +77,7 @@ export class SysLangService {
     const current = await this.langBasicRepo.readById(id)
     // 真 PATCH（2026-11 F2）：未提供的键保持 undefined 且不进 UPDATE
     const updated = await this.langBasicRepo.update(id, omitUndefined(dto))
-    await this.triggerCacheRefresh(
-      current.lang !== updated.lang ? current.lang : undefined,
-    )
+    await this.triggerCacheRefresh(current.lang !== updated.lang ? current.lang : undefined)
     return updated
   }
 

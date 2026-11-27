@@ -59,8 +59,7 @@ describe('waitForQueueConnectionsReady', () => {
       // 轮询间隔 5ms，推进 2s（> timeoutMs）让 deadline 判定生效
       await vi.advanceTimersByTimeAsync(2000)
       await expect(pending).resolves.toBeUndefined()
-    }
-    finally {
+    } finally {
       vi.useRealTimers()
     }
   })

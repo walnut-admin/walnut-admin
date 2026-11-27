@@ -37,14 +37,14 @@ import { isNil } from 'lodash'
  */
 
 /** 列类型的语义分类（只保留"能决定算子"的粒度） */
-export type WalnutPgColumnKind
-  = | 'text'
-    | 'uuid'
-    | 'datetime'
-    | 'boolean'
-    | 'number'
-    | 'json'
-    | 'array'
+export type WalnutPgColumnKind =
+  | 'text'
+  | 'uuid'
+  | 'datetime'
+  | 'boolean'
+  | 'number'
+  | 'json'
+  | 'array'
 
 /** 归一化后的 match 条件：`raw` 保留原值，供 SQL 层二次裁决（见 applyPgListQuery） */
 export interface IWalnutPgListCondition {
@@ -116,7 +116,7 @@ const JSON_TYPES = new Set(['json', 'jsonb'])
 export const ILIKE_ESCAPE_REGEX = /[\\%_]/g
 
 export function escapeLikePattern(value: string): string {
-  return String(value).replace(ILIKE_ESCAPE_REGEX, c => `\\${c}`)
+  return String(value).replace(ILIKE_ESCAPE_REGEX, (c) => `\\${c}`)
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -131,7 +131,10 @@ const NUMERIC_RE = /^-?\d+(?:\.\d+)?$/
  * 单列类型 → 语义分类。`array: true` 的原生数组列（`text[]`）单列一类：
  * 本轮不支持过滤（丢弃 + warn），避免 `= ANY` 这类未验证语义上线。
  */
-export function classifyPgColumn(columnType: string, isArray: boolean = false): WalnutPgColumnKind | undefined {
+export function classifyPgColumn(
+  columnType: string,
+  isArray: boolean = false,
+): WalnutPgColumnKind | undefined {
   if (isArray) {
     return 'array'
   }
@@ -216,9 +219,11 @@ export function isPgSortableColumnKind(kind: WalnutPgColumnKind | undefined): bo
  * 另：`sys_deleted.deleted_at` 可空，PG 的 `DESC` 默认 `NULLS FIRST` —— 若出现历史
  * NULL 行会被排到最前（R3 P3 提示，本轮不改）。
  */
-export function defaultPgListSort(metadata: EntityMetadata | undefined): Record<string, 'ASC' | 'DESC'> {
+export function defaultPgListSort(
+  metadata: EntityMetadata | undefined,
+): Record<string, 'ASC' | 'DESC'> {
   if (metadata !== undefined) {
-    const names = new Set(metadata.columns.map(c => c.propertyName))
+    const names = new Set(metadata.columns.map((c) => c.propertyName))
 
     if (names.has('createdAt')) {
       return { createdAt: 'DESC' }
@@ -326,7 +331,7 @@ export function resolvePgListCondition(
         return { op: 'eq', value: raw.toLowerCase(), raw }
       }
       if (Array.isArray(raw) && raw.length > 0 && raw.every(isPgUuidString)) {
-        return { op: 'in', value: raw.map(v => v.toLowerCase()), raw }
+        return { op: 'in', value: raw.map((v) => v.toLowerCase()), raw }
       }
       return undefined
     }
@@ -396,7 +401,10 @@ export function resolvePgListCondition(
 }
 
 /** 该 (op, 列语义) 组合是否可能生成类型正确的 SQL（SQL 层兜底用） */
-export function isPgListOpAllowed(op: IWalnutPgListCondition['op'], kind: WalnutPgColumnKind | undefined): boolean {
+export function isPgListOpAllowed(
+  op: IWalnutPgListCondition['op'],
+  kind: WalnutPgColumnKind | undefined,
+): boolean {
   if (kind === undefined) {
     return false
   }
@@ -430,9 +438,9 @@ export function toPgListConditionOp(op: WalnutPgFilterOp): IWalnutPgListConditio
 }
 
 /** 显式过滤的裁决结果：要么给出条件，要么给出拒绝理由（调用方转 40099） */
-export type WalnutPgFilterResolution
-  = | { ok: true, condition: IWalnutPgListCondition }
-    | { ok: false, reason: string }
+export type WalnutPgFilterResolution =
+  | { ok: true; condition: IWalnutPgListCondition }
+  | { ok: false; reason: string }
 
 function toBooleanValue(value: unknown): boolean | undefined {
   if (typeof value === 'boolean') {
@@ -486,7 +494,10 @@ function coerceScalarForKind(kind: WalnutPgColumnKind, value: unknown): unknown 
  *
  * json 列刻意不支持 in 算子（jsonb 数组到底是「值」还是「候选集」有歧义，与批次 1 同口径）。
  */
-function coerceListForKind(kind: WalnutPgColumnKind, values: readonly unknown[]): unknown[] | undefined {
+function coerceListForKind(
+  kind: WalnutPgColumnKind,
+  values: readonly unknown[],
+): unknown[] | undefined {
   if (kind === 'json' || kind === 'array') {
     return undefined
   }
@@ -557,7 +568,10 @@ export function resolvePgFilterCondition(
       if (bool !== undefined) {
         return { ok: true, condition: { op: 'eq', value: bool, filterOp: op } }
       }
-      return { ok: false, reason: 'like 打布尔列时 value 只能是布尔字面量（true / false / "true" / "false"）' }
+      return {
+        ok: false,
+        reason: 'like 打布尔列时 value 只能是布尔字面量（true / false / "true" / "false"）',
+      }
     }
     if (kind !== 'text') {
       return { ok: false, reason: `like 只对文本列可用（该列是 ${kind}）` }
@@ -685,14 +699,14 @@ export function warnDroppedPgListCondition(
   dropCounters.set(counterKey, count)
 
   logger.debug(
-    `丢弃 list 过滤条件 property=${property} kind=${kind ?? 'unknown'} `
-    + `shape=${describePgRawShape(raw)} reason=${reason} count=${count}`,
+    `丢弃 list 过滤条件 property=${property} kind=${kind ?? 'unknown'} ` +
+      `shape=${describePgRawShape(raw)} reason=${reason} count=${count}`,
   )
 
   if (count % DROP_SUMMARY_INTERVAL === 0) {
     logger.warn(
-      `list 过滤条件丢弃已达 ${count} 次（property=${property} kind=${kind ?? 'unknown'} reason=${reason}）`
-      + ' —— 逐条细节见 debug 日志',
+      `list 过滤条件丢弃已达 ${count} 次（property=${property} kind=${kind ?? 'unknown'} reason=${reason}）` +
+        ' —— 逐条细节见 debug 日志',
     )
   }
 }

@@ -34,11 +34,9 @@ export function getPermissionsAPI() {
  * @description get baidu ak from backend
  */
 export function getBaiduKeyAPI() {
-  return AppAxios.get<AuthSecretKeys>(
-    {
-      url: AuthRoutes.KEYS,
-      _autoDecryptResponseData: ['B'],
-      _cache: true,
-    },
-  )
+  return AppAxios.get<AuthSecretKeys>({
+    url: AuthRoutes.KEYS,
+    _autoDecryptResponseData: ['B'],
+    _cache: true,
+  })
 }

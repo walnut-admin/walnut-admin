@@ -153,6 +153,10 @@ class SysUserDeviceListItemDTO extends IntersectionType(
   location: string
 }
 
-export class SysUserDeviceListDTO extends CreateWalnutAdminResponseListDTO(SysUserDeviceListItemDTO) {}
+export class SysUserDeviceListDTO extends CreateWalnutAdminResponseListDTO(
+  SysUserDeviceListItemDTO,
+) {}
 
-export class SysUserDeviceUpdateNameDTO extends RealPickType(SysUserDeviceDTO, ['deviceName'] as const) {}
+export class SysUserDeviceUpdateNameDTO extends RealPickType(SysUserDeviceDTO, [
+  'deviceName',
+] as const) {}

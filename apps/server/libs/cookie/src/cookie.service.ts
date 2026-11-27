@@ -33,8 +33,7 @@ export function defaultCookieOptions(signed = true): CookieOptions {
       // otherwise cookie would not exist as expected when oauth callback
       domain: `.${(pkg.config as Recordable).domain as string}`,
     }
-  }
-  else {
+  } else {
     // stage
     //
     // F-43（2026-11，安全纵深）：secure 从 false 收紧为 true。
@@ -81,7 +80,7 @@ export class AppTechCookieService {
 
       req.res?.cookie(cookie.key, cookie.value, {
         ...defaultCookieOptions(),
-        ...cookie.options || {},
+        ...(cookie.options || {}),
       })
     })
   }
@@ -89,7 +88,10 @@ export class AppTechCookieService {
   /**
    * @description Clear specified cookies by setting their expiration to the past.
    */
-  clearCookie(req: IWalnutAdminExpressRequest, cookies: Partial<IWalnutAdminCookieOptions>[]): void {
+  clearCookie(
+    req: IWalnutAdminExpressRequest,
+    cookies: Partial<IWalnutAdminCookieOptions>[],
+  ): void {
     cookies.forEach((item) => {
       req.res?.cookie(item.key!, '', {
         ...defaultCookieOptions(),

@@ -72,7 +72,9 @@ describe('B4 app_setting (on real PG)', () => {
     })
     expect(updated.settingValue).toBe(JSON.stringify({ seed: 'v2' }))
 
-    const listed = await settingService.list({ filters: [{ field: 'settingKey', op: 'like', value: payload.settingKey }] } as never)
+    const listed = await settingService.list({
+      filters: [{ field: 'settingKey', op: 'like', value: payload.settingKey }],
+    } as never)
     expect(listed.total).toBe(1)
     expect(listed.data[0].settingValue).toBe(JSON.stringify({ seed: 'v2' }))
   })
@@ -81,16 +83,23 @@ describe('B4 app_setting (on real PG)', () => {
     const payload = uniquePayload()
     await settingService.create(payload)
 
-    const found = await settingRepoService.findAppSettingByKey<Record<string, string>>(payload.settingKey)
+    const found = await settingRepoService.findAppSettingByKey<Record<string, string>>(
+      payload.settingKey,
+    )
     expect(found).toEqual({ seed: (JSON.parse(payload.settingValue) as { seed: string }).seed })
 
     // 按 key 更新（findOne + save 语义，updated_at 随 save 前进）
-    await settingRepoService.updateAppSettingByKey(payload.settingKey, JSON.stringify({ seed: 'v3' }))
+    await settingRepoService.updateAppSettingByKey(
+      payload.settingKey,
+      JSON.stringify({ seed: 'v3' }),
+    )
     expect(await settingRepoService.findAppSettingByKey(payload.settingKey)).toEqual({ seed: 'v3' })
 
     // 查无此 key：读侧 null，写侧静默无操作（对齐 Mongo findOneAndUpdate 行为）
     expect(await settingRepoService.findAppSettingByKey('intspec.not-exist')).toBeNull()
-    await expect(settingRepoService.updateAppSettingByKey('intspec.not-exist', 'x')).resolves.toBeUndefined()
+    await expect(
+      settingRepoService.updateAppSettingByKey('intspec.not-exist', 'x'),
+    ).resolves.toBeUndefined()
   })
 
   it('缓存刷新链路：create/update 触发 extract 后，APP_SETTING 缓存映射跟着变（key 与触发点不动，只换数据源）', async () => {
@@ -98,12 +107,16 @@ describe('B4 app_setting (on real PG)', () => {
 
     // 先手动铺一次缓存（模拟启动时的 extract 基线）
     await settingRepoService.extractAppSettingIntoCache()
-    const before = await cacheService.get<Record<string, string>>(WalnutAdminConstAppCacheKeys.APP_SETTING)
+    const before = await cacheService.get<Record<string, string>>(
+      WalnutAdminConstAppCacheKeys.APP_SETTING,
+    )
     expect(before?.[payload.settingKey]).toBeUndefined()
 
     // create → service 内部刷新缓存 → 缓存里出现新 key
     const created = await settingService.create(payload)
-    const afterCreate = await cacheService.get<Record<string, string>>(WalnutAdminConstAppCacheKeys.APP_SETTING)
+    const afterCreate = await cacheService.get<Record<string, string>>(
+      WalnutAdminConstAppCacheKeys.APP_SETTING,
+    )
     expect(afterCreate?.[payload.settingKey]).toBe(payload.settingValue)
 
     // update → 再次刷新 → 缓存值同步更新
@@ -113,16 +126,26 @@ describe('B4 app_setting (on real PG)', () => {
       settingValue: JSON.stringify({ seed: 'v4' }),
       settingType: payload.settingType,
     })
-    const afterUpdate = await cacheService.get<Record<string, string>>(WalnutAdminConstAppCacheKeys.APP_SETTING)
+    const afterUpdate = await cacheService.get<Record<string, string>>(
+      WalnutAdminConstAppCacheKeys.APP_SETTING,
+    )
     expect(afterUpdate?.[payload.settingKey]).toBe(JSON.stringify({ seed: 'v4' }))
 
     // updateAppSettingByKey（ip 黑名单链路同款入口）→ runAfterCommit 无事务上下文就地刷新
-    await settingRepoService.updateAppSettingByKey(payload.settingKey, JSON.stringify({ seed: 'v5' }))
-    const afterKeyUpdate = await cacheService.get<Record<string, string>>(WalnutAdminConstAppCacheKeys.APP_SETTING)
+    await settingRepoService.updateAppSettingByKey(
+      payload.settingKey,
+      JSON.stringify({ seed: 'v5' }),
+    )
+    const afterKeyUpdate = await cacheService.get<Record<string, string>>(
+      WalnutAdminConstAppCacheKeys.APP_SETTING,
+    )
     expect(afterKeyUpdate?.[payload.settingKey]).toBe(JSON.stringify({ seed: 'v5' }))
 
     // 数据源确实是 PG（Mongo 集成库里没有这行）
-    const count = await pgDataSource.manager.query<Array<{ c: number }>>('SELECT count(*)::int AS c FROM app_setting WHERE setting_key = $1', [payload.settingKey])
+    const count = await pgDataSource.manager.query<Array<{ c: number }>>(
+      'SELECT count(*)::int AS c FROM app_setting WHERE setting_key = $1',
+      [payload.settingKey],
+    )
     expect(count[0].c).toBe(1)
   })
 

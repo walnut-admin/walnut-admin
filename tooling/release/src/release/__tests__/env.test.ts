@@ -16,17 +16,14 @@ const ORIGINAL_GH_TOKEN = process.env.GH_TOKEN
 const ORIGINAL_MARKER = process.env.WALNUT_TEST_MARKER
 
 function restoreEnv(name: string, original: string | undefined): void {
-  if (original === undefined)
-    delete process.env[name]
-  else
-    process.env[name] = original
+  if (original === undefined) delete process.env[name]
+  else process.env[name] = original
 }
 
 /** 用生产代码拿一份默认 args，再按需覆盖（避免在用例里抄一份参数表） */
 function argsWith(overrides: Partial<ReleaseArgs> = {}): ReleaseArgs {
   const parsed = parseReleaseArgs([])
-  if (!parsed.ok)
-    throw new Error(`默认参数应当解析成功：${parsed.message}`)
+  if (!parsed.ok) throw new Error(`默认参数应当解析成功：${parsed.message}`)
   return { ...parsed.args, ...overrides }
 }
 
@@ -48,7 +45,10 @@ describe('子进程环境 RELEASE_CHILD_ENV —— 每个子进程统一从这�
     expect([...RELEASE_CHILD_ENV_SECRETS]).toEqual(['GITHUB_TOKEN', 'GH_TOKEN'])
     for (const name of RELEASE_CHILD_ENV_SECRETS) {
       expect(process.env[name], `前提：${name} 应当已经设在 process.env 里`).toBeDefined()
-      expect(RELEASE_CHILD_ENV[name], `${name} 绝不能进任何子进程（钩子内容可被一次提交改掉）`).toBeUndefined()
+      expect(
+        RELEASE_CHILD_ENV[name],
+        `${name} 绝不能进任何子进程（钩子内容可被一次提交改掉）`,
+      ).toBeUndefined()
     }
     expect(RELEASE_CHILD_ENV.GIT_TERMINAL_PROMPT).toBe('0')
     expect(RELEASE_CHILD_ENV).not.toBe(process.env)
@@ -74,13 +74,19 @@ describe('resolveToken —— 来源顺序 `--token` > `GITHUB_TOKEN` > `GH_TOKE
   it('--token 赢过环境变量，source 记作 --token', () => {
     process.env.GITHUB_TOKEN = 'ghp_from_environment'
     process.env.GH_TOKEN = 'ghp_from_gh_env'
-    expect(resolveToken(argsWith({ token: 'ghp_from_flag' }))).toEqual({ token: 'ghp_from_flag', source: '--token' })
+    expect(resolveToken(argsWith({ token: 'ghp_from_flag' }))).toEqual({
+      token: 'ghp_from_flag',
+      source: '--token',
+    })
   })
 
   it('没有 --token 时用 GITHUB_TOKEN，source 记作 GITHUB_TOKEN', () => {
     process.env.GITHUB_TOKEN = 'ghp_from_environment'
     process.env.GH_TOKEN = 'ghp_from_gh_env'
-    expect(resolveToken(argsWith())).toEqual({ token: 'ghp_from_environment', source: 'GITHUB_TOKEN' })
+    expect(resolveToken(argsWith())).toEqual({
+      token: 'ghp_from_environment',
+      source: 'GITHUB_TOKEN',
+    })
   })
 
   it('没有 GITHUB_TOKEN 时回退到 GH_TOKEN，source 记作 GH_TOKEN', () => {

@@ -20,10 +20,7 @@ import { AppKeyTypeConst } from './key.const'
  */
 @Injectable()
 export class AppKeyCurrentGuard extends WalnutAdminGuardPermission implements CanActivate {
-  constructor(
-    reflector: Reflector,
-    cachePermissionsService: AppTechCachePermissionsService,
-  ) {
+  constructor(reflector: Reflector, cachePermissionsService: AppTechCachePermissionsService) {
     super(reflector, cachePermissionsService)
   }
 

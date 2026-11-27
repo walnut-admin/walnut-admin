@@ -8,7 +8,7 @@ import dts from 'vite-plugin-dts'
  * 与 `dist/sign-raw.cjs`（`apps/server` 的 guards 与 `libs/utils` 各 require 其一）。
  */
 const entries = {
-  'index': resolve(__dirname, 'src/index.ts'),
+  index: resolve(__dirname, 'src/index.ts'),
   'object-paths': resolve(__dirname, 'src/object-paths.ts'),
   'sign-raw': resolve(__dirname, 'src/sign-raw.ts'),
 }

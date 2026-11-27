@@ -18,17 +18,13 @@ const state = ref({
 
     <n-list>
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Basic usage
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Basic usage </WTitle>
 
         <WLocationPicker v-model:value="state.location1" />
       </n-list-item>
 
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Feedback
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Feedback </WTitle>
 
         <WLocationPicker v-model:value="state.location2" />
       </n-list-item>

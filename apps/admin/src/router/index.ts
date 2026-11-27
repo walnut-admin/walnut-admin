@@ -40,8 +40,7 @@ export function useAppRouter() {
 export async function useAppRouterPush(info: RouteLocationRaw) {
   try {
     return await AppRouter.push(info)
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Router push', error)
     useAppMessage().warning(AppI18n().global.t('app.menu.error'))
     window.$loadingBar?.finish()

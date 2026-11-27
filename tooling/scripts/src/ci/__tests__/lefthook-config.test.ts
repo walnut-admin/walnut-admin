@@ -28,7 +28,8 @@ interface LefthookConfig {
 
 const HOOKS = ['pre-commit', 'commit-msg', 'pre-push'] as const
 
-const config = parse(readFileSync(path.join(REPO_ROOT, 'lefthook.yml'), 'utf8')) as LefthookConfig & Record<string, unknown>
+const config = parse(readFileSync(path.join(REPO_ROOT, 'lefthook.yml'), 'utf8')) as LefthookConfig &
+  Record<string, unknown>
 
 const rootManifest = JSON.parse(readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8')) as {
   scripts?: Record<string, string>
@@ -75,7 +76,9 @@ describe('lefthook.yml —— Windows 双引号缺陷', () => {
   it('每个 job 都有 run（空 job 等于没跑）', () => {
     for (const hook of HOOKS) {
       for (const job of jobsOf(hook))
-        expect(typeof job.run === 'string' && job.run.length > 0, `${hook} 的 job 必须有 run`).toBe(true)
+        expect(typeof job.run === 'string' && job.run.length > 0, `${hook} 的 job 必须有 run`).toBe(
+          true,
+        )
     }
   })
 })
@@ -93,8 +96,10 @@ describe('lefthook.yml —— pre-push 是单条聚合门禁', () => {
     // 那个默认值是**解构默认值**、只对 `undefined` 生效 ⇒ NaN 让它失效 ⇒ 分块被静默关掉 ⇒ 一次提交
     // 几百个文件时所有路径塞进一条命令，Windows 上以「命令行太长」失败（2026-09-29 实测 369 个必挂）。
     // 所以这里**逐字钉住**它：谁把参数删掉，这条用例先红。
-    expect(jobsOf('pre-commit').map(job => job.run)).toEqual(['pnpm exec lint-staged --max-arg-length=4000'])
-    expect(jobsOf('commit-msg').map(job => job.run)).toEqual(['pnpm exec commitlint --edit {1}'])
+    expect(jobsOf('pre-commit').map((job) => job.run)).toEqual([
+      'pnpm exec lint-staged --max-arg-length=4000',
+    ])
+    expect(jobsOf('commit-msg').map((job) => job.run)).toEqual(['pnpm exec commitlint --edit {1}'])
   })
 })
 

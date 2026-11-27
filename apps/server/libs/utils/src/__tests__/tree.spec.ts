@@ -29,11 +29,11 @@ describe('filterTree：递归树过滤', () => {
       ]),
     ]
 
-    const result = filterTree(tree, item => item.type !== 'element')
+    const result = filterTree(tree, (item) => item.type !== 'element')
 
     expect(result).toHaveLength(1)
     expect(result[0].id).toBe('catalog')
-    expect(result[0].children?.map(child => child.id)).toEqual(['menu'])
+    expect(result[0].children?.map((child) => child.id)).toEqual(['menu'])
     // 命中节点不豁免后代：menu 下的 element 也被剪掉，且空 children 不落键
     expect(result[0].children?.[0].children).toBeUndefined()
   })
@@ -41,7 +41,7 @@ describe('filterTree：递归树过滤', () => {
   it('节点命中但子孙全不命中 ⇒ 节点保留、空 children 被省略', () => {
     const result = filterTree(
       [node('menu', 'menu', [node('el-1', 'element'), node('el-2', 'element')])],
-      item => item.type !== 'element',
+      (item) => item.type !== 'element',
     )
 
     expect(result).toEqual([{ id: 'menu', type: 'menu' }])
@@ -49,13 +49,10 @@ describe('filterTree：递归树过滤', () => {
   })
 
   it('全不命中 ⇒ 剪除（顶层叶子与整棵子树都消失）', () => {
-    const tree = [
-      node('el-a', 'element'),
-      node('catalog', 'catalog', [node('el-b', 'element')]),
-    ]
+    const tree = [node('el-a', 'element'), node('catalog', 'catalog', [node('el-b', 'element')])]
 
     // predicate 只认 menu：element 叶子与「只有 element 后代的 catalog」都全不命中
-    expect(filterTree(tree, item => item.type === 'menu')).toEqual([])
+    expect(filterTree(tree, (item) => item.type === 'menu')).toEqual([])
   })
 
   it('未命中但有命中后代 ⇒ 保留祖先路径（多层）', () => {
@@ -66,7 +63,7 @@ describe('filterTree：递归树过滤', () => {
       ]),
     ]
 
-    const result = filterTree(tree, item => item.type === 'menu')
+    const result = filterTree(tree, (item) => item.type === 'menu')
 
     expect(result).toEqual([
       {
@@ -89,7 +86,7 @@ describe('filterTree：递归树过滤', () => {
     const tree = [parent]
     const snapshot = structuredClone(tree)
 
-    const result = filterTree(tree, item => item.type !== 'element')
+    const result = filterTree(tree, (item) => item.type !== 'element')
 
     expect(tree).toEqual(snapshot)
     expect(result[0]).not.toBe(parent)

@@ -2,7 +2,13 @@ import type { IStoreUser } from '@/store/types'
 import { defineStore } from 'pinia'
 import { getCurrentInstance } from 'vue'
 import { getPreferenceAPI } from '@/api/system/user_preference'
-import { AppConstCollapseMode, AppConstColorMode, AppConstCVD, AppConstLayoutMode, AppConstLocale } from '@/const/app'
+import {
+  AppConstCollapseMode,
+  AppConstColorMode,
+  AppConstCVD,
+  AppConstLayoutMode,
+  AppConstLocale,
+} from '@/const/app'
 import { AppConstTabAffixMode, AppConstTabCloseMode, AppConstTabStyleMode } from '@/const/tab'
 import { StoreKeys } from '../../constant'
 import { store } from '../../pinia'
@@ -157,7 +163,6 @@ const useAppStoreUserPreferenceInside = defineStore(StoreKeys.USER_PREFERENCE, {
 const useAppStoreUserPreferenceOutside = () => useAppStoreUserPreferenceInside(store)
 
 export function useAppStoreUserPreference() {
-  if (getCurrentInstance())
-    return useAppStoreUserPreferenceInside()
+  if (getCurrentInstance()) return useAppStoreUserPreferenceInside()
   return useAppStoreUserPreferenceOutside()
 }

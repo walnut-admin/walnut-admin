@@ -23,10 +23,13 @@ const getDefaultValue = computed(() => getPollingInterval.value! / 1000)
 const { current } = useMagicKeys()
 const keys = computed(() => Array.from(current))
 
-const { start: resume, pause, isActive, percentage, flag } = useIntervalFnWithPercent(
-  getPollingInterval,
-  onApiList,
-)
+const {
+  start: resume,
+  pause,
+  isActive,
+  percentage,
+  flag,
+} = useIntervalFnWithPercent(getPollingInterval, onApiList)
 
 function onOpenPopover() {
   popoverShow.value = true
@@ -35,19 +38,21 @@ function onOpenPopover() {
   })
 }
 
-watch(() => keys.value, (v) => {
-  if (v.includes('f8')) {
-    if (isActive.value) {
-      pause()
-      nextTick(() => {
-        inputNumberRef.value?.focus()
-      })
+watch(
+  () => keys.value,
+  (v) => {
+    if (v.includes('f8')) {
+      if (isActive.value) {
+        pause()
+        nextTick(() => {
+          inputNumberRef.value?.focus()
+        })
+      } else {
+        resume()
+      }
     }
-    else {
-      resume()
-    }
-  }
-})
+  },
+)
 
 function onPollingClick() {
   if (isActive.value) {
@@ -55,28 +60,24 @@ function onPollingClick() {
     nextTick(() => {
       inputNumberRef.value?.focus()
     })
-  }
-  else {
+  } else {
     resume()
   }
 }
 
 function onUpdatePolling(v: number | null) {
-  if (!v)
-    return
+  if (!v) return
   insidePollingTime.value = v * 1000
 }
 
 function parseSeconds(input: string) {
   const nums = input.replace(/([,s\s])/g, '').trim()
-  if (/^\d+(\.(\d+)?)?$/.test(nums))
-    return Number(nums)
+  if (/^\d+(\.(\d+)?)?$/.test(nums)) return Number(nums)
   return nums === '' ? null : Number.NaN
 }
 
 function formatSeconds(value: number | null) {
-  if (value === null)
-    return ''
+  if (value === null) return ''
   return `${value} s`
 }
 
@@ -92,7 +93,12 @@ onDeactivated(() => {
   <n-tooltip trigger="hover">
     {{ $t('table.base.polling') }} (F8)
     <template #trigger>
-      <n-popover v-model:show="popoverShow" placement="bottom" trigger="manual" @clickoutside="popoverShow = false">
+      <n-popover
+        v-model:show="popoverShow"
+        placement="bottom"
+        trigger="manual"
+        @clickoutside="popoverShow = false"
+      >
         <template #trigger>
           <div class="h-4.5 w-4.5 flex items-center justify-center" @click="onOpenPopover">
             <n-progress
@@ -110,7 +116,11 @@ onDeactivated(() => {
         <template #default>
           <div class="flex flex-row flex-nowrap items-center gap-2">
             <WIconButton
-              :icon-props="{ icon: isActive ? 'ant-design:pause-circle-outlined' : 'ant-design:play-circle-outlined' }"
+              :icon-props="{
+                icon: isActive
+                  ? 'ant-design:pause-circle-outlined'
+                  : 'ant-design:play-circle-outlined',
+              }"
               :button-props="{ onClick: onPollingClick }"
               tooltip
               :tooltip-msg="$t('app.base.play_pause')"
@@ -122,7 +132,7 @@ onDeactivated(() => {
               :default-value="getDefaultValue"
               :parse="parseSeconds"
               :format="formatSeconds"
-              style="width: 40px;"
+              style="width: 40px"
               size="tiny"
               :show-button="false"
               :disabled="isActive"

@@ -6,7 +6,7 @@ defineOptions({
   defaultView: false,
 })
 
-withDefaults(defineProps<{ value?: string, size?: number }>(), {
+withDefaults(defineProps<{ value?: string; size?: number }>(), {
   size: 4,
 })
 

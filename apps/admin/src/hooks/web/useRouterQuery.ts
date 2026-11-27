@@ -12,8 +12,7 @@ export function useRouterQuery(path: string, defaultValue?: string) {
    * Get plaintext query value
    */
   const getResolvedValue = () => {
-    if (appSettingScope.getRouterEnhanceWhiteListCondition(route))
-      return route.query[path]
+    if (appSettingScope.getRouterEnhanceWhiteListCondition(route)) return route.query[path]
 
     return (route.meta?._resolvedQuerys ?? {})[path] ?? defaultValue
   }
@@ -31,16 +30,14 @@ export function useRouterQuery(path: string, defaultValue?: string) {
           [path]: val,
         },
       })
-    }
-    else {
+    } else {
       // 1. Get currently decrypted query
       const resolved = { ...(route.meta?._resolvedQuerys ?? {}) }
 
       // 2. Modify the value corresponding to the path
       if (val == null) {
         delete resolved[path]
-      }
-      else {
+      } else {
         resolved[path] = val
       }
 

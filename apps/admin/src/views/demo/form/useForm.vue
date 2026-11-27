@@ -102,8 +102,8 @@ const [register, { validate, restoreValidation }] = useForm<typeof formData.valu
   <WDemoCard title="useForm">
     <WJSON :value="formData" />
 
-    <br>
-    <br>
+    <br />
+    <br />
 
     <WForm :model="formData" @hook="register" />
   </WDemoCard>

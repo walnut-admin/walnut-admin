@@ -16,4 +16,6 @@ export const WalnutAdminConstDecoratorPermissionMode = {
  * `or` means current user only need to match *one of all the permission strings passed in*
  * @default and
  */
-export type IWalnutAdminConstDecoratorPermissionMode = ValueOf<typeof WalnutAdminConstDecoratorPermissionMode>
+export type IWalnutAdminConstDecoratorPermissionMode = ValueOf<
+  typeof WalnutAdminConstDecoratorPermissionMode
+>

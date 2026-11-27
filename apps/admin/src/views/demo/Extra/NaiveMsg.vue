@@ -1,8 +1,18 @@
 <script lang="ts" setup>
 import type { Fn } from '@walnut/types/universal'
 import { useAppConfirm } from '@/hooks/component/useConfirm'
-import { useAppMsgError, useAppMsgInfo, useAppMsgSuccess, useAppMsgWarning } from '@/hooks/component/useMessage'
-import { useAppNotiError, useAppNotiInfo, useAppNotiSuccess, useAppNotiWarning } from '@/hooks/component/useNoti'
+import {
+  useAppMsgError,
+  useAppMsgInfo,
+  useAppMsgSuccess,
+  useAppMsgWarning,
+} from '@/hooks/component/useMessage'
+import {
+  useAppNotiError,
+  useAppNotiInfo,
+  useAppNotiSuccess,
+  useAppNotiWarning,
+} from '@/hooks/component/useNoti'
 import { useAppStoreNaive } from '@/store/modules/app/app-naive'
 
 defineOptions({
@@ -40,10 +50,8 @@ function onOpenMsg(type: number) {
 async function onOpenComfirm() {
   const { confirmed } = await useAppConfirm('Do you want to continue?')
 
-  if (confirmed)
-    useAppMsgSuccess()
-  else
-    useAppMsgInfo('Canceled')
+  if (confirmed) useAppMsgSuccess()
+  else useAppMsgInfo('Canceled')
 }
 </script>
 
@@ -60,27 +68,13 @@ async function onOpenComfirm() {
         </WTitle>
 
         <n-space size="small">
-          <n-button @click="onOpenNoti(1)">
-            Success (default is 5s)
-          </n-button>
-          <n-button @click="onOpenNoti(2)">
-            Info (not closable)
-          </n-button>
-          <n-button @click="onOpenNoti(3)">
-            Warning (1s)
-          </n-button>
-          <n-button @click="onOpenNoti(4)">
-            Error (position: top-right)
-          </n-button>
-          <n-button @click="onOpenNoti(5)">
-            Error (containerStyle: margin)
-          </n-button>
-          <n-button @click="onOpenNoti(6)">
-            Close current noti
-          </n-button>
-          <n-button @click="onOpenNoti(7)">
-            Close all noti
-          </n-button>
+          <n-button @click="onOpenNoti(1)"> Success (default is 5s) </n-button>
+          <n-button @click="onOpenNoti(2)"> Info (not closable) </n-button>
+          <n-button @click="onOpenNoti(3)"> Warning (1s) </n-button>
+          <n-button @click="onOpenNoti(4)"> Error (position: top-right) </n-button>
+          <n-button @click="onOpenNoti(5)"> Error (containerStyle: margin) </n-button>
+          <n-button @click="onOpenNoti(6)"> Close current noti </n-button>
+          <n-button @click="onOpenNoti(7)"> Close all noti </n-button>
         </n-space>
       </n-list-item>
 
@@ -94,30 +88,18 @@ async function onOpenComfirm() {
         </WTitle>
 
         <n-space size="small">
-          <n-button @click="onOpenMsg(1)">
-            Success (default is 3s)
-          </n-button>
-          <n-button @click="onOpenMsg(2)">
-            Info (not closable)
-          </n-button>
-          <n-button @click="onOpenMsg(3)">
-            Warning (1s)
-          </n-button>
-          <n-button @click="onOpenMsg(4)">
-            Error (position: top-right)
-          </n-button>
+          <n-button @click="onOpenMsg(1)"> Success (default is 3s) </n-button>
+          <n-button @click="onOpenMsg(2)"> Info (not closable) </n-button>
+          <n-button @click="onOpenMsg(3)"> Warning (1s) </n-button>
+          <n-button @click="onOpenMsg(4)"> Error (position: top-right) </n-button>
         </n-space>
       </n-list-item>
 
       <n-list-item>
-        <WTitle class="mb-2" prefix="bar">
-          Confirm
-        </WTitle>
+        <WTitle class="mb-2" prefix="bar"> Confirm </WTitle>
 
         <n-space size="small">
-          <n-button @click="onOpenComfirm">
-            Need confirm to continue
-          </n-button>
+          <n-button @click="onOpenComfirm"> Need confirm to continue </n-button>
         </n-space>
       </n-list-item>
     </n-list>

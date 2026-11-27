@@ -58,7 +58,7 @@ export interface DataSnapshot {
 export function combineDataKey(entries: readonly DataTreeEntry[]): string {
   const lines = [...entries]
     .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
-    .map(entry => `${entry.path}\t${entry.treeHash}`)
+    .map((entry) => `${entry.path}\t${entry.treeHash}`)
   return createHash('sha256').update(lines.join('\n'), 'utf8').digest('hex')
 }
 
@@ -83,7 +83,7 @@ export function baselineCacheKey(dataKey: string, manifestVersion = MANIFEST_VER
 export function parseDirtyPaths(porcelain: string): string[] {
   return porcelain
     .split(/\r?\n/)
-    .filter(line => line.trim() !== '')
+    .filter((line) => line.trim() !== '')
     .map((line) => {
       // 前两位是状态码，第三位是分隔空格
       const body = line.length > 3 ? line.slice(3) : line
@@ -105,13 +105,12 @@ function gitOutput(args: readonly string[], repoRoot: string): string {
 function gitTreeHash(relPath: string, repoRoot: string): string {
   try {
     return gitOutput(['rev-parse', `HEAD:${relPath}`], repoRoot).trim()
-  }
-  catch (error) {
+  } catch (error) {
     throw new E2ePreconditionError(
-      `读不到数据路径 \`${relPath}\` 的 HEAD 树哈希（git rev-parse HEAD:${relPath} 失败）：`
-      + `${error instanceof Error ? error.message : String(error)}\n`
-      + '  基线漂移判定依赖它。确认：(1) 在仓库内运行；(2) 浅克隆用 `git fetch --unshallow`（CI 是 fetch-depth: 0）；'
-      + '(3) 数据路径改名后同步 apps/e2e/scripts/e2e-data-paths.ts 的 E2E_DATA_PATHS。',
+      `读不到数据路径 \`${relPath}\` 的 HEAD 树哈希（git rev-parse HEAD:${relPath} 失败）：` +
+        `${error instanceof Error ? error.message : String(error)}\n` +
+        '  基线漂移判定依赖它。确认：(1) 在仓库内运行；(2) 浅克隆用 `git fetch --unshallow`（CI 是 fetch-depth: 0）；' +
+        '(3) 数据路径改名后同步 apps/e2e/scripts/e2e-data-paths.ts 的 E2E_DATA_PATHS。',
     )
   }
 }
@@ -120,12 +119,14 @@ function gitTreeHash(relPath: string, repoRoot: string): string {
  * 当前数据快照（HEAD 的 dataKey + 工作区脏路径）。读 git 失败按前置条件抛出（退出码 2）。
  */
 export function currentDataSnapshot(repoRoot = REPO_ROOT): DataSnapshot {
-  const entries = DATA_PATHS.map(dataPath => ({ path: dataPath, treeHash: gitTreeHash(dataPath, repoRoot) }))
+  const entries = DATA_PATHS.map((dataPath) => ({
+    path: dataPath,
+    treeHash: gitTreeHash(dataPath, repoRoot),
+  }))
   let status = ''
   try {
     status = gitOutput(['status', '--porcelain', '--', ...DATA_PATHS], repoRoot)
-  }
-  catch (error) {
+  } catch (error) {
     throw new E2ePreconditionError(
       `读不到数据路径的工作区状态（git status --porcelain 失败）：${error instanceof Error ? error.message : String(error)}`,
     )
@@ -145,7 +146,7 @@ export function currentDataSnapshot(repoRoot = REPO_ROOT): DataSnapshot {
  */
 function main(): void {
   const argv = process.argv.slice(2)
-  const unknown = argv.filter(arg => arg !== '--cache-key')
+  const unknown = argv.filter((arg) => arg !== '--cache-key')
   if (unknown.length > 0) {
     throw new E2ePreconditionError(`不认识的参数：${unknown.join(' ')}（只接受 --cache-key）`)
   }
@@ -153,21 +154,20 @@ function main(): void {
   const snapshot = currentDataSnapshot()
   if (snapshot.dirtyPaths.length > 0) {
     console.error(
-      `[e2e/data-key] 警告：${snapshot.dirtyPaths.length} 条数据路径有未提交改动，`
-      + `这份 dataKey 对应的基线会被 restore 拒收（先提交 / 还原）：\n  ${snapshot.dirtyPaths.join('\n  ')}`,
+      `[e2e/data-key] 警告：${snapshot.dirtyPaths.length} 条数据路径有未提交改动，` +
+        `这份 dataKey 对应的基线会被 restore 拒收（先提交 / 还原）：\n  ${snapshot.dirtyPaths.join('\n  ')}`,
     )
   }
   console.log(argv.includes('--cache-key') ? baselineCacheKey(snapshot.dataKey) : snapshot.dataKey)
 }
 
-const invokedDirectly = process.argv[1] !== undefined
-  && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+const invokedDirectly =
+  process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 
 if (invokedDirectly) {
   try {
     main()
-  }
-  catch (error) {
+  } catch (error) {
     console.error(`[e2e/data-key] 失败：${error instanceof Error ? error.message : String(error)}`)
     process.exitCode = error instanceof E2ePreconditionError ? 2 : 1
   }

@@ -22,7 +22,7 @@ describe('script-header', () => {
     tester.run('script-header', scriptHeader, {
       valid: [
         // 行注释文件头（本仓 bin 的现状形态）
-        '// 这个脚本做某事\nimport process from \'node:process\'\nprocess.exit(0)\n',
+        "// 这个脚本做某事\nimport process from 'node:process'\nprocess.exit(0)\n",
         // JSDoc 文件头
         '/**\n * 这个脚本做某事\n */\nexport function main() { return 0 }\n',
         // shebang + 文件头
@@ -33,7 +33,7 @@ describe('script-header', () => {
       invalid: [
         {
           // 只有 shebang、没有文件头 —— 这正是本仓两个 bin 曾经的形态
-          code: '#!/usr/bin/env node\nimport process from \'node:process\'\nprocess.exit(0)\n',
+          code: "#!/usr/bin/env node\nimport process from 'node:process'\nprocess.exit(0)\n",
           errors: [{ messageId: 'missing' }],
         },
         {
@@ -88,9 +88,7 @@ describe('script-exit-code', () => {
 
   it('`allowed` 可配置（默认是 0/1/2/3）', () => {
     tester.run('script-exit-code', scriptExitCode, {
-      valid: [
-        { code: 'process.exit(4)\n', options: [{ allowed: [0, 4] }] },
-      ],
+      valid: [{ code: 'process.exit(4)\n', options: [{ allowed: [0, 4] }] }],
       invalid: [
         {
           code: 'process.exit(3)\n',

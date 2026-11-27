@@ -40,7 +40,7 @@ class SysUserLockRouteRaw {
   params: Recordable
 }
 
-class SysUserLockRouteType extends RealPartialType(SysUserLockRouteRaw) { }
+class SysUserLockRouteType extends RealPartialType(SysUserLockRouteRaw) {}
 
 export class SysUserLockDTOBase extends WalnutAdminCommonBasicModel {
   @Expose()
@@ -113,9 +113,13 @@ export class SysUserLockDto extends SysUserLockDTOBase {
   }
 }
 
-export class SysUserLockDoLockDto extends RealPartialType(RealPickType(SysUserLockDto, ['lockRoute'] as const)) {}
+export class SysUserLockDoLockDto extends RealPartialType(
+  RealPickType(SysUserLockDto, ['lockRoute'] as const),
+) {}
 
-export class SysUserLockUnLockDto extends RealPartialType(RealPickType(SysUserLockDto, ['lockPwdHash'] as const)) {}
+export class SysUserLockUnLockDto extends RealPartialType(
+  RealPickType(SysUserLockDto, ['lockPwdHash'] as const),
+) {}
 
 /**
  * P2-26（2026-10-29）：锁屏偏好写入通道（`PATCH /system/user/lock/preference`）。
@@ -125,9 +129,26 @@ export class SysUserLockUnLockDto extends RealPartialType(RealPickType(SysUserLo
  * DTO 既有命名，入参是**明文**，仓库写入路径 `insertOrUpdateUserLockPre` 负责
  * bcrypt 加盐（P1-10 收口后的同款 hash 路径）；响应不回显该列。
  */
-export class SysUserLockPreferenceUpdateDto extends RealPartialType(RealPickType(SysUserLockDto, ['lockPwdHash', 'lockMode', 'lockIdleSec', 'lockSecuritySec', 'lockCrossDevice'] as const)) {}
+export class SysUserLockPreferenceUpdateDto extends RealPartialType(
+  RealPickType(SysUserLockDto, [
+    'lockPwdHash',
+    'lockMode',
+    'lockIdleSec',
+    'lockSecuritySec',
+    'lockCrossDevice',
+  ] as const),
+) {}
 
-export class SysUserLockPreferenceDTO extends IntersectionType(RealPickType(SysUserDeviceDTO, ['locked'] as const), RealPickType(SysUserLockDto, ['lockRoute', 'lockCrossDevice', 'lockMode', 'lockIdleSec', 'lockSecuritySec'] as const)) {
+export class SysUserLockPreferenceDTO extends IntersectionType(
+  RealPickType(SysUserDeviceDTO, ['locked'] as const),
+  RealPickType(SysUserLockDto, [
+    'lockRoute',
+    'lockCrossDevice',
+    'lockMode',
+    'lockIdleSec',
+    'lockSecuritySec',
+  ] as const),
+) {
   /**
    * G4（2026-11-27）：前端无法从 read 响应区分「未设密码」与「已设密码」——
    * `lockPwdHash` 永不出响应（R1），这里只回一个布尔。

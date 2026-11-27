@@ -20,10 +20,7 @@ export interface IWalnutAdminAccessTokenPayload {
 }
 
 /** Derived type: access token payload without crypto/time fields */
-export type IWalnutAdminTokenUser = Omit<
-  IWalnutAdminAccessTokenPayload,
-  'key' | 'iat' | 'exp'
->
+export type IWalnutAdminTokenUser = Omit<IWalnutAdminAccessTokenPayload, 'key' | 'iat' | 'exp'>
 
 /** JWT refresh token payload */
 export interface IWalnutAdminRefreshTokenPayload {

@@ -1,5 +1,9 @@
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract'
-import { WalnutAdminExceptionForbidden, WalnutAdminExceptionInternalServerError, WalnutAdminExceptionUnauthorized } from '../base.exception'
+import {
+  WalnutAdminExceptionForbidden,
+  WalnutAdminExceptionInternalServerError,
+  WalnutAdminExceptionUnauthorized,
+} from '../base.exception'
 
 export class WalnutAdminExceptionAccessTokenExpired extends WalnutAdminExceptionUnauthorized {
   constructor() {

@@ -102,12 +102,15 @@ describe('app/health swagger 声明（F-09：覆盖 terminus 默认、去 503）
     for (const { path, indicator } of HEALTH_ENDPOINTS) {
       const properties = okShellProperties(document, path)
 
-      const dataProperties = (properties.data).properties ?? {}
+      const dataProperties = properties.data.properties ?? {}
       expect(Object.keys(dataProperties), path).toEqual([indicator])
 
       const indicatorSchema = dataProperties[indicator] as SchemaObject
       expect(indicatorSchema.required, path).toEqual(['status'])
-      expect((indicatorSchema.properties!.status as SchemaObject).enum, path).toEqual(['up', 'down'])
+      expect((indicatorSchema.properties!.status as SchemaObject).enum, path).toEqual([
+        'up',
+        'down',
+      ])
     }
   })
 

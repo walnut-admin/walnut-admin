@@ -7,7 +7,11 @@ import { registerAfterCommitHook, WalnutTxInterceptor } from '@walnut-server/db'
 
 import { from, lastValueFrom, throwError } from 'rxjs'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { createIntegrationApp, getWalnutPgAdminDataSource, getWalnutPgDataSource } from '../helpers/create-integration-app'
+import {
+  createIntegrationApp,
+  getWalnutPgAdminDataSource,
+  getWalnutPgDataSource,
+} from '../helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from '../helpers/integration.const'
 
 /**
@@ -53,7 +57,7 @@ describe('WalnutTxInterceptor single-engine transaction semantics (on real PG)',
         getResponse: () => ({}),
         getNext: () => undefined,
       }),
-      getClass: () => class PgTxSpecHandler { },
+      getClass: () => class PgTxSpecHandler {},
       getHandler: () => handler,
     } as unknown as ExecutionContext
   }
@@ -63,10 +67,15 @@ describe('WalnutTxInterceptor single-engine transaction semantics (on real PG)',
     request: unknown,
     handler: (tx: WalnutTxContext) => Promise<unknown>,
   ): Promise<unknown> {
-    const next: CallHandler = { handle: () => from(handler((request as { txContext: WalnutTxContext }).txContext)) }
+    const next: CallHandler = {
+      handle: () => from(handler((request as { txContext: WalnutTxContext }).txContext)),
+    }
     // intercept 是 async（内含 queryRunner.connect / startTransaction），Nest 侧会先 await
     // 再订阅；这里同样先 await 拿到 observable 才能等到终态
-    const result$ = await interceptor.intercept(makeExecutionContext(request, () => undefined), next)
+    const result$ = await interceptor.intercept(
+      makeExecutionContext(request, () => undefined),
+      next,
+    )
     return lastValueFrom(result$) as Promise<unknown>
   }
 
@@ -107,7 +116,10 @@ describe('WalnutTxInterceptor single-engine transaction semantics (on real PG)',
       ctxAtHandlerTime = tx
       // em 必须是事务内 manager，不是连接级 manager（否则写入就不在拦截器的事务里）
       expect(tx.em).not.toBe(pgDataSource.manager)
-      await tx.em.insert(AppDemoEntity, pgInsertPayload(demoString, `137${randomUUID().replaceAll('-', '')}`))
+      await tx.em.insert(
+        AppDemoEntity,
+        pgInsertPayload(demoString, `137${randomUUID().replaceAll('-', '')}`),
+      )
     })
 
     expect(ctxAtHandlerTime!.em).toBeDefined()
@@ -119,10 +131,15 @@ describe('WalnutTxInterceptor single-engine transaction semantics (on real PG)',
     const demoString = uniqueString()
     const request = {}
 
-    await expect(drive(interceptor, request, async (tx) => {
-      await tx.em.insert(AppDemoEntity, pgInsertPayload(demoString, `137${randomUUID().replaceAll('-', '')}`))
-      throw new Error('rollback on purpose')
-    })).rejects.toThrow('rollback on purpose')
+    await expect(
+      drive(interceptor, request, async (tx) => {
+        await tx.em.insert(
+          AppDemoEntity,
+          pgInsertPayload(demoString, `137${randomUUID().replaceAll('-', '')}`),
+        )
+        throw new Error('rollback on purpose')
+      }),
+    ).rejects.toThrow('rollback on purpose')
 
     expect(await countPg(demoString)).toBe(0)
   })
@@ -135,7 +152,10 @@ describe('WalnutTxInterceptor single-engine transaction semantics (on real PG)',
     let pgCountAtHookTime = -1
 
     await drive(interceptor, request, async (tx) => {
-      await tx.em.insert(AppDemoEntity, pgInsertPayload(demoString, `137${randomUUID().replaceAll('-', '')}`))
+      await tx.em.insert(
+        AppDemoEntity,
+        pgInsertPayload(demoString, `137${randomUUID().replaceAll('-', '')}`),
+      )
 
       registerAfterCommitHook(async () => {
         hookRan = true
@@ -154,12 +174,17 @@ describe('WalnutTxInterceptor single-engine transaction semantics (on real PG)',
     const interceptor = buildInterceptor()
     const request = {}
 
-    const next: CallHandler = { handle: () => throwError(() => new Error('sync failure on purpose')) }
+    const next: CallHandler = {
+      handle: () => throwError(() => new Error('sync failure on purpose')),
+    }
 
-    const result$ = await interceptor.intercept(makeExecutionContext(request, () => undefined), next)
-    await expect(lastValueFrom(result$) as Promise<unknown>)
-      .rejects
-      .toThrow('sync failure on purpose')
+    const result$ = await interceptor.intercept(
+      makeExecutionContext(request, () => undefined),
+      next,
+    )
+    await expect(lastValueFrom(result$) as Promise<unknown>).rejects.toThrow(
+      'sync failure on purpose',
+    )
   })
 
   it('commit 自身抛错：原始错误透传、已释放的 runner 不再 rollback（守卫）', async () => {
@@ -196,7 +221,10 @@ describe('WalnutTxInterceptor single-engine transaction semantics (on real PG)',
     let visibleOutsideDuringTx = -1
 
     await drive(interceptor, request, async (tx) => {
-      await tx.em.insert(AppDemoEntity, pgInsertPayload(demoString, `137${randomUUID().replaceAll('-', '')}`))
+      await tx.em.insert(
+        AppDemoEntity,
+        pgInsertPayload(demoString, `137${randomUUID().replaceAll('-', '')}`),
+      )
       // 事务提交前，事务外的连接级 manager 看不到这行写
       visibleOutsideDuringTx = await countPg(demoString)
     })

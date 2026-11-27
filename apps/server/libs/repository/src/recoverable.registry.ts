@@ -71,7 +71,9 @@ export class WalnutAdminRecoverableRegistry {
    */
   register(entry: IWalnutAdminRecoverableEntry): void {
     if (this.entries.has(entry.modelName)) {
-      throw new Error(`[WalnutAdminRecoverableRegistry] recoverer for "${entry.modelName}" is already registered`)
+      throw new Error(
+        `[WalnutAdminRecoverableRegistry] recoverer for "${entry.modelName}" is already registered`,
+      )
     }
     this.entries.set(entry.modelName, entry)
     this.logger.log(`recoverer registered: ${entry.modelName}`)

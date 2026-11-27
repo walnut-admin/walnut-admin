@@ -36,8 +36,9 @@ describe('resolvePgExecMode', () => {
 
 describe('toWslPath', () => {
   it('windows 盘符路径 → /mnt/<drive>/…', () => {
-    expect(toWslPath('D:\\walnut-admin\\walnut-admin\\apps\\e2e\\.e2e\\baseline.dump'))
-      .toBe('/mnt/d/walnut-admin/walnut-admin/apps/e2e/.e2e/baseline.dump')
+    expect(toWslPath('D:\\walnut-admin\\walnut-admin\\apps\\e2e\\.e2e\\baseline.dump')).toBe(
+      '/mnt/d/walnut-admin/walnut-admin/apps/e2e/.e2e/baseline.dump',
+    )
   })
 
   it('正斜杠形态也换算（WSL 里的 cwd 可能带 /）', () => {

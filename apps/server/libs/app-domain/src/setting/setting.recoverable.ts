@@ -1,6 +1,9 @@
 import type { WalnutAdminRecoverableRegistry } from '@walnut-server/repository'
 import { WalnutModelName } from '@walnut-server/db'
-import { createWalnutAdminRecoverableRegistrar, createWalnutAdminSnapshotRecoverer } from '@walnut-server/repository'
+import {
+  createWalnutAdminRecoverableRegistrar,
+  createWalnutAdminSnapshotRecoverer,
+} from '@walnut-server/repository'
 import { AppSettingEntity } from './entity/setting.entity'
 
 /**
@@ -15,4 +18,6 @@ export function registerAppSettingRecoverable(registry: WalnutAdminRecoverableRe
   })
 }
 
-export const appSettingRecoverableProvider = createWalnutAdminRecoverableRegistrar(registerAppSettingRecoverable)
+export const appSettingRecoverableProvider = createWalnutAdminRecoverableRegistrar(
+  registerAppSettingRecoverable,
+)

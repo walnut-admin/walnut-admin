@@ -6,7 +6,5 @@ defineOptions({
 </script>
 
 <template>
-  <div class="abs-center text-3xl">
-    Service Agreement
-  </div>
+  <div class="abs-center text-3xl">Service Agreement</div>
 </template>

@@ -39,9 +39,7 @@ const {
 } = getTabsContext()
 
 const getTabsLength = computed(() => appStoreTab.tabs.length)
-const getAffixedTabsLength = computed(
-  () => appStoreTab.tabs.filter(i => i.meta.affix).length,
-)
+const getAffixedTabsLength = computed(() => appStoreTab.tabs.filter((i) => i.meta.affix).length)
 
 // only affixed can not close
 const getCloseDisabled = computed(() => currentMouseTab.value?.meta.affix)
@@ -49,15 +47,12 @@ const getCloseDisabled = computed(() => currentMouseTab.value?.meta.affix)
 // the one closest to the affixed is left disabled
 const getCloseLeftDisabled = computed(
   () =>
-    getAffixedTabsLength.value === currentMouseTabIndex.value
-    || currentMouseTab.value?.meta.affix,
+    getAffixedTabsLength.value === currentMouseTabIndex.value || currentMouseTab.value?.meta.affix,
 )
 
 // the last one tab is right disabled
 const getCloseRightDisabled = computed(
-  () =>
-    getTabsLength.value - 1 === currentMouseTabIndex.value
-    || currentMouseTab.value?.meta.affix,
+  () => getTabsLength.value - 1 === currentMouseTabIndex.value || currentMouseTab.value?.meta.affix,
 )
 
 // affixed, only true when all tabs left are affixed
@@ -69,21 +64,15 @@ const getCloseOtherDisabled = computed(() =>
 )
 
 // refresh and full screen only work in current route tab
-const getOtherDisabled = computed(
-  () => currentRoute.value.name !== currentMouseTab.value?.name,
-)
+const getOtherDisabled = computed(() => currentRoute.value.name !== currentMouseTab.value?.name)
 
-async function onSelect(key: ValueOfAppConstTabDeleteType
-  & 'Refresh'
-  & 'Screen Full'
-  & 'Fix'
-  & 'Snapshot'
-  & 'NewWindow') {
+async function onSelect(
+  key: ValueOfAppConstTabDeleteType & 'Refresh' & 'Screen Full' & 'Fix' & 'Snapshot' & 'NewWindow',
+) {
   if (Object.values(AppConstTabDeleteType).includes(key))
     onTabRemove(currentMouseTab.value?.name as string, key)
 
-  if (key === 'Refresh')
-    await useRedirect()
+  if (key === 'Refresh') await useRedirect()
 
   if (key === 'Screen Full') {
     appStoreSettingDev.toggleLayout(false)
@@ -106,10 +95,10 @@ async function onSelect(key: ValueOfAppConstTabDeleteType
       const padding = appStoreSettingDev.getContentPadding
 
       const dataUrl = await toJpeg(target!, {
-        width: target?.scrollWidth as number + padding * 2,
-        height: target?.scrollHeight as number + padding * 2,
-        canvasWidth: target?.scrollWidth as number + padding * 2,
-        canvasHeight: target?.scrollHeight as number + padding * 2,
+        width: (target?.scrollWidth as number) + padding * 2,
+        height: (target?.scrollHeight as number) + padding * 2,
+        canvasWidth: (target?.scrollWidth as number) + padding * 2,
+        canvasHeight: (target?.scrollHeight as number) + padding * 2,
         backgroundColor: getThemeOverridesCommon.value.bodyColor,
         style: {
           margin: `${padding}rem`,
@@ -117,17 +106,14 @@ async function onSelect(key: ValueOfAppConstTabDeleteType
       })
 
       await downloadByBase64(dataUrl, `${currentRoute.value.name as string}-screenshot`)
-    }
-    catch (error) {
+    } catch (error) {
       console.log(error)
     }
   }
 
-  if (key === 'NewWindow')
-    openExternalLink(`${currentMouseTab.value?.path}?full=1`)
+  if (key === 'NewWindow') openExternalLink(`${currentMouseTab.value?.path}?full=1`)
 
-  if (key === 'DevTool')
-    onOpenDevTool()
+  if (key === 'DevTool') onOpenDevTool()
 
   onCloseCtxMenu()
 }
@@ -143,9 +129,7 @@ const options = computed<DropdownOption[]>(() => [
   {
     key: 'Screen Full',
     label: t('app.tab.ctx.screenfull'),
-    icon: () => (
-      <WIcon height="24" icon="ant-design:fullscreen-outlined"></WIcon>
-    ),
+    icon: () => <WIcon height="24" icon="ant-design:fullscreen-outlined"></WIcon>,
     disabled: getOtherDisabled.value,
   },
 
@@ -164,27 +148,21 @@ const options = computed<DropdownOption[]>(() => [
   {
     key: AppConstTabDeleteType.TAB_LEFT,
     label: t('app.tab.ctx.closeLeft'),
-    icon: () => (
-      <WIcon height="24" icon="ant-design:vertical-right-outlined"></WIcon>
-    ),
+    icon: () => <WIcon height="24" icon="ant-design:vertical-right-outlined"></WIcon>,
     disabled: getCloseLeftDisabled.value,
   },
 
   {
     key: AppConstTabDeleteType.TAB_RIGHT,
     label: t('app.tab.ctx.closeRight'),
-    icon: () => (
-      <WIcon height="24" icon="ant-design:vertical-left-outlined"></WIcon>
-    ),
+    icon: () => <WIcon height="24" icon="ant-design:vertical-left-outlined"></WIcon>,
     disabled: getCloseRightDisabled.value,
   },
 
   {
     key: AppConstTabDeleteType.TAB_OTHER,
     label: t('app.tab.ctx.closeOther'),
-    icon: () => (
-      <WIcon height="24" icon="ant-design:column-width-outlined"></WIcon>
-    ),
+    icon: () => <WIcon height="24" icon="ant-design:column-width-outlined"></WIcon>,
     disabled: getCloseOtherDisabled.value,
   },
 
@@ -202,9 +180,7 @@ const options = computed<DropdownOption[]>(() => [
 
   {
     key: 'Fix',
-    label: currentMouseTab.value?.meta.affix
-      ? t('app.base.unfixed')
-      : t('app.base.fixed'),
+    label: currentMouseTab.value?.meta.affix ? t('app.base.unfixed') : t('app.base.fixed'),
     icon: () => (
       <WIcon
         height="24"
@@ -213,8 +189,7 @@ const options = computed<DropdownOption[]>(() => [
             ? 'ant-design:pushpin-filled'
             : 'ant-design:pushpin-outlined'
         }
-      >
-      </WIcon>
+      ></WIcon>
     ),
   },
 

@@ -13,9 +13,7 @@ import { SysLocaleRepoService } from './locale.repo.service'
  * 依赖重新可见于 imports 图，而不是靠全局作用域悄悄满足。
  */
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([SysLocaleEntity], WalnutPGConnectionName),
-  ],
+  imports: [TypeOrmModule.forFeature([SysLocaleEntity], WalnutPGConnectionName)],
   controllers: [],
   providers: [SysLocaleRepoService],
   exports: [SysLocaleRepoService],

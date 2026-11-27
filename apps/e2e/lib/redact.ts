@@ -94,10 +94,7 @@ const NAME_PATTERN = `['"]?(?:${SENSITIVE_HEADER_NAMES})['"]?`
  * 空白写在**值**那一侧（`[:=]` 之后）：这样捕获组里没有 `\s*`，`regexp/no-misleading-...`
  * 那条规则（`\s*` 与后面的值类可交换字符）不会误报；代价只是替换后少一个空格。
  */
-const HEADER_ASSIGNMENT = new RegExp(
-  `(${NAME_PATTERN}\\s*[:=])\\s*${HEADER_VALUE_PATTERN}`,
-  'gi',
-)
+const HEADER_ASSIGNMENT = new RegExp(`(${NAME_PATTERN}\\s*[:=])\\s*${HEADER_VALUE_PATTERN}`, 'gi')
 
 /** 敏感字段名 → 值 */
 const FIELD_ASSIGNMENT = new RegExp(
@@ -109,7 +106,8 @@ const FIELD_ASSIGNMENT = new RegExp(
  * cookie 串里单独出现的敏感键（`DEVICE_ID=…; CAPJS_TOKEN=…`）。
  * 值止于 `;` 或空白 —— cookie 的分隔符，不会吃进下一个键。
  */
-const COOKIE_ASSIGNMENT = /\b(DEVICE_ID|CAPJS_TOKEN|SIGN_TICKET|RT_JTI|AT_JTI|ACCESS_TOKEN|REFRESH_TOKEN)\s*=\s*[^;\s&'"}\],]+/gi
+const COOKIE_ASSIGNMENT =
+  /\b(DEVICE_ID|CAPJS_TOKEN|SIGN_TICKET|RT_JTI|AT_JTI|ACCESS_TOKEN|REFRESH_TOKEN)\s*=\s*[^;\s&'"}\],]+/gi
 
 /** `Bearer <token>`（Authorization 值已被整段杀掉，这里兜底「裸写在消息里」的形态） */
 const BEARER_TOKEN = /\bBearer\s+[\w.~+/=-]{6,}/gi
@@ -159,7 +157,7 @@ export function redactDeep(value: unknown): unknown {
     return redactText(value)
   }
   if (Array.isArray(value)) {
-    return value.map(item => redactDeep(item))
+    return value.map((item) => redactDeep(item))
   }
   if (isPlainObject(value)) {
     const out: Record<string, unknown> = {}

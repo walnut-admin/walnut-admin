@@ -16,7 +16,14 @@ defineOptions({
   name: 'WCompExtraCountryCallingSelect',
 })
 
-const { preferred = false, flag = false, disabled = false, autoDefaultCountry = false, blackList, whiteList } = defineProps<ICompExtraCountryCallingSelectProps>()
+const {
+  preferred = false,
+  flag = false,
+  disabled = false,
+  autoDefaultCountry = false,
+  blackList,
+  whiteList,
+} = defineProps<ICompExtraCountryCallingSelectProps>()
 
 const value = defineModel<CountryCode>('value', { required: true })
 
@@ -30,12 +37,14 @@ const loading = ref(false)
 const getFilterOptions = computed(() => {
   // white list select options
   if (whiteList?.length)
-    return options.filter(({ iso2 }) => whiteList!.some(c => c.toUpperCase() === iso2))
+    return options.filter(({ iso2 }) => whiteList!.some((c) => c.toUpperCase() === iso2))
 
   // black list select options
   if (blackList?.length) {
-    return options.filter(({ iso2 }) => !blackList!.includes(iso2.toUpperCase())
-      && !blackList!.includes(iso2.toLowerCase()))
+    return options.filter(
+      ({ iso2 }) =>
+        !blackList!.includes(iso2.toUpperCase()) && !blackList!.includes(iso2.toLowerCase()),
+    )
   }
 
   return options
@@ -44,8 +53,8 @@ const getFilterOptions = computed(() => {
 const getSortOptions = computed<SelectMixedOption[]>(() => {
   // apply preferred select options
   if (preferred) {
-    const regions = window.navigator.languages.map(i => new Intl.Locale(i).region)
-    const preferred = getFilterOptions.value.filter(i => regions.includes(i.iso2))
+    const regions = window.navigator.languages.map((i) => new Intl.Locale(i).region)
+    const preferred = getFilterOptions.value.filter((i) => regions.includes(i.iso2))
 
     return [
       {
@@ -58,7 +67,7 @@ const getSortOptions = computed<SelectMixedOption[]>(() => {
         type: 'group',
         name: t('app.base.all'),
         iso2: '000000',
-        children: getFilterOptions.value.filter(i => !regions.includes(i.iso2)),
+        children: getFilterOptions.value.filter((i) => !regions.includes(i.iso2)),
       },
     ]
   }
@@ -70,39 +79,37 @@ const getSortOptions = computed<SelectMixedOption[]>(() => {
 // if user has internet connect, fetch the result from https://ip2c.org/s
 // no internet, use `navigator.language` and new `Intl.Locale` to get the `region` as country code
 // also when no internet, user change the browser language, the country code change reactively
-watch(() => [autoDefaultCountry, isOnline.value, language.value], async () => {
-  if (autoDefaultCountry) {
-    if (isOnline.value) {
-      loading.value = true
-      try {
-        value.value = appStoreGeoIP.getCountryCode as CountryCode
-      }
-      finally {
-        loading.value = false
+watch(
+  () => [autoDefaultCountry, isOnline.value, language.value],
+  async () => {
+    if (autoDefaultCountry) {
+      if (isOnline.value) {
+        loading.value = true
+        try {
+          value.value = appStoreGeoIP.getCountryCode as CountryCode
+        } finally {
+          loading.value = false
+        }
+      } else {
+        const locale = new Intl.Locale(language.value!)
+        value.value = locale.region! as CountryCode
       }
     }
-    else {
-      const locale = new Intl.Locale(language.value!)
-      value.value = locale.region! as CountryCode
-    }
-  }
-}, { immediate: true, deep: true })
+  },
+  { immediate: true, deep: true },
+)
 
 function onRenderLabel(option: ICompExtraCountryCallingSelectOption): VNodeChild {
-  if (option?.type === 'group')
-    return <div>{option.name}</div>
+  if (option?.type === 'group') return <div>{option.name}</div>
 
   return (
     <div class="grid grid-cols-12 w-48 items-center gap-x-1" title={option.name}>
       {flag && (
         <div class="col-span-2">
-          <div class={['w-flag', `w-flag-${(option.iso2).toLowerCase()}`]}></div>
+          <div class={['w-flag', `w-flag-${option.iso2.toLowerCase()}`]}></div>
         </div>
       )}
-      <div class="col-span-3">
-        +
-        {option.dialCode}
-      </div>
+      <div class="col-span-3">+{option.dialCode}</div>
       <div class="col-span-auto">{option.name}</div>
     </div>
   )
@@ -116,10 +123,7 @@ function onRenderTag({ option }: { option: ICompExtraCountryCallingSelectOption 
           <div class={['w-flag', `w-flag-${option.iso2.toLowerCase()}`]}></div>
         </div>
       )}
-      <div class="col-span-7">
-        +
-        {option.dialCode}
-      </div>
+      <div class="col-span-7">+{option.dialCode}</div>
     </div>
   )
 }
@@ -127,7 +131,11 @@ function onRenderTag({ option }: { option: ICompExtraCountryCallingSelectOption 
 function onFilter(pattern: string, option: ICompExtraCountryCallingSelectOption) {
   const filterableFields = ['name', 'iso2', 'dialCode']
 
-  if (filterableFields.some(i => (option[i] as string).toLowerCase().includes(pattern.toLowerCase())))
+  if (
+    filterableFields.some((i) =>
+      (option[i] as string).toLowerCase().includes(pattern.toLowerCase()),
+    )
+  )
     return true
 
   return false

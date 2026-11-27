@@ -2,5 +2,5 @@ import type { AppTabContext } from '../types'
 import { useContext } from '@walnut/client/hooks/core/useContext'
 import { tabsKey } from '../utils/InjectionKey'
 
-export const { setContext: setTabsContext, getContext: getTabsContext }
-  = useContext<AppTabContext>(tabsKey)
+export const { setContext: setTabsContext, getContext: getTabsContext } =
+  useContext<AppTabContext>(tabsKey)

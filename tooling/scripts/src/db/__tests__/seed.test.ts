@@ -16,7 +16,12 @@ import { describe, expect, it } from 'vitest'
 import { REPO_ROOT } from '../../lib/repo-root.ts'
 import { buildPasswordIdentity, verifyPasswordIdentity } from '../admin-credential.ts'
 import { generateAesKey, generateAppKeys, generateRsaKey, KEY_VALID_DAYS } from '../app-keys.ts'
-import { fromExtendedJson, parseCollectionFile, stringifyCollectionFile, toExtendedJson } from '../ejson.ts'
+import {
+  fromExtendedJson,
+  parseCollectionFile,
+  stringifyCollectionFile,
+  toExtendedJson,
+} from '../ejson.ts'
 import { applyPolicy } from '../policy.ts'
 import { listSeedCollections, parseEnvFile, resolvePath } from '../seed.ts'
 
@@ -26,7 +31,11 @@ describe('ejson', () => {
     const date = new Date('2026-09-29T12:34:56.789Z')
     const doc = { _id: hex, createdAt: date, nested: { list: [{ at: date }], name: '甲' } }
 
-    const wire = toExtendedJson(doc) as { _id: unknown, createdAt: unknown, nested: { list: { at: unknown }[] } }
+    const wire = toExtendedJson(doc) as {
+      _id: unknown
+      createdAt: unknown
+      nested: { list: { at: unknown }[] }
+    }
     expect(wire._id).toBe(hex)
     expect(wire.createdAt).toEqual({ $date: '2026-09-29T12:34:56.789Z' })
 
@@ -73,7 +82,7 @@ describe('app_key 形状', () => {
     expect(doc.key.startsWith('aes_key_url-')).toBe(true)
     expect(doc.meta).toMatchObject({ bits: 256, cipher: 'AES-256-GCM' })
     expect(Buffer.from(doc.meta.keyB64 as string, 'base64')).toHaveLength(32)
-    expect((doc.meta.keyB64 as string)).toHaveLength(44)
+    expect(doc.meta.keyB64 as string).toHaveLength(44)
     expect(doc.status).toBe('ACTIVE')
   })
 
@@ -88,24 +97,28 @@ describe('app_key 形状', () => {
     const priv = ['-----BEGIN', 'PRIVATE KEY-----'].join(' ')
     expect(String(doc.meta.publicKeyPem).startsWith(pub)).toBe(true)
     expect(String(doc.meta.privateKeyPem).startsWith(priv)).toBe(true)
-    expect(doc.validEnd.getTime() - doc.validStart.getTime()).toBe(KEY_VALID_DAYS * 24 * 60 * 60 * 1000)
+    expect(doc.validEnd.getTime() - doc.validStart.getTime()).toBe(
+      KEY_VALID_DAYS * 24 * 60 * 60 * 1000,
+    )
   })
 
   it('一套 = AES + RSA 各一条，且两次生成的密钥不同', () => {
     const keys = generateAppKeys(now)
-    expect(keys.map(k => k.type)).toEqual(['AES_KEY_URL', 'RSA_PAIR'])
+    expect(keys.map((k) => k.type)).toEqual(['AES_KEY_URL', 'RSA_PAIR'])
     expect(keys[0].meta.keyB64).not.toBe(generateAesKey(now).meta.keyB64)
   })
 })
 
 describe('env 与路径解析', () => {
   it('parseEnvFile：忽略注释与空行，剥掉两侧引号', () => {
-    const env = parseEnvFile(['# 注释', '', 'A=1', 'B="2"', 'C=\'3\'', 'D=has=eq'].join('\n'))
+    const env = parseEnvFile(['# 注释', '', 'A=1', 'B="2"', "C='3'", 'D=has=eq'].join('\n'))
     expect(env).toEqual({ A: '1', B: '2', C: '3', D: 'has=eq' })
   })
 
   it('相对路径按仓库根解，绝对路径原样（否则会拼出 D:\\repo\\C:\\Users\\… 这种怪物）', () => {
-    expect(resolvePath('D:/repo', 'apps/server/db/seed')).toBe(join('D:/repo', 'apps/server/db/seed'))
+    expect(resolvePath('D:/repo', 'apps/server/db/seed')).toBe(
+      join('D:/repo', 'apps/server/db/seed'),
+    )
     // 注入平台判定：绝对路径的语义是平台相关的（`C:/tmp` 在 Linux 上不是绝对路径），直接拿宿主的
     // `isAbsolute` 测会在 CI 的 Linux 上得到相反结论（实测就是这么红的）。
     const winAbs = (p: string): boolean => path.win32.isAbsolute(p)
@@ -125,8 +138,8 @@ describe('裁剪策略（两个方向共用一份，两种形态都认）', () =
       { user_name: 'admin', avatar: null },
     ]
     const out = applyPolicy('sys_user', rows)
-    expect(out.map(d => d.user_name)).toEqual(['visitor', 'admin'])
-    expect(out.every(d => d.avatar === null)).toBe(true)
+    expect(out.map((d) => d.user_name)).toEqual(['visitor', 'admin'])
+    expect(out.every((d) => d.avatar === null)).toBe(true)
   })
 
   it('文档形态（历史导出）：按 userName 裁，头像外链置空', () => {
@@ -136,8 +149,8 @@ describe('裁剪策略（两个方向共用一份，两种形态都认）', () =
       { userName: 'admin', avatar: null },
     ]
     const out = applyPolicy('sys_user', docs)
-    expect(out.map(d => d.userName)).toEqual(['visitor', 'admin'])
-    expect(out.every(d => d.avatar === null)).toBe(true)
+    expect(out.map((d) => d.userName)).toEqual(['visitor', 'admin'])
+    expect(out.every((d) => d.avatar === null)).toBe(true)
     // 原数组不该被就地改动（导出时还要拿它做别的）
     expect(docs[0].avatar).toBe('https://cdn.example.com/a.png')
   })
@@ -159,7 +172,14 @@ describe('口令凭证（OPAQUE 注册 + 登录验证）', () => {
   const hashSalt = 'seed-spec-identity-salt'
 
   it('注册记录的形状与服务端 finishRegister 一致（value 是密文、valueHash 是盐化哈希）', () => {
-    const identity = buildPasswordIdentity('u1', 'visitor', 'pw-123456', serverSetup, encKey, hashSalt)
+    const identity = buildPasswordIdentity(
+      'u1',
+      'visitor',
+      'pw-123456',
+      serverSetup,
+      encKey,
+      hashSalt,
+    )
     expect(identity).toMatchObject({
       userId: 'u1',
       type: 'password',
@@ -178,22 +198,58 @@ describe('口令凭证（OPAQUE 注册 + 登录验证）', () => {
   })
 
   it('同一份 serverSetup 下能完成完整登录握手（拿到会话密钥）', () => {
-    const identity = buildPasswordIdentity('u1', 'visitor', 'pw-123456', serverSetup, encKey, hashSalt)
-    const proof = verifyPasswordIdentity('visitor', 'pw-123456', identity.registrationRecord, serverSetup)
+    const identity = buildPasswordIdentity(
+      'u1',
+      'visitor',
+      'pw-123456',
+      serverSetup,
+      encKey,
+      hashSalt,
+    )
+    const proof = verifyPasswordIdentity(
+      'visitor',
+      'pw-123456',
+      identity.registrationRecord,
+      serverSetup,
+    )
     expect(proof.ok).toBe(true)
     expect(proof.sessionKeyLength).toBeGreaterThan(0)
   })
 
   it('口令不对 ⇒ 握手失败（判据不是"写进去了就算"）', () => {
-    const identity = buildPasswordIdentity('u1', 'visitor', 'pw-123456', serverSetup, encKey, hashSalt)
-    const proof = verifyPasswordIdentity('visitor', 'another-password', identity.registrationRecord, serverSetup)
+    const identity = buildPasswordIdentity(
+      'u1',
+      'visitor',
+      'pw-123456',
+      serverSetup,
+      encKey,
+      hashSalt,
+    )
+    const proof = verifyPasswordIdentity(
+      'visitor',
+      'another-password',
+      identity.registrationRecord,
+      serverSetup,
+    )
     expect(proof.ok).toBe(false)
   })
 
   it('serverSetup 换一份（等价于换了 AUTH_OPAQUE_SECRET） ⇒ 握手失败', () => {
     // 这条钉住的是"凭证不可跨环境搬运"这个**协议性质**：正因如此，seed 里不能发凭证
-    const identity = buildPasswordIdentity('u1', 'visitor', 'pw-123456', serverSetup, encKey, hashSalt)
-    const proof = verifyPasswordIdentity('visitor', 'pw-123456', identity.registrationRecord, server.createSetup())
+    const identity = buildPasswordIdentity(
+      'u1',
+      'visitor',
+      'pw-123456',
+      serverSetup,
+      encKey,
+      hashSalt,
+    )
+    const proof = verifyPasswordIdentity(
+      'visitor',
+      'pw-123456',
+      identity.registrationRecord,
+      server.createSetup(),
+    )
     expect(proof.ok).toBe(false)
   })
 })

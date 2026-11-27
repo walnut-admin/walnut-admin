@@ -1,7 +1,11 @@
 import { Global, Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { WalnutPGConnectionName } from '@walnut-server/db'
-import { SysDeletedEntity, WALNUT_ADMIN_SOFT_DELETE_STRATEGY, WalnutAdminRecoverableRegistry } from '@walnut-server/repository'
+import {
+  SysDeletedEntity,
+  WALNUT_ADMIN_SOFT_DELETE_STRATEGY,
+  WalnutAdminRecoverableRegistry,
+} from '@walnut-server/repository'
 import { SysDeletedPgRepoService } from './deleted.repo.pg.service'
 
 /**
@@ -31,6 +35,10 @@ import { SysDeletedPgRepoService } from './deleted.repo.pg.service'
       useExisting: SysDeletedPgRepoService,
     },
   ],
-  exports: [SysDeletedPgRepoService, WalnutAdminRecoverableRegistry, WALNUT_ADMIN_SOFT_DELETE_STRATEGY],
+  exports: [
+    SysDeletedPgRepoService,
+    WalnutAdminRecoverableRegistry,
+    WALNUT_ADMIN_SOFT_DELETE_STRATEGY,
+  ],
 })
 export class SysDeletedRepoModule {}

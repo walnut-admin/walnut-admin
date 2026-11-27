@@ -1,10 +1,20 @@
 import type { IWalnutAdminKeyStore } from './rsa.ports'
 import { Buffer } from 'node:buffer'
-import { constants, createCipheriv, createDecipheriv, privateDecrypt, publicEncrypt, randomBytes } from 'node:crypto'
+import {
+  constants,
+  createCipheriv,
+  createDecipheriv,
+  privateDecrypt,
+  publicEncrypt,
+  randomBytes,
+} from 'node:crypto'
 
 import { Inject, Injectable } from '@nestjs/common'
 import { AppTechCacheRsaService } from '@walnut-server/cache'
-import { WalnutAdminExceptionRsaDecryptFailed, WalnutAdminExceptionRsaPubKeyNotFound } from '@walnut-server/exceptions/business/rsa'
+import {
+  WalnutAdminExceptionRsaDecryptFailed,
+  WalnutAdminExceptionRsaPubKeyNotFound,
+} from '@walnut-server/exceptions/business/rsa'
 import { AES_GCM_WIRE, AppKeyTypeConst } from '@walnut/contract/crypto-wire'
 import { isNil } from 'lodash'
 import { WALNUT_ADMIN_KEY_STORE } from './rsa.ports'
@@ -54,10 +64,7 @@ export class SecurityRsaService {
 
     // 3. AES-GCM encrypt value
     const cipher = createCipheriv('aes-256-gcm', aesKey, iv)
-    const ct = Buffer.concat([
-      cipher.update(value, 'utf8'),
-      cipher.final(),
-    ])
+    const ct = Buffer.concat([cipher.update(value, 'utf8'), cipher.final()])
     const tag = cipher.getAuthTag() // TAG_LENGTH bytes
 
     // 4. Concatenate key|iv|tag into a 60-byte blob and encrypt with RSA public key
@@ -103,16 +110,21 @@ export class SecurityRsaService {
         throw new WalnutAdminExceptionRsaDecryptFailed()
       }
 
-      const payload = JSON.parse(Buffer.from(value, 'base64').toString('utf8')) as CipherEnvelope | null
+      const payload = JSON.parse(
+        Buffer.from(value, 'base64').toString('utf8'),
+      ) as CipherEnvelope | null
 
       if (
-        payload === null
-        || typeof payload !== 'object'
-        || payload.enc !== 'AES_256_GCM'
-        || typeof payload.key !== 'string' || payload.key.length === 0
-        || typeof payload.iv !== 'string' || payload.iv.length === 0
-        || typeof payload.ct !== 'string'
-        || typeof payload.tag !== 'string' || payload.tag.length === 0
+        payload === null ||
+        typeof payload !== 'object' ||
+        payload.enc !== 'AES_256_GCM' ||
+        typeof payload.key !== 'string' ||
+        payload.key.length === 0 ||
+        typeof payload.iv !== 'string' ||
+        payload.iv.length === 0 ||
+        typeof payload.ct !== 'string' ||
+        typeof payload.tag !== 'string' ||
+        payload.tag.length === 0
       ) {
         throw new WalnutAdminExceptionRsaDecryptFailed()
       }
@@ -149,14 +161,10 @@ export class SecurityRsaService {
       const decipher = createDecipheriv('aes-256-gcm', aesKey, iv)
       decipher.setAuthTag(tag)
 
-      const plaintext = Buffer.concat([
-        decipher.update(ciphertext),
-        decipher.final(),
-      ])
+      const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()])
 
       return plaintext.toString('utf8')
-    }
-    catch (error) {
+    } catch (error) {
       if (error instanceof WalnutAdminExceptionRsaDecryptFailed) {
         throw error
       }

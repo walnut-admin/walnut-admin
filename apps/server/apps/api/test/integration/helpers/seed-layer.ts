@@ -49,7 +49,9 @@ export function findRepoRoot(startDir: string = process.cwd()): string {
     }
     const parent = path.dirname(current)
     if (parent === current) {
-      throw new Error(`[integration][seed] 从 ${startDir} 向上找不到 pnpm-workspace.yaml（不是仓库内运行？）`)
+      throw new Error(
+        `[integration][seed] 从 ${startDir} 向上找不到 pnpm-workspace.yaml（不是仓库内运行？）`,
+      )
     }
     current = parent
   }
@@ -124,14 +126,14 @@ function runSeedPass(options: SeedLayerOptions): SeedPass {
 
   if (result.error !== undefined || result.status !== 0) {
     throw new Error(
-      '[integration][seed] 种子 CLI 失败'
-      + `（exit=${String(result.status)}${result.error === undefined ? '' : `, ${result.error.message}`}）\n`
-      + `--- stdout ---\n${stdout}\n--- stderr ---\n${stderr}`,
+      '[integration][seed] 种子 CLI 失败' +
+        `（exit=${String(result.status)}${result.error === undefined ? '' : `, ${result.error.message}`}）\n` +
+        `--- stdout ---\n${stdout}\n--- stderr ---\n${stderr}`,
     )
   }
 
   const upserted = parseSeedCounts(stdout)
-  const missing = INTEGRATION_SEED_COLLECTIONS.filter(name => !(name in upserted))
+  const missing = INTEGRATION_SEED_COLLECTIONS.filter((name) => !(name in upserted))
   if (missing.length > 0) {
     throw new Error(
       `[integration][seed] CLI 输出里缺少集合的 upsert 统计：${missing.join(', ')}\n--- stdout ---\n${stdout}`,
@@ -148,16 +150,24 @@ function runSeedPass(options: SeedLayerOptions): SeedPass {
  * 数据底座，重放不收敛意味着某天 seed 文件/映射改动引入了非幂等写，必须在门禁里红。
  */
 export async function seedIntegrationDatabase(options: SeedLayerOptions): Promise<SeedLayerResult> {
-  console.log(`[integration][seed] 灌入 ${INTEGRATION_SEED_COLLECTIONS.length} 个参考数据集合（app_setting 按设计排除）`)
+  console.log(
+    `[integration][seed] 灌入 ${INTEGRATION_SEED_COLLECTIONS.length} 个参考数据集合（app_setting 按设计排除）`,
+  )
 
   const first = runSeedPass(options)
-  console.log(`[integration][seed] 首轮完成 ${first.ms}ms：${Object.entries(first.upserted).map(([k, v]) => `${k}=${v}`).join(' ')}`)
+  console.log(
+    `[integration][seed] 首轮完成 ${first.ms}ms：${Object.entries(first.upserted)
+      .map(([k, v]) => `${k}=${v}`)
+      .join(' ')}`,
+  )
 
   const replay = runSeedPass(options)
-  const mismatched = INTEGRATION_SEED_COLLECTIONS.filter(name => first.upserted[name] !== replay.upserted[name])
+  const mismatched = INTEGRATION_SEED_COLLECTIONS.filter(
+    (name) => first.upserted[name] !== replay.upserted[name],
+  )
   if (mismatched.length > 0) {
     throw new Error(
-      `[integration][seed] 幂等重放计数不一致：${mismatched.map(name => `${name}: ${first.upserted[name]} -> ${replay.upserted[name]}`).join(', ')}`,
+      `[integration][seed] 幂等重放计数不一致：${mismatched.map((name) => `${name}: ${first.upserted[name]} -> ${replay.upserted[name]}`).join(', ')}`,
     )
   }
   console.log(`[integration][seed] 幂等重放通过 ${replay.ms}ms（逐集合 upsert 计数一致）`)

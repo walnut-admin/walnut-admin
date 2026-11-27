@@ -36,27 +36,21 @@ export function WithValue<T>(WrappedComponent: ReturnType<typeof defineComponent
 
       const formateDefaultValue = (fn: Fn) => {
         !props.valueSeparator
-          ? (v.value = (props.value as string[]).map(ov => fn(ov)))
-          : (v.value
-              = props.value
-                && (props.value as string)
-                  .split(props.valueSeparator)
-                  .map(ov => fn(ov)))
+          ? (v.value = (props.value as string[]).map((ov) => fn(ov)))
+          : (v.value =
+              props.value &&
+              (props.value as string).split(props.valueSeparator).map((ov) => fn(ov)))
       }
 
       const transformBoolean = (val: any) => {
         if (props.valueType === 'string') {
-          if (val === true)
-            return 'true'
-          if (val === false)
-            return 'false'
+          if (val === true) return 'true'
+          if (val === false) return 'false'
         }
 
         if (props.valueType === 'boolean') {
-          if (val === 'true')
-            return true
-          if (val === 'false')
-            return false
+          if (val === 'true') return true
+          if (val === 'false') return false
           return val
         }
       }
@@ -70,20 +64,14 @@ export function WithValue<T>(WrappedComponent: ReturnType<typeof defineComponent
           }
 
           if (props.multiple === true) {
-            if (props.valueType === 'string')
-              formateDefaultValue(ov => ov.toString())
-            else if (props.valueType === 'number')
-              formateDefaultValue(ov => +ov)
+            if (props.valueType === 'string') formateDefaultValue((ov) => ov.toString())
+            else if (props.valueType === 'number') formateDefaultValue((ov) => +ov)
             else if (props.valueType === 'boolean')
-              formateDefaultValue(ov => transformBoolean(ov))
-          }
-          else {
-            if (props.valueType === 'string')
-              v.value = `${newV}`
-            else if (props.valueType === 'number')
-              v.value = +newV!
-            else if (props.valueType === 'boolean')
-              v.value = transformBoolean(newV)
+              formateDefaultValue((ov) => transformBoolean(ov))
+          } else {
+            if (props.valueType === 'string') v.value = `${newV}`
+            else if (props.valueType === 'number') v.value = +newV!
+            else if (props.valueType === 'boolean') v.value = transformBoolean(newV)
           }
         },
         {
@@ -99,8 +87,8 @@ export function WithValue<T>(WrappedComponent: ReturnType<typeof defineComponent
           props.valueType === 'boolean'
             ? transformBoolean(val)
             : !props.valueSeparator
-                ? val
-                : val.join(props.valueSeparator),
+              ? val
+              : val.join(props.valueSeparator),
         )
       }
 

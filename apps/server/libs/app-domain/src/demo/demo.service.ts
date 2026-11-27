@@ -14,7 +14,7 @@ import {
  */
 @Injectable()
 export class AppDemoService {
-  constructor(private readonly demoBasicRepo: AppDemoBasicRepository) { }
+  constructor(private readonly demoBasicRepo: AppDemoBasicRepository) {}
 
   async create(payload: AppDemoDTOCreateRequest) {
     return this.demoBasicRepo.create(payload)

@@ -2,13 +2,23 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/commo
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminGuardJwtFree } from '@walnut-server/auth'
 
-import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
+import {
+  WalnutAdminConstDecoratorLogOperateAction,
+  WalnutAdminConstDecoratorLogOperateTitle,
+  WalnutAdminConstDecoratorLogOperateType,
+} from '@walnut-server/const/decorator/logOperate'
 import { WalnutAdminDecoratorOperateLog, WalnutCrudDecorators } from '@walnut-server/crud'
 import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
-import { WalnutAdminDecoratorHasPermission, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardLockFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import {
+  WalnutAdminDecoratorHasPermission,
+  WalnutAdminGuardCapFree,
+  WalnutAdminGuardDeviceFree,
+  WalnutAdminGuardLockFree,
+  WalnutAdminGuardSignFree,
+} from '@walnut-server/guards'
 import { AppRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 import {
@@ -34,13 +44,17 @@ const Permissions = {
   CACHE_REFRESH: 'app:setting:cache:refresh',
 } as const
 
-const { WalnutAdminDecoratorCreate, WalnutAdminDecoratorRead, WalnutAdminDecoratorUpdate, WalnutAdminDecoratorList }
-  = WalnutCrudDecorators({
-    title: WalnutAdminConstDecoratorLogOperateTitle.APP_SETTING,
-    DTO: AppSettingDTOSafe,
-    // list 行是 RealPartialType(AppSettingDTOSafe)：字段集一致、全部可选（P2-6 收尾）。
-    listResponseDTO: AppSettingDTOListResponse,
-  })
+const {
+  WalnutAdminDecoratorCreate,
+  WalnutAdminDecoratorRead,
+  WalnutAdminDecoratorUpdate,
+  WalnutAdminDecoratorList,
+} = WalnutCrudDecorators({
+  title: WalnutAdminConstDecoratorLogOperateTitle.APP_SETTING,
+  DTO: AppSettingDTOSafe,
+  // list 行是 RealPartialType(AppSettingDTOSafe)：字段集一致、全部可选（P2-6 收尾）。
+  listResponseDTO: AppSettingDTOListResponse,
+})
 
 @Controller(AppRoutes.SETTING)
 @ApiTags('app/setting')
@@ -77,7 +91,8 @@ export class AppSettingController {
   // F-18（DOC-07）：登录态功能开关此前 200 无 schema（DOC-19 记录为「保留 admin store 形态」，
   // 这里只补文档形状，handler 仍返回 service 的普通对象，wire 零变化）。
   @ApiWalnutOkResponse({
-    description: 'Get private (authenticated) functional switches: maskUrl / hijackRefresh / watermark / transition',
+    description:
+      'Get private (authenticated) functional switches: maskUrl / hijackRefresh / watermark / transition',
     DTO: AppSettingDTOPrivateResponse,
   })
   async getPrivateSettings() {
@@ -102,7 +117,10 @@ export class AppSettingController {
     @Body() payload: AppSettingDTOUpdateRequest,
     @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return plainToInstance(AppSettingDTOUpdateResponse, await this.settingService.update(id, payload))
+    return plainToInstance(
+      AppSettingDTOUpdateResponse,
+      await this.settingService.update(id, payload),
+    )
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)

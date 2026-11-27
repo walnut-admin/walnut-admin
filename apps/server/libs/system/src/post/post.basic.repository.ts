@@ -38,8 +38,9 @@ export class SysPostBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
    * @description 有职工计数（删除前置校验用；FK RESTRICT 是最后防线）
    */
   public async countEmployees(postId: string, em?: EntityManager): Promise<number> {
-    return withWalnutSystemManager(this.dataSource, em, async manager =>
+    return withWalnutSystemManager(this.dataSource, em, async (manager) =>
       // eslint-disable-next-line no-restricted-syntax -- 删除前置计数必须全库口径（理由同 dept.countEmployees）；这里已显式走 system 事务
-      manager.getRepository(SysEmployeeEntity).count({ where: { postId } }))
+      manager.getRepository(SysEmployeeEntity).count({ where: { postId } }),
+    )
   }
 }

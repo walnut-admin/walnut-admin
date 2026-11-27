@@ -39,7 +39,7 @@ interface MenuRow {
   id: string
   name?: string | null
   title?: string | null
-  meta?: { order?: number | null, status?: boolean }
+  meta?: { order?: number | null; status?: boolean }
 }
 
 interface RoleListData {
@@ -108,7 +108,7 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
        RETURNING id`,
       [deptPrefix, 'api spec bulk dept', count],
     )
-    return rows.map(row => row.id)
+    return rows.map((row) => row.id)
   }
 
   async function insertDept(tag: string): Promise<string> {
@@ -124,12 +124,14 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
    * sys_log_operate 的最新行，断言 before/after 快照（比 HTTP list 更直接；
    * 快照列本就不出现在 list/read 出参里，只能走 snapshot 端点或 DB）。
    */
-  async function waitForRoleUpdateSnapshot(roleId: string): Promise<{ before: Recordable, after: Recordable }> {
+  async function waitForRoleUpdateSnapshot(
+    roleId: string,
+  ): Promise<{ before: Recordable; after: Recordable }> {
     const deadline = Date.now() + 8000
     let seen = 0
     while (Date.now() < deadline) {
-      const rows: Array<{ snapshot_before: Recordable | null, snapshot_after: Recordable | null }>
-        = await api.pgDataSource.query(
+      const rows: Array<{ snapshot_before: Recordable | null; snapshot_after: Recordable | null }> =
+        await api.pgDataSource.query(
           `SELECT snapshot_before, snapshot_after
              FROM sys_log_operate
             WHERE invoking_method = 'SysRoleController.update'
@@ -143,9 +145,11 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
       if (row !== undefined && row.snapshot_before !== null && row.snapshot_after !== null) {
         return { before: row.snapshot_before, after: row.snapshot_after }
       }
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
     }
-    throw new Error(`[role-api-spec] role:update log snapshot not found for ${roleId} (rows=${seen})`)
+    throw new Error(
+      `[role-api-spec] role:update log snapshot not found for ${roleId} (rows=${seen})`,
+    )
   }
 
   beforeAll(async () => {
@@ -161,8 +165,12 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
 
   afterEach(async () => {
     // junction 行随 role/user CASCADE；根角色 fixture 行不在 collect.roleIds，不动
-    await api.pgDataSource.query('DELETE FROM sys_user WHERE id = ANY($1::uuid[])', [collect.userIds])
-    await api.pgDataSource.query('DELETE FROM sys_role WHERE id = ANY($1::uuid[])', [collect.roleIds])
+    await api.pgDataSource.query('DELETE FROM sys_user WHERE id = ANY($1::uuid[])', [
+      collect.userIds,
+    ])
+    await api.pgDataSource.query('DELETE FROM sys_role WHERE id = ANY($1::uuid[])', [
+      collect.roleIds,
+    ])
     await api.pgDataSource.query('DELETE FROM sys_role WHERE role_name LIKE $1', [`${rolePrefix}%`])
     await api.pgDataSource.query('DELETE FROM sys_menu WHERE name LIKE $1', [`${menuPrefix}%`])
     // 批 7 / L6：部门行在角色（junction）删除后清，FK 不挡
@@ -176,9 +184,13 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
     if (api !== undefined && fixture !== null) {
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
-      await api.pgDataSource.query('DELETE FROM sys_role WHERE role_name LIKE $1', [`${rolePrefix}%`])
+      await api.pgDataSource.query('DELETE FROM sys_role WHERE role_name LIKE $1', [
+        `${rolePrefix}%`,
+      ])
       await api.pgDataSource.query('DELETE FROM sys_menu WHERE name LIKE $1', [`${menuPrefix}%`])
-      await api.pgDataSource.query('DELETE FROM sys_dept WHERE dept_code LIKE $1', [`${deptPrefix}%`])
+      await api.pgDataSource.query('DELETE FROM sys_dept WHERE dept_code LIKE $1', [
+        `${deptPrefix}%`,
+      ])
       await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [api.deviceId])
       await api.cleanupWalnutCacheKeys(seed8, api.deviceId, fixture.userId)
     }
@@ -207,7 +219,7 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
       'SELECT menu_id FROM sys_role_menu WHERE role_id = $1 ORDER BY menu_id',
       [role.id],
     )
-    expect(junctionRows.map(r => r.menu_id).sort()).toEqual([menuA.id, menuB.id].sort())
+    expect(junctionRows.map((r) => r.menu_id).sort()).toEqual([menuA.id, menuB.id].sort())
 
     const readRes = await api.root('GET', api.apiPath(`/system/role/${role.id}`))
     expect(bodyOf<RoleRow>(readRes).data.menus?.sort()).toEqual([menuA.id, menuB.id].sort())
@@ -241,7 +253,7 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
       'SELECT menu_id FROM sys_role_menu WHERE role_id = $1',
       [role.id],
     )
-    expect(junctionRows.map(r => r.menu_id)).toEqual([menuB.id])
+    expect(junctionRows.map((r) => r.menu_id)).toEqual([menuB.id])
   })
 
   it('list → roleName 过滤 + usersCount 计数（junction 子查询）+ 出参不带 menus', async () => {
@@ -254,10 +266,10 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
     )
     const userId = userRows[0].id
     collect.userIds.push(userId)
-    await api.pgDataSource.query(
-      'INSERT INTO sys_user_role (user_id, role_id) VALUES ($1, $2)',
-      [userId, role.id],
-    )
+    await api.pgDataSource.query('INSERT INTO sys_user_role (user_id, role_id) VALUES ($1, $2)', [
+      userId,
+      role.id,
+    ])
 
     const listRes = await api.root('POST', api.apiPath('/system/role/list'), {
       filters: [{ field: 'roleName', op: 'like', value: `${rolePrefix}-L1` }],
@@ -332,7 +344,7 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
     const populated = await roleRepoService.findRolesWithPopulatedMenus([roleOn.id, roleOff.id])
 
     // status=false 的角色整行被滤掉
-    expect(populated.map(r => r.id)).toEqual([roleOn.id])
+    expect(populated.map((r) => r.id)).toEqual([roleOn.id])
     const row = populated[0]
     expect(row.menus?.sort()).toEqual([menuOn.id, menuOff.id].sort())
     // 只有启用菜单进 menusList，且组装回 meta 对象

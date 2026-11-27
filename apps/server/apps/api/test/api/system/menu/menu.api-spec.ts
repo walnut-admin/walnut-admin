@@ -2,7 +2,10 @@ import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { WalnutRootUserFixture } from '../../helpers/auth-login'
 import { randomUUID } from 'node:crypto'
 import { AppTechCacheService } from '@walnut-server/cache'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+} from '@walnut-server/const/app/cache'
 import { WalnutModelName } from '@walnut-server/db'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
@@ -66,7 +69,7 @@ interface TreeNode {
 interface TreeResponse {
   fullTree: TreeNode[]
   treeWithoutTypeElement: TreeNode[]
-  menuActiveNamesOptions: Array<{ name: string | null, title: string | null }>
+  menuActiveNamesOptions: Array<{ name: string | null; title: string | null }>
 }
 
 describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（真实 HTTP 全链）', () => {
@@ -106,7 +109,10 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
     }
   }
 
-  async function createMenu(tag: string, overrides: Record<string, unknown> = {}): Promise<MenuRow> {
+  async function createMenu(
+    tag: string,
+    overrides: Record<string, unknown> = {},
+  ): Promise<MenuRow> {
     const res = await api.root('POST', api.apiPath('/system/menu'), menuPayload(tag, overrides))
     expectOk(res, `menu create ${tag}`)
     const row = bodyOf<MenuRow>(res).data
@@ -135,7 +141,10 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
     api = await WalnutApiClient.create(app)
 
     // 固定缓存键跨轮共享，先清冷态（locale create/delete 的事务后刷新会重写它们）
-    await api.cleanupFixedCacheKeys(zhMessageCacheKey, WalnutAdminConstAppCacheKeys.SYS_LANG_ID_LIST)
+    await api.cleanupFixedCacheKeys(
+      zhMessageCacheKey,
+      WalnutAdminConstAppCacheKeys.SYS_LANG_ID_LIST,
+    )
 
     fixture = await registerRootUserFixture(app, api.pgDataSource, `menu-${seed8}`)
 
@@ -153,8 +162,7 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
     if (langRows.length > 0) {
       localeLangId = langRows[0].id
       localeLangCreated = true
-    }
-    else {
+    } else {
       const existing: Array<{ id: string }> = await api.pgDataSource.query(
         'SELECT id FROM sys_lang WHERE lang = $1',
         ['zh_CN'],
@@ -168,40 +176,60 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
     // 按 id 兜底（F1 之前 update 只传 meta 会清空 name/title，LIKE 匹配不到；现在不会了，
     // 但 id 兜底与字段内容无关，仍是最稳的清理方式）
     if (createdMenuIds.length > 0) {
-      await api.pgDataSource.query('DELETE FROM sys_menu WHERE pid = ANY($1::uuid[])', [createdMenuIds])
-      await api.pgDataSource.query('DELETE FROM sys_menu WHERE id = ANY($1::uuid[])', [createdMenuIds])
+      await api.pgDataSource.query('DELETE FROM sys_menu WHERE pid = ANY($1::uuid[])', [
+        createdMenuIds,
+      ])
+      await api.pgDataSource.query('DELETE FROM sys_menu WHERE id = ANY($1::uuid[])', [
+        createdMenuIds,
+      ])
       createdMenuIds.length = 0
     }
     await api.pgDataSource.query(
       'DELETE FROM sys_menu WHERE pid IS NOT NULL AND (name LIKE $1 OR title LIKE $2)',
       [`${namePrefix}%`, `menu.title.${seed8}%`],
     )
-    await api.pgDataSource.query(
-      'DELETE FROM sys_menu WHERE name LIKE $1 OR title LIKE $2',
-      [`${namePrefix}%`, `menu.title.${seed8}%`],
-    )
+    await api.pgDataSource.query('DELETE FROM sys_menu WHERE name LIKE $1 OR title LIKE $2', [
+      `${namePrefix}%`,
+      `menu.title.${seed8}%`,
+    ])
   }
 
   afterEach(async () => {
     await cleanupMenuRows()
-    await api.pgDataSource.query('DELETE FROM sys_locale WHERE key LIKE $1', [`menu.title.${seed8}%`])
-    await api.pgDataSource.query('DELETE FROM sys_deleted WHERE content->>\'name\' LIKE $1', [`${namePrefix}%`])
-    await api.pgDataSource.query('DELETE FROM sys_deleted WHERE content->>\'key\' LIKE $1', [`menu.title.${seed8}%`])
-    await api.cleanupFixedCacheKeys(zhMessageCacheKey, WalnutAdminConstAppCacheKeys.SYS_LANG_ID_LIST)
+    await api.pgDataSource.query('DELETE FROM sys_locale WHERE key LIKE $1', [
+      `menu.title.${seed8}%`,
+    ])
+    await api.pgDataSource.query("DELETE FROM sys_deleted WHERE content->>'name' LIKE $1", [
+      `${namePrefix}%`,
+    ])
+    await api.pgDataSource.query("DELETE FROM sys_deleted WHERE content->>'key' LIKE $1", [
+      `menu.title.${seed8}%`,
+    ])
+    await api.cleanupFixedCacheKeys(
+      zhMessageCacheKey,
+      WalnutAdminConstAppCacheKeys.SYS_LANG_ID_LIST,
+    )
   })
 
   afterAll(async () => {
     if (api !== undefined && fixture !== null) {
       await cleanupMenuRows()
-      await api.pgDataSource.query('DELETE FROM sys_locale WHERE key LIKE $1', [`menu.title.${seed8}%`])
-      await api.pgDataSource.query('DELETE FROM sys_deleted WHERE content->>\'name\' LIKE $1', [`${namePrefix}%`])
+      await api.pgDataSource.query('DELETE FROM sys_locale WHERE key LIKE $1', [
+        `menu.title.${seed8}%`,
+      ])
+      await api.pgDataSource.query("DELETE FROM sys_deleted WHERE content->>'name' LIKE $1", [
+        `${namePrefix}%`,
+      ])
       if (localeLangCreated && localeLangId !== '') {
         await api.pgDataSource.query('DELETE FROM sys_lang WHERE id = $1', [localeLangId])
       }
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
       await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [api.deviceId])
-      await api.cleanupFixedCacheKeys(zhMessageCacheKey, WalnutAdminConstAppCacheKeys.SYS_LANG_ID_LIST)
+      await api.cleanupFixedCacheKeys(
+        zhMessageCacheKey,
+        WalnutAdminConstAppCacheKeys.SYS_LANG_ID_LIST,
+      )
       await api.cleanupWalnutCacheKeys(seed8, api.deviceId, fixture.userId)
     }
     await app.close()
@@ -265,7 +293,7 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
     expect(findNode(tree.treeWithoutTypeElement, `${namePrefix}-T2`)).not.toBeNull()
 
     // menuActiveNamesOptions 收 type=menu 的 name/title
-    const option = tree.menuActiveNamesOptions.find(i => i.name === `${namePrefix}-T2`)
+    const option = tree.menuActiveNamesOptions.find((i) => i.name === `${namePrefix}-T2`)
     expect(option?.title).toBe(`menu.title.${seed8}.T2`)
   })
 
@@ -298,7 +326,10 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
     // update 仅在 permission / status 真变化时清。预置哨兵键验证三种 update 形态。
     const cacheService = app.get(AppTechCacheService)
     const sentinelKey = `${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:sentinel-${seed8}:device-sentinel`
-    await cacheService.set(sentinelKey, ['system:menu:list'], { t: WalnutAdminConstAppCacheType.AUTH, ttl: 600 })
+    await cacheService.set(sentinelKey, ['system:menu:list'], {
+      t: WalnutAdminConstAppCacheType.AUTH,
+      ttl: 600,
+    })
     expect(await api.hasWalnutCacheKey(sentinelKey)).toBe(true)
 
     // create 不失效（新菜单未挂角色，既有权限串不变）
@@ -308,7 +339,10 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
     expect(await api.hasWalnutCacheKey(sentinelKey)).toBe(false)
 
     // 重建哨兵后跑 update 三态
-    await cacheService.set(sentinelKey, ['system:menu:list'], { t: WalnutAdminConstAppCacheType.AUTH, ttl: 600 })
+    await cacheService.set(sentinelKey, ['system:menu:list'], {
+      t: WalnutAdminConstAppCacheType.AUTH,
+      ttl: 600,
+    })
 
     // 只给 title + meta.order：未给的顶层列（name/path/icon/pid/type）保持原值（真 PATCH，
     // 旧实现会把它们写成 NULL）；meta 给了则 show/cache 被整体替换回默认值（Mongo 子文档
@@ -376,7 +410,7 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
       page: { page: 1, pageSize: 10 },
     })
     expectOk(listRes, 'menu list')
-    const list = bodyOf<{ data: MenuRow[], total: number }>(listRes).data
+    const list = bodyOf<{ data: MenuRow[]; total: number }>(listRes).data
     expect(list.total).toBe(1)
     expect(list.data[0].meta?.order).toBe(3)
     expect(list.data[0].meta?.ternal).toBe('none')
@@ -433,7 +467,7 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
 
     // menu + locale 两腿各有一行快照（同 title 快照按 content.key 补判）
     const localeSnapshots: Array<{ c: number }> = await api.pgDataSource.query(
-      'SELECT count(*)::int AS c FROM sys_deleted WHERE content->>\'key\' = $1',
+      "SELECT count(*)::int AS c FROM sys_deleted WHERE content->>'key' = $1",
       [localeKeyOf(`menu.title.${seed8}.C1`)],
     )
     expect(localeSnapshots[0].c).toBe(1)
@@ -478,17 +512,25 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
 
     // locale 快照已消费（不再留在回收站）
     const remainSnapshots: Array<{ c: number }> = await api.pgDataSource.query(
-      'SELECT count(*)::int AS c FROM sys_deleted WHERE content ->> \'key\' = $1',
+      "SELECT count(*)::int AS c FROM sys_deleted WHERE content ->> 'key' = $1",
       [key],
     )
     expect(remainSnapshots[0].c).toBe(0)
   })
 
   it('校验失败 → 40099（pid 非 uuid / 非法 type 枚举 / 未知字段）', async () => {
-    const badPid = await api.root('POST', api.apiPath('/system/menu'), menuPayload('V1', { pid: 'not-a-uuid' }))
+    const badPid = await api.root(
+      'POST',
+      api.apiPath('/system/menu'),
+      menuPayload('V1', { pid: 'not-a-uuid' }),
+    )
     expect(bodyOf(badPid).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
 
-    const badType = await api.root('POST', api.apiPath('/system/menu'), menuPayload('V2', { type: 'folder' }))
+    const badType = await api.root(
+      'POST',
+      api.apiPath('/system/menu'),
+      menuPayload('V2', { type: 'folder' }),
+    )
     expect(bodyOf(badType).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
 
     const unknownField = await api.root('POST', api.apiPath('/system/menu'), {

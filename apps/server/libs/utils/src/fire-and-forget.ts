@@ -26,16 +26,14 @@ export function fireAndForget(
 ): void {
   // `Promise.resolve` 兼容 thenable（不假设入参一定是原生 Promise）
   void Promise.resolve(promise).catch((error: unknown) => {
-    if (!logger)
-      return
+    if (!logger) return
 
     try {
       logger.error(
         `[fireAndForget] ${context ?? 'background task'} rejected`,
         error instanceof Error ? error.stack : String(error),
       )
-    }
-    catch {
+    } catch {
       // 日志器自身异常必须就地吞掉：否则 .catch 处理器抛错 → 新的 unhandled rejection
     }
   })

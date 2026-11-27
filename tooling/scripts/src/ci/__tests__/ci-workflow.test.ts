@@ -43,14 +43,14 @@ function stepsOf(workflow: string): WorkflowStep[] {
 }
 
 function stepNamed(name: string): WorkflowStep {
-  const step = stepsOf(ci).find(item => item.name === name)
+  const step = stepsOf(ci).find((item) => item.name === name)
   expect(step, `ci.yml 里应当有「${name}」这一步`).toBeDefined()
   return step!
 }
 
 /** 单行 `run:` 的命令：去掉前导 `pnpm`，拆成词（内联脚本在这里直接判红） */
 function runTokens(step: WorkflowStep): string[] {
-  const runLine = step.lines.find(line => /^\s+run: (?! \|)/.test(line))
+  const runLine = step.lines.find((line) => /^\s+run: (?! \|)/.test(line))
   expect(runLine, `「${step.name}」应当是单行 run，不内联脚本`).toBeDefined()
   const command = runLine!.replace(/^\s+run: /, '').trim()
   expect(command.startsWith('pnpm '), `「${step.name}」应当经 pnpm 跑`).toBe(true)
@@ -64,26 +64,27 @@ function executedArgv(step: WorkflowStep): string[] {
 }
 
 function stepInTable(id: string): Step {
-  const step = LOCAL_CI_STEPS.find(item => item.id === id)
+  const step = LOCAL_CI_STEPS.find((item) => item.id === id)
   expect(step, `步骤表里应当有 ${id}`).toBeDefined()
   return step!
 }
 
 function argvOf(step: Step): readonly string[] {
-  if (!('argv' in step))
-    throw new Error(`${step.id} 不是 argv 形态的步骤`)
+  if (!('argv' in step)) throw new Error(`${step.id} 不是 argv 形态的步骤`)
   return resolveCommandArgv(step.argv)
 }
 
 function runsInServerDir(step: WorkflowStep): boolean {
-  return step.lines.some(line => /^\s+working-directory: apps\/server\s*$/.test(line))
+  return step.lines.some((line) => /^\s+working-directory: apps\/server\s*$/.test(line))
 }
 
 describe('ci.yml —— 构建产物必须由**无缓存**的那次来担保', () => {
   it('build admin 带 `--force`（忽略 turbo 缓存）', () => {
     // 事故：v0.1.4 发版死在 Build admin（dts 被读到半写内容），而同一提交的 CI 因为命中 turbo
     // 缓存没真构建 ⇒ 绿。CI 必须自己真构建一次，否则这类 bug 只能在发版时暴露。
-    const step = ci.split('\n').find(line => line.includes('turbo run build --filter=@walnut/admin'))
+    const step = ci
+      .split('\n')
+      .find((line) => line.includes('turbo run build --filter=@walnut/admin'))
     expect(step, 'ci.yml 里应当有构建 admin 的那一步').toBeDefined()
     expect(step).toContain('--force')
   })
@@ -107,7 +108,10 @@ describe('ci.yml × LOCAL_CI_STEPS —— 构建类步骤只有一份逻辑', ()
     // 判据本身失效时也要红：一条都对不上说明 workflow 的步骤名改了，下面的循环会空转
     expect(mirrors.length).toBeGreaterThanOrEqual(4)
     for (const [name, id] of mirrors)
-      expect(executedArgv(stepNamed(name)), `ci.yml 的「${name}」与步骤表 ${id} 不是同一条命令`).toEqual(argvOf(stepInTable(id)))
+      expect(
+        executedArgv(stepNamed(name)),
+        `ci.yml 的「${name}」与步骤表 ${id} 不是同一条命令`,
+      ).toEqual(argvOf(stepInTable(id)))
   })
 
   it('有意差异①：docs 构建在入口形态后面多一个 --cache-dir（turbo 的独立缓存目录），其余一致', () => {
@@ -137,10 +141,16 @@ describe('ci.yml × LOCAL_CI_STEPS —— 构建类步骤只有一份逻辑', ()
     const smoke = stepNamed('Worker smoke (cron registered)')
     expect(runTokens(build)).toEqual(['build'])
     expect(runsInServerDir(build)).toBe(true)
-    const condition = (step: WorkflowStep): string | undefined => step.lines.find(line => /^\s+if: /.test(line))
+    const condition = (step: WorkflowStep): string | undefined =>
+      step.lines.find((line) => /^\s+if: /.test(line))
     expect(condition(smoke), '冒烟那一步应当有条件（没有解密的 env 就不该跑）').toBeTruthy()
-    expect(condition(build), '构建与冒烟的条件必须一致，否则会出现「构建没跑、冒烟去读旧产物」').toBe(condition(smoke))
-    expect(ci.indexOf('- name: Build server for worker smoke')).toBeLessThan(ci.indexOf('- name: Worker smoke (cron registered)'))
+    expect(
+      condition(build),
+      '构建与冒烟的条件必须一致，否则会出现「构建没跑、冒烟去读旧产物」',
+    ).toBe(condition(smoke))
+    expect(ci.indexOf('- name: Build server for worker smoke')).toBeLessThan(
+      ci.indexOf('- name: Worker smoke (cron registered)'),
+    )
   })
 
   it('内联 bash 版不许回潮（它和 TS 实现是两套逻辑）', () => {

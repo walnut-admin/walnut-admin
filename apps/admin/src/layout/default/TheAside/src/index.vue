@@ -30,9 +30,7 @@ const appStoreAdapter = useAppStoreAdapter()
 
       <AsideMenu />
 
-      <MenuCollpaseButton
-        v-if="appStoreSettingDev.getMenuCollapseButtonStatus"
-      />
+      <MenuCollpaseButton v-if="appStoreSettingDev.getMenuCollapseButtonStatus" />
     </div>
   </n-layout-sider>
 </template>

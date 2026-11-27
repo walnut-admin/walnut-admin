@@ -47,22 +47,24 @@ export function setStateDryRun(value: boolean): void {
 
 export function readState(): ReleaseState | null {
   const raw = readJson<ReleaseState>(STATE_PATH)
-  if (!raw || typeof raw !== 'object')
-    return null
-  if (raw.version !== 1)
-    return null
+  if (!raw || typeof raw !== 'object') return null
+  if (raw.version !== 1) return null
   return raw
 }
 
 /** 写「下次从哪继续」。`--dry-run` 下 no-op。 */
-export function writeState(patch: Omit<ReleaseState, 'version' | 'startedAt' | 'updatedAt' | 'baseCommit' | 'baseTag' | 'branch' | 'gatesSkipped'> & {
-  baseCommit?: string | null
-  baseTag?: string | null
-  branch?: string
-  gatesSkipped?: string | null
-}): void {
-  if (dryRun)
-    return
+export function writeState(
+  patch: Omit<
+    ReleaseState,
+    'version' | 'startedAt' | 'updatedAt' | 'baseCommit' | 'baseTag' | 'branch' | 'gatesSkipped'
+  > & {
+    baseCommit?: string | null
+    baseTag?: string | null
+    branch?: string
+    gatesSkipped?: string | null
+  },
+): void {
+  if (dryRun) return
   const now = new Date().toISOString()
   const previous = readState()
   const next: ReleaseState = {
@@ -82,12 +84,10 @@ export function writeState(patch: Omit<ReleaseState, 'version' | 'startedAt' | '
 }
 
 export function clearState(): void {
-  if (dryRun)
-    return
+  if (dryRun) return
   try {
     fs.unlinkSync(STATE_PATH)
-  }
-  catch {
+  } catch {
     // 本来就不存在 ⇒ 已是目标状态
   }
 }

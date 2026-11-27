@@ -11,7 +11,7 @@ import { SysMenuSharedService } from '../menu.shared.service'
 // - getCorePermissions(ALL)：permissionMenuTree[0] 为 undefined 时 indexMenuName 回 ''；
 // - getMenuTreeAndTreeWithoutTypeElement：fullTree[0] 为 undefined 时 fullTree 回 []。
 
-function createService(options?: { rootMenus?: unknown[], menus?: unknown[] }) {
+function createService(options?: { rootMenus?: unknown[]; menus?: unknown[] }) {
   const menuRepo = {
     findAllMenus: async () => [],
     findAllRootMenus: async () => options?.rootMenus ?? [],

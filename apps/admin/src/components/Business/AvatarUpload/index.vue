@@ -10,7 +10,7 @@ defineOptions({
   name: 'WCompBusinessAvatarUpload',
 })
 
-const emits = defineEmits<{ change: [cropperUrl: string], success: [newAvatar: string] }>()
+const emits = defineEmits<{ change: [cropperUrl: string]; success: [newAvatar: string] }>()
 
 const { t } = useAppI18n()
 
@@ -72,8 +72,7 @@ async function onOSSUpload() {
     }
 
     return false
-  }
-  finally {
+  } finally {
     loading.value = false
     changed.value = false
   }
@@ -118,12 +117,7 @@ watchEffect(async () => {
       @no="onNo"
       @fullscreen="onFullScreen"
     >
-      <WCropper
-        ref="cropperRef"
-        v-model:value="cropperUrl"
-        v-model:src="srcUrl"
-        alt="Avatar"
-      />
+      <WCropper ref="cropperRef" v-model:value="cropperUrl" v-model:src="srcUrl" alt="Avatar" />
     </WModal>
   </div>
 </template>

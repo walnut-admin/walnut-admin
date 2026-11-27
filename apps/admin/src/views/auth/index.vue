@@ -23,19 +23,23 @@ function onClickBeian() {
   openExternalLink('http://beian.miit.gov.cn/')
 }
 
-watch(locale, () => {
-  nextTick(() => {
-    const title1 = document.getElementById('untyper1')!
-    title1.innerHTML = ''
-    const unTyper1 = new UnTyper(title1, { speed: 40, startDelay: 100 })
-    unTyper1.type(t('app.auth.h1'), { delay: 200 }).go()
+watch(
+  locale,
+  () => {
+    nextTick(() => {
+      const title1 = document.getElementById('untyper1')!
+      title1.innerHTML = ''
+      const unTyper1 = new UnTyper(title1, { speed: 40, startDelay: 100 })
+      unTyper1.type(t('app.auth.h1'), { delay: 200 }).go()
 
-    const title2 = document.getElementById('untyper2')!
-    title2.innerHTML = ''
-    const unTyper2 = new UnTyper(title2, { speed: 40, startDelay: 100 })
-    unTyper2.type(t('app.auth.h2')).go()
-  })
-}, { immediate: true })
+      const title2 = document.getElementById('untyper2')!
+      title2.innerHTML = ''
+      const unTyper2 = new UnTyper(title2, { speed: 40, startDelay: 100 })
+      unTyper2.type(t('app.auth.h2')).go()
+    })
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -49,7 +53,9 @@ watch(locale, () => {
       <St21LetterGlitch />
     </div>
 
-    <div class="relative w-full flex items-center justify-center overflow-hidden bg-bodyColor text-center lg:w-1/2">
+    <div
+      class="relative w-full flex items-center justify-center overflow-hidden bg-bodyColor text-center lg:w-1/2"
+    >
       <div>
         <div class="absolute inset-0 z-10 items-center bg-cover bg-no-repeat lg:hidden">
           <St21LetterGlitch />
@@ -59,7 +65,7 @@ watch(locale, () => {
           <n-card hoverable class="relative rounded-3xl light:shadow-2xl">
             <div class="vstack items-center justify-center">
               <h1 class="mb-4 hstack items-center justify-center">
-                <img src="/logo.png" :alt="envTitle" class="w-16">
+                <img src="/logo.png" :alt="envTitle" class="w-16" />
                 <span class="ml-4 whitespace-nowrap text-2xl">
                   {{ envTitle }}
                 </span>
@@ -74,7 +80,10 @@ watch(locale, () => {
           </n-card>
         </St21HoverGlareCard>
 
-        <n-text class="absolute bottom-4 right-1/2 translate-x-1/2 cursor-pointer" @click="onClickBeian">
+        <n-text
+          class="absolute bottom-4 right-1/2 translate-x-1/2 cursor-pointer"
+          @click="onClickBeian"
+        >
           黑ICP备2022002207号
         </n-text>
       </div>

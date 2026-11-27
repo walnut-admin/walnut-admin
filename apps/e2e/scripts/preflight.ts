@@ -65,10 +65,13 @@ interface CheckResult {
   fix?: string
 }
 
-const DATA_STACK_FIX = '起数据栈：apps/e2e/README.md「数据栈的两种形态」（WSL 形态还要保持一个隐藏会话，见「WSL 的生命周期」）'
-const PORTS_FIX = '先停掉占用它的残留进程（apps/e2e/README.md「排障」最后一条：netstat -ano | findstr :<端口>）'
-const REUSE_FIX = 'E2E_REUSE_SERVER=1 只做检查、不替你启动服务：先手动起后端（node scripts/start-backend.ts）与静态代理'
-  + '（node scripts/static-server.ts），或去掉复用开关让 Playwright 自己起'
+const DATA_STACK_FIX =
+  '起数据栈：apps/e2e/README.md「数据栈的两种形态」（WSL 形态还要保持一个隐藏会话，见「WSL 的生命周期」）'
+const PORTS_FIX =
+  '先停掉占用它的残留进程（apps/e2e/README.md「排障」最后一条：netstat -ano | findstr :<端口>）'
+const REUSE_FIX =
+  'E2E_REUSE_SERVER=1 只做检查、不替你启动服务：先手动起后端（node scripts/start-backend.ts）与静态代理' +
+  '（node scripts/static-server.ts），或去掉复用开关让 Playwright 自己起'
 const PG_CONTAINER_FIX = [
   '起数据栈（两种 compose 任一）：',
   `  通用形态（Docker Desktop / 原生 Linux）：docker compose -f apps/e2e/docker-compose.yml up -d`,
@@ -83,7 +86,7 @@ const PG_CONTAINER_FIX = [
  * 导出它的理由：数据栈状态命令要说的是同一句话「PG / Redis 现在连不连得上」，
  * 另写一份 setTimeout / connect 的探针只会让两处的超时口径慢慢漂开。
  */
-export function checkTcp(host: string, port: number): Promise<{ ok: boolean, detail: string }> {
+export function checkTcp(host: string, port: number): Promise<{ ok: boolean; detail: string }> {
   return new Promise((resolve) => {
     let settled = false
     const socket = connect({ host, port })
@@ -99,12 +102,14 @@ export function checkTcp(host: string, port: number): Promise<{ ok: boolean, det
 
     socket.setTimeout(3_000, () => finish(false, '3s 内没有建立连接（超时）'))
     socket.once('connect', () => finish(true, '可达'))
-    socket.once('error', (error: NodeJS.ErrnoException) => finish(false, error.code ?? error.message))
+    socket.once('error', (error: NodeJS.ErrnoException) =>
+      finish(false, error.code ?? error.message),
+    )
   })
 }
 
 /** 端口占用探测（preflight 与 `scripts/stack.ts` 的 status 共用；口径同 {@link checkTcp}） */
-export function checkPortFree(port: number): Promise<{ ok: boolean, detail: string }> {
+export function checkPortFree(port: number): Promise<{ ok: boolean; detail: string }> {
   return new Promise((resolve) => {
     let settled = false
     const finish = (ok: boolean, detail: string): void => {
@@ -116,7 +121,9 @@ export function checkPortFree(port: number): Promise<{ ok: boolean, detail: stri
     }
 
     const server = createServer()
-    server.once('error', (error: NodeJS.ErrnoException) => finish(false, `被占用（${error.code ?? error.message}）`))
+    server.once('error', (error: NodeJS.ErrnoException) =>
+      finish(false, `被占用（${error.code ?? error.message}）`),
+    )
     server.listen(port, '127.0.0.1', () => {
       server.close(() => finish(true, '空闲'))
     })
@@ -136,8 +143,7 @@ async function fetchText(url: string): Promise<HttpResponse> {
     const response = await fetch(url, { signal: AbortSignal.timeout(3_000) })
     const body = await response.text()
     return { ok: response.ok, status: response.status, body, detail: `HTTP ${response.status}` }
-  }
-  catch (error) {
+  } catch (error) {
     return {
       ok: false,
       status: null,
@@ -200,8 +206,7 @@ function checkChromium(): CheckResult {
           detail: `缺 ${executable}`,
           fix: 'pnpm --filter @walnut/e2e exec playwright install chromium',
         }
-  }
-  catch (error) {
+  } catch (error) {
     return {
       name: 'playwright chromium',
       ok: false,
@@ -220,20 +225,24 @@ function checkChromium(): CheckResult {
 function warnStaleArtifacts(): void {
   const freshness = computeArtifactFreshness()
   if (freshness.sourceCommitSeconds === null) {
-    console.log('[e2e/preflight] WARN 产物新鲜度：读不到 git 提交时刻（浅克隆 / 非 git 环境），跳过比较')
+    console.log(
+      '[e2e/preflight] WARN 产物新鲜度：读不到 git 提交时刻（浅克隆 / 非 git 环境），跳过比较',
+    )
     return
   }
 
   const notes = staleArtifacts(freshness)
   if (notes.length === 0) {
-    console.log(`[e2e/preflight] ok   产物新鲜度：不旧于最近一次源码提交（${freshness.sourceCommitAt ?? '未知'}）`)
+    console.log(
+      `[e2e/preflight] ok   产物新鲜度：不旧于最近一次源码提交（${freshness.sourceCommitAt ?? '未知'}）`,
+    )
     return
   }
 
   for (const note of notes) {
     console.log(
-      `[e2e/preflight] WARN 产物落后源码：${note.name} 落后 ${note.lagMinutes} 分钟`
-      + `（处置：${note.fix}；只警告，本轮可能跑的是旧产物）`,
+      `[e2e/preflight] WARN 产物落后源码：${note.name} 落后 ${note.lagMinutes} 分钟` +
+        `（处置：${note.fix}；只警告，本轮可能跑的是旧产物）`,
     )
   }
 }
@@ -244,8 +253,8 @@ function warnStaleArtifacts(): void {
  */
 async function reuseServerChecks(): Promise<CheckResult[]> {
   console.log(
-    `[e2e/preflight] WARN E2E_REUSE_SERVER=1：复用 ${BACKEND_PORT} / ${SOCKET_PORT} / ${WEB_PORT} 上已在监听的服务 —— `
-    + '本轮可能连到旧产物 / 旧库，仅本地调试用',
+    `[e2e/preflight] WARN E2E_REUSE_SERVER=1：复用 ${BACKEND_PORT} / ${SOCKET_PORT} / ${WEB_PORT} 上已在监听的服务 —— ` +
+      '本轮可能连到旧产物 / 旧库，仅本地调试用',
   )
 
   const health = await fetchText(`${BACKEND_ORIGIN}/health/ready`)
@@ -292,8 +301,8 @@ export async function runPreflight(options: { doctor?: boolean } = {}): Promise<
 
   // profile 是这一轮所有端口 / 库名 / 基线路径的来源：先把它打印出来，排障时不必反推
   console.log(
-    `[e2e/preflight] profile=${STACK_PROFILE.name}（库 ${STACK_PROFILE.database}，`
-    + `端口 ${BACKEND_PORT}/${SOCKET_PORT}/${WEB_PORT}，基线 ${STACK_PROFILE.artifactDir}）`,
+    `[e2e/preflight] profile=${STACK_PROFILE.name}（库 ${STACK_PROFILE.database}，` +
+      `端口 ${BACKEND_PORT}/${SOCKET_PORT}/${WEB_PORT}，基线 ${STACK_PROFILE.artifactDir}）`,
   )
 
   warnStaleArtifacts()
@@ -318,42 +327,63 @@ export async function runPreflight(options: { doctor?: boolean } = {}): Promise<
 
   for (const service of [
     { name: `PG ${E2E_PG_HOST}:${E2E_PG_PORT} 可达`, host: E2E_PG_HOST, port: E2E_PG_PORT },
-    { name: `Redis ${E2E_REDIS_HOST}:${E2E_REDIS_PORT} 可达`, host: E2E_REDIS_HOST, port: E2E_REDIS_PORT },
+    {
+      name: `Redis ${E2E_REDIS_HOST}:${E2E_REDIS_PORT} 可达`,
+      host: E2E_REDIS_HOST,
+      port: E2E_REDIS_PORT,
+    },
   ]) {
     const tcp = await checkTcp(service.host, service.port)
-    results.push({ name: service.name, ok: tcp.ok, detail: tcp.detail, fix: tcp.ok ? undefined : DATA_STACK_FIX })
+    results.push({
+      name: service.name,
+      ok: tcp.ok,
+      detail: tcp.detail,
+      fix: tcp.ok ? undefined : DATA_STACK_FIX,
+    })
   }
 
   if (process.env.E2E_REUSE_SERVER === '1') {
-    results.push(...await reuseServerChecks())
-  }
-  else {
+    results.push(...(await reuseServerChecks()))
+  } else {
     for (const port of [BACKEND_PORT, SOCKET_PORT, WEB_PORT]) {
       const free = await checkPortFree(port)
-      results.push({ name: `端口 ${port} 空闲`, ok: free.ok, detail: free.detail, fix: free.ok ? undefined : PORTS_FIX })
+      results.push({
+        name: `端口 ${port} 空闲`,
+        ok: free.ok,
+        detail: free.detail,
+        fix: free.ok ? undefined : PORTS_FIX,
+      })
     }
   }
 
   for (const result of results) {
-    const fix = result.ok || result.fix === undefined || options.doctor !== true
-      ? ''
-      : `\n    处置：${result.fix}`
-    console.log(`[e2e/preflight] ${result.ok ? 'ok  ' : 'FAIL'} ${result.name}：${result.detail}${fix}`)
+    const fix =
+      result.ok || result.fix === undefined || options.doctor !== true
+        ? ''
+        : `\n    处置：${result.fix}`
+    console.log(
+      `[e2e/preflight] ${result.ok ? 'ok  ' : 'FAIL'} ${result.name}：${result.detail}${fix}`,
+    )
   }
 
-  const failed = results.filter(result => !result.ok)
+  const failed = results.filter((result) => !result.ok)
   if (failed.length > 0) {
     const detail = failed
-      .map(result => `  - ${result.name}：${result.detail}\n    处置：${result.fix ?? '（未给提示）'}`)
+      .map(
+        (result) =>
+          `  - ${result.name}：${result.detail}\n    处置：${result.fix ?? '（未给提示）'}`,
+      )
       .join('\n')
-    throw new E2ePreconditionError(`前置条件没准备好（${failed.length} 项），环境问题不跑用例：\n${detail}`)
+    throw new E2ePreconditionError(
+      `前置条件没准备好（${failed.length} 项），环境问题不跑用例：\n${detail}`,
+    )
   }
 
   console.log('[e2e/preflight] 全部通过')
 }
 
-const invokedDirectly = process.argv[1] !== undefined
-  && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+const invokedDirectly =
+  process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 
 if (invokedDirectly) {
   runPreflight({ doctor: process.argv.includes('--doctor') }).catch((error) => {

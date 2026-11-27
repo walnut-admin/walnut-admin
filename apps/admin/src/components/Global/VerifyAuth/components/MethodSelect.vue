@@ -43,10 +43,10 @@ const availableMethods = ref<VerifyAuthMethod[]>([])
  */
 const enabledMethods = computed(() => {
   if (!props.options.allowedMethods?.length) {
-    return availableMethods.value.filter(m => m.enabled)
+    return availableMethods.value.filter((m) => m.enabled)
   }
-  return availableMethods.value.filter(m =>
-    m.enabled && props.options.allowedMethods!.includes(m.type),
+  return availableMethods.value.filter(
+    (m) => m.enabled && props.options.allowedMethods!.includes(m.type),
   )
 })
 
@@ -72,9 +72,10 @@ async function onInit() {
         name: t('app.security.phoneNumber'),
         description: t('security.phone.desc'),
         icon: 'mdi:cellphone-android',
-        enabled: mode === 'bind'
-          ? !(identityStatus.phoneNumber?.bound && identityStatus.phoneNumber?.verified)
-          : !!(identityStatus.phoneNumber?.bound && identityStatus.phoneNumber?.verified),
+        enabled:
+          mode === 'bind'
+            ? !(identityStatus.phoneNumber?.bound && identityStatus.phoneNumber?.verified)
+            : !!(identityStatus.phoneNumber?.bound && identityStatus.phoneNumber?.verified),
         maskedValue: identityStatus.phoneNumber?.maskedValue,
         bound: !!(identityStatus.phoneNumber?.bound && identityStatus.phoneNumber?.verified),
       },
@@ -83,9 +84,10 @@ async function onInit() {
         name: t('app.security.emailAddress'),
         description: t('security.email.desc'),
         icon: 'mdi:email',
-        enabled: mode === 'bind'
-          ? !(identityStatus.emailAddress?.bound && identityStatus.emailAddress?.verified)
-          : !!(identityStatus.emailAddress?.bound && identityStatus.emailAddress?.verified),
+        enabled:
+          mode === 'bind'
+            ? !(identityStatus.emailAddress?.bound && identityStatus.emailAddress?.verified)
+            : !!(identityStatus.emailAddress?.bound && identityStatus.emailAddress?.verified),
         maskedValue: identityStatus.emailAddress?.maskedValue,
         bound: !!(identityStatus.emailAddress?.bound && identityStatus.emailAddress?.verified),
       },
@@ -94,33 +96,32 @@ async function onInit() {
         name: t('mfa.totp'),
         description: t('mfa.totp.desc'),
         icon: 'simple-icons:google',
-        enabled: !!(mfaStatus.find(m => m.type === mfaTotp)?.enabled),
-        bound: !!(mfaStatus.find(m => m.type === mfaTotp)?.enabled),
+        enabled: !!mfaStatus.find((m) => m.type === mfaTotp)?.enabled,
+        bound: !!mfaStatus.find((m) => m.type === mfaTotp)?.enabled,
       },
       {
         type: mfaWebauthn,
         name: t('mfa.webauthn'),
         description: t('mfa.webauthn.desc'),
         icon: 'simple-icons:webauthn',
-        enabled: !!(mfaStatus.find(m => m.type === mfaWebauthn)?.enabled),
-        bound: !!(mfaStatus.find(m => m.type === mfaWebauthn)?.enabled),
+        enabled: !!mfaStatus.find((m) => m.type === mfaWebauthn)?.enabled,
+        bound: !!mfaStatus.find((m) => m.type === mfaWebauthn)?.enabled,
       },
     ]
 
     // Filter by allowed methods if specified
     availableMethods.value = allowedMethods?.length
-      ? allMethods.filter(m => allowedMethods.includes(m.type))
+      ? allMethods.filter((m) => allowedMethods.includes(m.type))
       : allMethods
 
     // Handle pre-selected method
     if (props.options.preSelectedMethod) {
-      const method = availableMethods.value.find(m => m.type === props.options.preSelectedMethod)
+      const method = availableMethods.value.find((m) => m.type === props.options.preSelectedMethod)
       if (method) {
         onMethodClick(method)
       }
     }
-  }
-  finally {
+  } finally {
     loading.value = false
   }
 }
@@ -164,11 +165,7 @@ onMounted(onInit)
       <template #methodSelectContent>
         <div class="w-full">
           <!-- Empty state -->
-          <NEmpty
-            v-if="enabledMethods.length === 0"
-            :description="$t('mfa.empty')"
-            class="py-8"
-          />
+          <NEmpty v-if="enabledMethods.length === 0" :description="$t('mfa.empty')" class="py-8" />
 
           <!-- Methods list -->
           <div v-else class="space-y-3">

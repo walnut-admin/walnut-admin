@@ -8,7 +8,7 @@
 import { describe, expect, it } from 'vitest'
 import { staleArtifacts } from './freshness.ts'
 
-function freshness(lag: { adminIndex: number | null, serverMain: number | null }) {
+function freshness(lag: { adminIndex: number | null; serverMain: number | null }) {
   return {
     sourceCommitSeconds: 1_700_000_000,
     sourceCommitAt: '2023-11-14T22:13:20.000Z',
@@ -20,7 +20,7 @@ function freshness(lag: { adminIndex: number | null, serverMain: number | null }
 describe('staleArtifacts', () => {
   it('两处都落后 ⇒ 两条提示，各自带修复命令', () => {
     const notes = staleArtifacts(freshness({ adminIndex: 15, serverMain: 1440 }))
-    expect(notes.map(note => note.name)).toEqual([
+    expect(notes.map((note) => note.name)).toEqual([
       'apps/admin/dist-staging/index.html',
       'apps/server/dist-stage/apps/api/src/main.js',
     ])

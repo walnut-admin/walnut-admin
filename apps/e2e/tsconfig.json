@@ -7,11 +7,5 @@
     "types": ["node"]
   },
   "include": ["**/*.ts"],
-  "exclude": [
-    "node_modules",
-    ".auth",
-    ".e2e",
-    "test-results",
-    "playwright-report"
-  ]
+  "exclude": ["node_modules", ".auth", ".e2e", "test-results", "playwright-report"]
 }

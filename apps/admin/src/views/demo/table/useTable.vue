@@ -19,7 +19,7 @@ interface DemoData {
 const [register] = useTable<DemoData>({
   bordered: true,
   striped: true,
-  rowKey: row => row.key!,
+  rowKey: (row) => row.key!,
   headerLeftBuiltInActions: [
     {
       _builtInType: 'create',
@@ -49,7 +49,7 @@ const [register] = useTable<DemoData>({
     },
     {
       type: 'expand',
-      renderExpand: row => `${row.name} - expanded`,
+      renderExpand: (row) => `${row.name} - expanded`,
       key: 'expand',
       fixed: 'left',
       width: 80,

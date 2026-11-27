@@ -32,8 +32,7 @@ export const useChatSend = createGlobalState(() => {
 
   function handleSend() {
     const text = inputText.value.trim()
-    if (!text || isConversationLoading(currentId.value))
-      return
+    if (!text || isConversationLoading(currentId.value)) return
 
     inputText.value = ''
     nextTick(() => {
@@ -52,14 +51,12 @@ export const useChatSend = createGlobalState(() => {
     let flushTimer: ReturnType<typeof setTimeout> | null = null
 
     function scheduleFlush() {
-      if (flushTimer)
-        clearTimeout(flushTimer)
+      if (flushTimer) clearTimeout(flushTimer)
       flushTimer = setTimeout(() => {
         flushTimer = null
         const chunk = pendingChunk
         pendingChunk = ''
-        if (chunk)
-          appendStreamingContent(cid, chunk)
+        if (chunk) appendStreamingContent(cid, chunk)
       }, STREAMING_FLUSH_DEBOUNCE_MS)
     }
 
@@ -91,8 +88,7 @@ export const useChatSend = createGlobalState(() => {
         flushPending()
         if (error.name === 'AbortError') {
           finishStreaming(cid, 'abort')
-        }
-        else {
+        } else {
           appendStreamingContent(cid, `\n\n[Error: ${error.message}]`)
           finishStreaming(cid, 'error')
         }
@@ -113,8 +109,7 @@ export const useChatSend = createGlobalState(() => {
   }
 
   function handleQuickCommand(query: string) {
-    if (isConversationLoading(currentId.value))
-      return
+    if (isConversationLoading(currentId.value)) return
     inputText.value = query
     handleSend()
   }

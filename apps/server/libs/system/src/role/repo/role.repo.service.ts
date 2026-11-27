@@ -72,7 +72,7 @@ export class SysRoleRepoService {
    */
   async findMenuIdsByRoleId(roleId: string, em?: EntityManager) {
     const rows = await this.getRoleMenuRepository(em).find({ where: { roleId } })
-    return rows.map(i => i.menuId)
+    return rows.map((i) => i.menuId)
   }
 
   /**
@@ -80,11 +80,13 @@ export class SysRoleRepoService {
    * sys_user_role 按 role_id 点查，角色用户量级小，逐用户 pattern 清即可）
    */
   async findUserIdsByRoleId(roleId: string, em?: EntityManager): Promise<string[]> {
-    const rows = await this.getManager(em).getRepository(SysUserRoleEntity).find({
-      where: { roleId },
-      select: { userId: true },
-    })
-    return rows.map(i => i.userId)
+    const rows = await this.getManager(em)
+      .getRepository(SysUserRoleEntity)
+      .find({
+        where: { roleId },
+        select: { userId: true },
+      })
+    return rows.map((i) => i.userId)
   }
 
   /**
@@ -93,12 +95,14 @@ export class SysRoleRepoService {
    * currentRole；按 role_id 排序保证「首角色」回退确定）。
    */
   async findRoleIdsByUserId(userId: string, em?: EntityManager): Promise<string[]> {
-    const rows = await this.getManager(em).getRepository(SysUserRoleEntity).find({
-      where: { userId },
-      select: { roleId: true },
-      order: { roleId: 'ASC' },
-    })
-    return rows.map(i => i.roleId)
+    const rows = await this.getManager(em)
+      .getRepository(SysUserRoleEntity)
+      .find({
+        where: { userId },
+        select: { roleId: true },
+        order: { roleId: 'ASC' },
+      })
+    return rows.map((i) => i.roleId)
   }
 
   /**
@@ -110,7 +114,7 @@ export class SysRoleRepoService {
       where: { roleId },
       select: { deptId: true },
     })
-    return rows.map(i => i.deptId)
+    return rows.map((i) => i.deptId)
   }
 
   /**
@@ -154,23 +158,28 @@ export class SysRoleRepoService {
    * menusList（match meta.status=true → menu.status = true）。菜单行组装回
    * meta 对象（ISysMenuAssembled），供 menu.shared 的路由/权限链路直接消费。
    */
-  async findRolesWithPopulatedMenus(roleIds: string[], em?: EntityManager): Promise<ISysRoleWithPopulatedMenus[]> {
+  async findRolesWithPopulatedMenus(
+    roleIds: string[],
+    em?: EntityManager,
+  ): Promise<ISysRoleWithPopulatedMenus[]> {
     if (roleIds.length === 0) {
       return []
     }
 
     const roles = await this.findByIds(roleIds, em)
 
-    const rolesStatusOK = roles.filter(i => i !== null && i.status)
+    const rolesStatusOK = roles.filter((i) => i !== null && i.status)
 
     const populatedRoles: ISysRoleWithPopulatedMenus[] = []
     for (const role of rolesStatusOK) {
       const menus = await this.findPopulatedMenusByRoleId(role.id, em)
 
-      populatedRoles.push(Object.assign(role, {
-        menus: await this.findMenuIdsByRoleId(role.id, em),
-        menusList: menus.map(i => assembleSysMenu(i)),
-      }))
+      populatedRoles.push(
+        Object.assign(role, {
+          menus: await this.findMenuIdsByRoleId(role.id, em),
+          menusList: menus.map((i) => assembleSysMenu(i)),
+        }),
+      )
     }
 
     return populatedRoles
@@ -180,7 +189,10 @@ export class SysRoleRepoService {
    * 某 role 的启用菜单（对齐 Mongo 版 populate 的 match { 'meta.status': true }；
    * meta.status 拍平为 status 列，idx_menu_status_sort_order 服务过滤）
    */
-  private async findPopulatedMenusByRoleId(roleId: string, em?: EntityManager): Promise<SysMenuEntity[]> {
+  private async findPopulatedMenusByRoleId(
+    roleId: string,
+    em?: EntityManager,
+  ): Promise<SysMenuEntity[]> {
     return this.getMenuRepository(em)
       .createQueryBuilder('menu')
       .innerJoin(SysRoleMenuEntity, 'role_menu', 'role_menu.menuId = menu.id')

@@ -24,8 +24,7 @@ export function useAppHijackF5() {
             }
           })
         })
-      }
-      else {
+      } else {
         scope?.stop()
       }
     },

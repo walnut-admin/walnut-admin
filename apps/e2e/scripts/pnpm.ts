@@ -42,12 +42,22 @@ export function resolvePnpm(): PnpmInvocation {
  * 跑一条 pnpm 命令并等它结束。非零退出折成 {@link E2eChildFailure}
  * （`status 2` 透传，其余 1 —— 见 scripts/failure.ts 的退出码口径）。
  */
-export function runPnpm(args: readonly string[], cwd: string, env: NodeJS.ProcessEnv, label = args.join(' ')): void {
+export function runPnpm(
+  args: readonly string[],
+  cwd: string,
+  env: NodeJS.ProcessEnv,
+  label = args.join(' '),
+): void {
   const { command, prefixArgs, shell } = resolvePnpm()
   try {
-    execFileSync(command, [...prefixArgs, ...args], { cwd, env, stdio: 'inherit', shell, windowsHide: true })
-  }
-  catch (error) {
+    execFileSync(command, [...prefixArgs, ...args], {
+      cwd,
+      env,
+      stdio: 'inherit',
+      shell,
+      windowsHide: true,
+    })
+  } catch (error) {
     const status = (error as { status?: number | null }).status
     if (typeof status === 'number') {
       throw new E2eChildFailure(label, status)

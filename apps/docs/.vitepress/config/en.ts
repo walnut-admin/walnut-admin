@@ -297,9 +297,7 @@ const sidebar: DefaultTheme.Sidebar = {
 }
 
 export const search: { [key: string]: SearchConfig } = {
-  'en-US': {
-
-  },
+  'en-US': {},
 }
 
 export const en = defineConfig({
@@ -323,6 +321,5 @@ export const en = defineConfig({
       message: 'Released under the MIT License.',
       copyright: `Copyright © 2019-${new Date().getFullYear()} Zhaocl1997`,
     },
-
   },
 })

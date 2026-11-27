@@ -58,7 +58,8 @@ import { lineOf, scanText } from './check-dist-secrets.ts'
  * 比产物侧的 `TEXT_FILE` 宽得多，因为这里扫的是**仓库**：`.ts` / `.vue` / `.md` / `.yaml`
  * 都是凭据最容易落脚的地方（实测：我那次翻车就落在 `.ts`，而产物侧的后缀表里根本没有 `.ts`）。
  */
-export const SOURCE_TEXT_FILE = /\.(?:ts|tsx|mts|cts|js|mjs|cjs|jsx|vue|md|markdown|json|json5|jsonc|yaml|yml|toml|ini|conf|cfg|sh|bash|ps1|sql|txt|xml|svg|html|htm|css|scss|sass|less|env|example|properties|pem|key|pub|lock)$/i
+export const SOURCE_TEXT_FILE =
+  /\.(?:ts|tsx|mts|cts|js|mjs|cjs|jsx|vue|md|markdown|json|json5|jsonc|yaml|yml|toml|ini|conf|cfg|sh|bash|ps1|sql|txt|xml|svg|html|htm|css|scss|sass|less|env|example|properties|pem|key|pub|lock)$/i
 
 /** 单文件上限：超过就跳过（并在输出里报出来，不静默） */
 export const MAX_FILE_BYTES = 4 * 1024 * 1024
@@ -84,7 +85,7 @@ export interface SourceScanResult {
 /** 扫一份文本内容（拆出来便于用例直接喂字符串）；结果**按行号排序**，读起来是从上到下 */
 export function scanSourceText(text: string, file: string): SourceFinding[] {
   return scanText(text, file)
-    .map(f => ({
+    .map((f) => ({
       rule: f.rule,
       file,
       line: lineOf(text, f.index ?? 0),
@@ -101,14 +102,12 @@ export function collectFindings(cwd = REPO_ROOT): SourceScanResult {
   let scanned = 0
 
   for (const rel of all) {
-    if (!SOURCE_TEXT_FILE.test(rel))
-      continue
+    if (!SOURCE_TEXT_FILE.test(rel)) continue
     const abs = join(cwd, rel)
     let size: number
     try {
       size = statSync(abs).size
-    }
-    catch {
+    } catch {
       continue // 索引里有、盘上没了（比如刚删还没 add 的）—— 不当成扫描面
     }
     if (size > MAX_FILE_BYTES) {
@@ -126,29 +125,43 @@ export function main(): void {
   let result: SourceScanResult
   try {
     result = collectFindings()
-  }
-  catch (e) {
+  } catch (e) {
     throw new PreconditionError(`拿不到仓库文件清单（git ls-files 失败）：${(e as Error).message}`)
   }
 
-  out(`源码密钥形态体检：${result.scanned} / ${result.total} 个文件（跟踪面 ∪ 未跟踪未被忽略，只读文本后缀）`)
+  out(
+    `源码密钥形态体检：${result.scanned} / ${result.total} 个文件（跟踪面 ∪ 未跟踪未被忽略，只读文本后缀）`,
+  )
   if (result.skippedTooLarge.length > 0)
-    lineErr('warning', ` 跳过了 ${result.skippedTooLarge.length} 个超过 ${Math.round(MAX_FILE_BYTES / 1024 / 1024)} MB 的文件：${result.skippedTooLarge.join(', ')}`)
+    lineErr(
+      'warning',
+      ` 跳过了 ${result.skippedTooLarge.length} 个超过 ${Math.round(MAX_FILE_BYTES / 1024 / 1024)} MB 的文件：${result.skippedTooLarge.join(', ')}`,
+    )
 
   if (result.findings.length === 0) {
     line('ok', '没有凭据形状的串（PEM 私钥 / 带真口令的连接串 / JWT / 云厂商 AK）。')
     out('   提示：GitHub 的 push protection 在**服务端**跑，它只认形状、分不出样本与真货。')
-    out('   所以测试夹具请**运行时拼装**（把前缀与值分开拼，别写成连续字面量），**不要**往这里加白名单。')
+    out(
+      '   所以测试夹具请**运行时拼装**（把前缀与值分开拼，别写成连续字面量），**不要**往这里加白名单。',
+    )
     return
   }
 
-  lineErr('violation', `有 ${result.findings.length} 处凭据形状的串 —— 服务端 push protection 会用同样的判据拒掉整条 push：\n`)
-  for (const f of result.findings)
-    err(`  ${f.file}:${f.line}  [${f.rule}] ${f.detail}`)
+  lineErr(
+    'violation',
+    `有 ${result.findings.length} 处凭据形状的串 —— 服务端 push protection 会用同样的判据拒掉整条 push：\n`,
+  )
+  for (const f of result.findings) err(`  ${f.file}:${f.line}  [${f.rule}] ${f.detail}`)
   err('\n修法（按优先级）：')
-  err('  ① 如果是**真凭据**：先轮换它，再从历史里删掉（改完的提交用 rebase 重写，别只删最新那版）。')
-  err(`  ② 如果是**夹具**：把它**拼出来**，别写字面量 —— 前缀与值分开拼即可（见 check-dist-secrets.test.ts 顶部）。`)
-  err('  ③ 如果是**文档里的格式说明**：写成不带 scheme 前缀的形状（如「连接串里的 `user:pass@`」）。')
+  err(
+    '  ① 如果是**真凭据**：先轮换它，再从历史里删掉（改完的提交用 rebase 重写，别只删最新那版）。',
+  )
+  err(
+    `  ② 如果是**夹具**：把它**拼出来**，别写字面量 —— 前缀与值分开拼即可（见 check-dist-secrets.test.ts 顶部）。`,
+  )
+  err(
+    '  ③ 如果是**文档里的格式说明**：写成不带 scheme 前缀的形状（如「连接串里的 `user:pass@`」）。',
+  )
   err('  ⚠️ 不要走"加白名单"这条路：那道服务端的闸不会读我们的白名单。')
   throw new ViolationError(`源码里有 ${result.findings.length} 处凭据形状的串（明细见上）`)
 }

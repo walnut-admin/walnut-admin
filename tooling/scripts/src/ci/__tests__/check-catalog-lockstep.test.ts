@@ -15,11 +15,13 @@ import {
 function findRoot(start: string): string {
   let dir = path.resolve(start)
   for (;;) {
-    if (path.basename(dir) === 'walnut-admin' && path.basename(path.dirname(dir)) === 'walnut-admin')
+    if (
+      path.basename(dir) === 'walnut-admin' &&
+      path.basename(path.dirname(dir)) === 'walnut-admin'
+    )
       return dir
     const up = path.dirname(dir)
-    if (up === dir)
-      throw new Error(`从 ${start} 向上找不到仓库根`)
+    if (up === dir) throw new Error(`从 ${start} 向上找不到仓库根`)
     dir = up
   }
 }
@@ -35,7 +37,7 @@ describe('topLevelSection', () => {
     const sec = topLevelSection('k:\n  first: 1\nother:\nk:\n  second: 2\n', 'k', 'last')
     // 最后一次出现一直延伸到文件末，所以会带上结尾的空行 —— 不是问题，
     // 下面两个解析器都只按行正则取值
-    expect(sec?.lines.filter(l => l.trim() !== '')).toEqual(['  second: 2'])
+    expect(sec?.lines.filter((l) => l.trim() !== '')).toEqual(['  second: 2'])
   })
 })
 
@@ -43,8 +45,11 @@ describe('parseDeclaredCatalog', () => {
   it('剥掉包名两侧的引号', () => {
     // 这条是实测踩出来的：不剥引号时 243 条里会误报 97 条（catalog 里
     // `'@scope/name': 1.0.0` 是常见写法，而锁文件那侧本来就不带引号）
-    const m = parseDeclaredCatalog('catalog:\n  \'@a/b\': 1.0.0\n  plain: 2.0.0\n')
-    expect([...m.entries()]).toEqual([['@a/b', '1.0.0'], ['plain', '2.0.0']])
+    const m = parseDeclaredCatalog("catalog:\n  '@a/b': 1.0.0\n  plain: 2.0.0\n")
+    expect([...m.entries()]).toEqual([
+      ['@a/b', '1.0.0'],
+      ['plain', '2.0.0'],
+    ])
   })
 
   it('注释与空行不算条目', () => {
@@ -59,7 +64,9 @@ describe('parseDeclaredCatalog', () => {
 
 describe('parseLockedCatalog', () => {
   it('从 `catalogs.default` 下取 specifier / version', () => {
-    const m = parseLockedCatalog('catalogs:\n  default:\n    \'@a/b\':\n      specifier: 1.0.0\n      version: 1.0.0\n')
+    const m = parseLockedCatalog(
+      "catalogs:\n  default:\n    '@a/b':\n      specifier: 1.0.0\n      version: 1.0.0\n",
+    )
     expect(m.get('@a/b')).toEqual({ specifier: '1.0.0', version: '1.0.0' })
   })
 
@@ -112,15 +119,17 @@ describe('compareCatalogs（纯函数）', () => {
   })
 
   it('声明改了、锁文件没跟上 ⇒ 报出是哪一条（这正是 CI 只报「lockfile 不是最新」时缺的信息）', () => {
-    const stale = lockOk.replace('specifier: 1.0.0', 'specifier: 0.9.0').replace('version: 1.0.0', 'version: 0.9.0')
+    const stale = lockOk
+      .replace('specifier: 1.0.0', 'specifier: 0.9.0')
+      .replace('version: 1.0.0', 'version: 0.9.0')
     const f = compareCatalogs(ws, stale)
-    expect(f.map(x => x.rule)).toEqual(['catalog-lockstep', 'catalog-lockstep'])
+    expect(f.map((x) => x.rule)).toEqual(['catalog-lockstep', 'catalog-lockstep'])
     expect(f[0]!.detail).toContain('`a`')
   })
 
   it('锁文件里有、catalog 删了 ⇒ 也报', () => {
     const extra = `${lockOk}    c:\n      specifier: 3.0.0\n      version: 3.0.0\n`
-    expect(compareCatalogs(ws, extra).some(f => f.detail.includes('`c`'))).toBe(true)
+    expect(compareCatalogs(ws, extra).some((f) => f.detail.includes('`c`'))).toBe(true)
   })
 
   it('范围写法不做版本比对（否则必误报）', () => {
@@ -130,14 +139,16 @@ describe('compareCatalogs（纯函数）', () => {
   })
 
   it('解析不出来时按前置条件报错，不静默通过', () => {
-    expect(compareCatalogs('packages:\n  - x\n', lockOk).map(f => f.rule)).toEqual(['precondition'])
-    expect(compareCatalogs(ws, 'packages:\n  - x\n').map(f => f.rule)).toEqual(['precondition'])
+    expect(compareCatalogs('packages:\n  - x\n', lockOk).map((f) => f.rule)).toEqual([
+      'precondition',
+    ])
+    expect(compareCatalogs(ws, 'packages:\n  - x\n').map((f) => f.rule)).toEqual(['precondition'])
   })
 })
 
 describe('collectFindings（比对 HEAD 里那一对）', () => {
   it('hEAD 里的 catalog 与锁文件锁步', () => {
-    expect(collectFindings(ROOT).map(f => `${f.rule} :: ${f.detail}`)).toEqual([])
+    expect(collectFindings(ROOT).map((f) => `${f.rule} :: ${f.detail}`)).toEqual([])
   })
 
   it('hEAD 里那一对是**两段式锁文件**也能解析（只认第二段的 catalogs）', () => {
@@ -150,6 +161,6 @@ describe('collectFindings（比对 HEAD 里那一对）', () => {
   it('读不到 HEAD 时按前置条件报错（不是静默通过）', () => {
     // 必须用**仓库之外**的目录：`git show` 会向上找仓库根，传仓内子目录照样读得到
     // （那是好行为 —— 门禁对 cwd 不敏感）。第一次拿 `apps/docs` 当反例，测试就假失败了。
-    expect(collectFindings(tmpdir()).map(f => f.rule)).toContain('precondition')
+    expect(collectFindings(tmpdir()).map((f) => f.rule)).toContain('precondition')
   })
 })

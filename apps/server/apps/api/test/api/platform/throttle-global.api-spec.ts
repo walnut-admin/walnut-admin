@@ -122,9 +122,7 @@ describe('全局限流桶（无装饰器端点）+ XFF 是否换桶', () => {
       const redisService = app.get(AppTechRedisService)
       const riskConfig = app.get(SecurityRiskConfigService)
       await redisService.delByPattern(`${riskConfig.redis.ratePrefix}:*`).catch(() => undefined)
-      await redis.del([
-        `${riskConfig.redis.deviceInfo}:${api.deviceId}`,
-      ])
+      await redis.del([`${riskConfig.redis.deviceInfo}:${api.deviceId}`])
       for (const ip of [PROBE_IP_A, PROBE_IP_B]) {
         const normalizedIp = await app.get(SharedIpService).normalizeIp(ip)
         await redis.del(`${riskConfig.redis.location}:${normalizedIp}`)
@@ -144,12 +142,14 @@ describe('全局限流桶（无装饰器端点）+ XFF 是否换桶', () => {
       for (let sent = 0; sent < limit; sent += BURST_BATCH) {
         const size = Math.min(BURST_BATCH, limit - sent)
         const responses = await Promise.all(Array.from({ length: size }, async () => probe()))
-        codes.push(...responses.map(res => bodyOf(res).code))
+        codes.push(...responses.map((res) => bodyOf(res).code))
       }
 
       expect(codes).toHaveLength(limit)
       // 全部 20000：limit 是「阈值」不是「建议值」，第 limit 发必须还在
-      expect(codes.filter(code => code === WalnutAdminConstAppResponseCode.SUCCESS)).toHaveLength(limit)
+      expect(codes.filter((code) => code === WalnutAdminConstAppResponseCode.SUCCESS)).toHaveLength(
+        limit,
+      )
       expect(codes).not.toContain(WalnutAdminConstAppResponseCode.TOO_MANY_REQUESTS)
     })
 

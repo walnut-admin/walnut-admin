@@ -39,8 +39,14 @@ const fallbackError = ref('')
  * E2E 稳定选择器要落在**真实 `<input>`** 上（`input-props` 才是它的落点）。
  * `InputHTMLAttributes` 没有 `data-*` 索引签名，按仓库既有写法做一次窄 cast。
  */
-const lockPwdInputProps = { 'data-testid': 'lock-pwd-input', 'autocomplete': 'current-password' } as unknown as InputHTMLAttributes
-const fallbackPwdInputProps = { 'data-testid': 'lock-fallback-input', 'autocomplete': 'current-password' } as unknown as InputHTMLAttributes
+const lockPwdInputProps = {
+  'data-testid': 'lock-pwd-input',
+  autocomplete: 'current-password',
+} as unknown as InputHTMLAttributes
+const fallbackPwdInputProps = {
+  'data-testid': 'lock-fallback-input',
+  autocomplete: 'current-password',
+} as unknown as InputHTMLAttributes
 
 let countdownTimer: ReturnType<typeof setInterval> | undefined
 
@@ -80,8 +86,7 @@ function applyResponseError(error: unknown, target: 'unlock' | 'fallback') {
 
   if (target === 'unlock') {
     unlockError.value = message
-  }
-  else {
+  } else {
     fallbackError.value = message
   }
 
@@ -100,12 +105,10 @@ async function onUnlock() {
 
   try {
     await appStoreLock.unLock(pwd.value)
-  }
-  catch (error) {
+  } catch (error) {
     // D4：停在本页显示红字 / 倒计时，不跳首页
     applyResponseError(error, 'unlock')
-  }
-  finally {
+  } finally {
     submitting.value = false
   }
 }
@@ -133,7 +136,9 @@ async function onFallbackSubmit() {
 
     // 方案①（Q8）：与登录同一套 OPAQUE 客户端序列，服务端落 `unlock` 命名空间状态、
     // 验证通过就地解锁且**不签发 token**。密码永不离开客户端。
-    const { clientLoginState, startLoginRequest } = opaque.client.startLogin({ password: loginPwd.value })
+    const { clientLoginState, startLoginRequest } = opaque.client.startLogin({
+      password: loginPwd.value,
+    })
     const loginResponse = await verifyStartAPI({ start: startLoginRequest })
 
     const loginResult = opaque.client.finishLogin({
@@ -160,8 +165,7 @@ async function onFallbackSubmit() {
 
     await verifyFinishAPI({ finish: loginResult.finishLoginRequest })
     await appStoreLock.logicAfterUnlock()
-  }
-  catch (error) {
+  } catch (error) {
     // 40115（设备未完成 MFA）由响应拦截器跳 `/mfa-verified`；D3 已把该路由加入锁屏
     // 守卫白名单。这里不再覆盖用户可见错误（页面马上要走了）。
     if (error instanceof Error && error.message === 'MFA Verified') {
@@ -169,8 +173,7 @@ async function onFallbackSubmit() {
     }
 
     applyResponseError(error, 'fallback')
-  }
-  finally {
+  } finally {
     submitting.value = false
   }
 }
@@ -258,7 +261,11 @@ onBeforeUnmount(stopCountdown)
           {{ fallbackError }}
         </p>
 
-        <p v-if="countdown > 0" class="text-sm text-orange-500" data-testid="lock-fallback-countdown">
+        <p
+          v-if="countdown > 0"
+          class="text-sm text-orange-500"
+          data-testid="lock-fallback-countdown"
+        >
           {{ countdown }}s
         </p>
 

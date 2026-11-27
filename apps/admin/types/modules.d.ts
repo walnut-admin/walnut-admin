@@ -8,6 +8,4 @@ declare module 'virtual:icon/set' {
   export default allSets
 }
 
-declare module 'virtual:icon/bundle' {
-
-}
+declare module 'virtual:icon/bundle' {}

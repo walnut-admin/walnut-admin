@@ -18,11 +18,7 @@ export function WalnutAdminDecoratorValidatorDate(
 
   const { stringDate } = Object.assign(defaultOptions(), options)
 
-  decorators.push(
-    stringDate
-      ? IsDateString({}, { each: isArray })
-      : IsDate({ each: isArray }),
-  )
+  decorators.push(stringDate ? IsDateString({}, { each: isArray }) : IsDate({ each: isArray }))
 
   if (isArray) {
     decorators = WalnutAdminDecoratorValidatorArray(decorators, arrayOptions)

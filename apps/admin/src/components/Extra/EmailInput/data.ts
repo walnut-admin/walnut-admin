@@ -1,17 +1,57 @@
 export const defaultSuffix = ['@gmail.com', '@yahoo.com', '@sina.com']
 
 export default [
-  { iso2: 'US', suffix: ['@gmail.com', '@yahoo.com', '@hotmail.com', '@aol.com', '@msn.com', '@comcast.net', '@sbcglobal.net', '@icloud.com', '@att.net', '@verizon.net', '@outlook.com', '@me.com'] },
-  { iso2: 'CN', suffix: ['@qq.com', '@126.com', '@163.com', '@sina.com', '@sohu.com', '@139.com', '@hotmail.com', '@gmail.com'] },
+  {
+    iso2: 'US',
+    suffix: [
+      '@gmail.com',
+      '@yahoo.com',
+      '@hotmail.com',
+      '@aol.com',
+      '@msn.com',
+      '@comcast.net',
+      '@sbcglobal.net',
+      '@icloud.com',
+      '@att.net',
+      '@verizon.net',
+      '@outlook.com',
+      '@me.com',
+    ],
+  },
+  {
+    iso2: 'CN',
+    suffix: [
+      '@qq.com',
+      '@126.com',
+      '@163.com',
+      '@sina.com',
+      '@sohu.com',
+      '@139.com',
+      '@hotmail.com',
+      '@gmail.com',
+    ],
+  },
   { iso2: 'JP', suffix: ['@yahoo.co.jp', '@ezweb.ne.jp', '@docomo.ne.jp', '@i.softbank.jp'] },
-  { iso2: 'KR', suffix: ['@naver.com', '@hanmail.net', '@daum.net', '@gmail.com', '@yahoo.co.kr', '@nate.com'] },
-  { iso2: 'GB', suffix: ['@gmail.com', '@yahoo.co.uk', '@hotmail.co.uk', '@outlook.com', '@btinternet.com'] },
+  {
+    iso2: 'KR',
+    suffix: ['@naver.com', '@hanmail.net', '@daum.net', '@gmail.com', '@yahoo.co.kr', '@nate.com'],
+  },
+  {
+    iso2: 'GB',
+    suffix: ['@gmail.com', '@yahoo.co.uk', '@hotmail.co.uk', '@outlook.com', '@btinternet.com'],
+  },
   { iso2: 'FR', suffix: ['@gmail.com', '@yahoo.fr', '@hotmail.fr', '@outlook.fr', '@laposte.net'] },
   { iso2: 'DE', suffix: ['@gmail.com', '@yahoo.de', '@hotmail.de', '@t-online.de', '@web.de'] },
   { iso2: 'IT', suffix: ['@gmail.com', '@yahoo.it', '@hotmail.it', '@libero.it'] },
   { iso2: 'RU', suffix: ['@mail.ru', '@yandex.ru', '@rambler.ru', '@list.ru'] },
-  { iso2: 'BR', suffix: ['@gmail.com', '@yahoo.com.br', '@hotmail.com', '@outlook.com', '@bol.com.br'] },
-  { iso2: 'MX', suffix: ['@gmail.com', '@yahoo.com.mx', '@hotmail.com', '@outlook.com', '@live.com.mx'] },
+  {
+    iso2: 'BR',
+    suffix: ['@gmail.com', '@yahoo.com.br', '@hotmail.com', '@outlook.com', '@bol.com.br'],
+  },
+  {
+    iso2: 'MX',
+    suffix: ['@gmail.com', '@yahoo.com.mx', '@hotmail.com', '@outlook.com', '@live.com.mx'],
+  },
   { iso2: 'ES', suffix: ['@gmail.com', '@yahoo.es', '@hotmail.com', '@outlook.es'] },
   { iso2: 'AR', suffix: ['@gmail.com', '@yahoo.com.ar', '@hotmail.com', '@outlook.com'] },
   { iso2: 'CO', suffix: ['@gmail.com', '@yahoo.com.co', '@hotmail.com', '@outlook.com'] },

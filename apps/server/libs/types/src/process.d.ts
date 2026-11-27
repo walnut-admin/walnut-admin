@@ -25,7 +25,6 @@ declare global {
       APP_COOKIE_SECRET: string
       APP_SESSION_SECRET: string
 
-
       DATABASE_PG_HOST: string
       DATABASE_PG_PORT: string
       DATABASE_PG_USER: string

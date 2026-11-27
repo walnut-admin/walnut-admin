@@ -3,7 +3,13 @@ import { resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { importClosure, readModuleDeclarations, SERVER_ROOT, shortestChain, walkModuleGraph } from './module-graph'
+import {
+  importClosure,
+  readModuleDeclarations,
+  SERVER_ROOT,
+  shortestChain,
+  walkModuleGraph,
+} from './module-graph'
 
 /**
  * G3 —— AppCoreModule 的**作用域**（R1 §4.2 草案 A，拍板 D1/D2 的直接推论）。
@@ -72,9 +78,7 @@ const apiGraph = walkModuleGraph(APP_MODULE_ENTRY)
  * not.toContain 会把解释当违规 —— 断言要盯着代码，不是盯着文档。
  */
 function stripComments(source: string): string {
-  return source
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/^\s*\/\/.*$/gm, '')
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
 }
 
 function moduleDeclarationsOf(file: string) {
@@ -89,10 +93,12 @@ describe('g3 · AppCoreModule 作用域（route A：worker 换入口，api 不�
   })
 
   it('传递闭包与 HTTP-only 集合零交集（AppCoreModule，模块级）', () => {
-    const reached = coreGraph.map(node => node.file).sort()
-    const leaked = reached.filter(file => HTTP_ONLY_MODULE_FILES.includes(file))
-    expect(leaked, `这些 HTTP-only 模块被 AppCoreModule 拉进 worker 了：${leaked.join(', ')}`)
-      .toEqual([])
+    const reached = coreGraph.map((node) => node.file).sort()
+    const leaked = reached.filter((file) => HTTP_ONLY_MODULE_FILES.includes(file))
+    expect(
+      leaked,
+      `这些 HTTP-only 模块被 AppCoreModule 拉进 worker 了：${leaked.join(', ')}`,
+    ).toEqual([])
   })
 
   it('传递闭包与 HTTP-only 集合零交集（文件级，穿 barrel）', () => {
@@ -100,14 +106,13 @@ describe('g3 · AppCoreModule 作用域（route A：worker 换入口，api 不�
     // 深度不可靠。这条用**文件级 import 闭包**重算一遍 —— 它只问「谁 require 谁」，
     // 穿 barrel、穿 re-export，与 G1 用的是同一个解析器。
     const closure = importClosure(CORE_MODULE_ENTRY)
-    const leaked = HTTP_ONLY_MODULE_FILES
-      .filter(file => closure.files.has(file))
-      .map((file) => {
-        const chain = shortestChain(closure, CORE_MODULE_ENTRY, file)
-        return `${file} <- ${String(chain === null ? '(unknown)' : chain.join(' -> '))}`
-      })
-    expect(leaked, `HTTP-only 文件进了 AppCoreModule 的文件级闭包: ${leaked.join(' | ')}`)
-      .toEqual([])
+    const leaked = HTTP_ONLY_MODULE_FILES.filter((file) => closure.files.has(file)).map((file) => {
+      const chain = shortestChain(closure, CORE_MODULE_ENTRY, file)
+      return `${file} <- ${String(chain === null ? '(unknown)' : chain.join(' -> '))}`
+    })
+    expect(leaked, `HTTP-only 文件进了 AppCoreModule 的文件级闭包: ${leaked.join(' | ')}`).toEqual(
+      [],
+    )
 
     // 反证：同一个解析器对 api 入口必须命中它们，否则这条断言是空转
     const apiClosure = importClosure(APP_MODULE_ENTRY)
@@ -122,8 +127,8 @@ describe('g3 · AppCoreModule 作用域（route A：worker 换入口，api 不�
   })
 
   it('core 里没有任何 APP_GUARD 注册（12 条一条都不许进）', () => {
-    const guards = coreGraph.flatMap(node =>
-      node.guardClasses.map(className => `${node.file}#${className}`),
+    const guards = coreGraph.flatMap((node) =>
+      node.guardClasses.map((className) => `${node.file}#${className}`),
     )
     expect(guards).toEqual([])
   })
@@ -133,19 +138,22 @@ describe('g3 · AppCoreModule 作用域（route A：worker 换入口，api 不�
     const core = moduleDeclarationsOf(TECH_CORE_MODULE_FILE)[0]
 
     expect(core.className).toBe('AppTechCoreModule')
-    const extra = core.imports.filter(identifier => !full.imports.includes(identifier))
-    expect(extra, `AppTechCoreModule 引入了 AppTechModule 没有的模块：${extra.join(', ')}`)
-      .toEqual([])
+    const extra = core.imports.filter((identifier) => !full.imports.includes(identifier))
+    expect(extra, `AppTechCoreModule 引入了 AppTechModule 没有的模块：${extra.join(', ')}`).toEqual(
+      [],
+    )
     // 反向：core 必须真的比 full 少东西，否则这个拆分没意义
     expect(core.imports.length).toBeLessThan(full.imports.length)
     // 少掉的必须恰好是 health + throttler（两件 HTTP-only）
-    const missing = full.imports.filter(identifier => !core.imports.includes(identifier))
+    const missing = full.imports.filter((identifier) => !core.imports.includes(identifier))
     expect(missing.sort()).toEqual(['AppTechHealthModule', 'AppTechThrottlerModule'])
   })
 
   it('socket-core 只给 SocketService，不给 gateway；SocketModule（api）照旧两样都有', () => {
     const apiSocket = stripComments(readFileSync(resolve(SERVER_ROOT, SOCKET_MODULE_FILE), 'utf8'))
-    const coreSocket = stripComments(readFileSync(resolve(SERVER_ROOT, SOCKET_CORE_MODULE_FILE), 'utf8'))
+    const coreSocket = stripComments(
+      readFileSync(resolve(SERVER_ROOT, SOCKET_CORE_MODULE_FILE), 'utf8'),
+    )
 
     // D4：SocketService 被 device.kick.service / user.shared.service 注入 ⇒ 必须留 core
     expect(coreSocket).toContain('SocketService')

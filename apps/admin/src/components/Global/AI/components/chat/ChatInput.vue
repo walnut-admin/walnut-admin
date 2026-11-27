@@ -19,15 +19,8 @@ const { isLoading, abortStreaming } = useStreamManager()
 const { handleSend: doSend } = useChatSend()
 const { commitToHistory, handleKeydown } = useInputHistory()
 
-const {
-  isSupported,
-  isListening,
-  micTitle,
-  startMic,
-  stopMic,
-  cancelMic,
-  resetMic,
-} = useSpeechRecognition()
+const { isSupported, isListening, micTitle, startMic, stopMic, cancelMic, resetMic } =
+  useSpeechRecognition()
 
 function handleStop() {
   abortStreaming(currentId.value)
@@ -35,8 +28,7 @@ function handleStop() {
 
 function handleSend() {
   const text = inputText.value.trim()
-  if (text)
-    commitToHistory(text)
+  if (text) commitToHistory(text)
   resetMic()
   doSend()
 }
@@ -44,18 +36,18 @@ function handleSend() {
 // ── Ctrl+Shift+K toggle mic ──
 const { ctrl, shift, k } = useMagicKeys()
 
-whenever(computed(() => ctrl.value && shift.value && k.value), () => {
-  if (isLoading.value)
-    return
-  if (isListening.value) {
-    const voiceText = stopMic()
-    if (voiceText)
-      handleSend()
-  }
-  else {
-    startMic()
-  }
-})
+whenever(
+  computed(() => ctrl.value && shift.value && k.value),
+  () => {
+    if (isLoading.value) return
+    if (isListening.value) {
+      const voiceText = stopMic()
+      if (voiceText) handleSend()
+    } else {
+      startMic()
+    }
+  },
+)
 
 const micBtnRef = ref<HTMLButtonElement>()
 const isPointerOverMic = ref(false)
@@ -67,38 +59,33 @@ function onMicPress(e: PointerEvent) {
 }
 
 function onMicRelease() {
-  if (!isListening.value)
-    return
+  if (!isListening.value) return
   if (isPointerOverMic.value) {
     const voiceText = stopMic()
-    if (voiceText)
-      handleSend()
-  }
-  else {
+    if (voiceText) handleSend()
+  } else {
     cancelMic()
   }
 }
 
 function onMicMove(e: PointerEvent) {
-  if (!micBtnRef.value)
-    return
+  if (!micBtnRef.value) return
   const rect = micBtnRef.value.getBoundingClientRect()
-  isPointerOverMic.value
-    = e.clientX >= rect.left && e.clientX <= rect.right
-      && e.clientY >= rect.top && e.clientY <= rect.bottom
+  isPointerOverMic.value =
+    e.clientX >= rect.left &&
+    e.clientX <= rect.right &&
+    e.clientY >= rect.top &&
+    e.clientY <= rect.bottom
 }
 
 const micBtnClass = computed(() => {
-  if (!isListening.value)
-    return 'ai-gradient-primary'
-  if (!isPointerOverMic.value)
-    return 'bg-gray-500 hover:bg-gray-600'
+  if (!isListening.value) return 'ai-gradient-primary'
+  if (!isPointerOverMic.value) return 'bg-gray-500 hover:bg-gray-600'
   return 'bg-red-500 hover:bg-red-600 animate-pulse'
 })
 
 const micIcon = computed(() => {
-  if (isListening.value && !isPointerOverMic.value)
-    return 'carbon:close'
+  if (isListening.value && !isPointerOverMic.value) return 'carbon:close'
   return 'carbon:microphone'
 })
 
@@ -107,10 +94,16 @@ defineExpose({ resetMic })
 
 <template>
   <div class="input-area border-border bg-fill-light shrink-0 border-t p-3">
-    <div class="input-wrapper border-border bg-fill flex items-stretch gap-2 border rounded-2.5 p-2 px-3 transition-colors duration-150 focus-within:border-primary">
+    <div
+      class="input-wrapper border-border bg-fill flex items-stretch gap-2 border rounded-2.5 p-2 px-3 transition-colors duration-150 focus-within:border-primary"
+    >
       <button
         class="think-toggle bg-fill shrink-0 cursor-pointer self-center border rounded-md px-2 py-1 text-11px transition-all duration-150 disabled:cursor-not-allowed"
-        :class="aiPrefs.deepThinking ? 'border-primary bg-primary-lightest text-primary !bg-primary-lighter' : 'border-border text-text-placeholder hover:border-border-light hover:text-text-regular'"
+        :class="
+          aiPrefs.deepThinking
+            ? 'border-primary bg-primary-lightest text-primary !bg-primary-lighter'
+            : 'border-border text-text-placeholder hover:border-border-light hover:text-text-regular'
+        "
         :disabled="isLoading"
         title="深度思考"
         @click="aiPrefs.deepThinking = !aiPrefs.deepThinking"

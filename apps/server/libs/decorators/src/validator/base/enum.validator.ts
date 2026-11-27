@@ -16,9 +16,8 @@ export function WalnutAdminDecoratorValidatorEnum<TEnum>(
 
   // 契约允许 `false` 时（SortOrder 的"该列不排序"，contract/pagination.ts:8），
   // `false` 跳过本字段全部校验；其余值仍走枚举 + 非空。
-  const gate: PropertyDecorator[] = allowFalseValue === true
-    ? [ValidateIf((_object, value) => value !== false)]
-    : []
+  const gate: PropertyDecorator[] =
+    allowFalseValue === true ? [ValidateIf((_object, value) => value !== false)] : []
 
   let decorators = [
     ...gate,

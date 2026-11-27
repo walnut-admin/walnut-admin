@@ -28,7 +28,5 @@
     "usernamehw.errorlens",
     "streetsidesoftware.code-spell-checker"
   ],
-  "unwantedRecommendations": [
-    "octref.vetur"
-  ]
+  "unwantedRecommendations": ["octref.vetur"]
 }

@@ -5,8 +5,6 @@
   },
   // 仓库根只覆盖「根目录下由工具加载的配置」：eslint.config.ts / commitlint.config.ts / knip.config.ts。
   // 它们各自被 ESLint / commitlint / knip 的 TS loader 加载（不是 Node 原生剥离类型）⇒ 用 base 预设。
-  "include": [
-    "*.ts"
-  ],
+  "include": ["*.ts"],
   "exclude": ["node_modules", "dist", ".turbo", "**/dist/**"]
 }

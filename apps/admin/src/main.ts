@@ -29,7 +29,7 @@ function isRequestCanceled(reason: unknown): boolean {
   if (typeof reason !== 'object' || reason === null) {
     return false
   }
-  const value = reason as { name?: unknown, code?: unknown }
+  const value = reason as { name?: unknown; code?: unknown }
   return value.name === 'CanceledError' || value.code === 'ERR_CANCELED'
 }
 
@@ -44,13 +44,18 @@ function isRequestCanceled(reason: unknown): boolean {
  * `Error('MFA Required')` 实测复现，挡住整个绑定表单）。
  * 拦截器在 reject 前已完成它该做的事（路由切换 + toast），这里只兜「没人 catch」的尾巴。
  */
-const AUTH_FLOW_SIGNAL_MESSAGES = new Set(['MFA Required', 'MFA Verified', 'User Locked', 'Not Allowed'])
+const AUTH_FLOW_SIGNAL_MESSAGES = new Set([
+  'MFA Required',
+  'MFA Verified',
+  'User Locked',
+  'Not Allowed',
+])
 
 function isAuthFlowSignal(reason: unknown): boolean {
   return reason instanceof Error && AUTH_FLOW_SIGNAL_MESSAGES.has(reason.message)
 }
 
-(async () => {
+;(async () => {
   const app = createApp(App)
 
   // ---- 运行时未捕获错误 ⇒ 全局覆盖层（2026-10-08）----

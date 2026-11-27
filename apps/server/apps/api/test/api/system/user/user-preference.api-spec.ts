@@ -18,9 +18,9 @@ import { createApiApp } from '../../helpers/create-api-app'
 
 interface PreferenceShape {
   basic: { locale: string }
-  accessibility: { fontSize: number, reducedMotion: boolean, colorMode: string, CVD: string | null }
+  accessibility: { fontSize: number; reducedMotion: boolean; colorMode: string; CVD: string | null }
   theme: { dark: boolean }
-  layout: { layoutMode: string, layout: Record<string, unknown> }
+  layout: { layoutMode: string; layout: Record<string, unknown> }
 }
 
 describe('C 段：system/user/preference read + 四段 PATCH upsert（真实 HTTP 全链）', () => {
@@ -43,7 +43,9 @@ describe('C 段：system/user/preference read + 四段 PATCH upsert（真实 HTT
 
   afterAll(async () => {
     if (api !== undefined && fixture !== null) {
-      await api.pgDataSource.query('DELETE FROM sys_user_preference WHERE user_id = $1', [fixture.userId])
+      await api.pgDataSource.query('DELETE FROM sys_user_preference WHERE user_id = $1', [
+        fixture.userId,
+      ])
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
       await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [api.deviceId])
@@ -58,7 +60,12 @@ describe('C 段：system/user/preference read + 四段 PATCH upsert（真实 HTT
 
     const data = bodyOf<PreferenceShape>(res).data
     expect(data.basic.locale).toBe('zh_CN')
-    expect(data.accessibility).toEqual({ fontSize: 14, reducedMotion: false, colorMode: 'default', CVD: 'default' })
+    expect(data.accessibility).toEqual({
+      fontSize: 14,
+      reducedMotion: false,
+      colorMode: 'default',
+      CVD: 'default',
+    })
     expect(data.theme).toEqual({ dark: false })
     expect(data.layout.layoutMode).toBe('left-menu')
     // layout 状态袋默认形态
@@ -101,13 +108,20 @@ describe('C 段：system/user/preference read + 四段 PATCH upsert（真实 HTT
 
     const readRes = await api.root('GET', api.apiPath('/system/user/preference/read'))
     const data = bodyOf<PreferenceShape>(readRes).data
-    expect(data.accessibility).toEqual({ fontSize: 16, reducedMotion: true, colorMode: 'grayscale', CVD: 'protanopia' })
+    expect(data.accessibility).toEqual({
+      fontSize: 16,
+      reducedMotion: true,
+      colorMode: 'grayscale',
+      CVD: 'protanopia',
+    })
     // 冲突路径只回写 payload 携带的列
     expect(data.basic.locale).toBe('en_US')
   })
 
   it('PATCH theme → dark 翻转持久化', async () => {
-    const res = await api.root('PATCH', api.apiPath('/system/user/preference/theme'), { dark: true })
+    const res = await api.root('PATCH', api.apiPath('/system/user/preference/theme'), {
+      dark: true,
+    })
     expectOk(res, 'preference theme patch')
 
     const readRes = await api.root('GET', api.apiPath('/system/user/preference/read'))
@@ -137,9 +151,13 @@ describe('C 段：system/user/preference read + 四段 PATCH upsert（真实 HTT
     })
     expect(bodyOf(badLocale).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
 
-    const badFontSize = await api.root('PATCH', api.apiPath('/system/user/preference/accessibility'), {
-      fontSize: 15,
-    })
+    const badFontSize = await api.root(
+      'PATCH',
+      api.apiPath('/system/user/preference/accessibility'),
+      {
+        fontSize: 15,
+      },
+    )
     expect(bodyOf(badFontSize).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
 
     const unknownField = await api.root('PATCH', api.apiPath('/system/user/preference/theme'), {

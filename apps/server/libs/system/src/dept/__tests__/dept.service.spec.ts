@@ -58,7 +58,7 @@ function subtreeRow(id: string): ISysDeptSubtreeRow {
 
 /** 记录调用的假仓储（只回放 current / parent / subtree 三份数据） */
 class FakeDeptRepo {
-  readonly calls: Array<{ method: string, args: unknown[] }> = []
+  readonly calls: Array<{ method: string; args: unknown[] }> = []
 
   current: IDeptRow = deptRow()
   parent: IDeptRow | null = deptRow({ id: OTHER_ID, deptCode: 'dept-b' })
@@ -69,11 +69,11 @@ class FakeDeptRepo {
   }
 
   methods(): string[] {
-    return this.calls.map(call => call.method)
+    return this.calls.map((call) => call.method)
   }
 
   argsOf(method: string): unknown[] | undefined {
-    return this.calls.find(call => call.method === method)?.args
+    return this.calls.find((call) => call.method === method)?.args
   }
 
   async create(dto: unknown, em?: EntityManager) {
@@ -150,7 +150,10 @@ describe('dept service：事务口径 + 防环行锁（F-25）', () => {
   it('create：查重 / 父存在性 / 写腿共用同一个 em，且不锁父行（新行 INSERT 前不可能成环）', async () => {
     const { repo, service } = createService()
 
-    await service.create({ deptCode: 'dept-c', deptName: '部门 C', parentId: OTHER_ID, status: 'enabled' } as never, EM)
+    await service.create(
+      { deptCode: 'dept-c', deptName: '部门 C', parentId: OTHER_ID, status: 'enabled' } as never,
+      EM,
+    )
 
     expect(repo.methods()).toEqual(['findByCode', 'findById', 'create'])
     expect(repo.argsOf('findByCode')).toEqual(['dept-c', EM])
@@ -181,7 +184,9 @@ describe('dept service：事务口径 + 防环行锁（F-25）', () => {
     const { repo, service } = createService()
     repo.subtreeIds = [SELF_ID, OTHER_ID]
 
-    const error = await service.update(SELF_ID, updatePayload(OTHER_ID), EM).catch((e: unknown) => e)
+    const error = await service
+      .update(SELF_ID, updatePayload(OTHER_ID), EM)
+      .catch((e: unknown) => e)
 
     expect(error).toBeInstanceOf(WalnutAdminExceptionBadRequest)
     expect(responseOf(error).errMsg).toBe('business.system.dept.parentCycle')

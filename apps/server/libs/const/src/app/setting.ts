@@ -13,7 +13,9 @@ export const WalnutAdminConstAppSettingScopeType = {
   LOCAL: 'local',
 } as const
 
-export type IWalnutAdminConstAppSettingScopeType = ValueOf<typeof WalnutAdminConstAppSettingScopeType>
+export type IWalnutAdminConstAppSettingScopeType = ValueOf<
+  typeof WalnutAdminConstAppSettingScopeType
+>
 
 // system setting type, extend this as need grow
 export const WalnutAdminConstAppSettingType = {
@@ -120,12 +122,16 @@ export interface IWalnutAdminScopeResolverConfig<T> {
 }
 
 // functional role setting keys
-export interface IWalnutAdminConstAppSettingFunctionalRoleKeys<T> extends IWalnutAdminScopeResolverConfig<T> {
+export interface IWalnutAdminConstAppSettingFunctionalRoleKeys<
+  T,
+> extends IWalnutAdminScopeResolverConfig<T> {
   defaultRole: string
 }
 
 // functional frontend scope setting keys
-export interface IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys<T> extends IWalnutAdminScopeResolverConfig<T> {
+export interface IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys<
+  T,
+> extends IWalnutAdminScopeResolverConfig<T> {
   status: boolean
 }
 

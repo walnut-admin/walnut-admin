@@ -28,7 +28,7 @@ export interface ReleaseUi {
    * 跑一条**秒级**的 `pnpm <args>`（同步，不转播）—— 用于 `pnpm change` 这类每个 commit 一次、
    * 输出量小且必须在循环里立即拿到结果的命令。走同一个出口 ⇒ 同样剥过凭据、同样 argv 直传。
    */
-  execPnpmSync: (args: string[]) => { code: number, stdout: string, stderr: string }
+  execPnpmSync: (args: string[]) => { code: number; stdout: string; stderr: string }
   isInteractive: () => boolean
   ask: (text: string) => Promise<string>
   askSecret: (text: string) => Promise<string>

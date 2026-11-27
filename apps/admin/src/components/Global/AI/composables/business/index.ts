@@ -19,18 +19,14 @@ export function useActionWatcher() {
   watch(
     () => {
       const msgs = messages.value
-      if (msgs.length === 0)
-        return null
+      if (msgs.length === 0) return null
       const last = msgs[msgs.length - 1]
-      if (last.role !== 'assistant' || !last.businessContent)
-        return null
-      if (last.businessContent.category !== 'action')
-        return null
+      if (last.role !== 'assistant' || !last.businessContent) return null
+      if (last.businessContent.category !== 'action') return null
       return { msg: last, bc: last.businessContent }
     },
     (data) => {
-      if (!data)
-        return
+      if (!data) return
       const handler = ACTION_HANDLER_MAP[data.bc.type as keyof ActionPayloadMap]
       if (handler) {
         Promise.resolve(handler(data.bc as any)).then(() => {
@@ -50,7 +46,11 @@ export function useActionWatcher() {
  * implementations as needed.
  */
 export function useCardActions() {
-  function confirmCard(_messageId: string) { /* TODO */ }
-  function cancelCard(_messageId: string) { /* TODO */ }
+  function confirmCard(_messageId: string) {
+    /* TODO */
+  }
+  function cancelCard(_messageId: string) {
+    /* TODO */
+  }
   return { confirmCard, cancelCard }
 }

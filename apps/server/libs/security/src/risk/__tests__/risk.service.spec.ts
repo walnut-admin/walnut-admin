@@ -58,7 +58,10 @@ function createService(result: typeof CRITICAL_RESULT) {
 
 async function recommendFor(result: typeof CRITICAL_RESULT) {
   const service = createService(result)
-  const res = await service.evaluateComprehensivePreAuth({ ip: '203.0.113.7', deviceId: 'p1-13-device' })
+  const res = await service.evaluateComprehensivePreAuth({
+    ip: '203.0.113.7',
+    deviceId: 'p1-13-device',
+  })
   return res.recommendation
 }
 

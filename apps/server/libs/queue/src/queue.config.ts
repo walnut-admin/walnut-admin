@@ -1,7 +1,4 @@
-import {
-  BullModuleOptions,
-  SharedBullConfigurationFactory,
-} from '@nestjs/bull'
+import { BullModuleOptions, SharedBullConfigurationFactory } from '@nestjs/bull'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 

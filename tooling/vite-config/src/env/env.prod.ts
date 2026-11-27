@@ -1,6 +1,11 @@
 import { defineConfig } from '@julr/vite-plugin-validate-env'
 import { z } from 'zod/v4'
-import { VITE_OPTIONAL_BUILD_PLUGIN_FLAGS, VITE_PROXY_VALIDATE, VITE_SENTRY_CONFIG, VITE_SHARED_CONFIG } from './shared.ts'
+import {
+  VITE_OPTIONAL_BUILD_PLUGIN_FLAGS,
+  VITE_PROXY_VALIDATE,
+  VITE_SENTRY_CONFIG,
+  VITE_SHARED_CONFIG,
+} from './shared.ts'
 
 export default defineConfig({
   ...VITE_SHARED_CONFIG(),

@@ -36,17 +36,10 @@ function makePayload() {
 }
 
 function createTokenService() {
-  return new AppTokenService(
-    new JwtService({ secret: ACCESS_SECRET }),
-    {
-      get: (key: string) =>
-        key === 'jwt.access.secret'
-          ? ACCESS_SECRET
-          : key === 'jwt.access.expire'
-            ? 3600
-            : undefined,
-    } as never,
-  )
+  return new AppTokenService(new JwtService({ secret: ACCESS_SECRET }), {
+    get: (key: string) =>
+      key === 'jwt.access.secret' ? ACCESS_SECRET : key === 'jwt.access.expire' ? 3600 : undefined,
+  } as never)
 }
 
 interface SocketOptions {
@@ -80,13 +73,15 @@ function createSocket(options: SocketOptions = {}) {
  */
 function createMiddleware(
   sessionKeyHash: Buffer | null = Buffer.alloc(32, 3),
-  deviceState: { banned: boolean, locked: boolean } | null = { banned: false, locked: false },
+  deviceState: { banned: boolean; locked: boolean } | null = { banned: false, locked: false },
 ) {
   const getSession = vi.fn(async () => sessionKeyHash)
   const getDeviceCache = vi.fn(async () => deviceState)
   const deviceRepo = { findDeviceByDeviceId: vi.fn(async () => null) }
   const middleware = new SocketAuthMiddleware(
-    { get: (key: string) => (key === 'app.cookie.secret' ? 'spec-cookie-secret' : undefined) } as never,
+    {
+      get: (key: string) => (key === 'app.cookie.secret' ? 'spec-cookie-secret' : undefined),
+    } as never,
     createTokenService(),
     { getAuthSessionKeyHash: getSession } as never,
     { getSysDeviceCache: getDeviceCache, setSysDeviceCache: vi.fn() } as never,
@@ -114,7 +109,9 @@ describe('socketAuthMiddleware：F-02 握手验签（伪造/过期/会话缺失�
 
   it('过期真 token（正确 secret 签发）→ next(Error)，不挂 socket.data', async () => {
     const { middleware } = createMiddleware()
-    const expired = await new JwtService({ secret: ACCESS_SECRET }).signAsync(makePayload(), { expiresIn: '-10s' })
+    const expired = await new JwtService({ secret: ACCESS_SECRET }).signAsync(makePayload(), {
+      expiresIn: '-10s',
+    })
     const socket = createSocket({ token: expired })
     const next = vi.fn()
 

@@ -9,18 +9,33 @@ import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstAppEvent } from '@walnut-server/const/app/event'
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 
-import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
+import {
+  WalnutAdminConstDecoratorLogOperateAction,
+  WalnutAdminConstDecoratorLogOperateTitle,
+} from '@walnut-server/const/decorator/logOperate'
 import { DBTransactionHooksStore } from '@walnut-server/db'
 
-import { WalnutAdminDecoratorAuthLog, WalnutAdminGuardAuth, WalnutAdminInterceptorRequestAuthLog } from '@walnut-server/guards'
+import {
+  WalnutAdminDecoratorAuthLog,
+  WalnutAdminGuardAuth,
+  WalnutAdminInterceptorRequestAuthLog,
+} from '@walnut-server/guards'
 
 import { SharedIpService } from '@walnut-server/ip'
 import { SysDeletedEntity } from '@walnut-server/repository'
-import { SysLogAuthEntity, SysLogAuthSharedService, SysLogOperateEntity, SysLogOperateRepoService } from '@walnut-server/system'
+import {
+  SysLogAuthEntity,
+  SysLogAuthSharedService,
+  SysLogOperateEntity,
+  SysLogOperateRepoService,
+} from '@walnut-server/system'
 import { I18nContext, I18nService } from 'nestjs-i18n'
 import { from, lastValueFrom, throwError } from 'rxjs'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import { WalnutAdminDecoratorOperateLog, WalnutAdminInterceptorRequestOperateLog } from '@/decorators/walnut/log.operate.decorator'
+import {
+  WalnutAdminDecoratorOperateLog,
+  WalnutAdminInterceptorRequestOperateLog,
+} from '@/decorators/walnut/log.operate.decorator'
 import { createIntegrationApp, getWalnutPgAdminDataSource } from '../helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from '../helpers/integration.const'
 
@@ -52,7 +67,10 @@ describe('log bypass (fire-and-forget) on real PG', () => {
   const runSpec = async (fn: () => Promise<void>) =>
     I18nContext.createAsync(new I18nContext('zh_CN', i18nService), fn)
 
-  function makeOperateContext(request: Record<string, unknown>, handler: () => void): ExecutionContext {
+  function makeOperateContext(
+    request: Record<string, unknown>,
+    handler: () => void,
+  ): ExecutionContext {
     return {
       switchToHttp: () => ({
         getRequest: () => request,
@@ -64,7 +82,10 @@ describe('log bypass (fire-and-forget) on real PG', () => {
     } as unknown as ExecutionContext
   }
 
-  function makeAuthContext(request: Record<string, unknown>, handler: () => void): ExecutionContext {
+  function makeAuthContext(
+    request: Record<string, unknown>,
+    handler: () => void,
+  ): ExecutionContext {
     return {
       switchToHttp: () => ({
         getRequest: () => request,
@@ -135,9 +156,7 @@ describe('log bypass (fire-and-forget) on real PG', () => {
       app.get(SharedIpService),
     )
 
-    authInterceptor = new WalnutAdminInterceptorRequestAuthLog(
-      app.get(SysLogAuthSharedService),
-    )
+    authInterceptor = new WalnutAdminInterceptorRequestAuthLog(app.get(SysLogAuthSharedService))
   })
 
   /** 用例里真实触发的 failedLogin 收集键登记（afterAll 清理） */
@@ -147,7 +166,7 @@ describe('log bypass (fire-and-forget) on real PG', () => {
     // failedLogin risk 的 Redis 收集键（risk:failed_login:<identifier>:<deviceId>）
     // 随用例唯一 identifier/deviceId 生成，这里精确清理
     const redis = app.get(AppTechRedisService).getClient()
-    await Promise.all(collectedRiskKeys.map(async key => redis.del(key)))
+    await Promise.all(collectedRiskKeys.map(async (key) => redis.del(key)))
 
     await app.close()
   })
@@ -297,7 +316,12 @@ describe('log bypass (fire-and-forget) on real PG', () => {
 
       // 登录失败：guard 记日志（fire-and-forget）后原样抛错
       expect(() =>
-        guard.handleRequest(new Error('spec auth boom'), null, undefined, makeAuthContext(request, specAuthHandler)),
+        guard.handleRequest(
+          new Error('spec auth boom'),
+          null,
+          undefined,
+          makeAuthContext(request, specAuthHandler),
+        ),
       ).toThrow('spec auth boom')
 
       const row = await waitForLogRow(SysLogAuthEntity, { identifier })
@@ -317,7 +341,10 @@ describe('log bypass (fire-and-forget) on real PG', () => {
       expect(row.authenticatedAt).toBeInstanceOf(Date)
 
       // failedLogin risk 收集同链路触发（真实 Redis，键随 afterAll 精确清理）
-      const risk = await app.get(AppTechRedisService).getClient().hGetAll(`risk:failed_login:${identifier}:${deviceId}`)
+      const risk = await app
+        .get(AppTechRedisService)
+        .getClient()
+        .hGetAll(`risk:failed_login:${identifier}:${deviceId}`)
       expect(risk.count).toBe('1')
       expect(risk.identifier).toBe(identifier)
     })
@@ -330,13 +357,14 @@ describe('log bypass (fire-and-forget) on real PG', () => {
         user: { userId, userName: 'spec-auth-user' },
       })
 
-      const result$ = authInterceptor.intercept(
-        makeAuthContext(request, specAuthHandler),
-        { handle: () => from(Promise.resolve(true)) } as CallHandler,
-      )
+      const result$ = authInterceptor.intercept(makeAuthContext(request, specAuthHandler), {
+        handle: () => from(Promise.resolve(true)),
+      } as CallHandler)
       await lastValueFrom(result$)
 
-      const row = await waitForLogRow(SysLogAuthEntity, { identifier: request.identifier as string })
+      const row = await waitForLogRow(SysLogAuthEntity, {
+        identifier: request.identifier as string,
+      })
 
       expect(row.success).toBe(true)
       expect(row.userId).toBe(userId)
@@ -381,12 +409,17 @@ describe('log bypass (fire-and-forget) on real PG', () => {
         const logRow = await waitForLogRow(SysLogOperateEntity, { url: request.url as string })
         expectedLogOperateId = logRow.id
 
-        await vi.waitFor(() => {
-          expect(hooks.length).toBe(1)
-        }, { timeout: 10_000, interval: 50 })
+        await vi.waitFor(
+          () => {
+            expect(hooks.length).toBe(1)
+          },
+          { timeout: 10_000, interval: 50 },
+        )
 
         // 事务尚未提交（钩子未执行）：sys_deleted 的 logOperateId 必须仍为 null
-        const beforeCommit = await pgDataSource.manager.findOne(SysDeletedEntity, { where: { deletedId } })
+        const beforeCommit = await pgDataSource.manager.findOne(SysDeletedEntity, {
+          where: { deletedId },
+        })
         expect(beforeCommit?.logOperateId).toBeNull()
       })
     })
@@ -432,11 +465,17 @@ describe('log bypass (fire-and-forget) on real PG', () => {
       deletedAt: new Date(),
     })
 
-    app.get(EventEmitter2).emit(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE, { logOperateId: latestLogOperateId, deletedId })
+    app.get(EventEmitter2).emit(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE, {
+      logOperateId: latestLogOperateId,
+      deletedId,
+    })
 
     await vi.waitFor(
       async () => {
-        const rows = await pgDataSource.manager.find(SysDeletedEntity, { where: { deletedId }, order: { deletedAt: 'ASC' } })
+        const rows = await pgDataSource.manager.find(SysDeletedEntity, {
+          where: { deletedId },
+          order: { deletedAt: 'ASC' },
+        })
         expect(rows).toHaveLength(2)
         expect(rows[0].logOperateId).toBe(historicalLogOperateId)
         expect(rows[1].logOperateId).toBe(latestLogOperateId)
@@ -461,7 +500,9 @@ describe('log bypass (fire-and-forget) on real PG', () => {
     })
 
     // 真实 EventEmitter2 → AppTechEventService（@OnEvent 监听侧，与线上一致）
-    app.get(EventEmitter2).emit(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE, { logOperateId, deletedId })
+    app
+      .get(EventEmitter2)
+      .emit(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE, { logOperateId, deletedId })
 
     await vi.waitFor(
       async () => {
@@ -496,10 +537,14 @@ describe('log bypass (fire-and-forget) on real PG', () => {
 
     await vi.waitFor(
       async () => {
-        const rows = await pgDataSource.manager.find(SysDeletedEntity, { where: { deletedId: deletedIds[0] } })
+        const rows = await pgDataSource.manager.find(SysDeletedEntity, {
+          where: { deletedId: deletedIds[0] },
+        })
         expect(rows[0]?.logOperateId).toBe(logOperateId)
 
-        const rows2 = await pgDataSource.manager.find(SysDeletedEntity, { where: { deletedId: deletedIds[1] } })
+        const rows2 = await pgDataSource.manager.find(SysDeletedEntity, {
+          where: { deletedId: deletedIds[1] },
+        })
         expect(rows2[0]?.logOperateId).toBe(logOperateId)
       },
       { timeout: 10_000, interval: 100 },
@@ -509,9 +554,11 @@ describe('log bypass (fire-and-forget) on real PG', () => {
   it('logOperateId 回填：deletedId 未命中 → 不抛错只记日志（旁路吞错语义）', async () => {
     // 未命中任何行（update affected 0 → 返回 null），事件监听侧不得外抛；
     // emitAsync 以监听器返回值数组 resolve，这里只钉「不 reject」
-    await expect(app.get(EventEmitter2).emitAsync(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE, {
-      logOperateId: randomUUID(),
-      deletedId: randomUUID(),
-    })).resolves.toBeDefined()
+    await expect(
+      app.get(EventEmitter2).emitAsync(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE, {
+        logOperateId: randomUUID(),
+        deletedId: randomUUID(),
+      }),
+    ).resolves.toBeDefined()
   })
 })

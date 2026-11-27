@@ -1,4 +1,9 @@
-import { IWalnutAdminConstSysUserMfaType, IWalnutAdminConstSysUserMfaWebauthnTransport, WalnutAdminConstSysUserMfaType, WalnutAdminConstSysUserMfaWebauthnTransport } from '@walnut-server/const/app/mfa'
+import {
+  IWalnutAdminConstSysUserMfaType,
+  IWalnutAdminConstSysUserMfaWebauthnTransport,
+  WalnutAdminConstSysUserMfaType,
+  WalnutAdminConstSysUserMfaWebauthnTransport,
+} from '@walnut-server/const/app/mfa'
 import {
   WalnutAdminDecoratorFieldBoolean,
   WalnutAdminDecoratorFieldDate,

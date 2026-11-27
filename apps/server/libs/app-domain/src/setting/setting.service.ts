@@ -118,7 +118,8 @@ export class AppSettingService {
   // get private settings
   async getPrivateSettings() {
     const frontendMaskUrl = await this.cacheAppSettingsService.getFunctionalFrontMaskUrl()
-    const frontendHijackRefresh = await this.cacheAppSettingsService.getFunctionalFrontHijackRefresh()
+    const frontendHijackRefresh =
+      await this.cacheAppSettingsService.getFunctionalFrontHijackRefresh()
     const frontendWatermark = await this.cacheAppSettingsService.getFunctionalFrontWatermark()
     const frontendTransition = await this.cacheAppSettingsService.getFunctionalFrontTransition()
 

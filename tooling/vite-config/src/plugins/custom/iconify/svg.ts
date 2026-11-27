@@ -1,10 +1,5 @@
 import type { IconifyJSON } from '@iconify/types'
-import {
-  cleanupSVG,
-  importDirectory,
-  parseColors,
-  runSVGO,
-} from '@iconify/tools'
+import { cleanupSVG, importDirectory, parseColors, runSVGO } from '@iconify/tools'
 
 /**
  * Build custom SVG icon object
@@ -18,24 +13,22 @@ export async function buildCustomSvgObject(customPrefix: string, whiteList?: str
   const icons: Record<string, { body: string }> = {}
 
   iconSet.forEach((name) => {
-    if (whiteList && !whiteList.includes(name))
-      return
+    if (whiteList && !whiteList.includes(name)) return
 
     const svg = iconSet.toSVG(name)
-    if (!svg)
-      return
+    if (!svg) return
 
     try {
       cleanupSVG(svg)
       parseColors(svg, { defaultColor: 'currentColor' })
       runSVGO(svg)
-    }
-    catch {
+    } catch {
       iconSet.remove(name)
       return
     }
 
-    const body = svg.toMinifiedString()
+    const body = svg
+      .toMinifiedString()
       .replace(/\s*width\s*=\s*["'][^"']*["']/gi, '')
       .replace(/\s*height\s*=\s*["'][^"']*["']/gi, '')
 

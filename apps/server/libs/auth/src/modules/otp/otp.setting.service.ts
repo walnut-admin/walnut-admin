@@ -85,8 +85,7 @@ export class OtpSettingService {
   private async getConfig(type: IOtpType) {
     if (type === 'email') {
       return this.cacheAppSettingsService.getAuthEmailConfig()
-    }
-    else {
+    } else {
       return this.cacheAppSettingsService.getAuthSmsConfig()
     }
   }

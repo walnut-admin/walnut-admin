@@ -152,13 +152,11 @@ const [register] = useForm<typeof tabRelatives>({
         labelHelpMessage: true,
       },
       componentProp: {
-        options: Object.values(AppConstTabUtilsShowMode).map(i => ({
+        options: Object.values(AppConstTabUtilsShowMode).map((i) => ({
           value: i,
           label: i,
         })),
-        disabled: computed(
-          () => !tabRelatives.status || !tabRelatives.showUtils,
-        ),
+        disabled: computed(() => !tabRelatives.status || !tabRelatives.showUtils),
       },
     },
 

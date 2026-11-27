@@ -1,4 +1,10 @@
-import type { BaseFilterParams, BaseListParams, BasePageParams, BaseSortParams, FilterParam } from '@walnut/contract'
+import type {
+  BaseFilterParams,
+  BaseListParams,
+  BasePageParams,
+  BaseSortParams,
+  FilterParam,
+} from '@walnut/contract'
 
 /**
  * 表格 / 选择器的 **query 表单值 → list 请求的显式 filters**（批次 4-A）。
@@ -67,7 +73,11 @@ export function buildWalnutListFilter(field: string, value: unknown): FilterPara
 
   if (Array.isArray(value)) {
     return isDateRange(value)
-      ? { field, op: 'range', value: [toDate(value[0])!.toISOString(), toDate(value[1])!.toISOString()] }
+      ? {
+          field,
+          op: 'range',
+          value: [toDate(value[0])!.toISOString(), toDate(value[1])!.toISOString()],
+        }
       : { field, op: 'in', value }
   }
 
@@ -87,7 +97,9 @@ export function buildWalnutListFilter(field: string, value: unknown): FilterPara
 }
 
 /** query 表单值（扁平 bag）→ filters 数组；空 bag 返回 `[]`（wire 上恒有该槽位，便于日志对账） */
-export function buildWalnutListFilters(query: Record<string, unknown> | null | undefined): BaseFilterParams {
+export function buildWalnutListFilters(
+  query: Record<string, unknown> | null | undefined,
+): BaseFilterParams {
   if (query === null || query === undefined) {
     return []
   }
@@ -111,7 +123,7 @@ export function buildWalnutListFilters(query: Record<string, unknown> | null | u
  * （批次 4-A 起只有 filters / sort / page 三个槽位）。
  */
 export function toWalnutListParams<T>(
-  state: { query?: unknown, sort?: BaseSortParams<T>, page?: BasePageParams } | null | undefined,
+  state: { query?: unknown; sort?: BaseSortParams<T>; page?: BasePageParams } | null | undefined,
 ): BaseListParams<T> {
   const payload: BaseListParams<T> = {
     filters: buildWalnutListFilters((state?.query ?? {}) as Record<string, unknown>),

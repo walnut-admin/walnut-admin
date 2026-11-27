@@ -20,11 +20,12 @@ const QUERY_META: ArgumentMetadata = { type: 'query', metatype: String, data: 'v
 function errCodeOf(fn: () => unknown): number {
   try {
     fn()
-  }
-  catch (e) {
+  } catch (e) {
     expect(e).toBeInstanceOf(WalnutAdminExceptionBadRequest)
     // getResponse() 的静态类型是 string | object，errCode 形态由基类构造保证
-    const response = (e as WalnutAdminExceptionBadRequest).getResponse() as unknown as { errCode: number }
+    const response = (e as WalnutAdminExceptionBadRequest).getResponse() as unknown as {
+      errCode: number
+    }
     return response.errCode
   }
   throw new Error('expected the pipe to throw')
@@ -39,11 +40,15 @@ describe('pipes：WalnutAdminPipeParamEnum（required:false 缺省放行修复�
   })
 
   it('非法值 → 40099', () => {
-    expect(errCodeOf(() => pipe.transform('no-such-type', PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+    expect(errCodeOf(() => pipe.transform('no-such-type', PARAM_META))).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+    )
   })
 
   it('required:true（默认）缺值 → 40099', () => {
-    expect(errCodeOf(() => pipe.transform(undefined, PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+    expect(errCodeOf(() => pipe.transform(undefined, PARAM_META))).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+    )
   })
 
   it('required:false 缺值放行（修复前 String(undefined) 不在值集被误判「传错」→ 40099）', () => {
@@ -51,7 +56,9 @@ describe('pipes：WalnutAdminPipeParamEnum（required:false 缺省放行修复�
     expect(optional.transform(undefined, QUERY_META)).toBeUndefined()
     expect(optional.transform('application', QUERY_META)).toBe('application')
     // 缺省放行 ≠ 什么都放行：给了值仍要比对枚举
-    expect(errCodeOf(() => optional.transform('nope', QUERY_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+    expect(errCodeOf(() => optional.transform('nope', QUERY_META))).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+    )
   })
 })
 
@@ -61,19 +68,35 @@ describe('pipes：WalnutAdminPipeDeviceId（sys_device.device_id = 服务端签�
 
   it('服务端签发的形态放行（大小写敏感：hex 必须小写）', () => {
     expect(pipe.transform(valid, PARAM_META)).toBe(valid)
-    expect(pipe.transform(`d1_${'0123456789abcdef'.repeat(2)}`, PARAM_META)).toBe(`d1_${'0123456789abcdef'.repeat(2)}`)
-    expect(errCodeOf(() => pipe.transform(`d1_${'A'.repeat(32)}`, PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+    expect(pipe.transform(`d1_${'0123456789abcdef'.repeat(2)}`, PARAM_META)).toBe(
+      `d1_${'0123456789abcdef'.repeat(2)}`,
+    )
+    expect(errCodeOf(() => pipe.transform(`d1_${'A'.repeat(32)}`, PARAM_META))).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+    )
   })
 
   it('旧形态（64 位 hex）/ 长度 / 字符集 / 路径 payload 一律 40099', () => {
     // 这条是批次 11 的 P0 根因：管道仍按 64 位 hex 校验，而 device_id 早已是 d1_ 值 ⇒
     // /system/user/device 的四个 :deviceId 路由（改名 / 锁 / 解锁 / 强制下线）对真实设备恒 40099
-    expect(errCodeOf(() => pipe.transform('a'.repeat(64), PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
-    expect(errCodeOf(() => pipe.transform(`d1_${'a'.repeat(31)}`, PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
-    expect(errCodeOf(() => pipe.transform(`d1_${'a'.repeat(33)}`, PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
-    expect(errCodeOf(() => pipe.transform('d1_', PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
-    expect(errCodeOf(() => pipe.transform('../../etc/passwd', PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
-    expect(errCodeOf(() => pipe.transform(undefined, PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+    expect(errCodeOf(() => pipe.transform('a'.repeat(64), PARAM_META))).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+    )
+    expect(errCodeOf(() => pipe.transform(`d1_${'a'.repeat(31)}`, PARAM_META))).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+    )
+    expect(errCodeOf(() => pipe.transform(`d1_${'a'.repeat(33)}`, PARAM_META))).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+    )
+    expect(errCodeOf(() => pipe.transform('d1_', PARAM_META))).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+    )
+    expect(errCodeOf(() => pipe.transform('../../etc/passwd', PARAM_META))).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+    )
+    expect(errCodeOf(() => pipe.transform(undefined, PARAM_META))).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+    )
   })
 })
 
@@ -87,9 +110,15 @@ describe('pipes：WalnutAdminPipeAreaPcode（行政区划码 varchar(12) / 顶�
   })
 
   it('超长/非数字/路径 payload → 40099', () => {
-    expect(errCodeOf(() => pipe.transform('1234567890123', PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
-    expect(errCodeOf(() => pipe.transform('abc', PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
-    expect(errCodeOf(() => pipe.transform('95 OR 1=1', PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+    expect(errCodeOf(() => pipe.transform('1234567890123', PARAM_META))).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+    )
+    expect(errCodeOf(() => pipe.transform('abc', PARAM_META))).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+    )
+    expect(errCodeOf(() => pipe.transform('95 OR 1=1', PARAM_META))).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+    )
   })
 })
 
@@ -98,15 +127,27 @@ describe('pipes：WalnutAdminPipeCacheKey（WALNUT_CACHE_ 前缀外的显示键�
 
   it('真实键形态放行（含 uuid / 64 位 hex 后缀）', () => {
     expect(pipe.transform('APP:SETTING', PARAM_META)).toBe('APP:SETTING')
-    expect(pipe.transform(`AUTH:MFA:VERIFIED:${'0123abcd'.repeat(8)}:x`, PARAM_META)).toBe(`AUTH:MFA:VERIFIED:${'0123abcd'.repeat(8)}:x`)
-    expect(pipe.transform('MONITOR:APISPEC:seed-1:cache', PARAM_META)).toBe('MONITOR:APISPEC:seed-1:cache')
+    expect(pipe.transform(`AUTH:MFA:VERIFIED:${'0123abcd'.repeat(8)}:x`, PARAM_META)).toBe(
+      `AUTH:MFA:VERIFIED:${'0123abcd'.repeat(8)}:x`,
+    )
+    expect(pipe.transform('MONITOR:APISPEC:seed-1:cache', PARAM_META)).toBe(
+      'MONITOR:APISPEC:seed-1:cache',
+    )
   })
 
   it('空白/越界长度/特殊字符 → 40099', () => {
-    expect(errCodeOf(() => pipe.transform('.hidden', PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
-    expect(errCodeOf(() => pipe.transform('a b', PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
-    expect(errCodeOf(() => pipe.transform('a'.repeat(129), PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
-    expect(errCodeOf(() => pipe.transform('key\ninjection', PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+    expect(errCodeOf(() => pipe.transform('.hidden', PARAM_META))).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+    )
+    expect(errCodeOf(() => pipe.transform('a b', PARAM_META))).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+    )
+    expect(errCodeOf(() => pipe.transform('a'.repeat(129), PARAM_META))).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+    )
+    expect(errCodeOf(() => pipe.transform('key\ninjection', PARAM_META))).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+    )
   })
 })
 
@@ -120,9 +161,17 @@ describe('pipes：WalnutAdminPipeLogFileName（日志文件名白名单，禁路
   })
 
   it('穿越/隐藏文件/非 log 后缀 → 40099', () => {
-    expect(errCodeOf(() => pipe.transform('../../package.json', PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
-    expect(errCodeOf(() => pipe.transform('..%2F..%2Fpackage.json', PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
-    expect(errCodeOf(() => pipe.transform('.hidden.log', PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
-    expect(errCodeOf(() => pipe.transform('2026-10-25-15.txt', PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+    expect(errCodeOf(() => pipe.transform('../../package.json', PARAM_META))).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+    )
+    expect(errCodeOf(() => pipe.transform('..%2F..%2Fpackage.json', PARAM_META))).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+    )
+    expect(errCodeOf(() => pipe.transform('.hidden.log', PARAM_META))).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+    )
+    expect(errCodeOf(() => pipe.transform('2026-10-25-15.txt', PARAM_META))).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+    )
   })
 })

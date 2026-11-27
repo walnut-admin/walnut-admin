@@ -16,19 +16,25 @@ import { AppMonitorUserRepositoryService } from './user.repo.service'
  */
 @Global()
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([AppMonitorUserEntity], WalnutPGConnectionName),
-  ],
+  imports: [TypeOrmModule.forFeature([AppMonitorUserEntity], WalnutPGConnectionName)],
   controllers: [],
-  providers: [AppMonitorUserRepositoryService, {
-    provide: WALNUT_ADMIN_IDENTITY_MONITOR_REPOSITORY,
-    useExisting: AppMonitorUserRepositoryService,
-  },
-  // 批 7：libs/system 的设备详情页只认这个端口
-  {
-    provide: WALNUT_ADMIN_SYSTEM_MONITOR_ACTIVE_USER_READER,
-    useExisting: AppMonitorUserRepositoryService,
-  }, appMonitorUserRecoverableProvider],
-  exports: [AppMonitorUserRepositoryService, WALNUT_ADMIN_IDENTITY_MONITOR_REPOSITORY, WALNUT_ADMIN_SYSTEM_MONITOR_ACTIVE_USER_READER],
+  providers: [
+    AppMonitorUserRepositoryService,
+    {
+      provide: WALNUT_ADMIN_IDENTITY_MONITOR_REPOSITORY,
+      useExisting: AppMonitorUserRepositoryService,
+    },
+    // 批 7：libs/system 的设备详情页只认这个端口
+    {
+      provide: WALNUT_ADMIN_SYSTEM_MONITOR_ACTIVE_USER_READER,
+      useExisting: AppMonitorUserRepositoryService,
+    },
+    appMonitorUserRecoverableProvider,
+  ],
+  exports: [
+    AppMonitorUserRepositoryService,
+    WALNUT_ADMIN_IDENTITY_MONITOR_REPOSITORY,
+    WALNUT_ADMIN_SYSTEM_MONITOR_ACTIVE_USER_READER,
+  ],
 })
-export class AppMonitorUserRepositoryModule { }
+export class AppMonitorUserRepositoryModule {}

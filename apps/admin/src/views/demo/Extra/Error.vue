@@ -53,36 +53,18 @@ function stackOverflow() {
 <template>
   <WDemoCard title="Error Manupilation">
     <n-space wrap>
-      <n-button type="error" @click="throwJsError">
-        Throw JS Error
-      </n-button>
-      <n-button type="error" @click="throwUnhandledPromise">
-        Unhandled Promise
-      </n-button>
-      <n-button type="error" @click="request404">
-        Request 404
-      </n-button>
-      <n-button type="error" @click="throwTypeError">
-        TypeError
-      </n-button>
-      <n-button type="error" @click="stackOverflow">
-        Stack Overflow
-      </n-button>
-      <n-button type="error" @click="throwDomEventError">
-        Click me for DOM Event Error
-      </n-button>
-      <n-button type="error" @click="triggerRenderError = true">
-        Vue Render Error
-      </n-button>
-      <n-button type="error" @click="throwTimeoutError">
-        setTimeout Error
-      </n-button>
-      <n-button type="error" @click="throwIntervalError">
-        setInterval Error
-      </n-button>
+      <n-button type="error" @click="throwJsError"> Throw JS Error </n-button>
+      <n-button type="error" @click="throwUnhandledPromise"> Unhandled Promise </n-button>
+      <n-button type="error" @click="request404"> Request 404 </n-button>
+      <n-button type="error" @click="throwTypeError"> TypeError </n-button>
+      <n-button type="error" @click="stackOverflow"> Stack Overflow </n-button>
+      <n-button type="error" @click="throwDomEventError"> Click me for DOM Event Error </n-button>
+      <n-button type="error" @click="triggerRenderError = true"> Vue Render Error </n-button>
+      <n-button type="error" @click="throwTimeoutError"> setTimeout Error </n-button>
+      <n-button type="error" @click="throwIntervalError"> setInterval Error </n-button>
     </n-space>
 
-    <img src="https://example.com/not-exist.png">
+    <img src="https://example.com/not-exist.png" />
 
     <div v-if="triggerRenderError">
       <!-- @vue-expect-error error demo -->

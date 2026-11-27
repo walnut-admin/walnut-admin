@@ -1,60 +1,60 @@
 {
-    "system": {
-        "locale": {
-            "updateExist": "Locale Keys Exists."
-        },
-        "delete": {
-            "recoverFail": "Recover Delete Failed."
-        },
-        "dept": {
-            "parentNotFound": "Parent dept does not exist.",
-            "parentCycle": "Parent dept cannot be itself or its descendant.",
-            "hasChildren": "Child depts exist; delete them first.",
-            "hasEmployees": "Employees exist in this dept; cannot delete."
-        },
-        "post": {
-            "hasEmployees": "Employees exist in this post; cannot delete."
-        },
-        "employee": {
-            "deptNotFound": "Dept does not exist.",
-            "postNotFound": "Post does not exist.",
-            "userNotFound": "User account does not exist."
-        },
-        "user": {
-            "unLock": {
-                "pwdErr": "Unlock Password Error.",
-                "pwdRequired": "Security lock mode is enabled; unlock password is required.",
-                "pwdLocked": "Too many unlock attempts. Please try again later.",
-                "pwdLength": "Lock password must be 6-64 characters."
-            }
-        }
+  "system": {
+    "locale": {
+      "updateExist": "Locale Keys Exists."
     },
-    "auth": {
-        "opaque": {
-            "passwordError": "User Or Password Error.",
-            "serverStaticKeyMismatch": "Server Static Key Mismatch."
-        },
-        "sendVerifyCodeError": "Verify Code Sent Error",
-        "verifyCodeError": "Verify Code Error",
-        "invalidOtpType": "Invalid verify code type",
-        "authFailed": "Authentication failed",
-        "emailAlreadyBound": "This email is already bound to another account. Please use another sign-in method or contact the administrator.",
-        "identityAlreadyBound": "This identity is already bound to your account",
-        "identityAlreadyUsed": "This identity is already used by another user",
-        "useVerifyEndpoint": "Please use the verify endpoint for identity verification",
-        "noVerifyMethodAvailable": "No verification method available. Please bind a security phone or email first.",
-        "verifyMethodNotAllowed": "This verification method is not allowed",
-        "verificationFailed": "Verification failed",
-        "sensitiveVerificationRequired": "Sensitive operation requires additional verification",
-        "unbindAtLeastOneLoginMethodRequired": "Unbind failed: At least one verified login method must be retained (phone, email, or password).",
-        "mfa": {
-            "verifyFail": "MFA Verify Failed.",
-            "totp": {
-                "alreadyBound": "TOTP Device Already Bound."
-            },
-            "webauthn": {
-                "alreadyBound": "WebAuthn Device Already Bound."
-            }
-        }
+    "delete": {
+      "recoverFail": "Recover Delete Failed."
+    },
+    "dept": {
+      "parentNotFound": "Parent dept does not exist.",
+      "parentCycle": "Parent dept cannot be itself or its descendant.",
+      "hasChildren": "Child depts exist; delete them first.",
+      "hasEmployees": "Employees exist in this dept; cannot delete."
+    },
+    "post": {
+      "hasEmployees": "Employees exist in this post; cannot delete."
+    },
+    "employee": {
+      "deptNotFound": "Dept does not exist.",
+      "postNotFound": "Post does not exist.",
+      "userNotFound": "User account does not exist."
+    },
+    "user": {
+      "unLock": {
+        "pwdErr": "Unlock Password Error.",
+        "pwdRequired": "Security lock mode is enabled; unlock password is required.",
+        "pwdLocked": "Too many unlock attempts. Please try again later.",
+        "pwdLength": "Lock password must be 6-64 characters."
+      }
     }
+  },
+  "auth": {
+    "opaque": {
+      "passwordError": "User Or Password Error.",
+      "serverStaticKeyMismatch": "Server Static Key Mismatch."
+    },
+    "sendVerifyCodeError": "Verify Code Sent Error",
+    "verifyCodeError": "Verify Code Error",
+    "invalidOtpType": "Invalid verify code type",
+    "authFailed": "Authentication failed",
+    "emailAlreadyBound": "This email is already bound to another account. Please use another sign-in method or contact the administrator.",
+    "identityAlreadyBound": "This identity is already bound to your account",
+    "identityAlreadyUsed": "This identity is already used by another user",
+    "useVerifyEndpoint": "Please use the verify endpoint for identity verification",
+    "noVerifyMethodAvailable": "No verification method available. Please bind a security phone or email first.",
+    "verifyMethodNotAllowed": "This verification method is not allowed",
+    "verificationFailed": "Verification failed",
+    "sensitiveVerificationRequired": "Sensitive operation requires additional verification",
+    "unbindAtLeastOneLoginMethodRequired": "Unbind failed: At least one verified login method must be retained (phone, email, or password).",
+    "mfa": {
+      "verifyFail": "MFA Verify Failed.",
+      "totp": {
+        "alreadyBound": "TOTP Device Already Bound."
+      },
+      "webauthn": {
+        "alreadyBound": "WebAuthn Device Already Bound."
+      }
+    }
+  }
 }

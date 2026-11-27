@@ -9,8 +9,7 @@ defineOptions({
 const { isOnline, downlink } = useSharedNetwork()
 
 const getIcon = computed(() => {
-  if (!isOnline.value)
-    return 'carbon:wifi-off'
+  if (!isOnline.value) return 'carbon:wifi-off'
 
   return 'carbon:wifi'
 })
@@ -22,8 +21,6 @@ const getIcon = computed(() => {
       <WIcon :icon="getIcon" height="24" color="white" />
     </template>
 
-    <template #default>
-      {{ downlink }} Mbps
-    </template>
+    <template #default> {{ downlink }} Mbps </template>
   </n-tooltip>
 </template>

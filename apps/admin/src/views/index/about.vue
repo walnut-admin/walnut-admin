@@ -15,54 +15,51 @@ const now = new Date()
 const { t } = useAppI18n()
 const appStoreAdapter = useAppStoreAdapter()
 
-const infoItems = computed<ICompUIDescriptionsItem[]>(
-  () =>
-    [
-      {
-        label: t('desc.about.info.version'),
-        value: version,
-        type: 'tag',
-        typeProps: {
-          type: 'primary',
-        },
-      },
-      {
-        label: t('desc.about.info.doc'),
-        value: t('desc.about.info.doc'),
-        type: 'link',
-        typeProps: {
-          type: 'primary',
-          link: urls.doc,
-        },
-      },
-      {
-        label: t('desc.about.info.preview'),
-        value: t('desc.about.info.preview'),
-        type: 'link',
-        typeProps: {
-          type: 'primary',
-          link: urls.demo,
-        },
-      },
-      {
-        label: t('desc.about.info.code'),
-        value: t('desc.about.info.code'),
-        type: 'link',
-        typeProps: {
-          type: 'primary',
-          link: homepage,
-        },
-      },
-      {
-        label: t('desc.about.info.buildTime'),
-        value: `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`,
-        type: 'tag',
-        typeProps: {
-          type: 'info',
-        },
-      },
-    ],
-)
+const infoItems = computed<ICompUIDescriptionsItem[]>(() => [
+  {
+    label: t('desc.about.info.version'),
+    value: version,
+    type: 'tag',
+    typeProps: {
+      type: 'primary',
+    },
+  },
+  {
+    label: t('desc.about.info.doc'),
+    value: t('desc.about.info.doc'),
+    type: 'link',
+    typeProps: {
+      type: 'primary',
+      link: urls.doc,
+    },
+  },
+  {
+    label: t('desc.about.info.preview'),
+    value: t('desc.about.info.preview'),
+    type: 'link',
+    typeProps: {
+      type: 'primary',
+      link: urls.demo,
+    },
+  },
+  {
+    label: t('desc.about.info.code'),
+    value: t('desc.about.info.code'),
+    type: 'link',
+    typeProps: {
+      type: 'primary',
+      link: homepage,
+    },
+  },
+  {
+    label: t('desc.about.info.buildTime'),
+    value: `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`,
+    type: 'tag',
+    typeProps: {
+      type: 'info',
+    },
+  },
+])
 
 const frontendDeps = ref<ICompUIDescriptionsItem[]>(
   Object.entries(dependencies).map(([k, v]) => ({

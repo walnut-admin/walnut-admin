@@ -44,9 +44,10 @@ export class JwtAccessTokenStrategy extends PassportStrategy(
   ): Promise<IWalnutAdminAccessTokenPayload> {
     const deviceId = getWalnutAdminCookie(req, WalnutAdminConstCookieKeys.DEVICE_ID)
 
-    const sessionKeyHash = payload.sid == null || deviceId == null
-      ? null
-      : await this.authSessionService.getAuthSessionKeyHash(payload.userId, deviceId, payload.sid)
+    const sessionKeyHash =
+      payload.sid == null || deviceId == null
+        ? null
+        : await this.authSessionService.getAuthSessionKeyHash(payload.userId, deviceId, payload.sid)
 
     if (!sessionKeyHash) {
       throw new WalnutAdminExceptionAccessTokenExpired()

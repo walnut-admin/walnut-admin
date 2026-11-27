@@ -5,7 +5,15 @@ import type { WForm } from '@/components/UI/Form'
 import type { IWalnutTableListState } from '@/components/UI/Table/src/hooks/useTableAPIListParams'
 import { useState } from '@walnut/client/hooks/core/useState'
 import { computed, onMounted, ref } from 'vue'
-import { banDeviceAPI, deviceAPI, getDeviceCurrentActiveUserAPI, getDeviceHistoryUsersAPI, lockDeviceAPI, unbanDeviceAPI, unlockDeviceAPI } from '@/api/system/device'
+import {
+  banDeviceAPI,
+  deviceAPI,
+  getDeviceCurrentActiveUserAPI,
+  getDeviceHistoryUsersAPI,
+  lockDeviceAPI,
+  unbanDeviceAPI,
+  unlockDeviceAPI,
+} from '@/api/system/device'
 import { useForm } from '@/components/UI/Form'
 import { extractDefaultFormDataFromSchemas } from '@/components/UI/Form/src/utils'
 import { useAppConfirm } from '@/hooks/component/useConfirm'
@@ -42,7 +50,11 @@ const {
   commit: commitParams,
 } = useState<IWalnutTableListState<SystemDevice>>({
   query: {} as SystemDevice,
-  sort: [{ field: 'active', order: 'descend', priority: 9 }, { field: 'locked', order: 'descend', priority: 8 }, { field: 'banned', order: 'descend', priority: 7 }],
+  sort: [
+    { field: 'active', order: 'descend', priority: 9 },
+    { field: 'locked', order: 'descend', priority: 8 },
+    { field: 'banned', order: 'descend', priority: 7 },
+  ],
   page: {
     page: 1,
     pageSize: 8,
@@ -75,9 +87,7 @@ const querySchemas: WForm.Schema.Item<SystemDevice>[] = [
   },
   {
     type: 'Extend:Query',
-    componentProp: {
-
-    },
+    componentProp: {},
   },
 ]
 
@@ -102,8 +112,7 @@ async function onApiList() {
     const res = await deviceAPI.list(toWalnutListParams(listParams.value))
     data.value = res.data
     total.value = res.total
-  }
-  finally {
+  } finally {
     loading.value = false
   }
 }
@@ -121,8 +130,7 @@ async function onUpdatePageSize(p: number) {
 async function onQuery({ done }: WForm.Params.Dialog.FinishLoading) {
   try {
     await onApiList()
-  }
-  finally {
+  } finally {
     done()
   }
 }
@@ -130,55 +138,55 @@ async function onReset({ done }: WForm.Params.Dialog.FinishLoading) {
   try {
     resetListParams()
     await onApiList()
-  }
-  finally {
+  } finally {
     done()
   }
 }
 
 const currentActiveUserFormData = ref<SystemUser>()
-const [registerCurrentActiveUserForm, { onOpen: onOpenCurrentActiveUserModal }] = useForm<SystemUser>({
-  dialogPreset: 'modal',
-  baseRules: false,
-  labelWidth: 120,
-  xGap: 0,
+const [registerCurrentActiveUserForm, { onOpen: onOpenCurrentActiveUserModal }] =
+  useForm<SystemUser>({
+    dialogPreset: 'modal',
+    baseRules: false,
+    labelWidth: 120,
+    xGap: 0,
 
-  descriptionProps: {
-    bordered: true,
-    column: 2,
-    colon: true,
-  },
-
-  dialogProps: {
-    defaultButton: false,
-    width: '50%',
-    closable: true,
-    autoFocus: false,
-    fullscreen: false,
-    title: computed(() => t('sys.device.currentSigninUser')),
-  },
-
-  schemas: [
-    {
-      type: 'Base:Input',
-      formProp: {
-        path: 'userName',
-      },
-      descriptionProp: {
-        copy: true,
-      },
+    descriptionProps: {
+      bordered: true,
+      column: 2,
+      colon: true,
     },
-    {
-      type: 'Base:Input',
-      formProp: {
-        path: 'nickName',
-      },
-      descriptionProp: {
-        copy: true,
-      },
+
+    dialogProps: {
+      defaultButton: false,
+      width: '50%',
+      closable: true,
+      autoFocus: false,
+      fullscreen: false,
+      title: computed(() => t('sys.device.currentSigninUser')),
     },
-  ],
-})
+
+    schemas: [
+      {
+        type: 'Base:Input',
+        formProp: {
+          path: 'userName',
+        },
+        descriptionProp: {
+          copy: true,
+        },
+      },
+      {
+        type: 'Base:Input',
+        formProp: {
+          path: 'nickName',
+        },
+        descriptionProp: {
+          copy: true,
+        },
+      },
+    ],
+  })
 
 const historyShow = ref(false)
 const historyLoading = ref(false)
@@ -209,245 +217,251 @@ const historyColumns: DataTableColumn[] = [
 
 const detailFormData = ref<SystemDevice>()
 const submitLoading = ref(false)
-const [registerDetailForm, { onOpen: onOpenDetailModal, onClose: onCloseDetailModal }] = useForm<SystemDevice>({
-  dialogPreset: 'drawer',
-  baseRules: false,
-  labelWidth: 120,
-  xGap: 0,
+const [registerDetailForm, { onOpen: onOpenDetailModal, onClose: onCloseDetailModal }] =
+  useForm<SystemDevice>({
+    dialogPreset: 'drawer',
+    baseRules: false,
+    labelWidth: 120,
+    xGap: 0,
 
-  descriptionProps: {
-    bordered: true,
-    column: 2,
-    colon: true,
-  },
+    descriptionProps: {
+      bordered: true,
+      column: 2,
+      colon: true,
+    },
 
-  dialogProps: {
-    defaultButton: false,
-    width: '50%',
-    closable: true,
-    autoFocus: false,
-    title: computed(() => t('app.base.device') + t('app.base.detail')),
-    footerButtons: [
-      {
-        textProp: computed(() => !detailFormData.value?.locked ? t('app.base.lockDevice') : t('app.base.unlockDevice')),
-        auth: computed(() => !detailFormData.value?.locked ? auths.LOCK : auths.UNLOCK),
-        debounce: 300,
-        type: 'warning',
-        loading: computed(() => submitLoading.value),
-        disabled: computed(() => submitLoading.value),
-        async onClick() {
-          const { confirmed } = await useAppConfirm(t('app.base.confirm'))
+    dialogProps: {
+      defaultButton: false,
+      width: '50%',
+      closable: true,
+      autoFocus: false,
+      title: computed(() => t('app.base.device') + t('app.base.detail')),
+      footerButtons: [
+        {
+          textProp: computed(() =>
+            !detailFormData.value?.locked ? t('app.base.lockDevice') : t('app.base.unlockDevice'),
+          ),
+          auth: computed(() => (!detailFormData.value?.locked ? auths.LOCK : auths.UNLOCK)),
+          debounce: 300,
+          type: 'warning',
+          loading: computed(() => submitLoading.value),
+          disabled: computed(() => submitLoading.value),
+          async onClick() {
+            const { confirmed } = await useAppConfirm(t('app.base.confirm'))
 
-          if (confirmed) {
-            submitLoading.value = true
+            if (confirmed) {
+              submitLoading.value = true
+              try {
+                await (!detailFormData.value?.locked ? lockDeviceAPI : unlockDeviceAPI)(
+                  detailFormData.value?.id as string,
+                )
+                useAppMsgSuccess()
+                onCloseDetailModal()
+                onApiList()
+              } finally {
+                submitLoading.value = false
+              }
+            }
+          },
+        },
+        {
+          textProp: computed(() =>
+            !detailFormData.value?.banned ? t('app.base.banDevice') : t('app.base.unbanDevice'),
+          ),
+          auth: computed(() => (!detailFormData.value?.banned ? auths.BANNED : auths.UNBANNED)),
+          debounce: 300,
+          type: 'error',
+          async onClick() {
+            const { confirmed } = await useAppConfirm(t('app.base.confirm'))
+
+            if (confirmed) {
+              submitLoading.value = true
+              try {
+                await (!detailFormData.value?.banned ? banDeviceAPI : unbanDeviceAPI)(
+                  detailFormData.value?.id as string,
+                )
+                useAppMsgSuccess()
+                onCloseDetailModal()
+                onApiList()
+              } finally {
+                submitLoading.value = false
+              }
+            }
+          },
+        },
+        {
+          textProp: computed(() => t('sys.device.currentSigninUser')),
+          auth: auths.GET_CURRENT_USER,
+          debounce: 300,
+          type: 'info',
+          disabled: computed(() => !detailFormData.value?.active),
+          async onClick() {
             try {
-              await (!detailFormData.value?.locked ? lockDeviceAPI : unlockDeviceAPI)(detailFormData.value?.id as string)
-              useAppMsgSuccess()
-              onCloseDetailModal()
-              onApiList()
+              const res = await getDeviceCurrentActiveUserAPI(detailFormData.value?.id as string)
+              currentActiveUserFormData.value = res
+              onOpenCurrentActiveUserModal()
+            } catch (error) {
+              console.error(error)
             }
-            finally {
-              submitLoading.value = false
-            }
-          }
+          },
         },
-      },
-      {
-        textProp: computed(() => !detailFormData.value?.banned ? t('app.base.banDevice') : t('app.base.unbanDevice')),
-        auth: computed(() => !detailFormData.value?.banned ? auths.BANNED : auths.UNBANNED),
-        debounce: 300,
-        type: 'error',
-        async onClick() {
-          const { confirmed } = await useAppConfirm(t('app.base.confirm'))
-
-          if (confirmed) {
-            submitLoading.value = true
+        {
+          textProp: computed(() => t('sys.device.historySigninUser')),
+          auth: auths.GET_HISTORY_USERS,
+          debounce: 300,
+          type: 'info',
+          loading: computed(() => historyLoading.value),
+          disabled: computed(() => historyLoading.value),
+          async onClick() {
+            historyLoading.value = true
             try {
-              await (!detailFormData.value?.banned ? banDeviceAPI : unbanDeviceAPI)(detailFormData.value?.id as string)
-              useAppMsgSuccess()
-              onCloseDetailModal()
-              onApiList()
+              const res = await getDeviceHistoryUsersAPI(detailFormData.value?.id as string)
+              historyData.value = res
+              historyShow.value = true
+            } finally {
+              historyLoading.value = false
             }
-            finally {
-              submitLoading.value = false
-            }
-          }
+          },
+        },
+      ],
+    },
+
+    schemas: [
+      {
+        type: 'Base:Input',
+        formProp: {
+          path: 'deviceId',
+        },
+        descriptionProp: {},
+      },
+
+      {
+        type: 'Base:Input',
+        formProp: {
+          path: 'deviceName',
+        },
+        descriptionProp: {
+          span: 1,
         },
       },
+
       {
-        textProp: computed(() => t('sys.device.currentSigninUser')),
-        auth: auths.GET_CURRENT_USER,
-        debounce: 300,
-        type: 'info',
-        disabled: computed(() => !detailFormData.value?.active),
-        async onClick() {
-          try {
-            const res = await getDeviceCurrentActiveUserAPI(detailFormData.value?.id as string)
-            currentActiveUserFormData.value = res
-            onOpenCurrentActiveUserModal()
-          }
-          catch (error) {
-            console.error(error)
-          }
+        type: 'Base:Input',
+        formProp: {
+          path: 'active',
+          label: computed(() => t('app.base.status')),
+        },
+        descriptionProp: {
+          type: 'tag',
+          formatter: (_, formData) =>
+            formData?.active ? t('app.base.online') : t('app.base.offline'),
+          typeProps: {
+            type: computed(() => (detailFormData.value?.active ? 'success' : 'default')),
+          },
         },
       },
+
       {
-        textProp: computed(() => t('sys.device.historySigninUser')),
-        auth: auths.GET_HISTORY_USERS,
-        debounce: 300,
-        type: 'info',
-        loading: computed(() => historyLoading.value),
-        disabled: computed(() => historyLoading.value),
-        async onClick() {
-          historyLoading.value = true
-          try {
-            const res = await getDeviceHistoryUsersAPI(detailFormData.value?.id as string)
-            historyData.value = res
-            historyShow.value = true
-          }
-          finally {
-            historyLoading.value = false
-          }
+        type: 'Base:Input',
+        formProp: {
+          path: 'deviceInfo',
+          label: computed(() => t('app.base.deviceInfo')),
         },
+        descriptionProp: {
+          type: 'json',
+          typeProps: {
+            height: '160px',
+          },
+        },
+      },
+
+      {
+        type: 'Base:Input',
+        formProp: {
+          path: 'hardwareInfo',
+          label: computed(() => t('app.base.hardwareInfo')),
+        },
+        descriptionProp: {
+          span: 1,
+          type: 'json',
+          typeProps: {
+            height: '120px',
+          },
+        },
+      },
+
+      {
+        type: 'Base:Input',
+        formProp: {
+          path: 'locationInfo',
+          label: computed(() => t('app.base.locationInfo')),
+        },
+        descriptionProp: {
+          span: 1,
+          type: 'json',
+          typeProps: {
+            height: '120px',
+          },
+        },
+      },
+
+      {
+        type: 'Base:Input',
+        formProp: {
+          path: 'sr',
+        },
+        descriptionProp: {
+          span: 1,
+          type: 'json',
+          typeProps: {
+            height: '100px',
+          },
+        },
+      },
+
+      {
+        type: 'Base:Input',
+        formProp: {
+          path: 'vp',
+        },
+        descriptionProp: {
+          span: 1,
+          type: 'json',
+          typeProps: {
+            height: '100px',
+          },
+        },
+      },
+
+      {
+        type: 'Base:Input',
+        formProp: {
+          path: 'geoLocation',
+          label: computed(() => t('app.base.lngLat')),
+        },
+        descriptionProp: {
+          formatter: (_, formData) => formData?.geoLocation?.coordinates?.join(',') as string,
+        },
+      },
+
+      {
+        type: 'Base:Input',
+        formProp: {
+          path: 'riskScore',
+        },
+        descriptionProp: {},
+      },
+
+      {
+        type: 'Base:Input',
+        formProp: {
+          path: 'ipHistory',
+          label: computed(() => t('app.base.ip')),
+        },
+        descriptionProp: {},
       },
     ],
-  },
-
-  schemas: [
-    {
-      type: 'Base:Input',
-      formProp: {
-        path: 'deviceId',
-      },
-      descriptionProp: {},
-    },
-
-    {
-      type: 'Base:Input',
-      formProp: {
-        path: 'deviceName',
-      },
-      descriptionProp: {
-        span: 1,
-      },
-    },
-
-    {
-      type: 'Base:Input',
-      formProp: {
-        path: 'active',
-        label: computed(() => t('app.base.status')),
-      },
-      descriptionProp: {
-        type: 'tag',
-        formatter: (_, formData) => formData?.active ? t('app.base.online') : t('app.base.offline'),
-        typeProps: {
-          type: computed(() => detailFormData.value?.active ? 'success' : 'default'),
-        },
-      },
-    },
-
-    {
-      type: 'Base:Input',
-      formProp: {
-        path: 'deviceInfo',
-        label: computed(() => t('app.base.deviceInfo')),
-      },
-      descriptionProp: {
-        type: 'json',
-        typeProps: {
-          height: '160px',
-        },
-      },
-    },
-
-    {
-      type: 'Base:Input',
-      formProp: {
-        path: 'hardwareInfo',
-        label: computed(() => t('app.base.hardwareInfo')),
-      },
-      descriptionProp: {
-        span: 1,
-        type: 'json',
-        typeProps: {
-          height: '120px',
-        },
-      },
-    },
-
-    {
-      type: 'Base:Input',
-      formProp: {
-        path: 'locationInfo',
-        label: computed(() => t('app.base.locationInfo')),
-      },
-      descriptionProp: {
-        span: 1,
-        type: 'json',
-        typeProps: {
-          height: '120px',
-        },
-      },
-    },
-
-    {
-      type: 'Base:Input',
-      formProp: {
-        path: 'sr',
-      },
-      descriptionProp: {
-        span: 1,
-        type: 'json',
-        typeProps: {
-          height: '100px',
-        },
-      },
-    },
-
-    {
-      type: 'Base:Input',
-      formProp: {
-        path: 'vp',
-      },
-      descriptionProp: {
-        span: 1,
-        type: 'json',
-        typeProps: {
-          height: '100px',
-        },
-      },
-    },
-
-    {
-      type: 'Base:Input',
-      formProp: {
-        path: 'geoLocation',
-        label: computed(() => t('app.base.lngLat')),
-      },
-      descriptionProp: {
-        formatter: (_, formData) => formData?.geoLocation?.coordinates?.join(',') as string,
-      },
-    },
-
-    {
-      type: 'Base:Input',
-      formProp: {
-        path: 'riskScore',
-      },
-      descriptionProp: {},
-    },
-
-    {
-      type: 'Base:Input',
-      formProp: {
-        path: 'ipHistory',
-        label: computed(() => t('app.base.ip')),
-      },
-      descriptionProp: {},
-    },
-  ],
-})
+  })
 async function onDetail(id?: string) {
   const res = await deviceAPI.read(id!)
   detailFormData.value = res

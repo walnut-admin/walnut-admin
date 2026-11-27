@@ -28,7 +28,7 @@ const cacheKeyA = `MONITOR:APISPEC:${seed8}:A`
 const cacheKeyB = `MONITOR:APISPEC:${seed8}:B`
 
 interface CacheListData {
-  data: Array<{ key: string, type: string, valueBytes: number }>
+  data: Array<{ key: string; type: string; valueBytes: number }>
   total: number
 }
 
@@ -51,7 +51,7 @@ describe('B 段：app/monitor/cache + monitor/server（真实 HTTP 全链 + 真�
       if (!(await api.hasWalnutCacheKey(key))) {
         return
       }
-      await new Promise(resolve => setTimeout(resolve, 50))
+      await new Promise((resolve) => setTimeout(resolve, 50))
     }
     expect(await api.hasWalnutCacheKey(key)).toBe(false)
   }
@@ -81,14 +81,21 @@ describe('B 段：app/monitor/cache + monitor/server（真实 HTTP 全链 + 真�
   })
 
   it('cache read → 20000，value 是缓存真实值（P2-4 补 await）；缺失键 value=null', async () => {
-    await cacheService.set(cacheKeyA, { hello: 'walnut' }, { t: WalnutAdminConstAppCacheType.SHARED, ttl: 3600 })
+    await cacheService.set(
+      cacheKeyA,
+      { hello: 'walnut' },
+      { t: WalnutAdminConstAppCacheType.SHARED, ttl: 3600 },
+    )
 
     const res = await api.root('GET', api.apiPath(`/app/monitor/cache/${cacheKeyA}`))
     expectOk(res, 'monitor cache read')
     // controller 返回 { value: await get(key) }
     expect(bodyOf<{ value: unknown }>(res).data).toEqual({ value: { hello: 'walnut' } })
 
-    const missing = await api.root('GET', api.apiPath(`/app/monitor/cache/MONITOR:APISPEC:${seed8}:NONE`))
+    const missing = await api.root(
+      'GET',
+      api.apiPath(`/app/monitor/cache/MONITOR:APISPEC:${seed8}:NONE`),
+    )
     expectOk(missing, 'monitor cache read missing key')
     expect(bodyOf<{ value: unknown }>(missing).data).toEqual({ value: null })
   })
@@ -122,33 +129,49 @@ describe('B 段：app/monitor/cache + monitor/server（真实 HTTP 全链 + 真�
   })
 
   it('server 八个只读端点 → 20000，形状非空', async () => {
-    const cpu = bodyOf<{ cores: number, brand: string }>(await api.root('GET', api.apiPath('/app/monitor/server/cpu'))).data
+    const cpu = bodyOf<{ cores: number; brand: string }>(
+      await api.root('GET', api.apiPath('/app/monitor/server/cpu')),
+    ).data
     expect(cpu.cores).toBeGreaterThan(0)
     expect(cpu.brand.length).toBeGreaterThan(0)
 
     // mem 走 @TransformSizeToGB —— 出参是 'x.xx GB' 字符串（钉现状）
-    const mem = bodyOf<{ total: string, free: string }>(await api.root('GET', api.apiPath('/app/monitor/server/mem'))).data
+    const mem = bodyOf<{ total: string; free: string }>(
+      await api.root('GET', api.apiPath('/app/monitor/server/mem')),
+    ).data
     expect(Number.parseFloat(mem.total)).toBeGreaterThan(0)
     expect(Number.parseFloat(mem.free)).toBeGreaterThanOrEqual(0)
     expect(mem.total).toMatch(/ GB$/)
 
-    const os = bodyOf<{ hostname: string, platform: string }>(await api.root('GET', api.apiPath('/app/monitor/server/os'))).data
+    const os = bodyOf<{ hostname: string; platform: string }>(
+      await api.root('GET', api.apiPath('/app/monitor/server/os')),
+    ).data
     expect(os.hostname.length).toBeGreaterThan(0)
     expect(os.platform.length).toBeGreaterThan(0)
 
-    const sys = bodyOf<Record<string, unknown>>(await api.root('GET', api.apiPath('/app/monitor/server/sys'))).data
+    const sys = bodyOf<Record<string, unknown>>(
+      await api.root('GET', api.apiPath('/app/monitor/server/sys')),
+    ).data
     expect(Object.keys(sys)).toContain('manufacturer')
 
-    const disk = bodyOf<Array<{ name: string, size: number }>>(await api.root('GET', api.apiPath('/app/monitor/server/disk'))).data
+    const disk = bodyOf<Array<{ name: string; size: number }>>(
+      await api.root('GET', api.apiPath('/app/monitor/server/disk')),
+    ).data
     expect(Array.isArray(disk)).toBe(true)
 
-    const battery = bodyOf<Record<string, unknown>>(await api.root('GET', api.apiPath('/app/monitor/server/battery'))).data
+    const battery = bodyOf<Record<string, unknown>>(
+      await api.root('GET', api.apiPath('/app/monitor/server/battery')),
+    ).data
     expect(battery).toBeTypeOf('object')
 
-    const time = bodyOf<Record<string, unknown>>(await api.root('GET', api.apiPath('/app/monitor/server/time'))).data
+    const time = bodyOf<Record<string, unknown>>(
+      await api.root('GET', api.apiPath('/app/monitor/server/time')),
+    ).data
     expect(Object.keys(time).length).toBeGreaterThan(0)
 
-    const network = bodyOf<{ iface?: string }>(await api.root('GET', api.apiPath('/app/monitor/server/network'))).data
+    const network = bodyOf<{ iface?: string }>(
+      await api.root('GET', api.apiPath('/app/monitor/server/network')),
+    ).data
     expect(network).toBeTypeOf('object')
   })
 
@@ -159,7 +182,11 @@ describe('B 段：app/monitor/cache + monitor/server（真实 HTTP 全链 + 真�
 
   it('cache clear → 20000：shared 键被清、AUTH 类型（MFA verified）豁免', async () => {
     // 重造一个 shared 键再 clear（read/delete 用例的键已删，保证 clear 真有目标）
-    await cacheService.set(cacheKeyB, { bye: 'walnut' }, { t: WalnutAdminConstAppCacheType.SHARED, ttl: 3600 })
+    await cacheService.set(
+      cacheKeyB,
+      { bye: 'walnut' },
+      { t: WalnutAdminConstAppCacheType.SHARED, ttl: 3600 },
+    )
     expect(await api.hasWalnutCacheKey(cacheKeyB)).toBe(true)
 
     const res = await api.root('DELETE', api.apiPath('/app/monitor/cache/clear'))

@@ -6,11 +6,7 @@ import { expressCspHeader, NONE, SELF } from 'express-csp-header'
 export class CSPMiddleware implements NestMiddleware {
   constructor() {}
 
-  use(
-    req: IWalnutAdminExpressRequest,
-    res: IWalnutAdminExpressResponse,
-    next: NextFunction,
-  ) {
+  use(req: IWalnutAdminExpressRequest, res: IWalnutAdminExpressResponse, next: NextFunction) {
     expressCspHeader({
       directives: {
         // Default source, only allow loading resources from the current origin

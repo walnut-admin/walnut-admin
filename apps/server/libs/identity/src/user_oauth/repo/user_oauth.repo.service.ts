@@ -20,7 +20,7 @@ export class SysUserOAuthRepositoryService {
   constructor(
     @InjectDataSource(WalnutPGConnectionName)
     private readonly dataSource: DataSource,
-  ) { }
+  ) {}
 
   private getManager(em?: EntityManager) {
     return em ?? this.dataSource.manager
@@ -33,11 +33,7 @@ export class SysUserOAuthRepositoryService {
   /**
    * @description find oauth binding by provider and provider id
    */
-  async findByProviderAndProviderId(
-    provider: string,
-    providerId: string,
-    em?: EntityManager,
-  ) {
+  async findByProviderAndProviderId(provider: string, providerId: string, em?: EntityManager) {
     return this.getRepository(em).findOne({ where: { provider, providerId } })
   }
 

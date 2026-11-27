@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+} from '@walnut-server/const/app/cache'
 import { WalnutAdminExceptionRsaPubKeyNotFound } from '@walnut-server/exceptions/business/rsa'
 import { isNil } from 'lodash'
 import { AppTechCacheService } from '../cache.service'
@@ -12,7 +15,11 @@ export class AppTechCacheRsaService {
 
   async setRsaPubKeyCache(deviceId: string, payload: string) {
     this.logger.debug(`set rsa pub key cache, deviceId: ${deviceId}, payload: ${payload}`)
-    await this.cacheService.set(`${WalnutAdminConstAppCacheKeys.SECURITY_RSA_PUB_KEY}:${deviceId}`, payload, { t: WalnutAdminConstAppCacheType.AUTH, ttl: 30 * 24 * 3600 })
+    await this.cacheService.set(
+      `${WalnutAdminConstAppCacheKeys.SECURITY_RSA_PUB_KEY}:${deviceId}`,
+      payload,
+      { t: WalnutAdminConstAppCacheType.AUTH, ttl: 30 * 24 * 3600 },
+    )
   }
 
   async getRsaPubKeyCache(deviceId: string) {
@@ -43,7 +50,9 @@ export class AppTechCacheRsaService {
    * 需要「缺失即错误」的地方（响应加密、已签名请求的守卫校验）继续用 get 版。
    */
   async findRsaPubKeyCache(deviceId: string): Promise<string | null> {
-    const cached = await this.cacheService.get<string>(`${WalnutAdminConstAppCacheKeys.SECURITY_RSA_PUB_KEY}:${deviceId}`)
+    const cached = await this.cacheService.get<string>(
+      `${WalnutAdminConstAppCacheKeys.SECURITY_RSA_PUB_KEY}:${deviceId}`,
+    )
     return isNil(cached) ? null : cached
   }
 }

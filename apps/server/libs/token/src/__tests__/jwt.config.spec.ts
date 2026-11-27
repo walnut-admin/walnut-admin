@@ -28,7 +28,7 @@ function createJwtService() {
 }
 
 describe('jwtConfigClass：验签算法钉死 HS256（F-42）', () => {
-  it('verifyOptions.algorithms === [\'HS256\']，且 ignoreExpiration 未被放宽', () => {
+  it("verifyOptions.algorithms === ['HS256']，且 ignoreExpiration 未被放宽", () => {
     const { options } = createJwtService()
 
     expect(options.verifyOptions).toEqual({ algorithms: ['HS256'] })
@@ -46,9 +46,9 @@ describe('jwtConfigClass：验签算法钉死 HS256（F-42）', () => {
     const { jwtService } = createJwtService()
     const token = await jwtService.signAsync({ userId: 'spec-user' })
 
-    await expect(jwtService.verifyAsync(token, { ignoreExpiration: false }))
-      .resolves
-      .toMatchObject({ userId: 'spec-user' })
+    await expect(jwtService.verifyAsync(token, { ignoreExpiration: false })).resolves.toMatchObject(
+      { userId: 'spec-user' },
+    )
   })
 
   it('同一 secret、HS512 签发的 token → 验签失败（算法白名单生效）', async () => {
@@ -58,9 +58,9 @@ describe('jwtConfigClass：验签算法钉死 HS256（F-42）', () => {
       { secret: ACCESS_SECRET, algorithm: 'HS512' },
     )
 
-    await expect(jwtService.verifyAsync(hs512, { secret: ACCESS_SECRET, ignoreExpiration: false }))
-      .rejects
-      .toThrow(/invalid algorithm/i)
+    await expect(
+      jwtService.verifyAsync(hs512, { secret: ACCESS_SECRET, ignoreExpiration: false }),
+    ).rejects.toThrow(/invalid algorithm/i)
   })
 
   it('对照：不带 verifyOptions 的裸 JwtService 会接受同一枚 HS512 token（拒绝确来自本文件）', async () => {

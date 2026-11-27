@@ -92,7 +92,12 @@ describe('B 段：app/key current/init/rotate（真实 HTTP 全链 + rotate 事�
       status: 'ACTIVE',
       validStart: new Date(),
       validEnd: new Date(Date.now() + 30 * 24 * 3600 * 1000),
-      meta: { publicKeyPem: pair.publicKey, privateKeyPem: pair.privateKey, bits: 2048, cipher: 'AES-256-GCM' },
+      meta: {
+        publicKeyPem: pair.publicKey,
+        privateKeyPem: pair.privateKey,
+        bits: 2048,
+        cipher: 'AES-256-GCM',
+      },
     })
   })
 
@@ -122,7 +127,9 @@ describe('B 段：app/key current/init/rotate（真实 HTTP 全链 + rotate 事�
     expect(data).not.toHaveProperty('privateKeyPem')
 
     // 服务端内部通道仍持有私钥（security/rsa 请求解密走实体 meta）
-    const row = await api.pgDataSource.getRepository(AppKeyEntity).findOne({ where: { id: seededRsa!.id } })
+    const row = await api.pgDataSource
+      .getRepository(AppKeyEntity)
+      .findOne({ where: { id: seededRsa!.id } })
     expect(row?.meta?.privateKeyPem).toContain('BEGIN PRIVATE KEY')
   })
 
@@ -195,6 +202,8 @@ describe('B 段：app/key current/init/rotate（真实 HTTP 全链 + rotate 事�
     expect(bodyOf(badType).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
 
     const anonRes = await api.anon('GET', api.apiPath('/app/key/current/RSA_PAIR'))
-    expect(bodyOf(anonRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+    expect(bodyOf(anonRes).code).toBe(
+      WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
+    )
   })
 })

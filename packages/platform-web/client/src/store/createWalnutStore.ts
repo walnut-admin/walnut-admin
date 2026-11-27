@@ -27,8 +27,7 @@ export function createWalnutStore<T extends object>(
   const useOutside = () => useInside(piniaInstance)
 
   return function useStore() {
-    if (getCurrentInstance())
-      return useInside()
+    if (getCurrentInstance()) return useInside()
     return useOutside()
   }
 }

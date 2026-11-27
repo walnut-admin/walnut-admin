@@ -1,10 +1,4 @@
-import {
-  CallHandler,
-  ExecutionContext,
-  Injectable,
-  Logger,
-  NestInterceptor,
-} from '@nestjs/common'
+import { CallHandler, ExecutionContext, Injectable, Logger, NestInterceptor } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 
@@ -23,7 +17,7 @@ export class WalnutAdminInterceptorResponseEncrypt implements NestInterceptor {
   constructor(
     private readonly reflector: Reflector,
     private readonly securityRsaService: SecurityRsaService,
-  ) { }
+  ) {}
 
   private async cryptoResponse<T>(
     request: IWalnutAdminExpressRequest,
@@ -45,7 +39,9 @@ export class WalnutAdminInterceptorResponseEncrypt implements NestInterceptor {
     const deviceId = getWalnutAdminCookie(request, WalnutAdminConstCookieKeys.DEVICE_ID)
     const fieldsArray = Array.isArray(fields) ? fields : [fields]
 
-    this.logger.log(`Encrypting response fields: ${fieldsArray.join(', ')} for device: ${deviceId?.substring(0, 8)}...`)
+    this.logger.log(
+      `Encrypting response fields: ${fieldsArray.join(', ')} for device: ${deviceId?.substring(0, 8)}...`,
+    )
 
     try {
       if (Array.isArray(fields)) {
@@ -71,20 +67,13 @@ export class WalnutAdminInterceptorResponseEncrypt implements NestInterceptor {
       )
       this.logger.log(`Successfully encrypted field: ${String(fields)}`)
       return Object.assign(omit(data, fields), { [fields as string]: cryptedValue })
-    }
-    catch (error) {
-      this.logger.error(
-        `Failed to encrypt response fields`,
-        error,
-      )
+    } catch (error) {
+      this.logger.error(`Failed to encrypt response fields`, error)
       throw error
     }
   }
 
-  async intercept(
-    context: ExecutionContext,
-    next: CallHandler,
-  ): Promise<Observable<Recordable>> {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<Recordable>> {
     const ctx = context.switchToHttp()
     const request = ctx.getRequest<IWalnutAdminExpressRequest>()
 

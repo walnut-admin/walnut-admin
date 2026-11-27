@@ -51,7 +51,7 @@ export class SysUserIdentityEntity {
   status: boolean
 
   // schema 注释明说「为未来预留的自由 JSON」→ jsonb 合理；DDL 默认 '{}'
-  @Column({ type: 'jsonb', name: 'metadata', default: () => '\'{}\'::jsonb' })
+  @Column({ type: 'jsonb', name: 'metadata', default: () => "'{}'::jsonb" })
   metadata: Record<string, unknown>
 
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })

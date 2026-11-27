@@ -23,12 +23,12 @@ interface ProfileRow {
   gender?: number
   avatar?: string | null
   roles_count?: number
-  roles_list?: Array<{ id: string, roleName?: string }>
+  roles_list?: Array<{ id: string; roleName?: string }>
 }
 
 interface SecurityTab2 {
-  totp: { status: boolean, verified: boolean }
-  webauthn: { status: boolean, verified: boolean }
+  totp: { status: boolean; verified: boolean }
+  webauthn: { status: boolean; verified: boolean }
 }
 
 describe('C 段：system/user/me profile + security-tab2（真实 HTTP 全链）', () => {

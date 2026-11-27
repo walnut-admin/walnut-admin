@@ -19,11 +19,7 @@ const containerRef = useTemplateRef<HTMLDivElement>('containerRef')
 let mergeView: MergeView | null = null
 
 const getConfig = computed((): DirectMergeConfig => {
-  const basicExtensions = [
-    basicSetup,
-    json(),
-    EditorState.readOnly.of(props.readOnly),
-  ]
+  const basicExtensions = [basicSetup, json(), EditorState.readOnly.of(props.readOnly)]
 
   if (isDark.value) {
     basicExtensions.push(oneDark)
@@ -32,16 +28,11 @@ const getConfig = computed((): DirectMergeConfig => {
   return {
     a: {
       doc: toJSONString(props.before),
-      extensions: [
-        ...basicExtensions,
-      ],
+      extensions: [...basicExtensions],
     },
     b: {
       doc: toJSONString(props.after),
-      extensions: [
-        ...basicExtensions,
-        EditorView.editable.of(!props.readOnly),
-      ],
+      extensions: [...basicExtensions, EditorView.editable.of(!props.readOnly)],
     },
     parent: containerRef.value!,
     revertControls: props.showRevertControls ? 'a-to-b' : undefined,
@@ -51,19 +42,16 @@ const getConfig = computed((): DirectMergeConfig => {
 })
 
 function toJSONString(value: string | Record<string, any>) {
-  if (typeof value === 'string')
-    return value
+  if (typeof value === 'string') return value
   try {
     return JSON.stringify(value, null, 2)
-  }
-  catch {
+  } catch {
     return '{}'
   }
 }
 
 function createView() {
-  if (!containerRef.value)
-    return
+  if (!containerRef.value) return
   if (mergeView) {
     mergeView.destroy()
     mergeView = null
@@ -90,9 +78,5 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div
-    ref="containerRef"
-    class=""
-    :style="{ height: `${height}px` }"
-  />
+  <div ref="containerRef" class="" :style="{ height: `${height}px` }" />
 </template>

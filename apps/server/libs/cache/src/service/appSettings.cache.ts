@@ -1,7 +1,27 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { IWalnutAdminConstAppSettingKeys, WalnutAdminConstAppCacheKeys, WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
+import {
+  IWalnutAdminConstAppSettingKeys,
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppSettingKeys,
+} from '@walnut-server/const/app/cache'
 import { WalnutAdminConstCapTtlDefaultSeconds } from '@walnut-server/const/app/cap'
-import { IWalnutAdminConstAppSettingAuthEmailKeys, IWalnutAdminConstAppSettingAuthOAuthGiteeKeys, IWalnutAdminConstAppSettingAuthOAuthGitHubKeys, IWalnutAdminConstAppSettingAuthOAuthGoogleKeys, IWalnutAdminConstAppSettingAuthOpaqueKeys, IWalnutAdminConstAppSettingAuthSmsKeys, IWalnutAdminConstAppSettingCapJSKeys, IWalnutAdminConstAppSettingCryptoHKDFKeys, IWalnutAdminConstAppSettingForceQuit, IWalnutAdminConstAppSettingFunctionalFrontendKeys, IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys, IWalnutAdminConstAppSettingFunctionalRoleKeys, IWalnutAdminConstAppSettingMfaKeys, WalnutAdminConstAppSettingForceQuitStrategy, WalnutAdminConstAppSettingScopeType } from '@walnut-server/const/app/setting'
+import {
+  IWalnutAdminConstAppSettingAuthEmailKeys,
+  IWalnutAdminConstAppSettingAuthOAuthGiteeKeys,
+  IWalnutAdminConstAppSettingAuthOAuthGitHubKeys,
+  IWalnutAdminConstAppSettingAuthOAuthGoogleKeys,
+  IWalnutAdminConstAppSettingAuthOpaqueKeys,
+  IWalnutAdminConstAppSettingAuthSmsKeys,
+  IWalnutAdminConstAppSettingCapJSKeys,
+  IWalnutAdminConstAppSettingCryptoHKDFKeys,
+  IWalnutAdminConstAppSettingForceQuit,
+  IWalnutAdminConstAppSettingFunctionalFrontendKeys,
+  IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys,
+  IWalnutAdminConstAppSettingFunctionalRoleKeys,
+  IWalnutAdminConstAppSettingMfaKeys,
+  WalnutAdminConstAppSettingForceQuitStrategy,
+  WalnutAdminConstAppSettingScopeType,
+} from '@walnut-server/const/app/setting'
 
 import { IWalnutAdminConstRoleMode, WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { Recordable } from 'easy-fns-ts'
@@ -11,7 +31,7 @@ import { AppTechCacheService } from '../cache.service'
 export class AppTechCacheAppSettingsService {
   private readonly logger = new Logger(AppTechCacheAppSettingsService.name)
 
-  constructor(private readonly cacheService: AppTechCacheService) { }
+  constructor(private readonly cacheService: AppTechCacheService) {}
 
   // ── L3 进程内 memo ────────────────────────────────────────────────────────
   // APP:SETTING 是「写极稀疏、读极高频」的配置小表缓存：functional.guard 每请求
@@ -50,11 +70,7 @@ export class AppTechCacheAppSettingsService {
   }
 
   async setAppSettings(value: any, opt: IWalnutAdminCacheOptions) {
-    await this.cacheService.set(
-      WalnutAdminConstAppCacheKeys.APP_SETTING,
-      value,
-      opt,
-    )
+    await this.cacheService.set(WalnutAdminConstAppCacheKeys.APP_SETTING, value, opt)
     // 写路径统一收口在这里 → 写后失效进程内 memo（同进程读立即见新值）
     this.invalidateAppSettingsMemo()
   }
@@ -77,10 +93,7 @@ export class AppTechCacheAppSettingsService {
     return cached!
   }
 
-  private async getSetting<T>(
-    key: IWalnutAdminConstAppSettingKeys,
-    defaultValue: T,
-  ): Promise<T> {
+  private async getSetting<T>(key: IWalnutAdminConstAppSettingKeys, defaultValue: T): Promise<T> {
     // 解析结果 memo 命中（成功解析过的 key 才会进 Map，用 has 而非 undefined 哨兵 ——
     // 值本身合法地可能是 null）
     if (this.settingMemo.has(key)) {
@@ -92,8 +105,7 @@ export class AppTechCacheAppSettingsService {
       const parsed = JSON.parse(appSetting[key as keyof typeof appSetting]) as T
       this.settingMemo.set(key, parsed)
       return parsed
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.error(error)
       return defaultValue
     }
@@ -110,7 +122,15 @@ export class AppTechCacheAppSettingsService {
     )
   }
 
-  private readonly defaultOSWhiteList: string[] = ['Mobile', 'Mac OS', 'Windows', 'UNIX', 'Linux', 'iOS', 'Android']
+  private readonly defaultOSWhiteList: string[] = [
+    'Mobile',
+    'Mac OS',
+    'Windows',
+    'UNIX',
+    'Linux',
+    'iOS',
+    'Android',
+  ]
   async getOSWhiteList(): Promise<string[]> {
     return this.getSetting(
       WalnutAdminConstAppSettingKeys.APP_GLOBAL_OS_WHITELIST,
@@ -118,7 +138,18 @@ export class AppTechCacheAppSettingsService {
     )
   }
 
-  private readonly defaultBrowserWhiteList: string[] = ['IE', 'Safari', 'Mobile Safari', 'Edge', 'Opera', 'Chrome', 'Mobile Chrome', 'Firefox', 'Samsung Browser', 'UCBrowser']
+  private readonly defaultBrowserWhiteList: string[] = [
+    'IE',
+    'Safari',
+    'Mobile Safari',
+    'Edge',
+    'Opera',
+    'Chrome',
+    'Mobile Chrome',
+    'Firefox',
+    'Samsung Browser',
+    'UCBrowser',
+  ]
   async getBrowserWhiteList(): Promise<string[]> {
     return this.getSetting(
       WalnutAdminConstAppSettingKeys.APP_GLOBAL_BROWSER_WHITELIST,
@@ -149,10 +180,7 @@ export class AppTechCacheAppSettingsService {
   }
 
   async getAuthMfaConfig(): Promise<IWalnutAdminConstAppSettingMfaKeys> {
-    return this.getSetting(
-      WalnutAdminConstAppSettingKeys.APP_AUTH_MFA,
-      this.defaultMfaConfig,
-    )
+    return this.getSetting(WalnutAdminConstAppSettingKeys.APP_AUTH_MFA, this.defaultMfaConfig)
   }
 
   private readonly defaultForceQuitConfig: IWalnutAdminConstAppSettingForceQuit = {
@@ -188,10 +216,7 @@ export class AppTechCacheAppSettingsService {
   }
 
   async getAuthEmailConfig(): Promise<IWalnutAdminConstAppSettingAuthEmailKeys> {
-    return this.getSetting(
-      WalnutAdminConstAppSettingKeys.APP_AUTH_EMAIL,
-      this.defaultEmailConfig,
-    )
+    return this.getSetting(WalnutAdminConstAppSettingKeys.APP_AUTH_EMAIL, this.defaultEmailConfig)
   }
 
   private readonly defaultSmsConfig: IWalnutAdminConstAppSettingAuthSmsKeys = {
@@ -205,10 +230,7 @@ export class AppTechCacheAppSettingsService {
   }
 
   async getAuthSmsConfig(): Promise<IWalnutAdminConstAppSettingAuthSmsKeys> {
-    return this.getSetting(
-      WalnutAdminConstAppSettingKeys.APP_AUTH_PHONE,
-      this.defaultSmsConfig,
-    )
+    return this.getSetting(WalnutAdminConstAppSettingKeys.APP_AUTH_PHONE, this.defaultSmsConfig)
   }
 
   private readonly defaultGoogleConfig: IWalnutAdminConstAppSettingAuthOAuthGoogleKeys = {
@@ -217,10 +239,7 @@ export class AppTechCacheAppSettingsService {
   }
 
   async getAuthOAuthGoogleConfig(): Promise<IWalnutAdminConstAppSettingAuthOAuthGoogleKeys> {
-    return this.getSetting(
-      WalnutAdminConstAppSettingKeys.APP_AUTH_GOOGLE,
-      this.defaultGoogleConfig,
-    )
+    return this.getSetting(WalnutAdminConstAppSettingKeys.APP_AUTH_GOOGLE, this.defaultGoogleConfig)
   }
 
   private readonly defaultOpaqueConfig: IWalnutAdminConstAppSettingAuthOpaqueKeys = {
@@ -231,10 +250,7 @@ export class AppTechCacheAppSettingsService {
   }
 
   async getAuthOpaqueConfig(): Promise<IWalnutAdminConstAppSettingAuthOpaqueKeys> {
-    return this.getSetting(
-      WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE,
-      this.defaultOpaqueConfig,
-    )
+    return this.getSetting(WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE, this.defaultOpaqueConfig)
   }
 
   private readonly defaultOAuthGitHubConfig: IWalnutAdminConstAppSettingAuthOAuthGitHubKeys = {
@@ -261,90 +277,106 @@ export class AppTechCacheAppSettingsService {
     )
   }
 
-  private readonly defaultFunctionalRole: IWalnutAdminConstAppSettingFunctionalRoleKeys<IWalnutAdminConstRoleMode> = {
-    scope: WalnutAdminConstAppSettingScopeType.GLOBAL,
-    // P2-9（2026-10-28）：零配置默认从 switchable 改为 combinable —— GLOBAL scope 下
-    // scopeResolver 恒取 globalValue，旧默认让用户行上的 role_mode='combinable' 被完全
-    // 无视（COMBINE 用户的非 current 角色权限静默不可用）。改为 combinable 后，默认部署
-    // 即合并用户全部角色；scope 语义不变（LOCAL 分支仍读用户自身 roleMode）。
-    globalValue: WalnutAdminConstRoleMode.COMBINE,
-    localKey: 'roleMode',
-    // B7a：visitor role 的 v5 uuid（ETL namespace 派生自原 hex 5fb27aee3a30b717d8078eb5，
-    // 派生规则见 tooling/scripts/src/db/uuid5.ts；B5 订正脚本把 setting 值统一成
-    // uuid 后，缺省兜底也必须是 uuid —— PG 侧 current_role_id / sys_user_role.role_id
-    // 是 uuid 列，hex 兜底会让默认链路插入直接炸）
-    defaultRole: 'd6e8ca57-1faf-56d7-b090-9ff0c0b78ce6',
-  }
+  private readonly defaultFunctionalRole: IWalnutAdminConstAppSettingFunctionalRoleKeys<IWalnutAdminConstRoleMode> =
+    {
+      scope: WalnutAdminConstAppSettingScopeType.GLOBAL,
+      // P2-9（2026-10-28）：零配置默认从 switchable 改为 combinable —— GLOBAL scope 下
+      // scopeResolver 恒取 globalValue，旧默认让用户行上的 role_mode='combinable' 被完全
+      // 无视（COMBINE 用户的非 current 角色权限静默不可用）。改为 combinable 后，默认部署
+      // 即合并用户全部角色；scope 语义不变（LOCAL 分支仍读用户自身 roleMode）。
+      globalValue: WalnutAdminConstRoleMode.COMBINE,
+      localKey: 'roleMode',
+      // B7a：visitor role 的 v5 uuid（ETL namespace 派生自原 hex 5fb27aee3a30b717d8078eb5，
+      // 派生规则见 tooling/scripts/src/db/uuid5.ts；B5 订正脚本把 setting 值统一成
+      // uuid 后，缺省兜底也必须是 uuid —— PG 侧 current_role_id / sys_user_role.role_id
+      // 是 uuid 列，hex 兜底会让默认链路插入直接炸）
+      defaultRole: 'd6e8ca57-1faf-56d7-b090-9ff0c0b78ce6',
+    }
 
-  async getFunctionalRole(): Promise<IWalnutAdminConstAppSettingFunctionalRoleKeys<IWalnutAdminConstRoleMode>> {
+  async getFunctionalRole(): Promise<
+    IWalnutAdminConstAppSettingFunctionalRoleKeys<IWalnutAdminConstRoleMode>
+  > {
     return this.getSetting(
       WalnutAdminConstAppSettingKeys.APP_FUNCTIONAL_ROLE,
       this.defaultFunctionalRole,
     )
   }
 
-  private readonly defaultFunctionalFrontMaskUrl: IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys<boolean> = {
-    status: true,
-    scope: WalnutAdminConstAppSettingScopeType.GLOBAL,
-    globalValue: true,
-    localKey: 'maskUrl',
-  }
+  private readonly defaultFunctionalFrontMaskUrl: IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys<boolean> =
+    {
+      status: true,
+      scope: WalnutAdminConstAppSettingScopeType.GLOBAL,
+      globalValue: true,
+      localKey: 'maskUrl',
+    }
 
-  async getFunctionalFrontMaskUrl(): Promise<IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys<boolean>> {
+  async getFunctionalFrontMaskUrl(): Promise<
+    IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys<boolean>
+  > {
     return this.getSetting(
       WalnutAdminConstAppSettingKeys.APP_FUNCTIONAL_FRONT_MASK_URL,
       this.defaultFunctionalFrontMaskUrl,
     )
   }
 
-  private readonly defaultFunctionalFrontHijackRefresh: IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys<boolean> = {
-    status: true,
-    scope: WalnutAdminConstAppSettingScopeType.GLOBAL,
-    globalValue: true,
-    localKey: 'hijackRefresh',
-  }
+  private readonly defaultFunctionalFrontHijackRefresh: IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys<boolean> =
+    {
+      status: true,
+      scope: WalnutAdminConstAppSettingScopeType.GLOBAL,
+      globalValue: true,
+      localKey: 'hijackRefresh',
+    }
 
-  async getFunctionalFrontHijackRefresh(): Promise<IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys<boolean>> {
+  async getFunctionalFrontHijackRefresh(): Promise<
+    IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys<boolean>
+  > {
     return this.getSetting(
       WalnutAdminConstAppSettingKeys.APP_FUNCTIONAL_FRONT_HIJACK_REFRESH,
       this.defaultFunctionalFrontHijackRefresh,
     )
   }
 
-  private readonly defaultFunctionalFrontWatermark: IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys<Recordable> = {
-    status: true,
-    scope: WalnutAdminConstAppSettingScopeType.GLOBAL,
-    globalValue: {},
-    localKey: 'watermark',
-  }
+  private readonly defaultFunctionalFrontWatermark: IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys<Recordable> =
+    {
+      status: true,
+      scope: WalnutAdminConstAppSettingScopeType.GLOBAL,
+      globalValue: {},
+      localKey: 'watermark',
+    }
 
-  async getFunctionalFrontWatermark(): Promise<IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys<Recordable>> {
+  async getFunctionalFrontWatermark(): Promise<
+    IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys<Recordable>
+  > {
     return this.getSetting(
       WalnutAdminConstAppSettingKeys.APP_FUNCTIONAL_FRONT_WATERMARK,
       this.defaultFunctionalFrontWatermark,
     )
   }
 
-  private readonly defaultFunctionalFrontTransition: IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys<string> = {
-    status: true,
-    scope: WalnutAdminConstAppSettingScopeType.GLOBAL,
-    globalValue: 'fade',
-    localKey: 'transition',
-  }
+  private readonly defaultFunctionalFrontTransition: IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys<string> =
+    {
+      status: true,
+      scope: WalnutAdminConstAppSettingScopeType.GLOBAL,
+      globalValue: 'fade',
+      localKey: 'transition',
+    }
 
-  async getFunctionalFrontTransition(): Promise<IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys<string>> {
+  async getFunctionalFrontTransition(): Promise<
+    IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys<string>
+  > {
     return this.getSetting(
       WalnutAdminConstAppSettingKeys.APP_FUNCTIONAL_FRONT_TRANSITION,
       this.defaultFunctionalFrontTransition,
     )
   }
 
-  private readonly defaultFunctionalPureFrontend: IWalnutAdminConstAppSettingFunctionalFrontendKeys = {
-    fullScreen: 0,
-    search: 0,
-    dark: 0,
-    locale: 0,
-  }
+  private readonly defaultFunctionalPureFrontend: IWalnutAdminConstAppSettingFunctionalFrontendKeys =
+    {
+      fullScreen: 0,
+      search: 0,
+      dark: 0,
+      locale: 0,
+    }
 
   async getFunctionalFrontend(): Promise<IWalnutAdminConstAppSettingFunctionalFrontendKeys> {
     return this.getSetting(

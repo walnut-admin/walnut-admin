@@ -17,26 +17,21 @@ const useAppStoreUserPermissionInside = defineStore(StoreKeys.USER_PERMISSION, {
     },
 
     deletePermission(payload?: string) {
-      if (!payload)
-        return true
+      if (!payload) return true
 
-      const index = this.permissions.findIndex(i => i === payload)
+      const index = this.permissions.findIndex((i) => i === payload)
       this.permissions.splice(index, 1)
     },
 
     togglePermission(payload?: string) {
-      if (!payload)
-        return true
+      if (!payload) return true
 
-      if (this.hasPermission(payload))
-        this.deletePermission(payload)
-      else
-        this.permissions.push(payload)
+      if (this.hasPermission(payload)) this.deletePermission(payload)
+      else this.permissions.push(payload)
     },
 
     hasPermission(payload: string) {
-      if (!payload)
-        return false
+      if (!payload) return false
 
       return this.permissions.includes(payload)
     },
@@ -48,7 +43,6 @@ function useAppStoreUserPermissionOutside() {
 }
 
 export function useAppStoreUserPermission() {
-  if (getCurrentInstance())
-    return useAppStoreUserPermissionInside()
+  if (getCurrentInstance()) return useAppStoreUserPermissionInside()
   return useAppStoreUserPermissionOutside()
 }

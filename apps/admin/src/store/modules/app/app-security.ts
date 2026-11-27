@@ -20,11 +20,20 @@ import { StoreKeys } from '../../constant'
 import { store } from '../../pinia'
 
 // eslint-disable-next-line antfu/no-top-level-await
-const clientRsaPubKeyStorage = await useAppStorageAsync(AppConstPersistKey.RSA_PUBLIC_KEY, '', { expire: 30 * 24 * 60 * 60 * 1000, storage: enhancedAesGcmLocalStorage(true) })
+const clientRsaPubKeyStorage = await useAppStorageAsync(AppConstPersistKey.RSA_PUBLIC_KEY, '', {
+  expire: 30 * 24 * 60 * 60 * 1000,
+  storage: enhancedAesGcmLocalStorage(true),
+})
 // eslint-disable-next-line antfu/no-top-level-await
-const clientRsaPrivKeyStorage = await useAppStorageAsync(AppConstPersistKey.RSA_PRIVATE_KEY, '', { expire: 30 * 24 * 60 * 60 * 1000, storage: enhancedAesGcmLocalStorage(true) })
+const clientRsaPrivKeyStorage = await useAppStorageAsync(AppConstPersistKey.RSA_PRIVATE_KEY, '', {
+  expire: 30 * 24 * 60 * 60 * 1000,
+  storage: enhancedAesGcmLocalStorage(true),
+})
 // eslint-disable-next-line antfu/no-top-level-await
-const sessionKeyStorage = await useAppStorageAsync(AppConstPersistKey.AUTH_SESSION_KEY, '', { expire: 24 * 60 * 60 * 1000, ttlMode: 'sliding' })
+const sessionKeyStorage = await useAppStorageAsync(AppConstPersistKey.AUTH_SESSION_KEY, '', {
+  expire: 24 * 60 * 60 * 1000,
+  ttlMode: 'sliding',
+})
 
 const rsaPubKeyOutDatedQueue = new SingletonPromise<void>()
 
@@ -145,11 +154,7 @@ const useAppStoreSecurityInside = defineStore(StoreKeys.APP_SECURITY, {
      * 格式: METHOD|PATH|BODY_PARAMS|timestamp=xxx|nonce=xxx|ua=xxx
      * 与服务端验证侧同一纯函数 `@walnut/utils/sign-raw`（逐字节同源）。
      */
-    buildSignRaw(
-      config: AxiosRequestConfig,
-      timestamp: number,
-      nonce: string,
-    ) {
+    buildSignRaw(config: AxiosRequestConfig, timestamp: number, nonce: string) {
       const ua = navigator.userAgent
 
       // fix request again would cause sign `config.data` error
@@ -157,9 +162,7 @@ const useAppStoreSecurityInside = defineStore(StoreKeys.APP_SECURITY, {
 
       // need to manually put the query string params after url（与真正发出的 query 字节一致）
       const cleanParams = omitBy(config.params, isUndefined)
-      const paramsStr = Object.keys(cleanParams).length
-        ? AxiosQsParamsSerializer(cleanParams)
-        : ''
+      const paramsStr = Object.keys(cleanParams).length ? AxiosQsParamsSerializer(cleanParams) : ''
 
       // config.url 理论上可能自带 query（如 logger 的 ?page=N）：先拆开，
       // 与 params 序列化结果合并，避免「path 含 ? 又拼 query」的双 ? 签名错位
@@ -232,9 +235,13 @@ const useAppStoreSecurityInside = defineStore(StoreKeys.APP_SECURITY, {
 
       if (sessionKey) {
         // 【已登录】双因子签名
-        signature = await this.computeDualFactorSignature(raw, sessionKey, aesKey, this.getSignHKDFInfo)
-      }
-      else {
+        signature = await this.computeDualFactorSignature(
+          raw,
+          sessionKey,
+          aesKey,
+          this.getSignHKDFInfo,
+        )
+      } else {
         // 【未登录】单因子签名
         signature = await this.computeSingleFactorSignature(raw, aesKey)
       }
@@ -247,7 +254,6 @@ const useAppStoreSecurityInside = defineStore(StoreKeys.APP_SECURITY, {
 const useAppStoreSecurityOutside = () => useAppStoreSecurityInside(store)
 
 export function useAppStoreSecurity() {
-  if (getCurrentInstance())
-    return useAppStoreSecurityInside()
+  if (getCurrentInstance()) return useAppStoreSecurityInside()
   return useAppStoreSecurityOutside()
 }

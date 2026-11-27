@@ -20,10 +20,19 @@ import type { ReleaseState } from './state.ts'
 import type { ReleaseUi } from './ui.ts'
 import process from 'node:process'
 import { ChildRunError, runArgs, runSync, streamOutput } from '@walnut/scripts/lib/child-run'
-import { KILL_GRACE_MS, killActiveChild, waitForActiveChildExit } from '@walnut/scripts/lib/child-tree'
+import {
+  KILL_GRACE_MS,
+  killActiveChild,
+  waitForActiveChildExit,
+} from '@walnut/scripts/lib/child-tree'
 import { resolveCommandArgv } from '@walnut/scripts/lib/commands'
 import { PreconditionError } from '@walnut/scripts/lib/errors'
-import { branchBehind, currentBranch, gitRemoteUrl, trackedDirtyFiles } from '@walnut/scripts/lib/git'
+import {
+  branchBehind,
+  currentBranch,
+  gitRemoteUrl,
+  trackedDirtyFiles,
+} from '@walnut/scripts/lib/git'
 import { frame, writeOut } from '@walnut/scripts/lib/log'
 import { getPnpmBin } from '@walnut/scripts/lib/pnpm-launcher'
 import { askSecret, isInteractive, question } from '@walnut/scripts/lib/prompt'
@@ -42,8 +51,19 @@ import { writeReleaseNotes } from './notes.ts'
 import { describeStep, formatStepHeader, isBumped, planRelease } from './plan.ts'
 import { abortHintLines, dryRunGenerateLines, statusLines } from './report.ts'
 import { clearState, readState, setStateDryRun, writeState } from './state.ts'
-import { confirmSummary, releaseBatteryCount, releaseBatterySkippedCount, stepCommitTagPush } from './steps.ts'
-import { currentVersion, deleteConsumedIntents, intentsOfVersion, readIntents, unconsumedIntents } from './workspace.ts'
+import {
+  confirmSummary,
+  releaseBatteryCount,
+  releaseBatterySkippedCount,
+  stepCommitTagPush,
+} from './steps.ts'
+import {
+  currentVersion,
+  deleteConsumedIntents,
+  intentsOfVersion,
+  readIntents,
+  unconsumedIntents,
+} from './workspace.ts'
 
 // ── 常量与输出 ────────────────────────────────────────────────────────────
 
@@ -67,8 +87,7 @@ function banner(lines: string[]): void {
 }
 
 function emitJson(payload: Record<string, unknown>): void {
-  if (ARGS?.json)
-    writeOut(`${JSON.stringify(payload, null, 2)}\n`, false)
+  if (ARGS?.json) writeOut(`${JSON.stringify(payload, null, 2)}\n`, false)
 }
 
 function die(code: 1 | 2, msg: string): never {
@@ -81,8 +100,7 @@ function die(code: 1 | 2, msg: string): never {
 
 let cachedOutput: ReturnType<typeof streamOutput> | null = null
 function childOutput(): ReturnType<typeof streamOutput> {
-  if (!cachedOutput)
-    cachedOutput = streamOutput(Boolean(ARGS?.json))
+  if (!cachedOutput) cachedOutput = streamOutput(Boolean(ARGS?.json))
   return cachedOutput
 }
 
@@ -116,7 +134,9 @@ function stepHeader(step: ReleaseStep): void {
 /** 子进程心跳的标签：`[5/5] 提交版本变更 → … · <调用方给的 hint>` */
 function heartbeatLabel(hint?: string): string | undefined {
   const step = currentStep === null ? null : formatStepHeader(currentStep).replace(/^── /, '')
-  const parts = [step, hint].filter((part): part is string => part !== null && part !== undefined && part !== '')
+  const parts = [step, hint].filter(
+    (part): part is string => part !== null && part !== undefined && part !== '',
+  )
   return parts.length > 0 ? parts.join(' · ') : undefined
 }
 
@@ -131,11 +151,18 @@ const ui: ReleaseUi = {
   runPnpmStep: async (args, hint) => {
     // 电池里的 argv 写在**可执行的名字**上（`hooks:check` / `madge:check` / 保留的根脚本名），
     // 交给 pnpm 之前先经命令表解析 —— 表与逐字钉着它的用例都不必跟着根脚本瘦身改。
-    await runArgs(getPnpmBin(), resolveCommandArgv(args), childOptions({ hint: heartbeatLabel(hint) }))
+    await runArgs(
+      getPnpmBin(),
+      resolveCommandArgv(args),
+      childOptions({ hint: heartbeatLabel(hint) }),
+    )
   },
   execPnpmSync: (args) => {
     // 同步执行秒级命令（`pnpm change` 每个 commit 一次）：走同一个出口 ⇒ 同样剥凭据、同样 argv 直传
-    const result = runSync(getPnpmBin(), resolveCommandArgv(args), { cwd: REPO_ROOT, env: RELEASE_CHILD_ENV })
+    const result = runSync(getPnpmBin(), resolveCommandArgv(args), {
+      cwd: REPO_ROOT,
+      env: RELEASE_CHILD_ENV,
+    })
     return { code: result.code, stdout: result.stdout, stderr: result.stderr }
   },
   isInteractive,
@@ -160,7 +187,7 @@ function snapshotDirtyBaseline(): void {
 
 /** 本次运行**期间新出现**的无关改动 —— 拦截只看它（基线里就有的不拦） */
 function newlyUnrelatedChanges(): string[] {
-  return collectUnrelatedChanges().filter(file => !dirtyBaseline?.has(file))
+  return collectUnrelatedChanges().filter((file) => !dirtyBaseline?.has(file))
 }
 
 function collectFacts(args: ReleaseArgs, token: string | null): Promise<CollectedFacts> {
@@ -193,28 +220,35 @@ function saveState(input: {
 
 // ── 状态查询：--status / --plan ───────────────────────────────────────────
 
-function reportStatus(facts: CollectedFacts, plan: { step: ReleaseStep, reason: string, tag: string }, state: ReleaseState | null, planOnly: boolean): void {
-  banner(statusLines({
-    planOnly,
-    currentVersion: facts.currentVersion,
-    baseTag: facts.baseTag,
-    baseVersion: facts.baseVersion,
-    branch: facts.branch,
-    branchPushed: facts.branchPushed,
-    pendingIntents: facts.pendingIntents,
-    versionConsumed: facts.versionConsumed,
-    localTagExists: facts.localTagExists,
-    remoteTagExists: facts.remoteTagExists,
-    remoteReleaseExists: facts.remoteReleaseExists,
-    releaseChecked: facts.releaseChecked,
-    tag: plan.tag,
-    step: plan.step,
-    stepText: describeStep(plan.step),
-    reason: plan.reason,
-    unrelated: facts.unrelated,
-    groupMisaligned: facts.groupMisaligned,
-    state,
-  }))
+function reportStatus(
+  facts: CollectedFacts,
+  plan: { step: ReleaseStep; reason: string; tag: string },
+  state: ReleaseState | null,
+  planOnly: boolean,
+): void {
+  banner(
+    statusLines({
+      planOnly,
+      currentVersion: facts.currentVersion,
+      baseTag: facts.baseTag,
+      baseVersion: facts.baseVersion,
+      branch: facts.branch,
+      branchPushed: facts.branchPushed,
+      pendingIntents: facts.pendingIntents,
+      versionConsumed: facts.versionConsumed,
+      localTagExists: facts.localTagExists,
+      remoteTagExists: facts.remoteTagExists,
+      remoteReleaseExists: facts.remoteReleaseExists,
+      releaseChecked: facts.releaseChecked,
+      tag: plan.tag,
+      step: plan.step,
+      stepText: describeStep(plan.step),
+      reason: plan.reason,
+      unrelated: facts.unrelated,
+      groupMisaligned: facts.groupMisaligned,
+      state,
+    }),
+  )
   emitJson({
     ok: true,
     mode: planOnly ? 'plan' : 'status',
@@ -241,8 +275,7 @@ function reportStatus(facts: CollectedFacts, plan: { step: ReleaseStep, reason: 
 
 async function mainRelease(args: ReleaseArgs): Promise<void> {
   const branch = currentBranch()
-  if (branch !== 'main')
-    die(2, `只能在 main 分支执行发版，当前分支: ${branch}`)
+  if (branch !== 'main') die(2, `只能在 main 分支执行发版，当前分支: ${branch}`)
 
   // 记「开跑前工作区长什么样」：后面判定「无关改动」只认基线之外新冒出来的
   snapshotDirtyBaseline()
@@ -253,14 +286,17 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
   if (writesAnything) {
     if (token) {
       log(`GitHub token: ${maskToken(token)}（来自 ${source}）—— 仅用于 git-cliff 补 PR 号与作者`)
-    }
-    else if (args.requireGithubMeta) {
-      die(2, '给了 --require-github-meta 但没有 GITHUB_TOKEN / GH_TOKEN：无法补 PR 号/作者，按你的要求中止。'
-      + '给法：① 环境变量 GITHUB_TOKEN=<token>（或 GH_TOKEN）② --token <值>。去掉该 flag 就用降级渲染（只有 commit 链接）。')
-    }
-    else {
-      warn('未提供 GITHUB_TOKEN / GH_TOKEN：changelog 里只有 commit 链接，没有 PR 号/作者。'
-        + 'export GITHUB_TOKEN=<token> 可补齐（公开仓匿名也能查，但限流 60 次/小时）。')
+    } else if (args.requireGithubMeta) {
+      die(
+        2,
+        '给了 --require-github-meta 但没有 GITHUB_TOKEN / GH_TOKEN：无法补 PR 号/作者，按你的要求中止。' +
+          '给法：① 环境变量 GITHUB_TOKEN=<token>（或 GH_TOKEN）② --token <值>。去掉该 flag 就用降级渲染（只有 commit 链接）。',
+      )
+    } else {
+      warn(
+        '未提供 GITHUB_TOKEN / GH_TOKEN：changelog 里只有 commit 链接，没有 PR 号/作者。' +
+          'export GITHUB_TOKEN=<token> 可补齐（公开仓匿名也能查，但限流 60 次/小时）。',
+      )
     }
   }
 
@@ -281,8 +317,11 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
    */
   const behind = branchBehind(branch)
   if (behind > 0) {
-    die(2, `本地 ${branch} 落后上游 ${behind} 个提交：先 git pull 再发版。
-   为什么不能「发完再补」：你想发布的版本应该包含远端的改动，而不是在一个过时的基线上打 tag。`)
+    die(
+      2,
+      `本地 ${branch} 落后上游 ${behind} 个提交：先 git pull 再发版。
+   为什么不能「发完再补」：你想发布的版本应该包含远端的改动，而不是在一个过时的基线上打 tag。`,
+    )
   }
 
   /**
@@ -297,8 +336,11 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
       log(`   · 不在 v${facts.currentVersion}：${pkg}`)
     if (facts.groupMisaligned.length > 20)
       log(`   · … 另有 ${facts.groupMisaligned.length - 20} 个`)
-    die(2, `这是上次「消费意图」被中断留下的半升级状态（共 ${facts.groupMisaligned.length} 个包未对齐）。
-   修法：git checkout -- . 把改动全部还原，重跑 pnpm release（意图会按需重新生成）。`)
+    die(
+      2,
+      `这是上次「消费意图」被中断留下的半升级状态（共 ${facts.groupMisaligned.length} 个包未对齐）。
+   修法：git checkout -- . 把改动全部还原，重跑 pnpm release（意图会按需重新生成）。`,
+    )
   }
 
   /**
@@ -309,17 +351,27 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
    * 该重来 —— 让人看一眼比猜一次便宜。
    */
   if (isBumped(facts) && facts.pendingIntents > 0) {
-    die(2, `工作区版本已从 v${facts.baseVersion} 变成 v${facts.currentVersion}，但还剩 ${facts.pendingIntents} 个未消费意图。
+    die(
+      2,
+      `工作区版本已从 v${facts.baseVersion} 变成 v${facts.currentVersion}，但还剩 ${facts.pendingIntents} 个未消费意图。
    处置：① 这些意图已随 v${facts.currentVersion} 消费（只是文件没删干净）⇒ 删掉它们后重跑；
         ② 想重新来过 ⇒ git checkout -- . 回到基线后重跑。
-   刻意不自动选：在已 bump 的版本上再 bump 一档会打出一个错版本号的 tag。`)
+   刻意不自动选：在已 bump 的版本上再 bump 一档会打出一个错版本号的 tag。`,
+    )
   }
 
   // 阶梯说「已完成」：不提交、不打标、不推送，只报告
   if (plan.step === 'done') {
     reportStatus(facts, plan, readState(), false)
     log(`无需发版：${plan.reason}`)
-    emitJson({ ok: true, mode: 'release', released: false, version: facts.currentVersion, tag: plan.tag, reason: plan.reason })
+    emitJson({
+      ok: true,
+      mode: 'release',
+      released: false,
+      version: facts.currentVersion,
+      tag: plan.tag,
+      reason: plan.reason,
+    })
     return
   }
 
@@ -332,13 +384,14 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
    */
   if (!args.intentOnly && !args.dryRun && !isInteractive()) {
     const missing: string[] = []
-    if (!args.yes)
-      missing.push('--yes（确认总览后继续）')
-    if (!args.bump)
-      missing.push('--bump major|minor|patch（选定升级级别）')
+    if (!args.yes) missing.push('--yes（确认总览后继续）')
+    if (!args.bump) missing.push('--bump major|minor|patch（选定升级级别）')
     if (missing.length > 0) {
-      die(2, `非交互环境缺少必需参数：${missing.join('、')}
-   本次尚未改动任何文件；补上参数重跑即可。只想看计划用 --plan，想零写盘演练用 --dry-run。`)
+      die(
+        2,
+        `非交互环境缺少必需参数：${missing.join('、')}
+   本次尚未改动任何文件；补上参数重跑即可。只想看计划用 --plan，想零写盘演练用 --dry-run。`,
+      )
     }
   }
 
@@ -352,8 +405,15 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
     const outcome = await generateIntents(ui, { dryRun: args.dryRun, baseTag: facts.baseTag })
 
     if (args.intentOnly) {
-      log(`--intent-only：完成（生成 ${outcome.generated} 个，共 ${outcome.files.length} 个待消费意图）`)
-      emitJson({ ok: true, mode: 'intent-only', generated: outcome.generated, files: outcome.files })
+      log(
+        `--intent-only：完成（生成 ${outcome.generated} 个，共 ${outcome.files.length} 个待消费意图）`,
+      )
+      emitJson({
+        ok: true,
+        mode: 'intent-only',
+        generated: outcome.generated,
+        files: outcome.files,
+      })
       return
     }
 
@@ -368,13 +428,15 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
         log('（演练）渲染 changelog 与 Release 正文预览...')
         await ensureChangelogs(ui, { version: target, dryRun: true })
         await writeReleaseNotes(ui, { version: target, summaries: [], dryRun: true })
-        banner(dryRunGenerateLines({
-          generated: outcome.generated,
-          target,
-          bump: planned,
-          bumpOverridden: Boolean(args.bump),
-          batteryCount: releaseBatteryCount(),
-        }))
+        banner(
+          dryRunGenerateLines({
+            generated: outcome.generated,
+            target,
+            bump: planned,
+            bumpOverridden: Boolean(args.bump),
+            batteryCount: releaseBatteryCount(),
+          }),
+        )
         emitJson({
           ok: true,
           mode: 'release',
@@ -388,9 +450,14 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
         return
       }
       log('没有可生成的变更记录，无需发版')
-      if (!args.dryRun)
-        clearState()
-      emitJson({ ok: true, mode: 'release', version: facts.currentVersion, released: false, reason: '没有可生成的变更记录' })
+      if (!args.dryRun) clearState()
+      emitJson({
+        ok: true,
+        mode: 'release',
+        version: facts.currentVersion,
+        released: false,
+        reason: '没有可生成的变更记录',
+      })
       return
     }
 
@@ -398,8 +465,7 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
     // 漏掉这一步会让流程拿着「generate-intents」的旧计划一路走到提交，跳掉 bump 与消费。
     facts = await collectFacts(args, token)
     plan = planRelease(facts)
-  }
-  else {
+  } else {
     log(`续跑：${plan.reason}`)
   }
 
@@ -415,14 +481,26 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
     if (!bumpChangesVersion(bump)) {
       log(`全部 ${entries.length} 个意图都声明 none：本次不发版（版本保持 v${oldVersion}）`)
       clearState()
-      emitJson({ ok: true, mode: 'release', released: false, version: oldVersion, reason: '意图全部声明不发版（none）' })
+      emitJson({
+        ok: true,
+        mode: 'release',
+        released: false,
+        version: oldVersion,
+        reason: '意图全部声明不发版（none）',
+      })
       return
     }
     newVersion = nextVersionOrDie(ui, oldVersion, bump)
     entries = readEntriesForDisplay(facts)
-    saveState({ fromVersion: oldVersion, toVersion: newVersion, bump, nextStep: 'consume-intents', baseTag: facts.baseTag, branch })
-  }
-  else if (plan.step === 'consume-intents') {
+    saveState({
+      fromVersion: oldVersion,
+      toVersion: newVersion,
+      bump,
+      nextStep: 'consume-intents',
+      baseTag: facts.baseTag,
+      branch,
+    })
+  } else if (plan.step === 'consume-intents') {
     newVersion = readState()?.toVersion ?? nextVersionOrDie(ui, oldVersion, bump)
     log(`续跑：按上次确认的 ${bumpLabel(bump)} 消费意图（目标 v${newVersion}）`)
   }
@@ -430,8 +508,19 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
   if (plan.step === 'confirm-bump' || plan.step === 'consume-intents') {
     if (args.dryRun) {
       await ensureChangelogs(ui, { version: newVersion, dryRun: true })
-      banner([`  🧪 --dry-run：将执行 pnpm version -r --no-git-checks（v${oldVersion} → v${newVersion}，${bump}）`, '', '  未做任何写操作'])
-      emitJson({ ok: true, mode: 'release', dryRun: true, fromVersion: oldVersion, toVersion: newVersion, bump })
+      banner([
+        `  🧪 --dry-run：将执行 pnpm version -r --no-git-checks（v${oldVersion} → v${newVersion}，${bump}）`,
+        '',
+        '  未做任何写操作',
+      ])
+      emitJson({
+        ok: true,
+        mode: 'release',
+        dryRun: true,
+        fromVersion: oldVersion,
+        toVersion: newVersion,
+        bump,
+      })
       return
     }
 
@@ -444,8 +533,10 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
     // 放在 changelog 之前 ⇒ 本次 release commit 的 `git add -A` 不会再卷进它们。
     const collected = deleteConsumedIntents()
     if (collected.intents.length > 0 || collected.parked > 0) {
-      log(`已收走 ${collected.intents.length} 个已消费的意图文件（ledger 仍记着它们；registry 模式下 pnpm 不回收）`
-        + `${collected.parked > 0 ? `，并清掉 ${collected.parked} 个 pnpm 的 changelogs 寄存段落（只服务 publish，本仓不用）` : ''}`)
+      log(
+        `已收走 ${collected.intents.length} 个已消费的意图文件（ledger 仍记着它们；registry 模式下 pnpm 不回收）` +
+          `${collected.parked > 0 ? `，并清掉 ${collected.parked} 个 pnpm 的 changelogs 寄存段落（只服务 publish，本仓不用）` : ''}`,
+      )
     }
     reportIntentsAfterConsume()
 
@@ -457,30 +548,55 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
     log(`写 Release 正文（${'changelog-latest.md'}）...`)
     await writeReleaseNotes(ui, {
       version: newVersion,
-      summaries: entries.map(entry => ({ packages: entry.packages, summary: `${entry.bump}: ${entry.summary}` })),
+      summaries: entries.map((entry) => ({
+        packages: entry.packages,
+        summary: `${entry.bump}: ${entry.summary}`,
+      })),
     })
 
     entries = readEntriesForDisplay(facts)
-    saveState({ fromVersion: oldVersion, toVersion: newVersion, bump, nextStep: 'confirm-summary', baseTag: facts.baseTag, branch })
+    saveState({
+      fromVersion: oldVersion,
+      toVersion: newVersion,
+      bump,
+      nextStep: 'confirm-summary',
+      baseTag: facts.baseTag,
+      branch,
+    })
   }
 
   const freshFacts = await collectFacts(args, token)
   const newlyUnrelated = newlyUnrelatedChanges()
 
   // ── 4. 总览确认 ─────────────────────────────────────────────────────────
-  if (plan.step === 'confirm-bump' || plan.step === 'consume-intents' || plan.step === 'confirm-summary') {
+  if (
+    plan.step === 'confirm-bump' ||
+    plan.step === 'consume-intents' ||
+    plan.step === 'confirm-summary'
+  ) {
     // 续跑这一档（版本已 bump、还没提交）会跳过上面那段消费 —— 而 changelog 可能还没写
     // （中断在「消费成功、changelog 未写」之间）。幂等补一次：已有该版本段就跳过，不会写第二段。
     if (plan.step === 'confirm-summary') {
       await ensureChangelogs(ui, { version: newVersion })
       await writeReleaseNotes(ui, {
         version: newVersion,
-        summaries: entries.map(entry => ({ packages: entry.packages, summary: `${entry.bump}: ${entry.summary}` })),
+        summaries: entries.map((entry) => ({
+          packages: entry.packages,
+          summary: `${entry.bump}: ${entry.summary}`,
+        })),
       })
     }
     // 续跑已 bump 未提交（confirm-summary）且非交互：不许在没人确认的情况下连带提交无关改动
-    if (plan.step === 'confirm-summary' && !isInteractive() && newlyUnrelated.length > 0 && !args.allowDirty)
-      die(2, `工作区新出现 ${newlyUnrelated.length} 个与发版无关的改动（非交互模式不替你决定）：${newlyUnrelated.join(', ')}。先 stash，或显式加 --allow-dirty`)
+    if (
+      plan.step === 'confirm-summary' &&
+      !isInteractive() &&
+      newlyUnrelated.length > 0 &&
+      !args.allowDirty
+    )
+      die(
+        2,
+        `工作区新出现 ${newlyUnrelated.length} 个与发版无关的改动（非交互模式不替你决定）：${newlyUnrelated.join(', ')}。先 stash，或显式加 --allow-dirty`,
+      )
 
     stepHeader('confirm-summary')
     await confirmSummary(ui, args, {
@@ -495,21 +611,40 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
     })
     if (freshFacts.unrelated.length > 0 && !args.allowDirty)
       warn('无关改动会被一并提交（已在总览里列出）')
-  }
-  else if (plan.step === 'commit-tag-push' && freshFacts.versionConsumed && newlyUnrelated.length > 0 && !args.allowDirty) {
-    die(2, `工作区新出现 ${newlyUnrelated.length} 个与发版无关的改动，续跑提交会带上它们。先 stash，或显式加 --allow-dirty`)
+  } else if (
+    plan.step === 'commit-tag-push' &&
+    freshFacts.versionConsumed &&
+    newlyUnrelated.length > 0 &&
+    !args.allowDirty
+  ) {
+    die(
+      2,
+      `工作区新出现 ${newlyUnrelated.length} 个与发版无关的改动，续跑提交会带上它们。先 stash，或显式加 --allow-dirty`,
+    )
   }
 
   // ── 5. 提交 / 门禁 / 打标 / 推送 ────────────────────────────────────────
-  saveState({ fromVersion: oldVersion, toVersion: newVersion, bump, nextStep: 'commit-tag-push', baseTag: freshFacts.baseTag, branch })
+  saveState({
+    fromVersion: oldVersion,
+    toVersion: newVersion,
+    bump,
+    nextStep: 'commit-tag-push',
+    baseTag: freshFacts.baseTag,
+    branch,
+  })
   stepHeader('commit-tag-push')
-  await stepCommitTagPush(ui, newVersion, { commit: freshFacts.versionConsumed, skipGates: ARGS.skipGates })
+  await stepCommitTagPush(ui, newVersion, {
+    commit: freshFacts.versionConsumed,
+    skipGates: ARGS.skipGates,
+  })
 
   clearState()
   const tag = `v${newVersion}`
   const skip = skipGatesLabel(ARGS.skipGates)
   const remote = gitRemoteUrl()
-  const releaseUrl = remote ? `${remote.replace(/\.git$/, '')}/releases/tag/${encodeURIComponent(tag)}` : null
+  const releaseUrl = remote
+    ? `${remote.replace(/\.git$/, '')}/releases/tag/${encodeURIComponent(tag)}`
+    : null
   log(`✅ 发版完成: ${tag}${skip === '' ? '' : `  ⚠️ 本次${skip}`}`)
   log(`   GitHub Release 由 release.yml 在 tag 推送后创建${releaseUrl ? `：${releaseUrl}` : ''}`)
   log('   想确认它建好了：pnpm release --status（公开仓无需 token）')
@@ -537,10 +672,14 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
  */
 function readEntriesForDisplay(facts: CollectedFacts): Intent[] {
   const onDisk = readIntents()
-  if (onDisk.length > 0)
-    return onDisk
+  if (onDisk.length > 0) return onDisk
   const consumed = intentsOfVersion(facts.currentVersion)
-  return consumed.map(id => ({ file: `${id}.md（已消费）`, packages: [], bump: 'patch' as Bump, summary: `意图 ${id}` }))
+  return consumed.map((id) => ({
+    file: `${id}.md（已消费）`,
+    packages: [],
+    bump: 'patch' as Bump,
+    summary: `意图 ${id}`,
+  }))
 }
 
 /**
@@ -577,7 +716,10 @@ async function main(): Promise<void> {
 // ── 信号处理 ──────────────────────────────────────────────────────────────
 
 /** 「停在哪一步、重跑怎么接」—— 信号路径专用（正文在 report.ts） */
-function printAbortHint(signal: NodeJS.Signals, plan: { step: ReleaseStep, reason: string } | null): void {
+function printAbortHint(
+  signal: NodeJS.Signals,
+  plan: { step: ReleaseStep; reason: string } | null,
+): void {
   process.stderr.write(`\n${abortHintLines({ signal, plan, state: readState() }).join('\n')}\n`)
 }
 
@@ -608,21 +750,26 @@ async function onInterrupt(signal: NodeJS.Signals): Promise<void> {
     hardExitBySignal(signal)
   }
   abortSignal = signal
-  process.stderr.write(`\n[release] 收到 ${signal}：正在停手（收掉子进程树，最多等 ${(KILL_GRACE_MS / 1000).toFixed(0)}s；再按一次可立即退出）...\n`)
+  process.stderr.write(
+    `\n[release] 收到 ${signal}：正在停手（收掉子进程树，最多等 ${(KILL_GRACE_MS / 1000).toFixed(0)}s；再按一次可立即退出）...\n`,
+  )
   const treeConfirmed = killActiveChild()
   const exited = await waitForActiveChildExit(KILL_GRACE_MS)
   if (!treeConfirmed || !exited)
-    process.stderr.write('[release] ⚠️  无法确认子进程已退出：重跑前先确认没有残留进程在改工作区（Windows 可 tasklist 查 node）\n')
+    process.stderr.write(
+      '[release] ⚠️  无法确认子进程已退出：重跑前先确认没有残留进程在改工作区（Windows 可 tasklist 查 node）\n',
+    )
 
   // 「重跑会从哪接上」这句话必须对运行者成立 —— 所以**按事实重算**，不照抄状态文件
   // （那个文件是 gitignored 的本地记忆，换机器就没有了）。这里只跑本地只读查询，不联网。
-  let plan: { step: ReleaseStep, reason: string } | null = null
+  let plan: { step: ReleaseStep; reason: string } | null = null
   try {
     const facts = await collateFacts({ stateStep: readState()?.nextStep ?? null })
     plan = planRelease(facts)
-  }
-  catch (error: any) {
-    process.stderr.write(`[release] （按事实重算下一步失败：${error?.message ?? error}；下面退回状态文件的说法）\n`)
+  } catch (error: any) {
+    process.stderr.write(
+      `[release] （按事实重算下一步失败：${error?.message ?? error}；下面退回状态文件的说法）\n`,
+    )
   }
   printAbortHint(signal, plan)
   hardExitBySignal(signal)
@@ -646,14 +793,15 @@ export async function run(): Promise<void> {
   installSignalHints()
   try {
     await main()
-  }
-  catch (error: any) {
+  } catch (error: any) {
     // 中断路径自己收尾并退出（已经打印过「收到 SIGINT」），这里保持沉默，免得盖住它
-    if (abortSignal)
-      return
+    if (abortSignal) return
     const message = error?.message ?? String(error)
     // 结构化错误的退出码：前置条件未满足 = 2，其余按 1
-    const code: 1 | 2 = error instanceof PreconditionError || (error instanceof ChildRunError && error.exitCode === 2) ? 2 : 1
+    const code: 1 | 2 =
+      error instanceof PreconditionError || (error instanceof ChildRunError && error.exitCode === 2)
+        ? 2
+        : 1
     process.stderr.write(`\x1B[31m[release]\x1B[0m ${message}\n`)
     emitJson({ ok: false, exitCode: code, error: message })
     process.exit(code)

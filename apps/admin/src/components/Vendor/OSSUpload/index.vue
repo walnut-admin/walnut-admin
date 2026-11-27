@@ -1,9 +1,5 @@
 <script lang="ts" setup>
-import type {
-  UploadCustomRequestOptions,
-  UploadFileInfo,
-  UploadInst,
-} from 'naive-ui'
+import type { UploadCustomRequestOptions, UploadFileInfo, UploadInst } from 'naive-ui'
 import type { ICompVendorOSSUploadProps } from '.'
 import { downloadByUrl } from '@walnut/client/browser/file/download'
 import { genString } from 'easy-fns-ts'
@@ -41,18 +37,16 @@ const getChooseDisabled = computed(
 )
 
 const getUploadLoading = computed(
-  () =>
-    fileList.value
-    && fileList.value.some(({ status }) => status === 'uploading'),
+  () => fileList.value && fileList.value.some(({ status }) => status === 'uploading'),
 )
 
 const getUploadDisabled = computed(
   () =>
-    props.disabled
-    || !fileList.value
-    || fileList.value.length === 0
-    || fileList.value.every(({ status }) => status === 'finished')
-    || getUploadLoading.value,
+    props.disabled ||
+    !fileList.value ||
+    fileList.value.length === 0 ||
+    fileList.value.every(({ status }) => status === 'finished') ||
+    getUploadLoading.value,
 )
 
 function onCustomRequest({
@@ -87,24 +81,22 @@ function onCustomRequest({
 
       onFinish()
 
-      const index = fileList.value!.findIndex(i => i.id === id)
+      const index = fileList.value!.findIndex((i) => i.id === id)
 
       // replace url
-      if (index !== -1)
-        fileList.value![index].url = AliOSSClient.instance.getFullUrl(_value)
+      if (index !== -1) fileList.value![index].url = AliOSSClient.instance.getFullUrl(_value)
 
-      value.value = fileList.value?.filter(i => i.status === 'finished').map(item => item.name) as string[]
+      value.value = fileList.value
+        ?.filter((i) => i.status === 'finished')
+        .map((item) => item.name) as string[]
     })
     .catch(() => {
       onError()
     })
 }
 
-async function onRemove(data: {
-  file: UploadFileInfo
-  fileList: UploadFileInfo[]
-}) {
-  const index = fileList.value!.findIndex(i => i.id === data.file.id)
+async function onRemove(data: { file: UploadFileInfo; fileList: UploadFileInfo[] }) {
+  const index = fileList.value!.findIndex((i) => i.id === data.file.id)
 
   if (index !== -1) {
     fileList.value!.splice(index, 1)
@@ -124,14 +116,9 @@ function onDownload(file: UploadFileInfo) {
   downloadByUrl(file.url!, file.name)
 }
 
-function onBeforeUpload(data: {
-  file: UploadFileInfo
-  fileList: UploadFileInfo[]
-}) {
+function onBeforeUpload(data: { file: UploadFileInfo; fileList: UploadFileInfo[] }) {
   if (data.file.file!.size / 1024 > props.size) {
-    useAppMessage().error(
-      `File size should not be more than ${props.size / 1024}M`,
-    )
+    useAppMessage().error(`File size should not be more than ${props.size / 1024}M`)
     return false
   }
 
@@ -142,7 +129,7 @@ watch(
   () => value.value,
   async (v) => {
     if (v && v.length) {
-      fileList.value = v.map(i => ({
+      fileList.value = v.map((i) => ({
         id: genString(8),
         name: i,
         status: 'finished',
@@ -199,16 +186,8 @@ watch(
             </n-button>
           </n-upload-trigger>
 
-          <n-button
-            :disabled="getUploadDisabled"
-            :loading="getUploadLoading"
-            @click="onUpload"
-          >
-            {{
-              getUploadLoading
-                ? t('comp.alioss.uploading')
-                : t('comp.alioss.upload')
-            }}
+          <n-button :disabled="getUploadDisabled" :loading="getUploadLoading" @click="onUpload">
+            {{ getUploadLoading ? t('comp.alioss.uploading') : t('comp.alioss.upload') }}
           </n-button>
         </n-space>
 

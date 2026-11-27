@@ -17,9 +17,15 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { REPO_ROOT } from '../../lib/repo-root.ts'
-import { checkConfigText, collectFindings, NGINX_CONF_DIR, parseBlocks, REQUIRED_HEADERS } from '../check-nginx-headers.ts'
+import {
+  checkConfigText,
+  collectFindings,
+  NGINX_CONF_DIR,
+  parseBlocks,
+  REQUIRED_HEADERS,
+} from '../check-nginx-headers.ts'
 
-const ALL = REQUIRED_HEADERS.map(h => `    add_header ${h} "v" always;`).join('\n')
+const ALL = REQUIRED_HEADERS.map((h) => `    add_header ${h} "v" always;`).join('\n')
 
 function SERVER_443(body: string) {
   return `server {
@@ -32,10 +38,13 @@ ${body}
 
 describe('parseBlocks', () => {
   it('把 server / location 收成树，并记下 listen 443 与自己的 add_header', () => {
-    const root = parseBlocks(SERVER_443(`${ALL}
+    const root = parseBlocks(
+      SERVER_443(`${ALL}
     location /api/ {
         add_header X-Frame-Options "SAMEORIGIN" always;
-    }`), 'x.conf')
+    }`),
+      'x.conf',
+    )
 
     expect(root.children).toHaveLength(1)
     const server = root.children[0]!
@@ -48,7 +57,10 @@ describe('parseBlocks', () => {
   })
 
   it('注释里的 add_header 不算数（本仓 conf 的说明文字里全是这个词）', () => {
-    const root = parseBlocks(SERVER_443('    # 这里解释 add_header 的继承规则：add_header 会被吃掉'), 'x.conf')
+    const root = parseBlocks(
+      SERVER_443('    # 这里解释 add_header 的继承规则：add_header 会被吃掉'),
+      'x.conf',
+    )
     expect(root.children[0]!.ownHeaders).toEqual([])
   })
 
@@ -63,13 +75,16 @@ describe('parseBlocks', () => {
     expect(root.children[0]!.listens443).toBe(true)
   })
 
-  it.each(['listen 80;', 'listen 8080;', 'listen [::]:80;', 'ssl_protocols TLSv1.3;', 'listen_port 443;'])(
-    '不误认：%s',
-    (directive) => {
-      const root = parseBlocks(`server {\n    ${directive}\n}\n`, 'x.conf')
-      expect(root.children[0]!.listens443).toBe(false)
-    },
-  )
+  it.each([
+    'listen 80;',
+    'listen 8080;',
+    'listen [::]:80;',
+    'ssl_protocols TLSv1.3;',
+    'listen_port 443;',
+  ])('不误认：%s', (directive) => {
+    const root = parseBlocks(`server {\n    ${directive}\n}\n`, 'x.conf')
+    expect(root.children[0]!.listens443).toBe(false)
+  })
 })
 
 describe('checkConfigText', () => {
@@ -80,13 +95,13 @@ describe('checkConfigText', () => {
   it('443 server 一条都没有 → 4 条全报（api.conf 曾经的真实状态）', () => {
     const findings = checkConfigText(SERVER_443('    ssl_protocols TLSv1.2;'), 'x.conf')
     expect(findings).toHaveLength(1)
-    for (const name of REQUIRED_HEADERS)
-      expect(findings[0]!.detail).toContain(name)
+    for (const name of REQUIRED_HEADERS) expect(findings[0]!.detail).toContain(name)
     expect(findings[0]!.line).toBe(1)
   })
 
   it('listen 80 的 server 不要求这 4 条', () => {
-    const conf = 'server {\n    listen 80;\n    server_name a.example.com;\n    return 301 https://$host$request_uri;\n}\n'
+    const conf =
+      'server {\n    listen 80;\n    server_name a.example.com;\n    return 301 https://$host$request_uri;\n}\n'
     expect(checkConfigText(conf, 'x.conf')).toEqual([])
   })
 
@@ -119,12 +134,16 @@ ${ALL}
   })
 
   it('只比头名不比取值：HSTS 换个 max-age 不算问题', () => {
-    const conf = SERVER_443(REQUIRED_HEADERS.map(h => `    add_header ${h} "whatever";`).join('\n'))
+    const conf = SERVER_443(
+      REQUIRED_HEADERS.map((h) => `    add_header ${h} "whatever";`).join('\n'),
+    )
     expect(checkConfigText(conf, 'x.conf')).toEqual([])
   })
 
   it('头名大小写不敏感', () => {
-    const conf = SERVER_443(REQUIRED_HEADERS.map(h => `    add_header ${h.toLowerCase()} "v" always;`).join('\n'))
+    const conf = SERVER_443(
+      REQUIRED_HEADERS.map((h) => `    add_header ${h.toLowerCase()} "v" always;`).join('\n'),
+    )
     expect(checkConfigText(conf, 'x.conf')).toEqual([])
   })
 
@@ -133,7 +152,7 @@ ${ALL}
     // 它不是"缺失"（rule 不同），`main()` 把它当 warning 打出来 —— 于是这里能**直接断言返回值**，
     // 不必再 spy 某个 `console.*`（那正是这一次把纯函数里的副作用拿掉的原因）。
     const found = checkConfigText(conf, 'x.conf')
-    expect(found.map(f => f.rule)).toEqual(['include-unverified'])
+    expect(found.map((f) => f.rule)).toEqual(['include-unverified'])
     expect(found[0]!.detail).toContain('未核实')
   })
 })
@@ -146,8 +165,7 @@ describe('仓库里的真实 nginx 配置', () => {
   it('frontend.conf 与 api.conf 都各自带全了这 4 条（并列 server 块不互相继承）', () => {
     for (const name of ['frontend.conf', 'api.conf']) {
       const text = readFileSync(join(REPO_ROOT, NGINX_CONF_DIR, name), 'utf8')
-      for (const header of REQUIRED_HEADERS)
-        expect(text, `${name} 缺 ${header}`).toContain(header)
+      for (const header of REQUIRED_HEADERS) expect(text, `${name} 缺 ${header}`).toContain(header)
     }
   })
 })

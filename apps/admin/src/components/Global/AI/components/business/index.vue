@@ -39,7 +39,10 @@ if (props.businessContent.category === 'action') {
     :payload="businessContent"
     :message-id="messageId"
   />
-  <div v-else-if="businessContent.category === 'card' && !cardComponent" class="p-2 text-12px text-gray-400">
+  <div
+    v-else-if="businessContent.category === 'card' && !cardComponent"
+    class="p-2 text-12px text-gray-400"
+  >
     No component registered for type "{{ businessContent.type }}"
   </div>
 </template>

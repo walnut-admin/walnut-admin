@@ -2,7 +2,12 @@
 import type { MeSecurityTab1Status, SystemUserIdentityType } from '@walnut/api-types'
 import type { DropdownOption } from 'naive-ui'
 import { onBeforeMount, ref, useTemplateRef } from 'vue'
-import { getSecurityTab1StatusAPI2, sendCodeForVerifyAPI, unBindUserIdentityAPI, updateUserIdentityStatusAPI } from '@/api/system/user_identity'
+import {
+  getSecurityTab1StatusAPI2,
+  sendCodeForVerifyAPI,
+  unBindUserIdentityAPI,
+  updateUserIdentityStatusAPI,
+} from '@/api/system/user_identity'
 // TODO 111
 import WIcon from '@/components/UI/Icon'
 import { useAppConfirm } from '@/hooks/component/useConfirm'
@@ -30,10 +35,8 @@ function onSetPassword() {
 }
 
 function getIconType(item?: MeSecurityTab1Status['phoneNumber']) {
-  if (item?.bound && item?.verified)
-    return 'info'
-  if (item?.bound && !item?.verified)
-    return 'warning'
+  if (item?.bound && item?.verified) return 'info'
+  if (item?.bound && !item?.verified) return 'warning'
   return 'default'
 }
 
@@ -89,7 +92,15 @@ function dropdownOptions(type: SystemUserIdentityType): DropdownOption[] {
     {
       label: status.value[type]?.status ? t('dict.status.false') : t('dict.status.true'),
       key: 0,
-      icon: () => <WIcon icon={status.value[type]?.status ? 'mdi:toggle-switch-off-outline' : 'mdi:toggle-switch-outline'}></WIcon>,
+      icon: () => (
+        <WIcon
+          icon={
+            status.value[type]?.status
+              ? 'mdi:toggle-switch-off-outline'
+              : 'mdi:toggle-switch-outline'
+          }
+        ></WIcon>
+      ),
       disabled: !status.value[type]?.bound || !status.value[type]?.verified,
     },
     {
@@ -156,13 +167,21 @@ onBeforeMount(onInit)
         />
       </template>
       <template #suffix>
-        <n-button :type="status.password?.set ? 'primary' : 'warning'" size="small" @click="onSetPassword">
+        <n-button
+          :type="status.password?.set ? 'primary' : 'warning'"
+          size="small"
+          @click="onSetPassword"
+        >
           {{ $t('app.base.set') }}
         </n-button>
       </template>
       <n-thing
         :title="$t('app.security.opaque')"
-        :description="status.password?.set ? $t('security.opaque.desc', { userName: userStoreProfile.getUserName }) : $t('security.opaque.desc.unset')"
+        :description="
+          status.password?.set
+            ? $t('security.opaque.desc', { userName: userStoreProfile.getUserName })
+            : $t('security.opaque.desc.unset')
+        "
         description-class="text-sm text-gray-400"
       />
       <WMeTabSecurityTab1Opaque ref="opaqueRef" />

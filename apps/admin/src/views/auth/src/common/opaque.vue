@@ -30,8 +30,7 @@ async function onSubmit() {
   // eslint-disable-next-line ts/no-use-before-define
   const valid = await validate()
 
-  if (!valid)
-    return
+  if (!valid) return
 
   userStoreAuth.setLoading(true)
   try {
@@ -39,8 +38,7 @@ async function onSubmit() {
 
     // close demonstrate notification
     appStoreNaive.destroyAllNotiInst()
-  }
-  finally {
+  } finally {
     userStoreAuth.setLoading(false)
   }
 }
@@ -65,7 +63,7 @@ const [register, { validate }] = useForm<typeof accountFormData.value>({
       componentProp: {
         clearable: true,
         inputProps: {
-          'autocomplete': 'username',
+          autocomplete: 'username',
           // E2E 稳定选择器：登录用户名输入框（真实 <input> 上；文案与 CSS 类都可能变）
           'data-testid': 'login-username',
         },
@@ -131,14 +129,11 @@ const [register, { validate }] = useForm<typeof accountFormData.value>({
       },
       componentProp: {
         textProp: () => (
-          <span class="text-lg text-light-800 font-black uppercase">
-            {t('app.base.signin')}
-          </span>
+          <span class="text-lg text-light-800 font-black uppercase">{t('app.base.signin')}</span>
         ),
         loading: computed(() => userStoreAuth.getLoading!),
         disabled: computed(() => userStoreAuth.getLoading!),
-        class:
-          'w-full rounded-full !bg-gradient-to-r !from-cyan-500 !to-blue-500',
+        class: 'w-full rounded-full !bg-gradient-to-r !from-cyan-500 !to-blue-500',
         onClick: onSubmit,
         // E2E 稳定选择器：登录提交按钮（按钮文案来自 DB 语言包，不能当选择器）
         testId: 'login-submit',

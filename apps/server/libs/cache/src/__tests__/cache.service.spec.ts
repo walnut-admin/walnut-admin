@@ -22,14 +22,16 @@ interface ICacheEntry {
 
 /** 造一个 node-redis v5 形态的假 client：scanIterator 依批产出 string[] */
 function createRedisStub(batches: string[][], entries: ICacheEntry[]) {
-  const mGet = vi.fn(async (keys: string[]) => keys.map((key) => {
-    const found = entries.find(entry => entry.key === key)
-    return found === undefined ? null : found.payload
-  }))
+  const mGet = vi.fn(async (keys: string[]) =>
+    keys.map((key) => {
+      const found = entries.find((entry) => entry.key === key)
+      return found === undefined ? null : found.payload
+    }),
+  )
 
   const client = {
     // 与 node-redis v5 一致：每轮 yield 一批 string[]（含空批）
-    async* scanIterator() {
+    async *scanIterator() {
       for (const batch of batches) {
         yield batch
       }
@@ -73,7 +75,7 @@ describe('cache list：Bull 键过滤（F-27）', () => {
 
     // 列表输出同样不含 Bull 键
     expect(result.total).toBe(1)
-    expect(result.data.map(row => row.key)).toEqual(['USER:1'])
+    expect(result.data.map((row) => row.key)).toEqual(['USER:1'])
   })
 
   it('多批次 + 空批：每批各自摊平过滤，空批不塞 undefined 进 MGET', async () => {
@@ -92,11 +94,11 @@ describe('cache list：Bull 键过滤（F-27）', () => {
 
     const result = await service.list(listPayload())
 
-    const requested = mGet.mock.calls.flatMap(call => call[0])
+    const requested = mGet.mock.calls.flatMap((call) => call[0])
     expect(requested).toEqual([keyA, keyB])
-    expect(requested.every(key => typeof key === 'string' && !key.includes('BULL'))).toBe(true)
+    expect(requested.every((key) => typeof key === 'string' && !key.includes('BULL'))).toBe(true)
     expect(result.total).toBe(2)
-    expect(result.data.map(row => row.key).sort()).toEqual(['A', 'B'])
+    expect(result.data.map((row) => row.key).sort()).toEqual(['A', 'B'])
   })
 
   it('整批都是 Bull 键时不会为这一批发 MGET（过滤后为空即跳过）', async () => {

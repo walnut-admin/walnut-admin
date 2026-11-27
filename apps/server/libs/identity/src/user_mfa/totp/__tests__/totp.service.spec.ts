@@ -44,7 +44,9 @@ describe('unbindTotp：同步 mfa_setup（②）', () => {
   it('没有 totp 行 ⇒ 40401，且不写账号级标志', async () => {
     const { service, findUserByIdAndUpdate } = createService(0)
 
-    await expect(service.unbindTotp(USER_ID, EM)).rejects.toBeInstanceOf(WalnutAdminExceptionDataNotFound)
+    await expect(service.unbindTotp(USER_ID, EM)).rejects.toBeInstanceOf(
+      WalnutAdminExceptionDataNotFound,
+    )
     expect(findUserByIdAndUpdate).not.toHaveBeenCalled()
   })
 })

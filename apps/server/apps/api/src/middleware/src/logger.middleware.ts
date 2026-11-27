@@ -40,7 +40,7 @@ export class LoggerMiddleware implements NestMiddleware {
       })
 
       res.once('finish', () => {
-        const resTime = res.getHeader(RequestHeaders.RES_TIME) as number || 0
+        const resTime = (res.getHeader(RequestHeaders.RES_TIME) as number) || 0
 
         // 2. RequestEnd
         this.logger.log('Request End', {
@@ -52,7 +52,7 @@ export class LoggerMiddleware implements NestMiddleware {
             url: req.originalUrl || req.baseUrl,
             query: isProd ? maskSensitiveFields(req.query) : req.query,
             params: isProd ? maskSensitiveFields(req.params) : req.params,
-            body: isProd ? maskSensitiveFields(req.body) : req.body as Recordable,
+            body: isProd ? maskSensitiveFields(req.body) : (req.body as Recordable),
           },
           response: {
             statusCode: res.statusCode,

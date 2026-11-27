@@ -52,8 +52,7 @@ interface AliOSSStsPolicyStatement {
 
 /** 归一化前缀：去掉首尾多余的 /，空串（或未给）视为「不收窄」 */
 function normalizeObjectKeyPrefix(prefix?: string | null) {
-  if (prefix === undefined || prefix === null)
-    return ''
+  if (prefix === undefined || prefix === null) return ''
 
   return prefix.trim().replace(/^\/+/, '').replace(/\/+$/, '')
 }
@@ -66,17 +65,13 @@ export function buildAliOSSStsPolicy(input: IWalnutAdminAliOSSStsPolicyInput): s
 
   if (!bucket) {
     // fail-closed：配置缺失时宁可让签发失败，也不退回 Resource: * 这种 fail-open 形态
-    throw new Error(
-      '[ali-oss] VENDOR_KEYS_ALI_OSS_BUCKET 未配置，无法构造最小权限 STS policy',
-    )
+    throw new Error('[ali-oss] VENDOR_KEYS_ALI_OSS_BUCKET 未配置，无法构造最小权限 STS policy')
   }
 
   const prefix = normalizeObjectKeyPrefix(input.objectKeyPrefix)
   const isVisitor = input.currentRoleName === Role.VISITOR
 
-  const actions = isVisitor
-    ? [...ReadOnlyActions]
-    : [...ReadOnlyActions, ...UploadActions]
+  const actions = isVisitor ? [...ReadOnlyActions] : [...ReadOnlyActions, ...UploadActions]
 
   // 对象级资源：有前缀时只给它下面的对象，否则给本 bucket 下所有对象（仍限定在单 bucket）
   const objectScope = prefix ? `${prefix}/*` : '*'
@@ -93,9 +88,7 @@ export function buildAliOSSStsPolicy(input: IWalnutAdminAliOSSStsPolicyInput): s
       Effect: 'Allow',
       Action: ['oss:ListObjects'],
       Resource: [`acs:oss:*:*:${bucket}`],
-      ...(prefix
-        ? { Condition: { StringLike: { 'oss:Prefix': [objectScope] } } }
-        : {}),
+      ...(prefix ? { Condition: { StringLike: { 'oss:Prefix': [objectScope] } } } : {}),
     },
   ]
 

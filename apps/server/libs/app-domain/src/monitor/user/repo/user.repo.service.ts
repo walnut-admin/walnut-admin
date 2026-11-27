@@ -22,7 +22,9 @@ export interface IMonitorPopulatedUserBrief {
  */
 @Injectable()
 /** 批 6：implements 是端口绑定的编译期守护（user_device 只认端口）。 */
-export class AppMonitorUserRepositoryService implements IIdentityMonitorRepository, IWalnutAdminSystemMonitorActiveUserReader {
+export class AppMonitorUserRepositoryService
+  implements IIdentityMonitorRepository, IWalnutAdminSystemMonitorActiveUserReader
+{
   constructor(
     @InjectDataSource(WalnutPGConnectionName)
     private readonly dataSource: DataSource,
@@ -33,7 +35,10 @@ export class AppMonitorUserRepositoryService implements IIdentityMonitorReposito
    * 在线监控的 state/心跳/force-quit 走 socket 与守卫旁路（无请求事务），必须显式
    * system 事务；管理端 list/read 走基类仓库（scoped），不受这里影响。
    */
-  private async withSystemManager<T>(em: EntityManager | undefined, fn: (manager: EntityManager) => Promise<T>) {
+  private async withSystemManager<T>(
+    em: EntityManager | undefined,
+    fn: (manager: EntityManager) => Promise<T>,
+  ) {
     return withWalnutSystemManager(this.dataSource, em, fn)
   }
 
@@ -84,16 +89,18 @@ export class AppMonitorUserRepositoryService implements IIdentityMonitorReposito
    * @description find monitor by monitor user document id
    */
   async findByMonitorId(id: string, em?: EntityManager) {
-    return this.withSystemManager(em, async manager =>
-      manager.getRepository(AppMonitorUserEntity).findOne({ where: { id } }))
+    return this.withSystemManager(em, async (manager) =>
+      manager.getRepository(AppMonitorUserEntity).findOne({ where: { id } }),
+    )
   }
 
   /**
    * @description find active monitor by device id (not left)
    */
   async findActiveByDeviceId(deviceId: string) {
-    return this.withSystemManager(undefined, async manager =>
-      manager.getRepository(AppMonitorUserEntity).findOne({ where: { left: false, deviceId } }))
+    return this.withSystemManager(undefined, async (manager) =>
+      manager.getRepository(AppMonitorUserEntity).findOne({ where: { left: false, deviceId } }),
+    )
   }
 
   /**
@@ -101,8 +108,9 @@ export class AppMonitorUserRepositoryService implements IIdentityMonitorReposito
    * justOne 的"任取一行"语义，不筛 left）
    */
   async findFirstByDeviceId(deviceId: string, em?: EntityManager) {
-    return this.withSystemManager(em, async manager =>
-      manager.getRepository(AppMonitorUserEntity).findOne({ where: { deviceId } }))
+    return this.withSystemManager(em, async (manager) =>
+      manager.getRepository(AppMonitorUserEntity).findOne({ where: { deviceId } }),
+    )
   }
 
   /**
@@ -118,7 +126,9 @@ export class AppMonitorUserRepositoryService implements IIdentityMonitorReposito
     }
 
     return this.withSystemManager(em, async (manager) => {
-      const result = await manager.getRepository(AppMonitorUserEntity).delete({ deviceId: In(deviceIds) })
+      const result = await manager
+        .getRepository(AppMonitorUserEntity)
+        .delete({ deviceId: In(deviceIds) })
       return result.affected ?? 0
     })
   }
@@ -144,16 +154,18 @@ export class AppMonitorUserRepositoryService implements IIdentityMonitorReposito
    * @description find all monitors by user id
    */
   async findAllByUserId(userId: string) {
-    return this.withSystemManager(undefined, async manager =>
-      manager.getRepository(AppMonitorUserEntity).find({ where: { userId } }))
+    return this.withSystemManager(undefined, async (manager) =>
+      manager.getRepository(AppMonitorUserEntity).find({ where: { userId } }),
+    )
   }
 
   /**
    * @description find monitor by user id and device id
    */
   async findByUserIdAndDeviceId(userId: string, deviceId: string, em?: EntityManager) {
-    return this.withSystemManager(em, async manager =>
-      manager.getRepository(AppMonitorUserEntity).findOne({ where: { userId, deviceId } }))
+    return this.withSystemManager(em, async (manager) =>
+      manager.getRepository(AppMonitorUserEntity).findOne({ where: { userId, deviceId } }),
+    )
   }
 
   /**
@@ -163,7 +175,8 @@ export class AppMonitorUserRepositoryService implements IIdentityMonitorReposito
    */
   async findActiveUserByDeviceId(deviceId: string) {
     return this.withSystemManager(undefined, async (manager) => {
-      const monitorData = await manager.getRepository(AppMonitorUserEntity)
+      const monitorData = await manager
+        .getRepository(AppMonitorUserEntity)
         .findOne({ where: { left: false, deviceId } })
 
       if (monitorData === null || monitorData.userId === null) {
@@ -186,7 +199,7 @@ export class AppMonitorUserRepositoryService implements IIdentityMonitorReposito
         .addSelect('u.nick_name', 'nickName')
         .from('sys_user', 'u')
         .where('u.id = :userId', { userId })
-        .getRawOne<{ id: string, userName: string | null, nickName: string | null }>()
+        .getRawOne<{ id: string; userName: string | null; nickName: string | null }>()
 
       if (!user) {
         return null

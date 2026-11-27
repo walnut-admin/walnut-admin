@@ -13,9 +13,7 @@ const source = [...getTreeData()]
   <WDemoCard title="Copy button">
     <n-list>
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          pass stringify data into copy
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> pass stringify data into copy </WTitle>
 
         <WJSON :copy="false" :value="source" height="200px" />
 
@@ -23,9 +21,7 @@ const source = [...getTreeData()]
       </n-list-item>
 
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          only icon shown
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> only icon shown </WTitle>
 
         <WJSON :copy="false" :value="source" height="200px" />
 

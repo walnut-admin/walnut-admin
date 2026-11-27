@@ -1,4 +1,8 @@
-import type { RouteRecordRaw, RouteRecordSingleView, RouteRecordSingleViewWithChildren } from 'vue-router'
+import type {
+  RouteRecordRaw,
+  RouteRecordSingleView,
+  RouteRecordSingleViewWithChildren,
+} from 'vue-router'
 import { mainoutRootRoute } from './mainout'
 
 export const layoutConst = {
@@ -18,7 +22,6 @@ export const layoutConst = {
     path: '/500',
     name: 'App500',
   },
-
 } as const
 
 export const AppRootRoute: RouteRecordSingleViewWithChildren = {

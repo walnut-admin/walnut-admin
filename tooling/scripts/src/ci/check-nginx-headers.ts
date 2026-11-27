@@ -80,8 +80,7 @@ const BLOCK_OPEN = /^\s*(server|location|if|limit_except)\b([^{]*)\{/
  */
 function listensOn443(line: string): boolean {
   const tokens = line.trim().split(/[\s;]+/)
-  if (tokens[0] !== 'listen')
-    return false
+  if (tokens[0] !== 'listen') return false
   const addr = tokens[1] ?? ''
   return addr === '443' || addr.endsWith(':443')
 }
@@ -107,19 +106,15 @@ export function parseBlocks(text: string, fileName: string): NginxBlock {
 
   text.split('\n').forEach((rawLine, index) => {
     const line = stripComment(rawLine)
-    if (line.trim() === '')
-      return
+    if (line.trim() === '') return
     const top = stack[stack.length - 1]!
 
-    if (/^\s*include\b/.test(line))
-      top.hasInclude = true
+    if (/^\s*include\b/.test(line)) top.hasInclude = true
 
-    if (listensOn443(line))
-      top.listens443 = true
+    if (listensOn443(line)) top.listens443 = true
 
     const header = HEADER_DIRECTIVE.exec(line)
-    if (header)
-      top.ownHeaders.push(header[1]!.toLowerCase())
+    if (header) top.ownHeaders.push(header[1]!.toLowerCase())
 
     const open = BLOCK_OPEN.exec(line)
     if (open) {
@@ -140,8 +135,7 @@ export function parseBlocks(text: string, fileName: string): NginxBlock {
     // 一个块在**同一行**里既开又合（`location /x { proxy_pass …; }`）本仓没有，
     // 但 `}` 的进出必须按行数平衡，否则嵌套关系会错位。
     const closes = (line.match(/\}/g) ?? []).length
-    for (let i = 0; i < closes && stack.length > 1; i++)
-      stack.pop()
+    for (let i = 0; i < closes && stack.length > 1; i++) stack.pop()
   })
 
   return root
@@ -155,7 +149,7 @@ export function effectiveHeaders(block: NginxBlock, parent: readonly string[]): 
 /** 一个块缺哪些必需头（宽松判据，见文件头） */
 function missingIn(block: NginxBlock, parentHeaders: readonly string[]): string[] {
   const effective = new Set(effectiveHeaders(block, parentHeaders))
-  return REQUIRED_HEADERS.filter(name => !effective.has(name.toLowerCase()))
+  return REQUIRED_HEADERS.filter((name) => !effective.has(name.toLowerCase()))
 }
 
 /**
@@ -216,43 +210,52 @@ export function checkConfigText(text: string, file: string): Finding[] {
 /** 扫描整个 `conf.d`（相对路径 → 内容由调用方给，便于用例喂内存文本） */
 export function collectFindings(dir = join(REPO_ROOT, NGINX_CONF_DIR)): Finding[] {
   const findings: Finding[] = []
-  const files = readdirSync(dir).filter(f => f.endsWith('.conf')).sort()
+  const files = readdirSync(dir)
+    .filter((f) => f.endsWith('.conf'))
+    .sort()
   if (files.length === 0) {
-    return [{
-      rule: 'precondition',
-      file: NGINX_CONF_DIR,
-      line: 1,
-      detail: `${NGINX_CONF_DIR}/ 下一个 .conf 都没有 —— 部署入口配置不该是空的（目录被搬走 / 改名了？）`,
-    }]
+    return [
+      {
+        rule: 'precondition',
+        file: NGINX_CONF_DIR,
+        line: 1,
+        detail: `${NGINX_CONF_DIR}/ 下一个 .conf 都没有 —— 部署入口配置不该是空的（目录被搬走 / 改名了？）`,
+      },
+    ]
   }
   for (const name of files)
-    findings.push(...checkConfigText(readFileSync(join(dir, name), 'utf8'), `${NGINX_CONF_DIR}/${name}`))
+    findings.push(
+      ...checkConfigText(readFileSync(join(dir, name), 'utf8'), `${NGINX_CONF_DIR}/${name}`),
+    )
   return findings
 }
 
 export function main(): void {
   const all = collectFindings()
-  const precondition = all.filter(f => f.rule === 'precondition')
+  const precondition = all.filter((f) => f.rule === 'precondition')
 
   if (precondition.length > 0)
-    throw new PreconditionError(precondition.map(f => f.detail).join('\n'))
+    throw new PreconditionError(precondition.map((f) => f.detail).join('\n'))
 
   // `include-unverified` 是**提示**不是违规（见 `checkConfigText` 里的说明）—— 单独走 warning 通道
-  const unverified = all.filter(f => f.rule === 'include-unverified')
-  const findings = all.filter(f => f.rule !== 'include-unverified')
+  const unverified = all.filter((f) => f.rule === 'include-unverified')
+  const findings = all.filter((f) => f.rule !== 'include-unverified')
 
-  for (const f of unverified)
-    lineErr('warning', `${f.file}:${f.line} ${f.detail}`)
+  for (const f of unverified) lineErr('warning', `${f.file}:${f.line} ${f.detail}`)
 
   if (findings.length === 0) {
-    line('ok', `入口 nginx 安全响应头（${NGINX_CONF_DIR}）：${REQUIRED_HEADERS.length} 个头在各 server/location 块上都到位${unverified.length > 0 ? '（有 include 的块未核实，见上方提示）' : ''}`)
-    out('  提示：这一段只证明**配置写对了**；"头真的发出去了"由 deploy/post-verify.sh 在每次部署后核实。')
+    line(
+      'ok',
+      `入口 nginx 安全响应头（${NGINX_CONF_DIR}）：${REQUIRED_HEADERS.length} 个头在各 server/location 块上都到位${unverified.length > 0 ? '（有 include 的块未核实，见上方提示）' : ''}`,
+    )
+    out(
+      '  提示：这一段只证明**配置写对了**；"头真的发出去了"由 deploy/post-verify.sh 在每次部署后核实。',
+    )
     return
   }
 
   lineErr('violation', `入口 nginx 有 ${findings.length} 处安全响应头缺失：\n`)
-  for (const f of findings)
-    err(`  ${f.file}:${f.line}  ${f.detail}`)
+  for (const f of findings) err(`  ${f.file}:${f.line}  ${f.detail}`)
   err(`
 修法：把那 ${REQUIRED_HEADERS.length} 条 \`add_header\` 补到出问题的块里（取值照抄同级已有的那几条）。`)
   err('为什么不能只写一份：https://nginx.org/en/docs/http/ngx_http_headers_module.html#add_header')

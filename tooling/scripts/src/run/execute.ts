@@ -154,9 +154,8 @@ export async function runCommands(
     let status: GateStatus = 'ok'
     let error: unknown = null
     try {
-      await execute(command, passthrough, text => chunks.push(text))
-    }
-    catch (caught) {
+      await execute(command, passthrough, (text) => chunks.push(text))
+    } catch (caught) {
       error = caught
       // 三态收敛的唯一入口（与 ci:local 同一条判断）：只有 SkippedError / 子进程退出 3 算跳过
       status = stepStatusOf(caught)
@@ -169,8 +168,7 @@ export async function runCommands(
       output: chunks.join(''),
     }
     results.push(result)
-    if (status === 'failed' && firstFailure === undefined)
-      firstFailure = error
+    if (status === 'failed' && firstFailure === undefined) firstFailure = error
     onDone?.(result)
   }
 
@@ -187,7 +185,9 @@ export async function runTable(
   options: RunCommandsOptions = {},
 ): Promise<void> {
   const startedAt = Date.now()
-  out(`walnut：${commands.length} 条命令，按表里的顺序执行（表在 tooling/scripts/src/lib/commands.ts）`)
+  out(
+    `walnut：${commands.length} 条命令，按表里的顺序执行（表在 tooling/scripts/src/lib/commands.ts）`,
+  )
 
   const { results, firstFailure } = await runCommands(commands, {
     ...options,
@@ -208,8 +208,7 @@ export async function runTable(
     line('ok', summary.okLine)
     // 有跳过时**不许**以 0 退出：SkippedError ⇒ 3，「没验过」在机器眼里必须区别于「通过」。
     // 那一行汇总（段名 + 「跳过不等于通过」）由 summarizeRun 给，别在这里另写一句。
-    if (summary.skippedLine !== null)
-      throw new SkippedError(summary.skippedLine)
+    if (summary.skippedLine !== null) throw new SkippedError(summary.skippedLine)
     return
   }
 
@@ -219,10 +218,11 @@ export async function runTable(
     err(`为什么必须有这一条：${result.gate.why}`)
     err(result.output.trimEnd() || '（这条命令没有输出，只有非零退出码）')
   }
-  err(`${summary.failed.length}/${results.length} 条命令失败：${summary.failed.map(result => result.gate.id).join(', ')}（总 ${total}s）`)
+  err(
+    `${summary.failed.length}/${results.length} 条命令失败：${summary.failed.map((result) => result.gate.id).join(', ')}（总 ${total}s）`,
+  )
   // 已经有失败时结论早就红了，但「还有几条没验过」仍要说
-  if (summary.skippedLine !== null)
-    err(summary.skippedLine)
+  if (summary.skippedLine !== null) err(summary.skippedLine)
 
   // 失败的异常形态与 ci:local 同一套：子进程退出 2 / 超时 ⇒ 前置条件未满足（2），
   // 其余 ⇒ 违规（1）。多条约失败时以**表顺序的第一个**为准 —— 先修它。

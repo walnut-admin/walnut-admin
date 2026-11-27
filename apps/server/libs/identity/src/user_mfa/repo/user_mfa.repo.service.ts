@@ -23,7 +23,7 @@ export class SysUserMfaRepositoryService {
   constructor(
     @InjectDataSource(WalnutPGConnectionName)
     private readonly dataSource: DataSource,
-  ) { }
+  ) {}
 
   private getManager(em?: EntityManager) {
     return em ?? this.dataSource.manager
@@ -113,7 +113,11 @@ export class SysUserMfaRepositoryService {
    * @description find webauthn record by user id + credential id with public key
    * （select:false 例外通道；认证防重放路径）
    */
-  async findWebauthnWithPublicKeyByUserIdAndCredentialId(userId: string, credentialId: string, em?: EntityManager) {
+  async findWebauthnWithPublicKeyByUserIdAndCredentialId(
+    userId: string,
+    credentialId: string,
+    em?: EntityManager,
+  ) {
     return this.getManager(em)
       .createQueryBuilder(SysUserMfaEntity, 'mfa')
       .addSelect('mfa.webauthnPublicKey')
@@ -188,7 +192,12 @@ export class SysUserMfaRepositoryService {
    * @description update mfa status by user id and type
    * （findOneAndUpdate 语义：命中即改，未命中返回 null 不抛）
    */
-  async updateStatusByUserIdAndType(userId: string, type: SysUserMfaEntity['type'], status: boolean, em?: EntityManager) {
+  async updateStatusByUserIdAndType(
+    userId: string,
+    type: SysUserMfaEntity['type'],
+    status: boolean,
+    em?: EntityManager,
+  ) {
     const repository = this.getRepository(em)
 
     const target = await repository.findOne({ where: { userId, type } })
@@ -203,7 +212,12 @@ export class SysUserMfaRepositoryService {
   /**
    * @description update webauthn counter and last used at（防重放，updateOne 语义）
    */
-  async updateWebauthnCounterAndLastUsedAt(id: string, webauthnCounter: number, lastUsedAt: Date, em?: EntityManager) {
+  async updateWebauthnCounterAndLastUsedAt(
+    id: string,
+    webauthnCounter: number,
+    lastUsedAt: Date,
+    em?: EntityManager,
+  ) {
     await this.getRepository(em).update({ id }, { webauthnCounter, lastUsedAt })
   }
 
@@ -223,9 +237,9 @@ export class SysUserMfaRepositoryService {
       .where('mfa.type IN (:...types)', { types: ['totp', 'webauthn'] })
       .andWhere('mfa.status = :status', { status: true })
       .groupBy('mfa.userId')
-      .getRawMany<{ userId: string, typeCount: string }>()
+      .getRawMany<{ userId: string; typeCount: string }>()
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       userId: row.userId,
       typeCount: Number(row.typeCount),
     }))

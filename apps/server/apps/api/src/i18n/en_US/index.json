@@ -1,4 +1,4 @@
 {
-    "hello": "Hello World",
-    "hello.user": "Hello Authticated User"
+  "hello": "Hello World",
+  "hello.user": "Hello Authticated User"
 }

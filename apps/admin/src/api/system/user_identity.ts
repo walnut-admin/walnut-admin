@@ -1,4 +1,8 @@
-import type { MeSecurityTab1Status, SystemUserIdentityPurpose, SystemUserIdentityType } from '@walnut/api-types'
+import type {
+  MeSecurityTab1Status,
+  SystemUserIdentityPurpose,
+  SystemUserIdentityType,
+} from '@walnut/api-types'
 import type { IRequestPayload } from '../request'
 import { SystemEndpointRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
@@ -41,7 +45,10 @@ export function bindUserIdentityAPI(data: IRequestPayload.System.UserIdentity.Bi
 /**
  * @description unbind user identity
  */
-export function unBindUserIdentityAPI(type: SystemUserIdentityType, purpose: SystemUserIdentityPurpose) {
+export function unBindUserIdentityAPI(
+  type: SystemUserIdentityType,
+  purpose: SystemUserIdentityPurpose,
+) {
   return AppAxios.delete<boolean>({
     url: `${SystemEndpointRoutes.USER_IDENTITY_UNBIND}/${type}/${purpose}`,
   })
@@ -50,7 +57,10 @@ export function unBindUserIdentityAPI(type: SystemUserIdentityType, purpose: Sys
 /**
   @description send code with otp
  */
-export function sendCodeForVerifyAPI(type: SystemUserIdentityType, purpose: SystemUserIdentityPurpose) {
+export function sendCodeForVerifyAPI(
+  type: SystemUserIdentityType,
+  purpose: SystemUserIdentityPurpose,
+) {
   return AppAxios.post<boolean>({
     url: `${SystemEndpointRoutes.USER_IDENTITY_SEND_CODE}/${type}/${purpose}`,
   })

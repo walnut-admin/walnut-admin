@@ -40,9 +40,9 @@ describe('buildCleanPlan', () => {
     const plan = buildCleanPlan(dir)
 
     expect(plan.kept).toEqual([...KEPT_ARTIFACTS].sort())
-    expect(plan.removable.map(entry => entry.name)).toEqual(['debug.log', 'trace-u8'])
-    expect(plan.removable.find(entry => entry.name === 'trace-u8')?.kind).toBe('dir')
-    expect(plan.removable.find(entry => entry.name === 'trace-u8')?.files).toBe(2)
+    expect(plan.removable.map((entry) => entry.name)).toEqual(['debug.log', 'trace-u8'])
+    expect(plan.removable.find((entry) => entry.name === 'trace-u8')?.kind).toBe('dir')
+    expect(plan.removable.find((entry) => entry.name === 'trace-u8')?.files).toBe(2)
     expect(plan.removableFiles).toBe(3)
     expect(plan.removableBytes).toBe(3 + 2 + 2)
   })
@@ -78,10 +78,12 @@ describe('buildCleanPlan', () => {
     const plan = buildCleanPlan(dir)
 
     expect(plan.kept).toEqual(
-      PROFILE_ARTIFACT_DIRS.flatMap(profile => KEPT_ARTIFACTS.map(name => `${profile}/${name}`)).sort(),
+      PROFILE_ARTIFACT_DIRS.flatMap((profile) =>
+        KEPT_ARTIFACTS.map((name) => `${profile}/${name}`),
+      ).sort(),
     )
-    expect(plan.removable.map(entry => entry.name)).toEqual(
-      PROFILE_ARTIFACT_DIRS.map(profile => `${profile}/debug.log`).sort(),
+    expect(plan.removable.map((entry) => entry.name)).toEqual(
+      PROFILE_ARTIFACT_DIRS.map((profile) => `${profile}/debug.log`).sort(),
     )
     expect(plan.removableBytes).toBe(PROFILE_ARTIFACT_DIRS.length * 3)
   })
@@ -106,7 +108,15 @@ describe('applyCleanPlan', () => {
     const dir = tempDir()
     writeFileSync(path.join(dir, 'baseline.dump'), 'x')
     const plan = buildCleanPlan(dir)
-    plan.removable = [{ path: path.join(dir, 'baseline.dump'), name: 'baseline.dump', kind: 'file', bytes: 1, files: 1 }]
+    plan.removable = [
+      {
+        path: path.join(dir, 'baseline.dump'),
+        name: 'baseline.dump',
+        kind: 'file',
+        bytes: 1,
+        files: 1,
+      },
+    ]
 
     expect(() => applyCleanPlan(plan)).toThrow(/拒绝清理/)
     expect(existsSync(path.join(dir, 'baseline.dump'))).toBe(true)
@@ -117,7 +127,9 @@ describe('applyCleanPlan', () => {
     const outside = tempDir()
     writeFileSync(path.join(outside, 'keep.txt'), 'x')
     const plan = buildCleanPlan(dir)
-    plan.removable = [{ path: path.join(outside, 'keep.txt'), name: 'keep.txt', kind: 'file', bytes: 1, files: 1 }]
+    plan.removable = [
+      { path: path.join(outside, 'keep.txt'), name: 'keep.txt', kind: 'file', bytes: 1, files: 1 },
+    ]
 
     expect(() => applyCleanPlan(plan)).toThrow(/拒绝清理/)
     expect(existsSync(path.join(outside, 'keep.txt'))).toBe(true)
@@ -142,13 +154,15 @@ describe('applyCleanPlan', () => {
     mkdirSync(profileDir)
     writeFileSync(path.join(profileDir, 'baseline.dump'), 'x')
     const plan = buildCleanPlan(dir)
-    plan.removable = [{
-      path: path.join(profileDir, 'baseline.dump'),
-      name: `${PROFILE_ARTIFACT_DIRS[0]}/baseline.dump`,
-      kind: 'file',
-      bytes: 1,
-      files: 1,
-    }]
+    plan.removable = [
+      {
+        path: path.join(profileDir, 'baseline.dump'),
+        name: `${PROFILE_ARTIFACT_DIRS[0]}/baseline.dump`,
+        kind: 'file',
+        bytes: 1,
+        files: 1,
+      },
+    ]
 
     expect(() => applyCleanPlan(plan)).toThrow(/拒绝清理/)
     expect(existsSync(path.join(profileDir, 'baseline.dump'))).toBe(true)

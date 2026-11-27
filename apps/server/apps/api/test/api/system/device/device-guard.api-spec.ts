@@ -4,7 +4,10 @@ import type { WalnutRootUserFixture } from '../../helpers/auth-login'
 import { ConfigService } from '@nestjs/config'
 import { AppTechCacheDeviceService, AppTechCacheService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
-import { WalnutAdminConstCookieKeys, WalnutAdminConstDeviceCookieMaxAge } from '@walnut-server/const/app/cookie'
+import {
+  WalnutAdminConstCookieKeys,
+  WalnutAdminConstDeviceCookieMaxAge,
+} from '@walnut-server/const/app/cookie'
 import { isValidDeviceId } from '@walnut-server/system'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -39,7 +42,8 @@ import { signCookieValue, unsignCookieValue } from '../../helpers/signed-cookie'
  */
 
 /** 续期时间闸的逻辑键（与 `AppTechCacheDeviceService.markDeviceCookieRenewed` 同口径） */
-const renewKeyOf = (deviceId: string) => `${WalnutAdminConstAppCacheKeys.SYS_DEVICE_COOKIE_RENEW}:${deviceId}`
+const renewKeyOf = (deviceId: string) =>
+  `${WalnutAdminConstAppCacheKeys.SYS_DEVICE_COOKIE_RENEW}:${deviceId}`
 
 /** 新 IP 取回环段（`is-localhost-ip` ⇒ LOCAL）：不触发外网 geoip，用例确定性 */
 const CONCURRENT_NEW_IP = '127.0.0.3'
@@ -91,7 +95,9 @@ describe('B 路 · Device 家族：滑动续期 / 签名有效但无行 / active
   afterAll(async () => {
     if (api !== undefined) {
       const pg = api.pgDataSource
-      const deviceIds = [api.deviceId, apiGhost?.deviceId].filter((id): id is string => typeof id === 'string' && id.length > 0)
+      const deviceIds = [api.deviceId, apiGhost?.deviceId].filter(
+        (id): id is string => typeof id === 'string' && id.length > 0,
+      )
 
       if (fixture !== null) {
         await pg.query('DELETE FROM app_monitor_user WHERE device_id = $1', [api.deviceId])
@@ -117,14 +123,17 @@ describe('B 路 · Device 家族：滑动续期 / 签名有效但无行 / active
   /** 从响应的 Set-Cookie 里挑出某键的**裸值**（去掉属性段） */
   function cookieValueFromResponse(res: SuperTestResponse, key: string): string | undefined {
     const setCookies = (res.headers['set-cookie'] ?? []) as unknown as string[]
-    const raw = setCookies.find(item => item.startsWith(`${key}=`))
+    const raw = setCookies.find((item) => item.startsWith(`${key}=`))
     return raw?.split(';')[0].slice(key.length + 1)
   }
 
   /** 从响应的 Set-Cookie 里挑出某键的属性表（小写键名，值原样） */
-  function cookieAttributesFromResponse(res: SuperTestResponse, key: string): Record<string, string> {
+  function cookieAttributesFromResponse(
+    res: SuperTestResponse,
+    key: string,
+  ): Record<string, string> {
     const setCookies = (res.headers['set-cookie'] ?? []) as unknown as string[]
-    const raw = setCookies.find(item => item.startsWith(`${key}=`))
+    const raw = setCookies.find((item) => item.startsWith(`${key}=`))
 
     if (raw === undefined) {
       return {}
@@ -135,8 +144,7 @@ describe('B 路 · Device 家族：滑动续期 / 签名有效但无行 / active
       const eq = part.indexOf('=')
       if (eq === -1) {
         attributes[part.trim().toLowerCase()] = ''
-      }
-      else {
+      } else {
         attributes[part.slice(0, eq).trim().toLowerCase()] = part.slice(eq + 1)
       }
     }
@@ -144,11 +152,14 @@ describe('B 路 · Device 家族：滑动续期 / 签名有效但无行 / active
   }
 
   async function readIpState(deviceId: string): Promise<IDeviceIpState> {
-    const rows: Array<{ ip: string | null, ip_history: string[] | null, location_history: Array<{ ip?: string }> | null }>
-      = await api.pgDataSource.query(
-        'SELECT ip, ip_history, location_history FROM sys_device WHERE device_id = $1',
-        [deviceId],
-      )
+    const rows: Array<{
+      ip: string | null
+      ip_history: string[] | null
+      location_history: Array<{ ip?: string }> | null
+    }> = await api.pgDataSource.query(
+      'SELECT ip, ip_history, location_history FROM sys_device WHERE device_id = $1',
+      [deviceId],
+    )
 
     return {
       ip: rows[0].ip,
@@ -175,8 +186,9 @@ describe('B 路 · Device 家族：滑动续期 / 签名有效但无行 / active
       // 下发的就是本设备的 id（解签名后逐字节相同），不是「随便重签一枚」
       expect(unsignCookieValue(renewedRaw!)).toBe(api.deviceId)
       // maxAge 与 /system/device/initial 同源：30 天的秒数
-      expect(cookieAttributesFromResponse(first, WalnutAdminConstCookieKeys.DEVICE_ID)['max-age'])
-        .toBe(String(WalnutAdminConstDeviceCookieMaxAge / 1000))
+      expect(
+        cookieAttributesFromResponse(first, WalnutAdminConstCookieKeys.DEVICE_ID)['max-age'],
+      ).toBe(String(WalnutAdminConstDeviceCookieMaxAge / 1000))
 
       // 副作用：时间闸被重新占位（键存在），于是窗口关闭
       expect(await api.hasWalnutCacheKey(renewKey)).toBe(true)
@@ -223,7 +235,9 @@ describe('B 路 · Device 家族：滑动续期 / 签名有效但无行 / active
       // A 对照：行还在 ⇒ 设备 guard 通过，拒绝发生在更后面的 JWT（本客户端没有 AT）
       // —— 这一条同时自证 helper 的签名被真 cookie-parser 收下了（否则会因「缺失」直接 40605）
       const alive = await apiGhost.anon('GET', api.apiPath('/system/user/lock/read'))
-      expect(bodyOf(alive).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+      expect(bodyOf(alive).code).toBe(
+        WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
+      )
 
       // 模拟 90 天 purge：行没了；缓存一并清掉（真实的「缓存早已被淘汰/重启」那一半）
       await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [ghostDeviceId])
@@ -231,7 +245,9 @@ describe('B 路 · Device 家族：滑动续期 / 签名有效但无行 / active
 
       // B：同一枚 cookie，库里查不到行 ⇒ 40605（device.guard.ts:115-121）
       const gone = await apiGhost.anon('GET', api.apiPath('/system/user/lock/read'))
-      expect(bodyOf(gone).code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED)
+      expect(bodyOf(gone).code).toBe(
+        WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED,
+      )
 
       // 副作用：回源失败不留半截状态 —— 缓存里仍是 miss（不放行、也不写空壳）
       expect(await cacheDevice.getSysDeviceCache(ghostDeviceId)).toBeNull()
@@ -254,7 +270,9 @@ describe('B 路 · Device 家族：滑动续期 / 签名有效但无行 / active
       // 读实现（device.guard.ts:150-158）：拒绝链只有 banned / locked 两条，
       // `active` 仅在「缓存 miss 回源」时被搬进缓存对象（第 129 行），之后无人读取。
       // 所以下面这条断言钉的是**现状**：把设备标成 inactive 并不能挡住它的请求。
-      await api.pgDataSource.query('UPDATE sys_device SET active = false WHERE device_id = $1', [api.deviceId])
+      await api.pgDataSource.query('UPDATE sys_device SET active = false WHERE device_id = $1', [
+        api.deviceId,
+      ])
       // 清缓存，强制走「回源 ⇒ 读到 active=false」那条腿（否则测的还是缓存里的旧值）
       await cacheDevice.delSysDeviceCache(api.deviceId)
       expect(await cacheDevice.getSysDeviceCache(api.deviceId)).toBeNull()
@@ -263,11 +281,16 @@ describe('B 路 · Device 家族：滑动续期 / 签名有效但无行 / active
       expectOk(res, 'inactive device request')
 
       // 回填的缓存里 active 确实是 false —— 字段被搬进来了，只是没人读（现状）
-      expect(await cacheDevice.getSysDeviceCache(api.deviceId))
-        .toMatchObject({ active: false, locked: false, banned: false })
+      expect(await cacheDevice.getSysDeviceCache(api.deviceId)).toMatchObject({
+        active: false,
+        locked: false,
+        banned: false,
+      })
 
       // 还原：本文件后续用例（IP 并发去重）需要一台正常在用的设备
-      await api.pgDataSource.query('UPDATE sys_device SET active = true WHERE device_id = $1', [api.deviceId])
+      await api.pgDataSource.query('UPDATE sys_device SET active = true WHERE device_id = $1', [
+        api.deviceId,
+      ])
       await cacheDevice.delSysDeviceCache(api.deviceId)
     })
   })
@@ -287,12 +310,11 @@ describe('B 路 · Device 家族：滑动续期 / 签名有效但无行 / active
       expect((await cacheDevice.getSysDeviceCache(api.deviceId))?.currentIp).toBe(before.ip)
 
       const responses = await Promise.all(
-        [1, 2, 3].map(async () => api.root(
-          'GET',
-          api.apiPath('/system/user/lock/read'),
-          undefined,
-          { 'x-forwarded-for': CONCURRENT_NEW_IP },
-        )),
+        [1, 2, 3].map(async () =>
+          api.root('GET', api.apiPath('/system/user/lock/read'), undefined, {
+            'x-forwarded-for': CONCURRENT_NEW_IP,
+          }),
+        ),
       )
 
       // 三路都必须放行（锁到期/抢锁失败会变成 50000，不能只断言「有一路成功」）
@@ -306,10 +328,12 @@ describe('B 路 · Device 家族：滑动续期 / 签名有效但无行 / active
       expect(after.ip).toBe(CONCURRENT_NEW_IP)
       // 去重判据：读改写只发生一次。若锁内复核失效，三路会各自 read-modify-write，
       // ipHistory / locationHistory 里就会出现 2~3 份同一个新 IP（丢失更新）。
-      expect(after.ipHistory.filter(ip => ip === CONCURRENT_NEW_IP))
-        .toHaveLength(before.ipHistory.filter(ip => ip === CONCURRENT_NEW_IP).length + 1)
-      expect(after.locationHistory.filter(item => item.ip === CONCURRENT_NEW_IP))
-        .toHaveLength(before.locationHistory.filter(item => item.ip === CONCURRENT_NEW_IP).length + 1)
+      expect(after.ipHistory.filter((ip) => ip === CONCURRENT_NEW_IP)).toHaveLength(
+        before.ipHistory.filter((ip) => ip === CONCURRENT_NEW_IP).length + 1,
+      )
+      expect(after.locationHistory.filter((item) => item.ip === CONCURRENT_NEW_IP)).toHaveLength(
+        before.locationHistory.filter((item) => item.ip === CONCURRENT_NEW_IP).length + 1,
+      )
 
       // 还原：不带 XFF 的一次请求把 IP 写回真实回环地址（避免污染后续用例的缓存/行状态）
       expectOk(await api.root('GET', api.apiPath('/system/user/lock/read')), 'ip restore')

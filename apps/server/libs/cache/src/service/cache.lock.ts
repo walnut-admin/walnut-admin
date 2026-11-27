@@ -1,6 +1,9 @@
 import type { Recordable } from 'easy-fns-ts'
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+} from '@walnut-server/const/app/cache'
 import { AppTechCacheService } from '../cache.service'
 
 // 缓存键模板
@@ -52,8 +55,7 @@ export class AppTechCacheLockService {
       await this.cache.set(key, isLocked, {
         t: WalnutAdminConstAppCacheType.BUILT_IN,
       })
-    }
-    else {
+    } else {
       // D1 修复（2026-11-27）：跨设备 → 单设备切换后 **fail-open**。
       // `checkIsLocked` 先读全局键且全局键无 TTL；旧实现切到设备键时不清全局，
       // 于是曾用过跨设备锁（DB 默认 true）的用户关掉 lockCrossDevice 置锁后，
@@ -91,7 +93,10 @@ export class AppTechCacheLockService {
   /**
    * 读取并删除解锁授权（单次消费；不存在返回 null）。
    */
-  async consumeUnlockAuthCache<T = Recordable>(userId: string, deviceId: string): Promise<T | null> {
+  async consumeUnlockAuthCache<T = Recordable>(
+    userId: string,
+    deviceId: string,
+  ): Promise<T | null> {
     const key = LOCK_KEY_UNLOCK_AUTH(userId, deviceId)
     const payload = await this.cache.get<T>(key)
 

@@ -10,10 +10,23 @@ import * as contract from './index'
 import { CacheKeyStrategy, MenuTernal, MenuType } from './menu'
 import { WalnutAdminConstSysUserMfaType, WalnutAdminConstSysUserMfaWebauthnTransport } from './mfa'
 import { FilterOpValues, SortOrderValues } from './pagination'
-import { colorModeConst, CVDConst, fontSizeConst, fontSizeValues, layoutModeConst } from './preference'
+import {
+  colorModeConst,
+  CVDConst,
+  fontSizeConst,
+  fontSizeValues,
+  layoutModeConst,
+} from './preference'
 import { WalnutAdminConstAppResponseCode } from './response-code'
 import { Role, RoleMode } from './role'
-import { AppRoutes, AuthRoutes, SecurityRoutes, SharedRoutes, SystemEndpointRoutes, SystemRoutes } from './routes'
+import {
+  AppRoutes,
+  AuthRoutes,
+  SecurityRoutes,
+  SharedRoutes,
+  SystemEndpointRoutes,
+  SystemRoutes,
+} from './routes'
 import { WalnutAdminConstAppSettingForceQuitStrategy } from './setting'
 import { WalnutAdminSocketEvents, WalnutAdminSocketRooms } from './socket'
 import { WalnutAdminSseEvents } from './sse'
@@ -71,7 +84,10 @@ describe('contract snapshots', () => {
   })
 
   it('mfa methods and transports never change silently', () => {
-    expect({ WalnutAdminConstSysUserMfaType, WalnutAdminConstSysUserMfaWebauthnTransport }).toMatchSnapshot()
+    expect({
+      WalnutAdminConstSysUserMfaType,
+      WalnutAdminConstSysUserMfaWebauthnTransport,
+    }).toMatchSnapshot()
   })
 
   it('user lock modes never change silently', () => {
@@ -79,7 +95,13 @@ describe('contract snapshots', () => {
   })
 
   it('preference value sets never change silently', () => {
-    expect({ fontSizeConst, fontSizeValues, colorModeConst, CVDConst, layoutModeConst }).toMatchSnapshot()
+    expect({
+      fontSizeConst,
+      fontSizeValues,
+      colorModeConst,
+      CVDConst,
+      layoutModeConst,
+    }).toMatchSnapshot()
   })
 
   it('force quit strategies never change silently', () => {
@@ -116,6 +138,13 @@ describe('contract snapshots', () => {
   })
 
   it('api routes never change silently', () => {
-    expect({ AppRoutes, AuthRoutes, SecurityRoutes, SharedRoutes, SystemEndpointRoutes, SystemRoutes }).toMatchSnapshot()
+    expect({
+      AppRoutes,
+      AuthRoutes,
+      SecurityRoutes,
+      SharedRoutes,
+      SystemEndpointRoutes,
+      SystemRoutes,
+    }).toMatchSnapshot()
   })
 })

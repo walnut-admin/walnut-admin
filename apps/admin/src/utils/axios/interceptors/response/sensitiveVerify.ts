@@ -55,8 +55,7 @@ function toComponentMethods(methods: unknown): VerifyAuthMethodType[] {
   for (const method of methods) {
     if (method === 'sms' || method === 'email') {
       mapped.push(method)
-    }
-    else if (method === 'mfa') {
+    } else if (method === 'mfa') {
       mapped.push('totp')
     }
   }
@@ -73,7 +72,12 @@ export function parseSensitiveChallenge(meta: unknown): SensitiveChallengeDescri
   const challenge = meta as Record<string, unknown>
   const { level, operationType } = challenge
 
-  if (typeof level !== 'string' || level === '' || typeof operationType !== 'string' || operationType === '') {
+  if (
+    typeof level !== 'string' ||
+    level === '' ||
+    typeof operationType !== 'string' ||
+    operationType === ''
+  ) {
     return null
   }
 
@@ -97,7 +101,10 @@ export function SingletonPromiseSensitiveVerify(meta: unknown): Promise<boolean>
     const descriptor = parseSensitiveChallenge(meta)
 
     if (descriptor === null || descriptor.allowedMethods.length === 0) {
-      console.warn('[sensitive] 40119 的 meta 缺 level/operationType/可用验证方式，无法发起二次验证', meta)
+      console.warn(
+        '[sensitive] 40119 的 meta 缺 level/operationType/可用验证方式，无法发起二次验证',
+        meta,
+      )
       return false
     }
 

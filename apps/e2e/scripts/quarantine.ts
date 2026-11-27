@@ -72,7 +72,9 @@ export function parseQuarantine(raw: unknown): QuarantineEntry[] {
     const entry = item as unknown as QuarantineEntry
     for (const field of ['addedAt', 'reviewAt'] as const) {
       if (!DATE_PATTERN.test(entry[field])) {
-        throw new Error(`[e2e/quarantine] 第 ${index + 1} 条的 ${field} 必须是 YYYY-MM-DD：${entry[field]}`)
+        throw new Error(
+          `[e2e/quarantine] 第 ${index + 1} 条的 ${field} 必须是 YYYY-MM-DD：${entry[field]}`,
+        )
       }
     }
     if (seen.has(entry.testName)) {
@@ -88,17 +90,19 @@ export function loadQuarantine(file = QUARANTINE_FILE): QuarantineEntry[] {
   let text: string
   try {
     text = readFileSync(file, 'utf8')
-  }
-  catch (error) {
-    throw new Error(`[e2e/quarantine] 读不到隔离名单 ${file}：${error instanceof Error ? error.message : String(error)}`)
+  } catch (error) {
+    throw new Error(
+      `[e2e/quarantine] 读不到隔离名单 ${file}：${error instanceof Error ? error.message : String(error)}`,
+    )
   }
 
   let raw: unknown
   try {
     raw = JSON.parse(text)
-  }
-  catch (error) {
-    throw new Error(`[e2e/quarantine] ${file} 不是合法 JSON：${error instanceof Error ? error.message : String(error)}`)
+  } catch (error) {
+    throw new Error(
+      `[e2e/quarantine] ${file} 不是合法 JSON：${error instanceof Error ? error.message : String(error)}`,
+    )
   }
 
   return parseQuarantine(raw)
@@ -119,10 +123,13 @@ export function buildQuarantineGrepInvert(entries: readonly QuarantineEntry[]): 
   if (entries.length === 0) {
     return undefined
   }
-  return new RegExp(entries.map(entry => escapeRegExp(entry.testName)).join('|'))
+  return new RegExp(entries.map((entry) => escapeRegExp(entry.testName)).join('|'))
 }
 
 /** 已过复查日期的条目（`today` 用 YYYY-MM-DD 或 Date；纯字符串比较，ISO 日期可比） */
-export function overdueEntries(entries: readonly QuarantineEntry[], today: string = new Date().toISOString().slice(0, 10)): QuarantineEntry[] {
-  return entries.filter(entry => entry.reviewAt < today)
+export function overdueEntries(
+  entries: readonly QuarantineEntry[],
+  today: string = new Date().toISOString().slice(0, 10),
+): QuarantineEntry[] {
+  return entries.filter((entry) => entry.reviewAt < today)
 }

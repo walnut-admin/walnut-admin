@@ -9,4 +9,4 @@ export interface IAppAuthorizeProps {
   presetHeight?: string
 }
 
-export interface IAppAuthorizeIPTCProps extends Omit<IAppAuthorizeProps, 'preset'> { }
+export interface IAppAuthorizeIPTCProps extends Omit<IAppAuthorizeProps, 'preset'> {}

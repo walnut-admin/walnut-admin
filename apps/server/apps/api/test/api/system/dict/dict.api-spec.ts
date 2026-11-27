@@ -108,7 +108,11 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
   }
 
   async function createDictData(typeId: string, tag: string): Promise<DictDataRow> {
-    const res = await api.root('POST', api.apiPath('/system/dict/data'), dictDataPayload(typeId, tag))
+    const res = await api.root(
+      'POST',
+      api.apiPath('/system/dict/data'),
+      dictDataPayload(typeId, tag),
+    )
     expectOk(res, `dict data create ${tag}`)
     const row = bodyOf<DictDataRow>(res).data
     collect.dataIds.push(row.id)
@@ -135,16 +139,24 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
 
   afterEach(async () => {
     // dictData 先清（若 CASCADE 用例已连带清掉则 IN 空集无害）；再 type；最后软删快照
-    await api.pgDataSource.query('DELETE FROM sys_dict_data WHERE id = ANY($1::uuid[])', [collect.dataIds])
-    await api.pgDataSource.query('DELETE FROM sys_dict_type WHERE id = ANY($1::uuid[])', [collect.typeIds])
+    await api.pgDataSource.query('DELETE FROM sys_dict_data WHERE id = ANY($1::uuid[])', [
+      collect.dataIds,
+    ])
+    await api.pgDataSource.query('DELETE FROM sys_dict_type WHERE id = ANY($1::uuid[])', [
+      collect.typeIds,
+    ])
     await api.pgDataSource.query('DELETE FROM sys_dict_type WHERE type LIKE $1', [`${typePrefix}%`])
     const touchedIds = [...collect.dataIds, ...collect.typeIds]
     if (touchedIds.length > 0) {
-      await api.pgDataSource.query('DELETE FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])', [touchedIds])
+      await api.pgDataSource.query('DELETE FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])', [
+        touchedIds,
+      ])
     }
     // P2-23：级联软删/恢复过的 locale 行与快照（按 key 前缀清）
     await api.pgDataSource.query('DELETE FROM sys_locale WHERE key LIKE $1', [`${localePrefix}%`])
-    await api.pgDataSource.query('DELETE FROM sys_deleted WHERE content ->> \'key\' LIKE $1', [`${localePrefix}%`])
+    await api.pgDataSource.query("DELETE FROM sys_deleted WHERE content ->> 'key' LIKE $1", [
+      `${localePrefix}%`,
+    ])
     collect.typeIds = []
     collect.typeKeys = []
     collect.dataIds = []
@@ -152,9 +164,13 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
 
   afterAll(async () => {
     if (api !== undefined && fixture !== null) {
-      await api.pgDataSource.query('DELETE FROM sys_dict_type WHERE type LIKE $1', [`${typePrefix}%`])
+      await api.pgDataSource.query('DELETE FROM sys_dict_type WHERE type LIKE $1', [
+        `${typePrefix}%`,
+      ])
       await api.pgDataSource.query('DELETE FROM sys_locale WHERE key LIKE $1', [`${localePrefix}%`])
-      await api.pgDataSource.query('DELETE FROM sys_deleted WHERE content ->> \'key\' LIKE $1', [`${localePrefix}%`])
+      await api.pgDataSource.query("DELETE FROM sys_deleted WHERE content ->> 'key' LIKE $1", [
+        `${localePrefix}%`,
+      ])
       if (localeLangId !== '') {
         await api.pgDataSource.query('DELETE FROM sys_lang WHERE id = $1', [localeLangId])
       }
@@ -163,7 +179,9 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
       await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [api.deviceId])
       await api.cleanupWalnutCacheKeys(seed8, api.deviceId, fixture.userId)
       // locale 级联会触发全量消息缓存刷新（键名是大写 lang 代号，seed 片段不匹配）
-      await api.cleanupFixedCacheKeys(`${WalnutAdminConstAppCacheKeys.SYS_LOCALE_MESSAGES}:D${seed8.toUpperCase()}`)
+      await api.cleanupFixedCacheKeys(
+        `${WalnutAdminConstAppCacheKeys.SYS_LOCALE_MESSAGES}:D${seed8.toUpperCase()}`,
+      )
     }
     await app.close()
   })
@@ -243,18 +261,23 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
     })
     expectOk(disableRes, 'dict data disable')
 
-    const res = await api.root('GET', api.apiPath(`/system/dict/type/s?types=${typePrefix}-S1,${typePrefix}-S2,${typePrefix}-missing`))
+    const res = await api.root(
+      'GET',
+      api.apiPath(
+        `/system/dict/type/s?types=${typePrefix}-S1,${typePrefix}-S2,${typePrefix}-missing`,
+      ),
+    )
     expectOk(res, 'dict type s endpoint')
 
     const rows = bodyOf<DictTypeWithData[]>(res).data
     // 未知 type 在 service 层直接短路为空并被 flat 掉
     expect(rows).toHaveLength(2)
 
-    const s1 = rows.find(r => r.type === `${typePrefix}-S1`)!
+    const s1 = rows.find((r) => r.type === `${typePrefix}-S1`)!
     expect(s1.dictData).toHaveLength(2)
-    expect(s1.dictData.map(d => d.order)).toEqual([1, 9])
+    expect(s1.dictData.map((d) => d.order)).toEqual([1, 9])
 
-    const s2 = rows.find(r => r.type === `${typePrefix}-S2`)!
+    const s2 = rows.find((r) => r.type === `${typePrefix}-S2`)!
     // status=false 的行不进 getByType（match { status: true }）
     expect(s2.dictData).toHaveLength(1)
     expect(s2.dictData[0].label).toBe(`dict-label-${seed8}-S2a`)
@@ -277,7 +300,7 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
       page: { page: 1, pageSize: 10 },
     })
     expectOk(listRes, 'dict data list')
-    const list = bodyOf<{ data: DictDataRow[], total: number }>(listRes).data
+    const list = bodyOf<{ data: DictDataRow[]; total: number }>(listRes).data
     expect(list.total).toBe(1)
     expect(list.data[0].id).toBe(data.id)
   })
@@ -293,14 +316,15 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
     const readRes = await api.root('GET', api.apiPath(`/system/dict/data/${data.id}`))
     expect(bodyOf(readRes).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
 
-    const snapshots: Array<{ deleted_id: string, model_name: string }> = await api.pgDataSource.query(
-      'SELECT deleted_id, model_name FROM sys_deleted WHERE deleted_id = $1',
-      [data.id],
-    )
+    const snapshots: Array<{ deleted_id: string; model_name: string }> =
+      await api.pgDataSource.query(
+        'SELECT deleted_id, model_name FROM sys_deleted WHERE deleted_id = $1',
+        [data.id],
+      )
     expect(snapshots).toHaveLength(1)
     expect(snapshots[0].model_name).toBe(WalnutModelName.SYS_DICT_DATA)
 
-    collect.dataIds = collect.dataIds.filter(id => id !== data.id)
+    collect.dataIds = collect.dataIds.filter((id) => id !== data.id)
   })
 
   it('dictData deleteMany → 行级软删两行 + 各落 sys_deleted 快照（P1-12 接线）', async () => {
@@ -322,10 +346,13 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
       expect(bodyOf<DictDataRow>(res).data.order).toBe(2)
     }
 
-    const deleteManyRes = await api.root('DELETE', api.apiPath(`/system/dict/data/deleteMany/${a.id},${b.id}`))
+    const deleteManyRes = await api.root(
+      'DELETE',
+      api.apiPath(`/system/dict/data/deleteMany/${a.id},${b.id}`),
+    )
     expectOk(deleteManyRes, 'dict data deleteMany')
     const deleted = bodyOf<DictDataRow[]>(deleteManyRes).data
-    expect(deleted.map(row => row.id).sort()).toEqual([a.id, b.id].sort())
+    expect(deleted.map((row) => row.id).sort()).toEqual([a.id, b.id].sort())
 
     // 原行硬删 + 每个 id 各一条软删快照
     const leftRows: Array<{ c: number }> = await api.pgDataSource.query(
@@ -334,12 +361,13 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
     )
     expect(leftRows[0].c).toBe(0)
 
-    const snapshots: Array<{ deleted_id: string, model_name: string }> = await api.pgDataSource.query(
-      'SELECT deleted_id, model_name FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])',
-      [[a.id, b.id]],
-    )
+    const snapshots: Array<{ deleted_id: string; model_name: string }> =
+      await api.pgDataSource.query(
+        'SELECT deleted_id, model_name FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])',
+        [[a.id, b.id]],
+      )
     expect(snapshots).toHaveLength(2)
-    expect(snapshots.every(s => s.model_name === WalnutModelName.SYS_DICT_DATA)).toBe(true)
+    expect(snapshots.every((s) => s.model_name === WalnutModelName.SYS_DICT_DATA)).toBe(true)
 
     // 读腿 40401（两行都不在了）
     const readRes = await api.root('GET', api.apiPath(`/system/dict/data/${a.id}`))
@@ -353,7 +381,7 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
 
     const deleteRes = await api.root('DELETE', api.apiPath(`/system/dict/type/${type.id}`))
     expectOk(deleteRes, 'dict type delete (cascade soft delete)')
-    collect.typeIds = collect.typeIds.filter(id => id !== type.id)
+    collect.typeIds = collect.typeIds.filter((id) => id !== type.id)
 
     // 原表行（type + 两条 data）全部消失
     const leftData: Array<{ c: number }> = await api.pgDataSource.query(
@@ -369,18 +397,23 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
     expect(leftType[0].c).toBe(0)
 
     // 快照 3 条：type 1 + data 2（data 的 modelName 是 SYS_DICT_DATA）
-    const snapshots: Array<{ id: string, deleted_id: string, model_name: string }> = await api.pgDataSource.query(
-      'SELECT id, deleted_id, model_name FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])',
-      [[type.id, a.id, b.id]],
-    )
+    const snapshots: Array<{ id: string; deleted_id: string; model_name: string }> =
+      await api.pgDataSource.query(
+        'SELECT id, deleted_id, model_name FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])',
+        [[type.id, a.id, b.id]],
+      )
     expect(snapshots).toHaveLength(3)
-    expect(snapshots.filter(row => row.model_name === WalnutModelName.SYS_DICT_TYPE)).toHaveLength(1)
-    expect(snapshots.filter(row => row.model_name === WalnutModelName.SYS_DICT_DATA)).toHaveLength(2)
+    expect(
+      snapshots.filter((row) => row.model_name === WalnutModelName.SYS_DICT_TYPE),
+    ).toHaveLength(1)
+    expect(
+      snapshots.filter((row) => row.model_name === WalnutModelName.SYS_DICT_DATA),
+    ).toHaveLength(2)
 
     // P2-23（2026-10-29）：恢复 type 即联动重放 dictData（P2-8 快照）—— 旧语义是
     // 「先恢复 type，再逐条手动恢复 data」；现在 type 恢复器是组合恢复器。
-    const typeSnapshot = snapshots.find(row => row.model_name === WalnutModelName.SYS_DICT_TYPE)!
-    const dataSnapshot = snapshots.find(row => row.deleted_id === a.id)!
+    const typeSnapshot = snapshots.find((row) => row.model_name === WalnutModelName.SYS_DICT_TYPE)!
+    const dataSnapshot = snapshots.find((row) => row.deleted_id === a.id)!
 
     const recoverType = await api.root('POST', api.apiPath('/system/deleted/recover'), {
       id: typeSnapshot.id,
@@ -407,7 +440,7 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
 
     // 恢复出的行由 afterEach 按 collected ids 清
     collect.typeIds.push(type.id)
-    collect.typeKeys = collect.typeKeys.filter(key => key !== `${typePrefix}-FK1`)
+    collect.typeKeys = collect.typeKeys.filter((key) => key !== `${typePrefix}-FK1`)
     collect.typeKeys.push(`${typePrefix}-FK1`)
   })
 
@@ -422,7 +455,7 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
 
     const deleteRes = await api.root('DELETE', api.apiPath(`/system/dict/data/${data.id}`))
     expectOk(deleteRes, 'dict data delete with locale cascade')
-    collect.dataIds = collect.dataIds.filter(id => id !== data.id)
+    collect.dataIds = collect.dataIds.filter((id) => id !== data.id)
 
     const [dataSnapshot]: Array<{ id: string }> = await api.pgDataSource.query(
       'SELECT id FROM sys_deleted WHERE deleted_id = $1 AND model_name = $2',
@@ -447,7 +480,7 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
     expect(backLocale[0].value).toBe('v-dict-recover')
 
     const remainSnapshots: Array<{ c: number }> = await api.pgDataSource.query(
-      'SELECT count(*)::int AS c FROM sys_deleted WHERE content ->> \'key\' = $1',
+      "SELECT count(*)::int AS c FROM sys_deleted WHERE content ->> 'key' = $1",
       [data.label],
     )
     expect(remainSnapshots[0].c).toBe(0)

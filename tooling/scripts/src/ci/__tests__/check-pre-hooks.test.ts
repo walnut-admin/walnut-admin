@@ -27,10 +27,10 @@ describe('脚本前置钩子：有生成物的包，跑消费者的脚本必须�
     const findings = findingsForPackage({
       ...adminLike,
       scripts: {
-        'predev': 'node build/generate/index.ts',
-        'dev': 'vite',
-        'prebuild': 'node build/generate/index.ts',
-        'build': 'vite build',
+        predev: 'node build/generate/index.ts',
+        dev: 'vite',
+        prebuild: 'node build/generate/index.ts',
+        build: 'vite build',
         'prebuild:stage': 'node build/generate/index.ts',
         'build:stage': 'vite build --mode stage',
         'pretypes:check': 'node build/generate/index.ts',
@@ -41,7 +41,10 @@ describe('脚本前置钩子：有生成物的包，跑消费者的脚本必须�
   })
 
   it('`vue-tsc` 同样要钩子（它也是最早就读生成物的那个）', () => {
-    const findings = findingsForPackage({ ...adminLike, scripts: { 'types:check': 'vue-tsc --noEmit' } })
+    const findings = findingsForPackage({
+      ...adminLike,
+      scripts: { 'types:check': 'vue-tsc --noEmit' },
+    })
     expect(findings[0]?.rule).toBe('consumer-script-needs-pre-generate')
     expect(findings[0]?.detail).toContain('pretypes:check')
   })
@@ -49,7 +52,10 @@ describe('脚本前置钩子：有生成物的包，跑消费者的脚本必须�
   it('`vite preview` 不要求钩子（它伺服的是**已构建**的产物）', () => {
     const findings = findingsForPackage({
       ...adminLike,
-      scripts: { 'preview': 'vite preview --mode production', 'preview:stage': 'vite preview --mode stage' },
+      scripts: {
+        preview: 'vite preview --mode production',
+        'preview:stage': 'vite preview --mode stage',
+      },
     })
     expect(findings).toEqual([])
   })
@@ -67,7 +73,7 @@ describe('脚本前置钩子：有生成物的包，跑消费者的脚本必须�
   it('钩子指向不存在的文件 ⇒ 报 pre-hook-target-exists（改名后静默失效）', () => {
     const findings = findingsForPackage({
       ...adminLike,
-      fileExists: rel => rel !== 'build/generate/gone.ts',
+      fileExists: (rel) => rel !== 'build/generate/gone.ts',
       scripts: { prebuild: 'node build/generate/gone.ts', build: 'vite build' },
     })
     expect(findings).toHaveLength(1)
@@ -77,8 +83,14 @@ describe('脚本前置钩子：有生成物的包，跑消费者的脚本必须�
 
   it('环境包装词不影响识别（cross-env / KEY=value）', () => {
     expect(execTokens('cross-env NODE_ENV=production vite build')).toEqual(['vite', 'build'])
-    expect(execTokens('NODE_OPTIONS=--max-old-space-size=8192 vite build')).toEqual(['vite', 'build'])
-    const findings = findingsForPackage({ ...adminLike, scripts: { 'build:prod': 'cross-env NODE_ENV=production vite build' } })
+    expect(execTokens('NODE_OPTIONS=--max-old-space-size=8192 vite build')).toEqual([
+      'vite',
+      'build',
+    ])
+    const findings = findingsForPackage({
+      ...adminLike,
+      scripts: { 'build:prod': 'cross-env NODE_ENV=production vite build' },
+    })
     expect(findings[0]?.rule).toBe('consumer-script-needs-pre-generate')
   })
 
@@ -99,10 +111,9 @@ describe('脚本前置钩子：有生成物的包，跑消费者的脚本必须�
 
 describe('数据驱动：新增消费者只改数据', () => {
   it('注入一个新消费者后，它自动被要求 pre 钩子', () => {
-    const findings = findingsForPackage(
-      { ...adminLike, scripts: { build: 'oxfmt build' } },
-      [{ bin: 'oxfmt', why: '用例：证明名单来自数据而不是硬编码' }],
-    )
+    const findings = findingsForPackage({ ...adminLike, scripts: { build: 'oxfmt build' } }, [
+      { bin: 'oxfmt', why: '用例：证明名单来自数据而不是硬编码' },
+    ])
     expect(findings).toHaveLength(1)
     expect(findings[0]?.rule).toBe('consumer-script-needs-pre-generate')
     expect(findings[0]?.detail).toContain('prebuild')
@@ -118,9 +129,13 @@ describe('数据驱动：新增消费者只改数据', () => {
 
   it('真实名单里至少有 vite 与 vue-tsc（防「数据被清空却全绿」）', () => {
     // 空名单会让所有断言静默通过 —— 这是本仓最忌讳的失效形态
-    expect(PRE_HOOK_CONSUMERS.map(c => c.bin)).toEqual(expect.arrayContaining(['vite', 'vue-tsc']))
+    expect(PRE_HOOK_CONSUMERS.map((c) => c.bin)).toEqual(
+      expect.arrayContaining(['vite', 'vue-tsc']),
+    )
     expect(findingsForPackage({ ...adminLike, scripts: { build: 'vite build' } })).toHaveLength(1)
-    expect(findingsForPackage({ ...adminLike, scripts: { 'types:check': 'vue-tsc --noEmit' } })).toHaveLength(1)
+    expect(
+      findingsForPackage({ ...adminLike, scripts: { 'types:check': 'vue-tsc --noEmit' } }),
+    ).toHaveLength(1)
   })
 
   it('每条消费者都写了 `why`（名单过期时靠它排查）', () => {

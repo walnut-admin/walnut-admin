@@ -38,8 +38,7 @@ const useStoreCompCapJSInside = defineStore(StoreKeys.COMP_CAPJS, {
 
   actions: {
     loadCap(): Promise<ICapInst> {
-      if (this.inst)
-        return new Promise(resolve => resolve(this.inst!))
+      if (this.inst) return new Promise((resolve) => resolve(this.inst!))
 
       const { httpUrl } = useAppEnvProxy()
 
@@ -56,24 +55,23 @@ const useStoreCompCapJSInside = defineStore(StoreKeys.COMP_CAPJS, {
       this.loading = true
       try {
         const CapInst = await this.loadCap()
-        const cap = new CapInst({
-          apiEndpoint: securityCapApiEndpoint,
-        }, document.getElementById(this.getElementId)!)
+        const cap = new CapInst(
+          {
+            apiEndpoint: securityCapApiEndpoint,
+          },
+          document.getElementById(this.getElementId)!,
+        )
         const { token } = await cap.solve()
         return token
-      }
-      catch (e) {
+      } catch (e) {
         console.error('refresh cap js token failed', e)
         return ''
-      }
-      finally {
+      } finally {
         this.loading = false
       }
     },
 
-    async onOpenCapModal<T>(
-      onSuccess: (token: string) => Promise<T>,
-    ): Promise<T> {
+    async onOpenCapModal<T>(onSuccess: (token: string) => Promise<T>): Promise<T> {
       await this.loadCap()
       this.show = true
 
@@ -82,11 +80,9 @@ const useStoreCompCapJSInside = defineStore(StoreKeys.COMP_CAPJS, {
           try {
             const result = await onSuccess(token)
             resolve(result)
-          }
-          catch (e) {
+          } catch (e) {
             reject(e)
-          }
-          finally {
+          } finally {
             this.show = false
             this.onSuccess = null
           }
@@ -104,7 +100,6 @@ const useStoreCompCapJSInside = defineStore(StoreKeys.COMP_CAPJS, {
 const useStoreCompCapJSOutside = () => useStoreCompCapJSInside(store)
 
 export function useStoreCompCapJS() {
-  if (getCurrentInstance())
-    return useStoreCompCapJSInside()
+  if (getCurrentInstance()) return useStoreCompCapJSInside()
   return useStoreCompCapJSOutside()
 }

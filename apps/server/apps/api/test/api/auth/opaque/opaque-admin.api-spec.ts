@@ -10,7 +10,11 @@ import { SysUserIdentitySharedService } from '@walnut-server/identity'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from '../../helpers/api-client'
-import { attemptHttpOpaqueLogin, performHttpOpaqueLogin, registerRootUserFixture } from '../../helpers/auth-login'
+import {
+  attemptHttpOpaqueLogin,
+  performHttpOpaqueLogin,
+  registerRootUserFixture,
+} from '../../helpers/auth-login'
 import { createApiApp } from '../../helpers/create-api-app'
 
 /**
@@ -119,18 +123,28 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
 
   afterAll(async () => {
     if (api !== undefined && fixture !== null && fixtureTarget !== null) {
-      await api.pgDataSource.query('DELETE FROM sys_user_identity WHERE user_id = $1', [fixtureTarget.userId])
-      await api.pgDataSource.query('DELETE FROM sys_user WHERE id = ANY($1::uuid[])', [[fixture.userId, fixtureTarget.userId]])
+      await api.pgDataSource.query('DELETE FROM sys_user_identity WHERE user_id = $1', [
+        fixtureTarget.userId,
+      ])
+      await api.pgDataSource.query('DELETE FROM sys_user WHERE id = ANY($1::uuid[])', [
+        [fixture.userId, fixtureTarget.userId],
+      ])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
-      const deviceIds = [api.deviceId, apiTarget?.deviceId, apiTarget2?.deviceId].filter((id): id is string => typeof id === 'string' && id !== '')
-      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [deviceIds])
+      const deviceIds = [api.deviceId, apiTarget?.deviceId, apiTarget2?.deviceId].filter(
+        (id): id is string => typeof id === 'string' && id !== '',
+      )
+      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [
+        deviceIds,
+      ])
       await api.cleanupWalnutCacheKeys(seed8, ...deviceIds, fixture.userId, fixtureTarget.userId)
     }
     await app.close()
   })
 
-  async function readPasswordIdentity(userId: string): Promise<{ value: string, value_hash: string } | null> {
-    const rows: Array<{ value: string, value_hash: string }> = await api.pgDataSource.query(
+  async function readPasswordIdentity(
+    userId: string,
+  ): Promise<{ value: string; value_hash: string } | null> {
+    const rows: Array<{ value: string; value_hash: string }> = await api.pgDataSource.query(
       'SELECT value, value_hash FROM sys_user_identity WHERE user_id = $1 AND type = $2 AND purpose = $3',
       [userId, 'password', 'login'],
     )
@@ -143,10 +157,18 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
 
     // P2-32 前置：两台目标设备各写一份权限缓存（session/MFA 键在登录 + seed 时已存在），
     // 改密后才能断言「三键全清」而不只是「旧 AT 40101」。
-    expectOk(await apiTarget.root('GET', apiTarget.apiPath('/auth/permissions')), 'target device1 permissions prime')
-    expectOk(await apiTarget2.root('GET', apiTarget2.apiPath('/auth/permissions')), 'target device2 permissions prime')
+    expectOk(
+      await apiTarget.root('GET', apiTarget.apiPath('/auth/permissions')),
+      'target device1 permissions prime',
+    )
+    expectOk(
+      await apiTarget2.root('GET', apiTarget2.apiPath('/auth/permissions')),
+      'target device2 permissions prime',
+    )
 
-    const device1Sid = app.get(JwtService).decode<{ sid: string }>(apiTarget.getAuth()!.accessToken).sid
+    const device1Sid = app
+      .get(JwtService)
+      .decode<{ sid: string }>(apiTarget.getAuth()!.accessToken).sid
     const device2Sid = app.get(JwtService).decode<{ sid: string }>(targetTokens2!.accessToken).sid
 
     const cacheKeysOf = (deviceId: string, sid: string) => ({
@@ -165,10 +187,16 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
 
     // step 1 —— 客户端为新密码起注册流，服务端出 registrationResponse
     const newPassword = `New-${randomUUID().slice(0, 12)}#73`
-    const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({ password: newPassword })
-    const startRes = await apiTarget.root('POST', apiTarget.apiPath('/auth/opaque/user/change-password/start'), {
-      start: registrationRequest,
+    const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({
+      password: newPassword,
     })
+    const startRes = await apiTarget.root(
+      'POST',
+      apiTarget.apiPath('/auth/opaque/user/change-password/start'),
+      {
+        start: registrationRequest,
+      },
+    )
     expectOk(startRes, 'change-password start')
     const registrationResponse = bodyOf<string>(startRes).data
 
@@ -180,9 +208,13 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
       password: newPassword,
       identifiers: { client: fixtureTarget!.userName, server: appName },
     })
-    const finishRes = await apiTarget.root('POST', apiTarget.apiPath('/auth/opaque/user/change-password/finish'), {
-      finish: registrationRecord,
-    })
+    const finishRes = await apiTarget.root(
+      'POST',
+      apiTarget.apiPath('/auth/opaque/user/change-password/finish'),
+      {
+        finish: registrationRecord,
+      },
+    )
     expectOk(finishRes, 'change-password finish')
     expect(bodyOf<boolean>(finishRes).data).toBe(true)
 
@@ -192,10 +224,11 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
     expect(identityAfter!.value_hash).not.toBe(identityBefore!.value_hash)
 
     // security-policy：目标用户全设备 RT 吊销（revokeReason=updatePass）
-    const rtRows: Array<{ revoked: boolean, revoke_reason: string | null }> = await api.pgDataSource.query(
-      'SELECT revoked, revoke_reason FROM auth_refresh_token WHERE user_id = $1',
-      [fixtureTarget!.userId],
-    )
+    const rtRows: Array<{ revoked: boolean; revoke_reason: string | null }> =
+      await api.pgDataSource.query(
+        'SELECT revoked, revoke_reason FROM auth_refresh_token WHERE user_id = $1',
+        [fixtureTarget!.userId],
+      )
     expect(rtRows.length).toBeGreaterThanOrEqual(2)
     for (const row of rtRows) {
       expect(row.revoked).toBe(true)
@@ -205,9 +238,13 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
     // P2-32：改密是全设备下线 —— 旧 AT 在**第二台设备**上也立即 40101（会话键已清），
     // 发起改密的设备同样失效。
     const staleSecond = await apiTarget2.root('GET', apiTarget2.apiPath('/auth/permissions'))
-    expect(bodyOf(staleSecond).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+    expect(bodyOf(staleSecond).code).toBe(
+      WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
+    )
     const staleFirst = await apiTarget.root('GET', apiTarget.apiPath('/auth/permissions'))
-    expect(bodyOf(staleFirst).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+    expect(bodyOf(staleFirst).code).toBe(
+      WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
+    )
 
     // 三键全清（session / permissions / MFA verified，按设备逐个核对）
     expect(await apiTarget.hasWalnutCacheKey(device1Keys.session)).toBe(false)
@@ -238,10 +275,14 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
     const finishRequest = finishClientLogin(app, newLogin!, fixtureTarget!.userName, targetPassword)
     expect(finishRequest).not.toBeNull()
 
-    const finishRes = await apiTarget.anon('POST', apiTarget.apiPath('/auth/opaque/user/login/finish'), {
-      userName: fixtureTarget!.userName,
-      finish: finishRequest,
-    })
+    const finishRes = await apiTarget.anon(
+      'POST',
+      apiTarget.apiPath('/auth/opaque/user/login/finish'),
+      {
+        userName: fixtureTarget!.userName,
+        finish: finishRequest,
+      },
+    )
     expectOk(finishRes, 'login with new password')
     expect(typeof bodyOf<{ accessToken: string }>(finishRes).data.accessToken).toBe('string')
   })
@@ -251,11 +292,17 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
     expect(identityBefore).not.toBeNull()
 
     const adminPassword = `Admin-${randomUUID().slice(0, 12)}#81`
-    const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({ password: adminPassword })
-    const startRes = await api.root('POST', api.apiPath('/auth/opaque/admin/password/update/start'), {
-      id: fixtureTarget!.userId,
-      start: registrationRequest,
+    const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({
+      password: adminPassword,
     })
+    const startRes = await api.root(
+      'POST',
+      api.apiPath('/auth/opaque/admin/password/update/start'),
+      {
+        id: fixtureTarget!.userId,
+        start: registrationRequest,
+      },
+    )
     expectOk(startRes, 'admin password update start')
     const registrationResponse = bodyOf<string>(startRes).data
 
@@ -266,29 +313,38 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
       password: adminPassword,
       identifiers: { client: fixtureTarget!.userName, server: appName },
     })
-    const finishRes = await api.root('POST', api.apiPath('/auth/opaque/admin/password/update/finish'), {
-      id: fixtureTarget!.userId,
-      finish: registrationRecord,
-    })
+    const finishRes = await api.root(
+      'POST',
+      api.apiPath('/auth/opaque/admin/password/update/finish'),
+      {
+        id: fixtureTarget!.userId,
+        finish: registrationRecord,
+      },
+    )
     expectOk(finishRes, 'admin password update finish')
     expect(bodyOf<boolean>(finishRes).data).toBe(true)
 
     const identityAfter = await readPasswordIdentity(fixtureTarget!.userId)
     expect(identityAfter!.value).not.toBe(identityBefore!.value)
 
-    const rtRows: Array<{ revoked: boolean, revoke_reason: string | null }> = await api.pgDataSource.query(
-      'SELECT revoked, revoke_reason FROM auth_refresh_token WHERE user_id = $1',
-      [fixtureTarget!.userId],
-    )
+    const rtRows: Array<{ revoked: boolean; revoke_reason: string | null }> =
+      await api.pgDataSource.query(
+        'SELECT revoked, revoke_reason FROM auth_refresh_token WHERE user_id = $1',
+        [fixtureTarget!.userId],
+      )
     for (const row of rtRows) {
       expect(row.revoked).toBe(true)
     }
 
     // 管理端定位键错误路径：不存在的 userId → 40000
-    const badStart = await api.root('POST', api.apiPath('/auth/opaque/admin/password/update/start'), {
-      id: randomUUID(),
-      start: registrationRequest,
-    })
+    const badStart = await api.root(
+      'POST',
+      api.apiPath('/auth/opaque/admin/password/update/start'),
+      {
+        id: randomUUID(),
+        start: registrationRequest,
+      },
+    )
     expect(bodyOf(badStart).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
 
     targetPassword = adminPassword
@@ -317,7 +373,9 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
       userName: fixtureTarget!.userName,
       start: startLoginRequest,
     })
-    expect(bodyOf(startRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_CREDENTIALS)
+    expect(bodyOf(startRes).code).toBe(
+      WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_CREDENTIALS,
+    )
   })
 
   it('admin password/update：无口令用户（clear 后）可设初始口令 —— upsert 建行（修复静默 no-op）', async () => {
@@ -326,11 +384,17 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
     expect(await readPasswordIdentity(fixtureTarget!.userId)).toBeNull()
 
     const initialPassword = `Init-${randomUUID().slice(0, 12)}#97`
-    const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({ password: initialPassword })
-    const startRes = await api.root('POST', api.apiPath('/auth/opaque/admin/password/update/start'), {
-      id: fixtureTarget!.userId,
-      start: registrationRequest,
+    const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({
+      password: initialPassword,
     })
+    const startRes = await api.root(
+      'POST',
+      api.apiPath('/auth/opaque/admin/password/update/start'),
+      {
+        id: fixtureTarget!.userId,
+        start: registrationRequest,
+      },
+    )
     expectOk(startRes, 'admin password update start (no identity)')
     const registrationResponse = bodyOf<string>(startRes).data
 
@@ -341,10 +405,14 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
       password: initialPassword,
       identifiers: { client: fixtureTarget!.userName, server: appName },
     })
-    const finishRes = await api.root('POST', api.apiPath('/auth/opaque/admin/password/update/finish'), {
-      id: fixtureTarget!.userId,
-      finish: registrationRecord,
-    })
+    const finishRes = await api.root(
+      'POST',
+      api.apiPath('/auth/opaque/admin/password/update/finish'),
+      {
+        id: fixtureTarget!.userId,
+        finish: registrationRecord,
+      },
+    )
     expectOk(finishRes, 'admin password update finish (no identity)')
     expect(bodyOf<boolean>(finishRes).data).toBe(true)
 
@@ -401,7 +469,9 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
     const appName = app.get(ConfigService).get<string>('app.name')!
 
     async function registerPassword(newPassword: string): Promise<string> {
-      const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({ password: newPassword })
+      const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({
+        password: newPassword,
+      })
       const startRes = await api.root('POST', api.apiPath('/auth/opaque/user/register/start'), {
         start: registrationRequest,
       })
@@ -449,6 +519,8 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
     const anonStart = await api.anon('POST', api.apiPath('/auth/opaque/user/register/start'), {
       start: 'garbage',
     })
-    expect(bodyOf(anonStart).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+    expect(bodyOf(anonStart).code).toBe(
+      WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
+    )
   })
 })

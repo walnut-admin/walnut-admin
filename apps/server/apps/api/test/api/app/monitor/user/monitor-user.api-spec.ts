@@ -2,7 +2,10 @@ import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { WalnutRootUserFixture } from '../../../helpers/auth-login'
 import { randomUUID } from 'node:crypto'
 import { AppTechCacheService } from '@walnut-server/cache'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+} from '@walnut-server/const/app/cache'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from '../../../helpers/api-client'
@@ -44,8 +47,8 @@ interface MonitorRow {
   auth?: boolean
   left?: boolean
   currentRouter?: string | null
-  device?: { deviceId?: string, deviceName?: string } | null
-  user?: { id?: string, userName?: string | null } | null
+  device?: { deviceId?: string; deviceName?: string } | null
+  user?: { id?: string; userName?: string | null } | null
 }
 
 describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全链）', () => {
@@ -63,22 +66,39 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
   let victim: WalnutApiClient | null = null
 
   function knownDevices(): string[] {
-    return [api?.deviceId, guest?.deviceId, victim?.deviceId].filter((id): id is string => typeof id === 'string' && id !== '')
+    return [api?.deviceId, guest?.deviceId, victim?.deviceId].filter(
+      (id): id is string => typeof id === 'string' && id !== '',
+    )
   }
 
   async function deleteMonitorRows() {
     // 行键是 device_id（B6），按设备清；指纹列一并做兜底（历史行为留下的行）
-    await api.pgDataSource.query('DELETE FROM app_monitor_user WHERE device_id = ANY($1)', [knownDevices()])
-    await api.pgDataSource.query('DELETE FROM app_monitor_user WHERE visitor_id LIKE $1', [`vis-${seed8}%`])
+    await api.pgDataSource.query('DELETE FROM app_monitor_user WHERE device_id = ANY($1)', [
+      knownDevices(),
+    ])
+    await api.pgDataSource.query('DELETE FROM app_monitor_user WHERE visitor_id LIKE $1', [
+      `vis-${seed8}%`,
+    ])
     if (fixture !== null) {
-      await api.pgDataSource.query('DELETE FROM auth_refresh_token WHERE user_id = $1', [fixture.userId])
+      await api.pgDataSource.query('DELETE FROM auth_refresh_token WHERE user_id = $1', [
+        fixture.userId,
+      ])
 
       if (victim !== null) {
         const cacheService = app.get(AppTechCacheService)
-        await api.pgDataSource.query('DELETE FROM sys_user_device WHERE user_id = $1 AND device_id = $2', [fixture.userId, victim.deviceId])
-        await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [victim.deviceId])
-        await cacheService.del(`${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:${fixture.userId}:${victim.deviceId}`)
-        await cacheService.del(`${WalnutAdminConstAppCacheKeys.AUTH_MFA_VERIFIED}:${fixture.userId}:${victim.deviceId}`)
+        await api.pgDataSource.query(
+          'DELETE FROM sys_user_device WHERE user_id = $1 AND device_id = $2',
+          [fixture.userId, victim.deviceId],
+        )
+        await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [
+          victim.deviceId,
+        ])
+        await cacheService.del(
+          `${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:${fixture.userId}:${victim.deviceId}`,
+        )
+        await cacheService.del(
+          `${WalnutAdminConstAppCacheKeys.AUTH_MFA_VERIFIED}:${fixture.userId}:${victim.deviceId}`,
+        )
         victim = null
       }
     }
@@ -106,7 +126,9 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
       await deleteMonitorRows()
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
-      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1)', [knownDevices()])
+      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1)', [
+        knownDevices(),
+      ])
       await api.cleanupWalnutCacheKeys(seed8, api.deviceId, fixture.userId)
     }
     await app.close()
@@ -123,13 +145,17 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
    * 首写即登记，之后不一致就 40099。
    */
   async function createOnlineMonitorA(client: WalnutApiClient = api): Promise<string> {
-    const res = await client.root('POST', client.apiPath('/app/monitor/user/state'), makeMonitorState({
-      visitorId: client.fingerprint,
-      auth: true,
-      userId: fixture!.userId,
-      focus: true,
-      currentRouter: '/dashboard',
-    }))
+    const res = await client.root(
+      'POST',
+      client.apiPath('/app/monitor/user/state'),
+      makeMonitorState({
+        visitorId: client.fingerprint,
+        auth: true,
+        userId: fixture!.userId,
+        focus: true,
+        currentRouter: '/dashboard',
+      }),
+    )
     expectOk(res, 'monitor user state A')
     const rows: Array<{ id: string }> = await api.pgDataSource.query(
       'SELECT id FROM app_monitor_user WHERE device_id = $1',
@@ -162,12 +188,16 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     // 判据是「与本设备已存行比」——B5 把 deviceId 改成服务端随机签发后，
     // `HMAC(指纹) === deviceId` 这类可计算等式对所有真实客户端都恒假（那正是批次 11
     // 修掉的每次心跳 40099），所以「已存行」是唯一还站得住的判据。
-    const hijack = await api.anon('POST', api.apiPath('/app/monitor/user/state'), makeMonitorState({
-      visitorId: ATTACKER_FINGERPRINT,
-      auth: true,
-      focus: true,
-      currentRouter: '/pwned',
-    }))
+    const hijack = await api.anon(
+      'POST',
+      api.apiPath('/app/monitor/user/state'),
+      makeMonitorState({
+        visitorId: ATTACKER_FINGERPRINT,
+        auth: true,
+        focus: true,
+        currentRouter: '/pwned',
+      }),
+    )
     expect(bodyOf(hijack).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
 
     const rows: Array<Record<string, unknown>> = await api.pgDataSource.query(
@@ -197,19 +227,24 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
   })
 
   it('F-47：匿名上报即使 body 里带 userId 也不落库（user_id 恒 NULL，心跳照常生效）', async () => {
-    const res = await guest.anon('POST', guest.apiPath('/app/monitor/user/state'), makeMonitorState({
-      visitorId: guest.fingerprint,
-      auth: true,
-      // 伪造的身份声明：没有 AT ⇒ controller 覆盖成 null ⇒ service 的 nil 过滤丢弃
-      userId: fixture!.userId,
-      focus: true,
-    }))
+    const res = await guest.anon(
+      'POST',
+      guest.apiPath('/app/monitor/user/state'),
+      makeMonitorState({
+        visitorId: guest.fingerprint,
+        auth: true,
+        // 伪造的身份声明：没有 AT ⇒ controller 覆盖成 null ⇒ service 的 nil 过滤丢弃
+        userId: fixture!.userId,
+        focus: true,
+      }),
+    )
     expectOk(res, 'anonymous monitor state with spoofed userId')
 
-    const rows: Array<{ user_id: string | null, auth: boolean, focus: boolean }> = await api.pgDataSource.query(
-      'SELECT user_id, auth, focus FROM app_monitor_user WHERE device_id = $1',
-      [guest.deviceId],
-    )
+    const rows: Array<{ user_id: string | null; auth: boolean; focus: boolean }> =
+      await api.pgDataSource.query(
+        'SELECT user_id, auth, focus FROM app_monitor_user WHERE device_id = $1',
+        [guest.deviceId],
+      )
     expect(rows).toHaveLength(1)
     expect(rows[0].user_id).toBeNull()
     // 匿名心跳的其余字段不受影响（无 AT 也能更新 state，只是不关联用户）
@@ -238,10 +273,14 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     monitorIdA = await createOnlineMonitorA()
 
     // 匿名访客（第二台设备）：auth=false 走 userId 置 null 语义
-    const stateB = await guest.anon('POST', guest.apiPath('/app/monitor/user/state'), makeMonitorState({
-      visitorId: guest.fingerprint,
-      auth: false,
-    }))
+    const stateB = await guest.anon(
+      'POST',
+      guest.apiPath('/app/monitor/user/state'),
+      makeMonitorState({
+        visitorId: guest.fingerprint,
+        auth: false,
+      }),
+    )
     expectOk(stateB, 'monitor user state B')
 
     const listRes = await api.root('POST', api.apiPath('/app/monitor/user/list'), {
@@ -251,7 +290,7 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     })
     expectOk(listRes, 'monitor user list')
 
-    const list = bodyOf<{ data: MonitorRow[], total: number }>(listRes).data
+    const list = bodyOf<{ data: MonitorRow[]; total: number }>(listRes).data
     expect(list.total).toBe(1)
     // 入参可以按指纹过滤（查询命中 1 行），但出参不回显指纹本身（P0-2）
     expect(list.data[0]).not.toHaveProperty('visitorId')
@@ -274,13 +313,17 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     expect(bindRows[0].user_id).toBe(fixture!.userId)
 
     // 登出上报：auth=false 且不带 userId —— P2-31 前 null 被 nil 过滤丢弃，user_id 残留
-    const stateOff = await api.anon('POST', api.apiPath('/app/monitor/user/state'), makeMonitorState({
-      visitorId: api.fingerprint,
-      auth: false,
-    }))
+    const stateOff = await api.anon(
+      'POST',
+      api.apiPath('/app/monitor/user/state'),
+      makeMonitorState({
+        visitorId: api.fingerprint,
+        auth: false,
+      }),
+    )
     expectOk(stateOff, 'monitor user state auth=false')
 
-    const rows: Array<{ user_id: string | null, auth: boolean }> = await api.pgDataSource.query(
+    const rows: Array<{ user_id: string | null; auth: boolean }> = await api.pgDataSource.query(
       'SELECT user_id, auth FROM app_monitor_user WHERE device_id = $1',
       [api.deviceId],
     )
@@ -317,7 +360,10 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     const cacheService = app.get(AppTechCacheService)
     const permissionKey = `${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:${fixture!.userId}:${victim.deviceId}`
     const mfaKey = `${WalnutAdminConstAppCacheKeys.AUTH_MFA_VERIFIED}:${fixture!.userId}:${victim.deviceId}`
-    await cacheService.set(permissionKey, ['app:monitor:user:list'], { t: WalnutAdminConstAppCacheType.AUTH, ttl: 600 })
+    await cacheService.set(permissionKey, ['app:monitor:user:list'], {
+      t: WalnutAdminConstAppCacheType.AUTH,
+      ttl: 600,
+    })
     await victim.seedMfaVerifiedCache(fixture!.userId)
     expect(await api.hasWalnutCacheKey(permissionKey)).toBe(true)
     expect(await api.hasWalnutCacheKey(mfaKey)).toBe(true)
@@ -325,16 +371,19 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     const res = await api.root('DELETE', api.apiPath(`/app/monitor/user/force-quit/${monitorIdA}`))
     expectOk(res, 'monitor user force-quit')
 
-    const rtRows: Array<{ revoked: boolean, revoke_reason: string | null }> = await api.pgDataSource.query(
-      'SELECT revoked, revoke_reason FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
-      [fixture!.userId, victim.deviceId],
-    )
+    const rtRows: Array<{ revoked: boolean; revoke_reason: string | null }> =
+      await api.pgDataSource.query(
+        'SELECT revoked, revoke_reason FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
+        [fixture!.userId, victim.deviceId],
+      )
     expect(rtRows).toHaveLength(1)
     expect(rtRows[0].revoked).toBe(true)
 
     // P2-12 翻转：旧 AT 立即失效（JWT validate 查会话键，P0-4）
     const victimAfterKick = await victim.root('GET', victim.apiPath('/system/user/device/list'))
-    expect(bodyOf(victimAfterKick).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+    expect(bodyOf(victimAfterKick).code).toBe(
+      WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
+    )
 
     expect(await api.hasWalnutCacheKey(permissionKey)).toBe(false)
     expect(await api.hasWalnutCacheKey(mfaKey)).toBe(false)
@@ -346,7 +395,10 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
   })
 
   it('边界：force-quit 无行 → 20000 + data=false；非法 uuid → 40002', async () => {
-    const quitRes = await api.root('DELETE', api.apiPath(`/app/monitor/user/force-quit/${randomUUID()}`))
+    const quitRes = await api.root(
+      'DELETE',
+      api.apiPath(`/app/monitor/user/force-quit/${randomUUID()}`),
+    )
     expectOk(quitRes, 'force-quit missing monitor')
     expect(bodyOf<boolean>(quitRes).data).toBe(false)
 
@@ -360,7 +412,9 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
       sort: [],
       page: { page: 1, pageSize: 10 },
     })
-    expect(bodyOf(anonList).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+    expect(bodyOf(anonList).code).toBe(
+      WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
+    )
   })
 
   it('边界：state 非法 body → 40099（P1-4 已修：异常壳对 skip 路径照常落盘，不再静默悬挂）', async () => {

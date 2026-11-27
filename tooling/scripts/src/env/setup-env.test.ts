@@ -7,7 +7,11 @@
 import { describe, expect, it } from 'vitest'
 import { ENTRIES, envFileName, rebuildKeysFile, stripPublicKeyHeaderContent } from './setup-env.ts'
 
-const BANNER = ['#/-------------------------------------#', '#/ 这是 dotenvx 生成的固定头（banner）  #', '#/--------------------------------------#']
+const BANNER = [
+  '#/-------------------------------------#',
+  '#/ 这是 dotenvx 生成的固定头（banner）  #',
+  '#/--------------------------------------#',
+]
 
 describe('envFileName —— 带后缀与不带后缀两种', () => {
   it('env 为空串 ⇒ 基础 .env（admin 构建必填的 VITE_* 变量）', () => {
@@ -21,8 +25,8 @@ describe('envFileName —— 带后缀与不带后缀两种', () => {
   })
 
   it('清单里只有 admin 有基础 .env（它必须随仓库加密分发，否则 CI 构建取不到）', () => {
-    expect(ENTRIES.filter(entry => entry.env === '').map(entry => entry.app)).toEqual(['admin'])
-    expect(new Set(ENTRIES.map(entry => entry.app))).toEqual(new Set(['admin', 'server']))
+    expect(ENTRIES.filter((entry) => entry.env === '').map((entry) => entry.app)).toEqual(['admin'])
+    expect(new Set(ENTRIES.map((entry) => entry.app))).toEqual(new Set(['admin', 'server']))
   })
 })
 
@@ -46,7 +50,9 @@ describe('rebuildKeysFile —— 重建 .env.keys', () => {
   })
 
   it('无后缀（基础 .env）与带后缀的 key 落在各自的行上', () => {
-    const lines = rebuildKeysFile(TMP_KEYS).split('\n').filter(line => line.startsWith('DOTENV_PRIVATE_KEY'))
+    const lines = rebuildKeysFile(TMP_KEYS)
+      .split('\n')
+      .filter((line) => line.startsWith('DOTENV_PRIVATE_KEY'))
     expect(lines).toEqual([
       'DOTENV_PRIVATE_KEY="base-key"',
       'DOTENV_PRIVATE_KEY_PRODUCTION="ec9e,d4a1,f7b2"',
@@ -79,7 +85,9 @@ describe('rebuildKeysFile —— 重建 .env.keys', () => {
   })
 
   it('# .env.* 形式的文件注释不算 banner（只有 #/ 开头与空行算）', () => {
-    const output = rebuildKeysFile(['# .env.production', 'DOTENV_PRIVATE_KEY_PRODUCTION="k1"', ''].join('\n'))
+    const output = rebuildKeysFile(
+      ['# .env.production', 'DOTENV_PRIVATE_KEY_PRODUCTION="k1"', ''].join('\n'),
+    )
     expect(output.startsWith('# .env.production\n')).toBe(false)
     expect(output).toContain('DOTENV_PRIVATE_KEY_PRODUCTION="k1"')
   })
@@ -113,12 +121,14 @@ describe('stripPublicKeyHeaderContent —— 去掉 dotenvx 的 7 行元数据�
     const output = stripPublicKeyHeaderContent(DECRYPTED)
     expect(output.endsWith('\n')).toBe(true)
     expect(output.endsWith('\n\n')).toBe(false)
-    expect(output).toBe([
-      'VITE_APP_TITLE=Walnut Admin',
-      '# 第一个真实变量之后的注释必须留着',
-      'VITE_API_BASE=/w/v1',
-      '',
-    ].join('\n'))
+    expect(output).toBe(
+      [
+        'VITE_APP_TITLE=Walnut Admin',
+        '# 第一个真实变量之后的注释必须留着',
+        'VITE_API_BASE=/w/v1',
+        '',
+      ].join('\n'),
+    )
   })
 
   it('没有任何真实变量时不乱删（返回 trim 后的内容）', () => {

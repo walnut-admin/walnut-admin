@@ -80,15 +80,18 @@ async function withTimeout(name: string, run: () => void | Promise<void>): Promi
       Promise.resolve().then(run),
       new Promise<never>((_, reject) => {
         timer = setTimeout(
-          () => reject(new Error(`步骤「${name}」超过 ${STEP_TIMEOUT_MS}ms 未完成（已按失败处理，应用继续启动）`)),
+          () =>
+            reject(
+              new Error(
+                `步骤「${name}」超过 ${STEP_TIMEOUT_MS}ms 未完成（已按失败处理，应用继续启动）`,
+              ),
+            ),
           STEP_TIMEOUT_MS,
         )
       }),
     ])
-  }
-  finally {
-    if (timer !== undefined)
-      clearTimeout(timer)
+  } finally {
+    if (timer !== undefined) clearTimeout(timer)
   }
 }
 
@@ -130,18 +133,15 @@ export async function bootstrapApp(app: App): Promise<BootstrapResult> {
   for (const step of steps) {
     try {
       await (step.timeout === true ? withTimeout(step.name, step.run) : step.run())
-    }
-    catch (error) {
+    } catch (error) {
       const level = step.level ?? 'degraded'
       const problem: BootstrapProblem = { step: step.name, level, error }
-      if (level === 'blocking')
-        return { fatal: problem, problems }
+      if (level === 'blocking') return { fatal: problem, problems }
       problems.push(problem)
     }
   }
 
-  if (isDev())
-    app.config.performance = true
+  if (isDev()) app.config.performance = true
 
   // 这行是「启动序列跑完了」的判据（排障时先看它在不在控制台）
   console.info('setupApp', 'App Initializing...')
@@ -159,8 +159,7 @@ export function renderBootstrapFailure(problem: BootstrapProblem): void {
   console.error('[bootstrap] 启动失败（不会 mount，避免半初始化状态）', problem)
 
   const host = document.getElementById('app')
-  if (host === null)
-    return
+  if (host === null) return
 
   const wrap = document.createElement('div')
   // 稳定标记：给冒烟/端到端断言用（`pnpm smoke:dist` 的负对照要判「错误屏出现了、页面不是空白」）。
@@ -168,9 +167,9 @@ export function renderBootstrapFailure(problem: BootstrapProblem): void {
   wrap.setAttribute('data-walnut-error-screen', problem.step)
   wrap.setAttribute(
     'style',
-    'position:fixed;inset:0;display:flex;flex-direction:column;gap:12px;align-items:center;'
-    + 'justify-content:center;padding:32px;background:#161616;color:#f0f0f0;'
-    + 'font:14px/1.6 system-ui,-apple-system,sans-serif;text-align:center;',
+    'position:fixed;inset:0;display:flex;flex-direction:column;gap:12px;align-items:center;' +
+      'justify-content:center;padding:32px;background:#161616;color:#f0f0f0;' +
+      'font:14px/1.6 system-ui,-apple-system,sans-serif;text-align:center;',
   )
 
   const title = document.createElement('div')
@@ -181,21 +180,26 @@ export function renderBootstrapFailure(problem: BootstrapProblem): void {
   where.textContent = `失败的步骤：${problem.step}`
 
   const detail = document.createElement('pre')
-  detail.textContent = problem.error instanceof Error ? problem.error.message : String(problem.error)
+  detail.textContent =
+    problem.error instanceof Error ? problem.error.message : String(problem.error)
   detail.setAttribute(
     'style',
-    'max-width:min(760px,90vw);max-height:40vh;overflow:auto;margin:0;padding:12px;border-radius:8px;'
-    + 'background:#232323;color:#ffb4b4;text-align:left;white-space:pre-wrap;word-break:break-word;',
+    'max-width:min(760px,90vw);max-height:40vh;overflow:auto;margin:0;padding:12px;border-radius:8px;' +
+      'background:#232323;color:#ffb4b4;text-align:left;white-space:pre-wrap;word-break:break-word;',
   )
 
   const hint = document.createElement('div')
   hint.setAttribute('style', 'max-width:min(760px,90vw);opacity:.75;')
-  hint.textContent = '完整堆栈在浏览器控制台。本地最常见的原因：后端没起、或 Mongo 是空库'
-    + '（语言包/设备初始化都会拿不到数据）。'
+  hint.textContent =
+    '完整堆栈在浏览器控制台。本地最常见的原因：后端没起、或 Mongo 是空库' +
+    '（语言包/设备初始化都会拿不到数据）。'
 
   const retry = document.createElement('button')
   retry.textContent = '重新加载'
-  retry.setAttribute('style', 'padding:8px 20px;border:0;border-radius:6px;background:#0065cc;color:#fff;cursor:pointer;')
+  retry.setAttribute(
+    'style',
+    'padding:8px 20px;border:0;border-radius:6px;background:#0065cc;color:#fff;cursor:pointer;',
+  )
   retry.addEventListener('click', () => location.reload())
 
   wrap.append(title, where, detail, hint, retry)
@@ -210,7 +214,10 @@ export function renderBootstrapFailure(problem: BootstrapProblem): void {
     const resetKeys = document.createElement('button')
     resetKeys.textContent = '重置本机密钥并重试'
     resetKeys.setAttribute('data-walnut-error-action', 'reset-rsa-keys')
-    resetKeys.setAttribute('style', 'padding:8px 20px;border:1px solid #4a4a4a;border-radius:6px;background:transparent;color:#f0f0f0;cursor:pointer;')
+    resetKeys.setAttribute(
+      'style',
+      'padding:8px 20px;border:1px solid #4a4a4a;border-radius:6px;background:transparent;color:#f0f0f0;cursor:pointer;',
+    )
     resetKeys.addEventListener('click', () => {
       const removed = [
         ...removeStorageItemsContaining(localStorage, AppConstPersistKey.RSA_PUBLIC_KEY),
@@ -222,8 +229,9 @@ export function renderBootstrapFailure(problem: BootstrapProblem): void {
 
     const resetHint = document.createElement('div')
     resetHint.setAttribute('style', 'max-width:min(760px,90vw);opacity:.6;font-size:12px;')
-    resetHint.textContent = '「重置本机密钥」只清本机保存的 RSA 密钥对（不动其它数据）。'
-      + '若服务端 Redis 被清空过（公钥登记丢了），这一步通常就能恢复。'
+    resetHint.textContent =
+      '「重置本机密钥」只清本机保存的 RSA 密钥对（不动其它数据）。' +
+      '若服务端 Redis 被清空过（公钥登记丢了），这一步通常就能恢复。'
 
     wrap.append(resetKeys, resetHint)
   }
@@ -241,27 +249,25 @@ export function renderBootstrapFailure(problem: BootstrapProblem): void {
  * 两类都逐条 `console.error`，排障时一眼能看出是哪一步失败的。
  */
 export function reportBootstrapProblems(problems: readonly BootstrapProblem[]): void {
-  if (problems.length === 0)
-    return
+  if (problems.length === 0) return
 
   for (const problem of problems)
     console.error(`[bootstrap] 启动步骤失败（${problem.level}）：${problem.step}`, problem.error)
 
-  const degraded = problems.filter(p => p.level === 'degraded')
-  const optional = problems.filter(p => p.level === 'optional')
-  const names = problems.map(p => p.step).join('、')
+  const degraded = problems.filter((p) => p.level === 'degraded')
+  const optional = problems.filter((p) => p.level === 'optional')
+  const names = problems.map((p) => p.step).join('、')
   console.warn(
-    `[bootstrap] ${problems.length} 个步骤失败（degraded ${degraded.length} / optional ${optional.length}），`
-    + `应用继续启动：${names}`,
+    `[bootstrap] ${problems.length} 个步骤失败（degraded ${degraded.length} / optional ${optional.length}），` +
+      `应用继续启动：${names}`,
   )
 
   // 只有 degraded 才弹提示：它影响用户能感知到的完整度；optional 失败用户本就无感，弹了只是噪音。
-  if (degraded.length === 0)
-    return
+  if (degraded.length === 0) return
 
   // naive-ui 的 provider 在 App.vue 里 ⇒ mount 之后才有 window.$message（见 types/window.d.ts）
   window.$message?.warning(
-    `启动时有 ${degraded.length} 个步骤失败（${degraded.map(p => p.step).join('、')}），详情见控制台`,
+    `启动时有 ${degraded.length} 个步骤失败（${degraded.map((p) => p.step).join('、')}），详情见控制台`,
     { duration: 8000 },
   )
 }

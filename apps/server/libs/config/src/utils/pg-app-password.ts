@@ -55,10 +55,10 @@ export function assertWalnutPgAppBootstrapPassword(
   }
 
   throw new Error(
-    `[config] DATABASE_PG_APP_PASS 仍是开发引导密码（${WALNUT_PG_APP_BOOTSTRAP_PASSWORD}），`
-    + `NODE_ENV=${nodeEnv} 拒绝启动。该密码只用于本地开发 / 集成测试库引导`
-    + '（迁移 1793360000000-DataScopePhase3Rls 的 CREATE ROLE 缺省值，角色已存在时跳过）。'
-    + '生产 / 预发必须在跑迁移前预建 walnut_app 角色（NOSUPERUSER NOBYPASSRLS）并配置强密码，'
-    + '再把 DATABASE_PG_APP_PASS 设为该强密码（见 apps/docs/src/zh-CN/content/plans/modernization-roadmap.md §6.2 部署注意）。',
+    `[config] DATABASE_PG_APP_PASS 仍是开发引导密码（${WALNUT_PG_APP_BOOTSTRAP_PASSWORD}），` +
+      `NODE_ENV=${nodeEnv} 拒绝启动。该密码只用于本地开发 / 集成测试库引导` +
+      '（迁移 1793360000000-DataScopePhase3Rls 的 CREATE ROLE 缺省值，角色已存在时跳过）。' +
+      '生产 / 预发必须在跑迁移前预建 walnut_app 角色（NOSUPERUSER NOBYPASSRLS）并配置强密码，' +
+      '再把 DATABASE_PG_APP_PASS 设为该强密码（见 apps/docs/src/zh-CN/content/plans/modernization-roadmap.md §6.2 部署注意）。',
   )
 }

@@ -18,11 +18,15 @@ const [DefineJSONEditor, ReuseJSONEditor] = createReusableTemplate()
 
 const showModal = ref(false)
 
-watch(() => isDark.value, async (v) => {
-  if (v) {
-    await loadLink()
-  }
-}, { immediate: true })
+watch(
+  () => isDark.value,
+  async (v) => {
+    if (v) {
+      await loadLink()
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>

@@ -101,16 +101,26 @@ describe('数据权限二期：app_demo 行级 scope（SELF / ALL / 部门系默
     return client
   }
 
-  async function loginAs(client: WalnutApiClient, fixture: { userId: string, userName: string, password: string }) {
+  async function loginAs(
+    client: WalnutApiClient,
+    fixture: { userId: string; userName: string; password: string },
+  ) {
     const tokens = await performHttpOpaqueLogin(client, app, fixture)
     client.setAuth(tokens)
     await client.seedMfaVerifiedCache(fixture.userId)
     // 非 root 的权限串必须经一次 /auth/permissions 写入 AUTH:PERMISSIONS
-    expectOk(await client.root('GET', client.apiPath('/auth/permissions')), `prime permissions ${fixture.userName}`)
+    expectOk(
+      await client.root('GET', client.apiPath('/auth/permissions')),
+      `prime permissions ${fixture.userName}`,
+    )
   }
 
   async function createDemo(client: WalnutApiClient, tag: string): Promise<string> {
-    const res = await client.root('POST', client.apiPath('/app/demo'), demoPayload(`${group}-${seed8}-${tag}`))
+    const res = await client.root(
+      'POST',
+      client.apiPath('/app/demo'),
+      demoPayload(`${group}-${seed8}-${tag}`),
+    )
     expectOk(res, `demo create ${tag}`)
     const id = bodyOf<DemoRow>(res).data.id
     createdIds.push(id)
@@ -198,27 +208,41 @@ describe('数据权限二期：app_demo 行级 scope（SELF / ALL / 部门系默
     rowC = await createDemo(apiC, 'C1')
     // 另造一条 owner = member 的行（C 通过 CUSTOM 成员清单可见；A/B 不可见）
     rowMember = await createDemo(apiC, 'M1')
-    await rootApi.pgDataSource.query('UPDATE app_demo SET created_by = $1 WHERE id = $2', [memberId, rowMember])
+    await rootApi.pgDataSource.query('UPDATE app_demo SET created_by = $1 WHERE id = $2', [
+      memberId,
+      rowMember,
+    ])
   })
 
   afterAll(async () => {
     if (rootApi !== undefined) {
       if (createdIds.length > 0) {
-        await rootApi.pgDataSource.query('DELETE FROM app_demo WHERE id = ANY($1::uuid[])', [createdIds])
-        await rootApi.pgDataSource.query('DELETE FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])', [createdIds])
+        await rootApi.pgDataSource.query('DELETE FROM app_demo WHERE id = ANY($1::uuid[])', [
+          createdIds,
+        ])
+        await rootApi.pgDataSource.query(
+          'DELETE FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])',
+          [createdIds],
+        )
       }
 
       await rootApi.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [memberId])
 
-      await cleanupPermissionChainSeed(rootApi, [userA, userB, userC], clients.map(client => client.deviceId))
+      await cleanupPermissionChainSeed(
+        rootApi,
+        [userA, userB, userC],
+        clients.map((client) => client.deviceId),
+      )
 
       await rootApi.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [rootFixture.userId])
       await rootApi.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [rootFixture.roleId])
-      await rootApi.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [clients.map(client => client.deviceId)])
+      await rootApi.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [
+        clients.map((client) => client.deviceId),
+      ])
 
       await rootApi.cleanupWalnutCacheKeys(
         seed8,
-        ...clients.map(client => client.deviceId),
+        ...clients.map((client) => client.deviceId),
         rootFixture.userId,
         userA.userId,
         userB.userId,
@@ -242,7 +266,7 @@ describe('数据权限二期：app_demo 行级 scope（SELF / ALL / 部门系默
   it('self：A 的 list 只见自己的行；B/C/member 的行不可见', async () => {
     const list = await listDemo(apiA, 20)
 
-    expect(list.data.map(row => row.id)).toEqual([rowA])
+    expect(list.data.map((row) => row.id)).toEqual([rowA])
     expect(list.total).toBe(1)
   })
 
@@ -292,7 +316,7 @@ describe('数据权限二期：app_demo 行级 scope（SELF / ALL / 部门系默
   it('all（root）：跨用户全量可见', async () => {
     const list = await listDemo(rootApi)
 
-    expect(new Set(list.data.map(row => row.id))).toEqual(new Set([rowA, rowB, rowC, rowMember]))
+    expect(new Set(list.data.map((row) => row.id))).toEqual(new Set([rowA, rowB, rowC, rowMember]))
   })
 
   it('角色 dataScope 修改后缓存失效：A 的下一请求按新范围（ALL）过滤', async () => {
@@ -300,26 +324,34 @@ describe('数据权限二期：app_demo 行级 scope（SELF / ALL / 部门系默
     expect((await listDemo(apiA, 20)).total).toBe(1)
 
     // root 把 A 的角色改成 ALL（update DTO 要求 roleName/description/order/status）
-    const roleRows: Array<{ role_name: string, description: string | null, sort_order: number | null, status: boolean }>
-      = await rootApi.pgDataSource.query(
-        'SELECT role_name, description, sort_order, status FROM sys_role WHERE id = $1',
-        [userA.mainRoleId],
-      )
+    const roleRows: Array<{
+      role_name: string
+      description: string | null
+      sort_order: number | null
+      status: boolean
+    }> = await rootApi.pgDataSource.query(
+      'SELECT role_name, description, sort_order, status FROM sys_role WHERE id = $1',
+      [userA.mainRoleId],
+    )
     const role = roleRows[0]
 
-    const updateRole = await rootApi.root('PUT', rootApi.apiPath(`/system/role/${userA.mainRoleId}`), {
-      roleName: role.role_name,
-      description: role.description ?? '',
-      order: role.sort_order ?? 0,
-      status: role.status,
-      dataScope: WalnutAdminConstDataScope.ALL,
-    })
+    const updateRole = await rootApi.root(
+      'PUT',
+      rootApi.apiPath(`/system/role/${userA.mainRoleId}`),
+      {
+        roleName: role.role_name,
+        description: role.description ?? '',
+        order: role.sort_order ?? 0,
+        status: role.status,
+        dataScope: WalnutAdminConstDataScope.ALL,
+      },
+    )
     expectOk(updateRole, 'root update role dataScope')
 
     // A 不需要重新登录：缓存失效后按 ALL 重算
     const list = await listDemo(apiA)
 
-    expect(new Set(list.data.map(row => row.id))).toEqual(new Set([rowA, rowB, rowC, rowMember]))
+    expect(new Set(list.data.map((row) => row.id))).toEqual(new Set([rowA, rowB, rowC, rowMember]))
   })
 
   it('二期翻转：角色成员变化不再影响 CUSTOM 成员的可见面（成员快照语义已废除）', async () => {
@@ -337,14 +369,14 @@ describe('数据权限二期：app_demo 行级 scope（SELF / ALL / 部门系默
     expect((await listDemo(apiC, 20)).data).toEqual([])
 
     const listB = await listDemo(apiB, 20)
-    expect(listB.data.map(row => row.id)).toEqual([rowB])
+    expect(listB.data.map((row) => row.id)).toEqual([rowB])
   })
 
   it('角色接口回读 dataScope（Safe 出参含新字段）', async () => {
     const res = await rootApi.root('GET', rootApi.apiPath(`/system/role/${userC.mainRoleId}`))
     expectOk(res, 'role read')
 
-    const data = bodyOf<{ roleName: string, dataScope: number }>(res).data
+    const data = bodyOf<{ roleName: string; dataScope: number }>(res).data
     expect(data.roleName).toBe(memberRoleName)
     expect(data.dataScope).toBe(WalnutAdminConstDataScope.CUSTOM)
   })

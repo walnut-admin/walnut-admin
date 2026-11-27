@@ -25,7 +25,7 @@ function transformOptions(val: string[]) {
 
 const getOptions = computed(() => {
   const iso2 = new Intl.Locale(language.value!).region
-  const target = data.find(i => i.iso2 === iso2)
+  const target = data.find((i) => i.iso2 === iso2)
 
   return transformOptions(target ? target.suffix : defaultSuffix)
 })

@@ -138,20 +138,12 @@ function onReset({ done }: WForm.Params.Dialog.FinishLoading) {
 </script>
 
 <template>
-  <WDemoCard
-    title="Query Form"
-    description="Normally used in table search area."
-  >
+  <WDemoCard title="Query Form" description="Normally used in table search area.">
     <WForm :model="configData" @hook="register1" />
 
     <WJSON :value="formData" />
 
-    <WForm
-      :model="formData"
-      @hook="register2"
-      @query="onQuery"
-      @reset="onReset"
-    />
+    <WForm :model="formData" @hook="register2" @query="onQuery" @reset="onReset" />
   </WDemoCard>
 </template>
 

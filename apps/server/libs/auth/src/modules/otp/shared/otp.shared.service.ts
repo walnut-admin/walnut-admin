@@ -50,8 +50,7 @@ export class OtpSharedService implements IIdentityOtpService {
         this.logger,
         'send verify code email',
       )
-    }
-    else {
+    } else {
       // WARNING: DO NOT USE AWAIT HERE, IT WILL BLOCK THE RESPONSE
       fireAndForget(
         this.smsService.sendVerifyCodeTextMessage(identifier, code, codeTTL, language),
@@ -62,9 +61,13 @@ export class OtpSharedService implements IIdentityOtpService {
 
     // Cache the verify code
     if (!isNil(userId)) {
-      await this.cacheVerifyCodeService.setVerifyCodeForAuthUserCache(userId, identifier, code, codeTTL)
-    }
-    else {
+      await this.cacheVerifyCodeService.setVerifyCodeForAuthUserCache(
+        userId,
+        identifier,
+        code,
+        codeTTL,
+      )
+    } else {
       await this.cacheVerifyCodeService.setVerifyCodeForVisitorCache(identifier, code, codeTTL)
     }
 
@@ -108,9 +111,11 @@ export class OtpSharedService implements IIdentityOtpService {
     let codeFromCache: string | null
 
     if (!isNil(userId)) {
-      codeFromCache = await this.cacheVerifyCodeService.getVerifyCodeForAuthUserCache(userId, identifier)
-    }
-    else {
+      codeFromCache = await this.cacheVerifyCodeService.getVerifyCodeForAuthUserCache(
+        userId,
+        identifier,
+      )
+    } else {
       codeFromCache = await this.cacheVerifyCodeService.getVerifyCodeForVisitorCache(identifier)
     }
 

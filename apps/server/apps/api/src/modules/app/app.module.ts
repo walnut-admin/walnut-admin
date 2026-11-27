@@ -1,5 +1,11 @@
 import { Module } from '@nestjs/common'
-import { AppDemoModule, AppErrorModule, AppKeyModule, AppLoggerModule, AppSettingsModule } from '@walnut-server/app-domain'
+import {
+  AppDemoModule,
+  AppErrorModule,
+  AppKeyModule,
+  AppLoggerModule,
+  AppSettingsModule,
+} from '@walnut-server/app-domain'
 import { SysDeletedHttpModule } from '../system/deleted/deleted-http.module'
 import { AppMonitorModule } from './monitor/monitor.module'
 

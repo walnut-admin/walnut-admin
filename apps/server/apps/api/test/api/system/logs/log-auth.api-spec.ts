@@ -70,7 +70,9 @@ describe('D 段：system/log/auth list/delete/deleteMany（真实登录链自然
       userName: unknownUserName,
       start: startLoginRequest,
     })
-    expect(bodyOf(failRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_CREDENTIALS)
+    expect(bodyOf(failRes).code).toBe(
+      WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_CREDENTIALS,
+    )
 
     api.setAuth(tokens)
   })
@@ -83,10 +85,9 @@ describe('D 段：system/log/auth list/delete/deleteMany（真实登录链自然
         ['SysLogAuth', `%${seed8}%`],
       )
       if (deletedIds.length > 0) {
-        await api.pgDataSource.query(
-          'DELETE FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])',
-          [deletedIds.map(i => i.deleted_id)],
-        )
+        await api.pgDataSource.query('DELETE FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])', [
+          deletedIds.map((i) => i.deleted_id),
+        ])
       }
       // 本设备产生的 auth 日志行整体清
       await api.pgDataSource.query('DELETE FROM sys_log_auth WHERE device_id = $1', [api.deviceId])
@@ -118,16 +119,20 @@ describe('D 段：system/log/auth list/delete/deleteMany（真实登录链自然
   }
 
   /** fire-and-forget 落库 → 轮询直到成功行 + 失败行都出现 */
-  async function waitForBothRows(): Promise<{ successRow: LogAuthRow, failRow: LogAuthRow }> {
+  async function waitForBothRows(): Promise<{ successRow: LogAuthRow; failRow: LogAuthRow }> {
     const deadline = Date.now() + 8000
     while (Date.now() < deadline) {
       const list = await listByDevice()
-      const successRow = list.data.find(row => row.success === true && row.identifier === fixture!.userName)
-      const failRow = list.data.find(row => row.success === false && row.identifier === unknownUserName)
+      const successRow = list.data.find(
+        (row) => row.success === true && row.identifier === fixture!.userName,
+      )
+      const failRow = list.data.find(
+        (row) => row.success === false && row.identifier === unknownUserName,
+      )
       if (successRow !== undefined && failRow !== undefined) {
         return { successRow, failRow }
       }
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
     }
     throw new Error('[log-auth] success/fail rows not found within timeout')
   }
@@ -156,7 +161,10 @@ describe('D 段：system/log/auth list/delete/deleteMany（真实登录链自然
     await waitForBothRows()
 
     const opaqueOnly = await api.root('POST', api.apiPath('/system/log/auth/list'), {
-      filters: [{ field: 'deviceId', op: 'like', value: api.deviceId }, { field: 'type', op: 'in', value: ['opaque'] }],
+      filters: [
+        { field: 'deviceId', op: 'like', value: api.deviceId },
+        { field: 'type', op: 'in', value: ['opaque'] },
+      ],
       page: { page: 1, pageSize: 50 },
     })
     expectOk(opaqueOnly, 'log auth list filter opaque')
@@ -167,7 +175,10 @@ describe('D 段：system/log/auth list/delete/deleteMany（真实登录链自然
     }
 
     const qrcodeOnly = await api.root('POST', api.apiPath('/system/log/auth/list'), {
-      filters: [{ field: 'deviceId', op: 'like', value: api.deviceId }, { field: 'type', op: 'in', value: ['qrcode'] }],
+      filters: [
+        { field: 'deviceId', op: 'like', value: api.deviceId },
+        { field: 'type', op: 'in', value: ['qrcode'] },
+      ],
       page: { page: 1, pageSize: 50 },
     })
     expectOk(qrcodeOnly, 'log auth list filter qrcode')
@@ -200,7 +211,10 @@ describe('D 段：system/log/auth list/delete/deleteMany（真实登录链自然
     const missing = await api.root('DELETE', api.apiPath(`/system/log/auth/${failRow.id}`))
     expect(bodyOf(missing).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
 
-    const deleteManyRes = await api.root('DELETE', api.apiPath(`/system/log/auth/deleteMany/${successRow.id}`))
+    const deleteManyRes = await api.root(
+      'DELETE',
+      api.apiPath(`/system/log/auth/deleteMany/${successRow.id}`),
+    )
     expectOk(deleteManyRes, 'log auth deleteMany')
     expect(bodyOf<Array<{ id?: string }>>(deleteManyRes).data[0].id).toBe(successRow.id)
 

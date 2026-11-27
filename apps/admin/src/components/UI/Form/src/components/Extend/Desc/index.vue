@@ -18,19 +18,22 @@ const { getProps: formProps } = formPropsCtx
 
 const getDescItems = computed(() => {
   return formSchemas.value
-    .filter(i => i.formProp?.path)
-    .map(i => ({
-      key: i.formProp?.path,
-      show: i.descriptionProp?.show,
-      value: get(formProps.value.model!, i.formProp?.path as string),
-      formatter: i.descriptionProp?.formatter,
-      copy: i.descriptionProp?.copy,
+    .filter((i) => i.formProp?.path)
+    .map(
+      (i) =>
+        ({
+          key: i.formProp?.path,
+          show: i.descriptionProp?.show,
+          value: get(formProps.value.model!, i.formProp?.path as string),
+          formatter: i.descriptionProp?.formatter,
+          copy: i.descriptionProp?.copy,
 
-      type: i.descriptionProp?.type,
-      typeProps: i.descriptionProp?.typeProps,
-      label: formItemUtils.getTranslatedString(t, i, formProps.value),
-      span: i.descriptionProp?.span ?? formProps.value.descriptionProps?.column,
-    } as ICompUIDescriptionsItem))
+          type: i.descriptionProp?.type,
+          typeProps: i.descriptionProp?.typeProps,
+          label: formItemUtils.getTranslatedString(t, i, formProps.value),
+          span: i.descriptionProp?.span ?? formProps.value.descriptionProps?.column,
+        }) as ICompUIDescriptionsItem,
+    )
 })
 </script>
 

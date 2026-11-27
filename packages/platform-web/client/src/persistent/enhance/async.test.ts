@@ -11,7 +11,7 @@ function createMemoryStorage() {
       return data.size
     },
     clear: vi.fn(() => data.clear()),
-    getItem: vi.fn(async (key: string) => data.has(key) ? data.get(key)! : null),
+    getItem: vi.fn(async (key: string) => (data.has(key) ? data.get(key)! : null)),
     setItem: vi.fn(async (key: string, value: string) => {
       data.set(key, value)
     }),
@@ -25,7 +25,8 @@ function createMemoryStorage() {
 
 describe('withAsyncConditionalEncryption', () => {
   const encrypt = async (plain: string) => `enc:${plain}`
-  const decrypt = async (encrypted: string) => encrypted.startsWith('enc:') ? encrypted.slice(4) : null
+  const decrypt = async (encrypted: string) =>
+    encrypted.startsWith('enc:') ? encrypted.slice(4) : null
 
   let store: ReturnType<typeof createMemoryStorage>
 

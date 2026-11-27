@@ -50,7 +50,7 @@ export class AppSettingRepositoryService implements IWalnutAdminBlacklistReposit
     const allAppSettings = await this.getManager().getRepository(AppSettingEntity).find()
 
     const dataToCache = Object.fromEntries(
-      allAppSettings.map(i => [i.settingKey, i.settingValue]),
+      allAppSettings.map((i) => [i.settingKey, i.settingValue]),
     )
 
     await this.cacheAppSettingsService.setAppSettings(dataToCache, {
@@ -64,8 +64,10 @@ export class AppSettingRepositoryService implements IWalnutAdminBlacklistReposit
    * @description find app setting by key
    */
   async findAppSettingByKey<T>(key: string, em?: EntityManager): Promise<T | null> {
-    const doc = await this.getManager(em).getRepository(AppSettingEntity).findOne({ where: { settingKey: key } })
-    return doc && Reflect.has(doc, 'settingValue') ? JSON.parse(doc.settingValue) as T : null
+    const doc = await this.getManager(em)
+      .getRepository(AppSettingEntity)
+      .findOne({ where: { settingKey: key } })
+    return doc && Reflect.has(doc, 'settingValue') ? (JSON.parse(doc.settingValue) as T) : null
   }
 
   /**

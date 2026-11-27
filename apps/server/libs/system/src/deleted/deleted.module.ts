@@ -10,9 +10,7 @@ import { SysDeletedRepoModule } from './repo/deleted.repo.module'
  * Mongo 版删除链路下线一并摘除。
  */
 @Module({
-  imports: [
-    SysDeletedRepoModule,
-  ],
+  imports: [SysDeletedRepoModule],
   controllers: [],
   providers: [SysDeletedBasicRepository, SysDeletedService],
   exports: [SysDeletedService],

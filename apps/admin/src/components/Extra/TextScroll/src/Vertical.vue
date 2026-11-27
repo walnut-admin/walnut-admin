@@ -6,7 +6,11 @@ defineOptions({
   name: 'WCompExtraTextScrollVertical',
 })
 
-const props = withDefaults(defineProps<VerticalProps>(), { lineHeight: 24, speed: 6000, maxLength: 8 })
+const props = withDefaults(defineProps<VerticalProps>(), {
+  lineHeight: 24,
+  speed: 6000,
+  maxLength: 8,
+})
 
 interface VerticalProps {
   texts?: string[]
@@ -29,18 +33,14 @@ const total = computed(() => props.texts!.length)
 // TODO first item missing
 
 function tick() {
-  if (
-    (time % (Math.round((props.speed / 1000) * 60))) === 0
-    && !isHovered.value
-  ) {
+  if (time % Math.round((props.speed / 1000) * 60) === 0 && !isHovered.value) {
     cancelAnimationFrame(innerTimer)
     innerTimer = requestAnimationFrame(scroll)
     time = 0
   }
   time++
 
-  if (isHovered.value)
-    time = 0
+  if (isHovered.value) time = 0
 
   cancelAnimationFrame(timer)
   timer = requestAnimationFrame(tick)
@@ -49,13 +49,11 @@ function tick() {
 function scroll() {
   if (position % props.lineHeight !== 0) {
     positionRef.value = position + 1
-    if (position > (total.value - 1) * props.lineHeight)
-      position = 0
+    if (position > (total.value - 1) * props.lineHeight) position = 0
 
     cancelAnimationFrame(innerTimer)
     innerTimer = requestAnimationFrame(scroll)
-  }
-  else {
+  } else {
     cancelAnimationFrame(innerTimer)
   }
   position++
@@ -72,7 +70,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div v-if="texts?.some(i => i.length < maxLength)" class="truncate whitespace-nowrap">
+  <div v-if="texts?.some((i) => i.length < maxLength)" class="truncate whitespace-nowrap">
     {{ texts[0] }}
   </div>
   <div v-else ref="wrapperRef" class="flex content-start items-center">

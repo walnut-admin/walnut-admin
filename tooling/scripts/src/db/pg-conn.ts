@@ -20,10 +20,16 @@ export interface PgTarget {
  * 解析 PG 连接目标。`envFileOverride` / `pgDbNameOverride` 对应 `--env-file` / `--pg-db`；
  * 相对路径按仓库根解（`resolveEnvFile` 的口径）。
  */
-export function resolvePgTarget(repoRoot: string, envFileOverride?: string, pgDbNameOverride?: string): { target: PgTarget, envFile: string } {
+export function resolvePgTarget(
+  repoRoot: string,
+  envFileOverride?: string,
+  pgDbNameOverride?: string,
+): { target: PgTarget; envFile: string } {
   const envFile = resolveEnvFile(repoRoot, envFileOverride)
   if (!existsSync(envFile)) {
-    throw new PreconditionError(`找不到 env 文件 ${envFile} —— 先跑 \`pnpm setup-env\`，或用 --env-file 指定`)
+    throw new PreconditionError(
+      `找不到 env 文件 ${envFile} —— 先跑 \`pnpm setup-env\`，或用 --env-file 指定`,
+    )
   }
   const env = parseEnvFile(readFileSync(envFile, 'utf8'))
 
@@ -32,7 +38,9 @@ export function resolvePgTarget(repoRoot: string, envFileOverride?: string, pgDb
   const user = env.DATABASE_PG_USER
   const password = env.DATABASE_PG_PASS
   if (!host || Number.isNaN(port) || !user) {
-    throw new PreconditionError(`env 文件缺 DATABASE_PG_* 变量（${envFile}）—— 与 data-source.cli 同源的一组`)
+    throw new PreconditionError(
+      `env 文件缺 DATABASE_PG_* 变量（${envFile}）—— 与 data-source.cli 同源的一组`,
+    )
   }
 
   const database = pgDbNameOverride ?? env.DATABASE_PG_NAME

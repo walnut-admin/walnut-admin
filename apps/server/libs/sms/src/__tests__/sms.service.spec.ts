@@ -65,12 +65,15 @@ describe('sms service：验证码任务失败留痕（F-29）', () => {
     service.onModuleInit()
     expect(listeners.has('failed')).toBe(true)
 
-    listeners.get('failed')!({
-      id: '43',
-      name: WalnutAdminConstAppProcess.PHONE_VERIFY,
-      attemptsMade: 3,
-      data: { phoneNumber: '13800000000', verifyCode: 654321, expireSeconds: 300, lang: 'zh_CN' },
-    }, new Error('aliyun sms signature error'))
+    listeners.get('failed')!(
+      {
+        id: '43',
+        name: WalnutAdminConstAppProcess.PHONE_VERIFY,
+        attemptsMade: 3,
+        data: { phoneNumber: '13800000000', verifyCode: 654321, expireSeconds: 300, lang: 'zh_CN' },
+      },
+      new Error('aliyun sms signature error'),
+    )
 
     expect(errorSpy).toHaveBeenCalledTimes(1)
     const line = errorSpy.mock.calls[0][0] as string

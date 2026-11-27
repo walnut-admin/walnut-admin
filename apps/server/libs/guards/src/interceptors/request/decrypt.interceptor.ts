@@ -1,11 +1,5 @@
 import { Buffer } from 'node:buffer'
-import {
-  CallHandler,
-  ExecutionContext,
-  Injectable,
-  Logger,
-  NestInterceptor,
-} from '@nestjs/common'
+import { CallHandler, ExecutionContext, Injectable, Logger, NestInterceptor } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { WalnutAdminConstDecoratorEncryptMetadataKey } from '@walnut-server/const/decorator/encrypt'
 
@@ -50,7 +44,7 @@ export class WalnutAdminInterceptorRequestDecrypt implements NestInterceptor {
   constructor(
     private readonly reflector: Reflector,
     private readonly securityRsaService: SecurityRsaService,
-  ) { }
+  ) {}
 
   /**
    * 值是否是 admin `encryptRequestValue` 产出的 AES-GCM 信封（形状判定，不做解密）。
@@ -63,15 +57,19 @@ export class WalnutAdminInterceptorRequestDecrypt implements NestInterceptor {
 
     try {
       const payload = JSON.parse(Buffer.from(value, 'base64').toString('utf8')) as Recordable | null
-      return payload !== null
-        && typeof payload === 'object'
-        && payload.enc === 'AES_256_GCM'
-        && typeof payload.key === 'string' && payload.key.length > 0
-        && typeof payload.iv === 'string' && payload.iv.length > 0
-        && typeof payload.ct === 'string'
-        && typeof payload.tag === 'string' && payload.tag.length > 0
-    }
-    catch {
+      return (
+        payload !== null &&
+        typeof payload === 'object' &&
+        payload.enc === 'AES_256_GCM' &&
+        typeof payload.key === 'string' &&
+        payload.key.length > 0 &&
+        typeof payload.iv === 'string' &&
+        payload.iv.length > 0 &&
+        typeof payload.ct === 'string' &&
+        typeof payload.tag === 'string' &&
+        payload.tag.length > 0
+      )
+    } catch {
       return false
     }
   }
@@ -115,19 +113,16 @@ export class WalnutAdminInterceptorRequestDecrypt implements NestInterceptor {
           continue
         }
 
-        decryptedBody[key] = await this.securityRsaService.decryptRequestValueWIthServerRsaPrivKey(raw)
+        decryptedBody[key] =
+          await this.securityRsaService.decryptRequestValueWIthServerRsaPrivKey(raw)
         decryptedCount += 1
         this.logger.debug(`Decrypted field: ${key}`)
       }
 
       this.logger.log(`Successfully decrypted ${decryptedCount}/${fieldsArray.length} fields`)
       return decryptedBody as T
-    }
-    catch (error) {
-      this.logger.error(
-        `Failed to decrypt request fields`,
-        error,
-      )
+    } catch (error) {
+      this.logger.error(`Failed to decrypt request fields`, error)
 
       // 所有信封解密失败都收敛到 40011（客户端可自愈），不把底层原因（明文 / 栈）回给客户端
       if (error instanceof WalnutAdminExceptionRsaDecryptFailed) {
@@ -138,10 +133,7 @@ export class WalnutAdminInterceptorRequestDecrypt implements NestInterceptor {
     }
   }
 
-  async intercept(
-    context: ExecutionContext,
-    next: CallHandler,
-  ): Promise<Observable<string>> {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<string>> {
     const ctx = context.switchToHttp()
     const request = ctx.getRequest<IWalnutAdminExpressRequest>()
 
@@ -155,7 +147,11 @@ export class WalnutAdminInterceptorRequestDecrypt implements NestInterceptor {
     )
 
     try {
-      const decryptedBody = await this.decryptRequest<Recordable>(request, request.body as Recordable, decryptFields ?? [])
+      const decryptedBody = await this.decryptRequest<Recordable>(
+        request,
+        request.body as Recordable,
+        decryptFields ?? [],
+      )
 
       // 真的换掉 body：@Body() + ValidationPipe 从这里取（旧实现只写 _decryptedBody，
       // 校验拿到的仍是密文 —— 这就是「信封最后一公里」断在哪里的原因）
@@ -163,12 +159,8 @@ export class WalnutAdminInterceptorRequestDecrypt implements NestInterceptor {
       request._decryptedBody = decryptedBody
 
       this.logger.debug(`Request body decryption completed`)
-    }
-    catch (error) {
-      this.logger.error(
-        `Request decryption failed, terminating request`,
-        error,
-      )
+    } catch (error) {
+      this.logger.error(`Request decryption failed, terminating request`, error)
       throw error
     }
 
@@ -178,10 +170,7 @@ export class WalnutAdminInterceptorRequestDecrypt implements NestInterceptor {
         this.logger.debug(`Request processing completed`)
       }),
       catchError((error) => {
-        this.logger.error(
-          `Error occurred after decryption: ${error}`,
-          error,
-        )
+        this.logger.error(`Error occurred after decryption: ${error}`, error)
         return throwError(() => error as Error)
       }),
     )

@@ -19,7 +19,10 @@ import { MurLockAdapter } from './murlock.adapter'
     MurLockModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        redisOptions: { url: `redis://${configService.get('app.redis.host')}:${configService.get('app.redis.port')}`, password: configService.get('app.redis.pass') },
+        redisOptions: {
+          url: `redis://${configService.get('app.redis.host')}:${configService.get('app.redis.port')}`,
+          password: configService.get('app.redis.pass'),
+        },
         wait: 100,
         maxAttempts: 50,
         logLevel: 'warn',
@@ -30,10 +33,7 @@ import { MurLockAdapter } from './murlock.adapter'
       inject: [ConfigService],
     }),
   ],
-  providers: [
-    MurLockAdapter,
-    { provide: WALNUT_ADMIN_LOCK, useExisting: MurLockAdapter },
-  ],
+  providers: [MurLockAdapter, { provide: WALNUT_ADMIN_LOCK, useExisting: MurLockAdapter }],
   exports: [WALNUT_ADMIN_LOCK],
 })
 export class AppTechLockModule {}

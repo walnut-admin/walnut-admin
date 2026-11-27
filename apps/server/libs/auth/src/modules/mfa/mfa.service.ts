@@ -15,7 +15,7 @@ export class AuthMfaService {
     private readonly sysUserSharedService: SysUserSharedService,
     private readonly sysUserMfaDeviceSharedService: SysUserMfaSharedService,
     private readonly authMfaPostVerificationService: AuthMfaPostVerificationService,
-  ) { }
+  ) {}
 
   /**
    * @description get mfa available methods for user
@@ -28,9 +28,19 @@ export class AuthMfaService {
    * @description check from sys_user_mfa_device if user has enabled mfa
    * if user has enabled mfa, return same result as sign in
    */
-  async verifyMfaStatus(jti: string, dto: AuthMfaVerifyDTO, userId: string, sessionId: string, deviceId: string, em?: EntityManager) {
+  async verifyMfaStatus(
+    jti: string,
+    dto: AuthMfaVerifyDTO,
+    userId: string,
+    sessionId: string,
+    deviceId: string,
+    em?: EntityManager,
+  ) {
     // P2-24：就绪判据是用户维度（类型集合跨设备去重），deviceId 只用于后续 post-verification
-    const verified = await this.sysUserMfaDeviceSharedService.getIsCurrentUserMfaVerified(userId, em)
+    const verified = await this.sysUserMfaDeviceSharedService.getIsCurrentUserMfaVerified(
+      userId,
+      em,
+    )
 
     if (!verified) {
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.auth.mfa.verifyFail' })
@@ -40,6 +50,13 @@ export class AuthMfaService {
     await this.sysUserSharedService.updateMfaStatus(userId, verified, em)
 
     // post verification
-    return this.authMfaPostVerificationService.handlePostVerification(dto.trusted, jti, sessionId, userId, deviceId, em)
+    return this.authMfaPostVerificationService.handlePostVerification(
+      dto.trusted,
+      jti,
+      sessionId,
+      userId,
+      deviceId,
+      em,
+    )
   }
 }

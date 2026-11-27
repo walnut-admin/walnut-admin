@@ -1,12 +1,5 @@
-import type {
-  PipeTransform,
-  Type,
-} from '@nestjs/common'
-import {
-  DefaultValuePipe,
-  ParseArrayPipe,
-  Query,
-} from '@nestjs/common'
+import type { PipeTransform, Type } from '@nestjs/common'
+import { DefaultValuePipe, ParseArrayPipe, Query } from '@nestjs/common'
 import { WalnutAdminPipeRequired } from '@walnut-server/pipes'
 
 import { merge } from 'lodash'

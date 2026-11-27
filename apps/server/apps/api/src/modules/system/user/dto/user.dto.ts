@@ -8,7 +8,10 @@ import {
 } from '@walnut-server/list'
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
-import { WalnutAdminVirtualRolesCountDTO, WalnutAdminVirtualRolesListDTO } from '@/common/model/virtual/role'
+import {
+  WalnutAdminVirtualRolesCountDTO,
+  WalnutAdminVirtualRolesListDTO,
+} from '@/common/model/virtual/role'
 
 /**
  * user 的字段基座随身份内核下沉 libs/identity（批 6）；本文件保留 wire 响应面
@@ -16,7 +19,11 @@ import { WalnutAdminVirtualRolesCountDTO, WalnutAdminVirtualRolesListDTO } from 
  */
 // do not use when need to extend
 // use `SysUserDTOSafe` below to extend
-export class SysUserDTO extends IntersectionType(SysUserDTOBase, WalnutAdminVirtualRolesCountDTO, WalnutAdminVirtualRolesListDTO) {
+export class SysUserDTO extends IntersectionType(
+  SysUserDTOBase,
+  WalnutAdminVirtualRolesCountDTO,
+  WalnutAdminVirtualRolesListDTO,
+) {
   constructor(partial?: Partial<SysUserDTO>) {
     super()
     Object.assign(this, partial)
@@ -75,7 +82,15 @@ export class SysUserDTOListRequest extends CreateWalnutAdminRequestListDTO(
 ) {}
 
 export class SysUserDTOListResponse extends CreateWalnutAdminResponseListDTO(
-  RealPickType(RealPartialType(SysUserDTOSafe), ['id', 'userName', 'nickName', 'status', 'createdAt', 'updatedAt', 'roles_count'] as const),
+  RealPickType(RealPartialType(SysUserDTOSafe), [
+    'id',
+    'userName',
+    'nickName',
+    'status',
+    'createdAt',
+    'updatedAt',
+    'roles_count',
+  ] as const),
 ) {
   constructor(partial?: Partial<SysUserDTOListResponse>) {
     super()
@@ -87,11 +102,7 @@ export class SysUserDTOListResponse extends CreateWalnutAdminResponseListDTO(
 // 批 2：deptId 可选（admin 用户表单同一棵树选择器；create 直接写 sys_user.dept_id，
 // 便于建号即归部门 —— 与 update 的 deptId 分支同口径）
 export class SysUserDTOCreateRequest extends IntersectionType(
-  RealPickType(SysUserDTOSafe, [
-    'userName',
-    'status',
-    'roles',
-  ] as const),
+  RealPickType(SysUserDTOSafe, ['userName', 'status', 'roles'] as const),
   RealPartialType(RealPickType(SysUserDTOSafe, ['deptId'] as const)),
 ) {}
 export class SysUserDTOCreateResponse extends SysUserDTOSafe {}

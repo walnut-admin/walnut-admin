@@ -10,8 +10,8 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 export class LocalePayloadTransformPipe implements PipeTransform<any, any> {
   transform(value: Recordable, _metadata: ArgumentMetadata) {
     const payload = Object.keys(value)
-      .filter(i => UUID_REGEX.test(i))
-      .map(item => ({
+      .filter((i) => UUID_REGEX.test(i))
+      .map((item) => ({
         langId: item,
         key: value.key as string,
         value: value[item] as string,

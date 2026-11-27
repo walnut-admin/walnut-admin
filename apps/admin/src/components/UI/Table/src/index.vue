@@ -60,8 +60,8 @@ const props = withDefaults(defineProps<WTable.Props<T>>(), {
   virtualScrollX: false,
 
   // extend
-  headerLeftBuiltInActions: () => ([{ _builtInType: 'create' }, { _builtInType: 'delete' }]),
-  headerLeftExtraActions: () => ([]),
+  headerLeftBuiltInActions: () => [{ _builtInType: 'create' }, { _builtInType: 'delete' }],
+  headerLeftExtraActions: () => [],
   columnSetting: true,
 })
 
@@ -127,7 +127,10 @@ const appStoreSettingDev = useAppStoreSettingDev()
 const formCardRef = useTemplateRef<HTMLDivElement>('formCardRef')
 const { height } = useElementSize(formCardRef)
 // TODO where is this 12rem come from?
-const getTableHeight = computed(() => `calc(${appStoreSettingDev.getCalcContentHeightWithPadding} - ${(height.value / userStorePreference.getFontSize).toFixed(4)}rem - 13rem)`)
+const getTableHeight = computed(
+  () =>
+    `calc(${appStoreSettingDev.getCalcContentHeightWithPadding} - ${(height.value / userStorePreference.getFontSize).toFixed(4)}rem - 13rem)`,
+)
 </script>
 
 <template>
@@ -146,11 +149,9 @@ const getTableHeight = computed(() => `calc(${appStoreSettingDev.getCalcContentH
       :data-testid="getProps.testId"
       :min-height="getProps?.minHeight ?? getTableHeight"
       :max-height="getProps?.maxHeight ?? getTableHeight"
-      :columns="tableColumns.filter(i => i._internalShow) as DataTableColumn<T>[]"
+      :columns="tableColumns.filter((i) => i._internalShow) as DataTableColumn<T>[]"
     />
   </n-card>
 </template>
 
-<style lang="scss" scoped>
-
-</style>
+<style lang="scss" scoped></style>

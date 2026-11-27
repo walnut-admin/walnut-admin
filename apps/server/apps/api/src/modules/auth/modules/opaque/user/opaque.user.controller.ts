@@ -1,19 +1,57 @@
-import { Body, Controller, HttpCode, HttpStatus, Logger, Post, Req, Request, UseGuards } from '@nestjs/common'
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Logger,
+  Post,
+  Req,
+  Request,
+  UseGuards,
+} from '@nestjs/common'
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger'
-import { AuthCookieService, AuthOpaqueCoreService, AuthSignoutService, AuthSuccessDTO, WalnutAdminGuardJwtFree } from '@walnut-server/auth'
+import {
+  AuthCookieService,
+  AuthOpaqueCoreService,
+  AuthSignoutService,
+  AuthSuccessDTO,
+  WalnutAdminGuardJwtFree,
+} from '@walnut-server/auth'
 import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { IWalnutAdminConstAppSettingAuthOpaqueKeys } from '@walnut-server/const/app/setting'
 
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
-import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
+import {
+  WalnutAdminConstDecoratorLogOperateAction,
+  WalnutAdminConstDecoratorLogOperateTitle,
+  WalnutAdminConstDecoratorLogOperateType,
+} from '@walnut-server/const/decorator/logOperate'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
-import { ApiWalnutOkResponse, WalnutAdminSwaggerResponseSuccessSchemeData } from '@walnut-server/decorators/swagger'
+import {
+  ApiWalnutOkResponse,
+  WalnutAdminSwaggerResponseSuccessSchemeData,
+} from '@walnut-server/decorators/swagger'
 import { WalnutAdminExceptionInvalidCredential } from '@walnut-server/exceptions/business/auth'
-import { WalnutAdminDecoratorAuthLog, WalnutAdminDecoratorDataScopeSystemChannel, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorFunctionalGuard, WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
+import {
+  WalnutAdminDecoratorAuthLog,
+  WalnutAdminDecoratorDataScopeSystemChannel,
+  WalnutAdminDecoratorDeviceId,
+  WalnutAdminDecoratorFunctionalGuard,
+  WalnutAdminDecoratorHasPermission,
+  WalnutAdminDecoratorUser,
+} from '@walnut-server/guards'
 import { SysLogAuthSharedService } from '@walnut-server/system'
 import { AuthRoutes } from '@walnut/contract'
 import { WalnutAdminDecoratorOperateLog } from '@/decorators/walnut/log.operate.decorator'
-import { AuthOpaqueClientErrorDTO, AuthOpaqueFinishChangePasswordDTO, AuthOpaqueFinishSignInDTO, AuthOpaqueFinishSignUpDTO, AuthOpaqueStartChangePasswordDTO, AuthOpaqueStartSignInDTO, AuthOpaqueStartSignUpDTO } from '../dto/opaque.dto'
+import {
+  AuthOpaqueClientErrorDTO,
+  AuthOpaqueFinishChangePasswordDTO,
+  AuthOpaqueFinishSignInDTO,
+  AuthOpaqueFinishSignUpDTO,
+  AuthOpaqueStartChangePasswordDTO,
+  AuthOpaqueStartSignInDTO,
+  AuthOpaqueStartSignUpDTO,
+} from '../dto/opaque.dto'
 import { AuthOpaqueUserGuard } from './opaque.user.guard'
 
 const WalnutAdminConstPermissionOpaque = {
@@ -30,11 +68,14 @@ export class AuthOpaqueUserController {
     private readonly authOpaqueCoreService: AuthOpaqueCoreService,
     private readonly signoutService: AuthSignoutService,
     private readonly logAuthSharedService: SysLogAuthSharedService,
-  ) { }
+  ) {}
 
   @Post('login/start')
   @HttpCode(HttpStatus.OK)
-  @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOpaqueKeys>(WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE, 'authEnable')
+  @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOpaqueKeys>(
+    WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE,
+    'authEnable',
+  )
   @WalnutAdminGuardJwtFree()
   @WalnutTx()
   @ApiWalnutOkResponse({
@@ -51,8 +92,7 @@ export class AuthOpaqueUserController {
     try {
       // B7a 签名适配：user/identity 读腿迁 PG —— 传 ctx.em
       return await this.authOpaqueCoreService.startLogin(dto.userName, dto.start, deviceId, ctx.em)
-    }
-    catch (error) {
+    } catch (error) {
       // Record failed auth log and risk
       await this.logAuthSharedService.recordAuth({
         request: req,
@@ -72,7 +112,8 @@ export class AuthOpaqueUserController {
   // DOC-20（F-18 收尾）：handler 末行恒抛 WalnutAdminExceptionInvalidCredential —— 成功路径
   // 根本不存在，原先声明的 primitive boolean 与真实返回（错误壳）不符。按错误语义声明。
   @ApiOkResponse({
-    description: 'Always an error envelope: this endpoint records the client-side OPAQUE failure and always throws 40103 (HTTP 200 with body.code = 40103 and body.data = null, see WalnutAdminExceptionInvalidCredential). The response shell is declared so consumers do not decode a boolean that never arrives.',
+    description:
+      'Always an error envelope: this endpoint records the client-side OPAQUE failure and always throws 40103 (HTTP 200 with body.code = 40103 and body.data = null, see WalnutAdminExceptionInvalidCredential). The response shell is declared so consumers do not decode a boolean that never arrives.',
     schema: WalnutAdminSwaggerResponseSuccessSchemeData({ type: 'null' }),
   })
   // 4A：13 个缺 summary 的 op 之一。
@@ -103,7 +144,10 @@ export class AuthOpaqueUserController {
 
   @Post('login/finish')
   @HttpCode(HttpStatus.OK)
-  @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOpaqueKeys>(WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE, 'authEnable')
+  @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOpaqueKeys>(
+    WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE,
+    'authEnable',
+  )
   @WalnutAdminGuardJwtFree()
   @WalnutTx()
   @ApiWalnutOkResponse({
@@ -121,7 +165,8 @@ export class AuthOpaqueUserController {
     @Body() _dto: AuthOpaqueFinishSignInDTO,
   ) {
     // B7b 归一：refresh 写腿迁 PG —— 单 em
-    const { accessToken, refreshTokenJti, authSessionKey } = await this.authOpaqueCoreService.finishLogin(user, deviceId, ctx.em)
+    const { accessToken, refreshTokenJti, authSessionKey } =
+      await this.authOpaqueCoreService.finishLogin(user, deviceId, ctx.em)
 
     // set refresh token jti to cookie
     this.authCookieService.setRTJtiCookie(req, refreshTokenJti)
@@ -131,7 +176,10 @@ export class AuthOpaqueUserController {
 
   @Post('register/start')
   @HttpCode(HttpStatus.OK)
-  @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOpaqueKeys>(WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE, 'register')
+  @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOpaqueKeys>(
+    WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE,
+    'register',
+  )
   // P1-3 修复（2026-10-28）：register 端点的语义是「已登录用户补挂口令」（handler 读
   // req.user.userName）。原先挂 JwtFree 让匿名调用解引用 req.user → 未受控 50000；
   // 摘掉 JwtFree 后由全局 JWT 生效：未登录 40101 受控拒绝，登录态行为不变。
@@ -150,7 +198,10 @@ export class AuthOpaqueUserController {
 
   @Post('register/finish')
   @HttpCode(HttpStatus.OK)
-  @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOpaqueKeys>(WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE, 'register')
+  @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOpaqueKeys>(
+    WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE,
+    'register',
+  )
   // P1-3：同 register/start —— 登录态路由（未登录由全局 JWT 层 40101）
   // P1-14：finish 按 user.userId 补挂/替换 password identity（不建用户、不查重）
   @WalnutTx()
@@ -165,19 +216,16 @@ export class AuthOpaqueUserController {
   ) {
     // B7a 签名适配：user/identity 写腿迁 PG —— 传 ctx.em（该端点本就挂了
     // @WalnutTx，接线后注册两腿获得事务原子性）
-    return this.authOpaqueCoreService.finishRegister(
-      user.userId,
-      dto.finish,
-      ctx.em,
-    )
+    return this.authOpaqueCoreService.finishRegister(user.userId, dto.finish, ctx.em)
   }
 
   @Post('change-password/start')
   @HttpCode(HttpStatus.OK)
-  @WalnutAdminDecoratorHasPermission(
-    WalnutAdminConstPermissionOpaque.CHANGE_PASSWORD,
+  @WalnutAdminDecoratorHasPermission(WalnutAdminConstPermissionOpaque.CHANGE_PASSWORD)
+  @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOpaqueKeys>(
+    WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE,
+    'change',
   )
-  @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOpaqueKeys>(WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE, 'change')
   @ApiWalnutOkResponse({
     description: 'Start password change with registration request',
     primitive: 'string',
@@ -191,10 +239,11 @@ export class AuthOpaqueUserController {
 
   @Post('change-password/finish')
   @HttpCode(HttpStatus.OK)
-  @WalnutAdminDecoratorHasPermission(
-    WalnutAdminConstPermissionOpaque.CHANGE_PASSWORD,
+  @WalnutAdminDecoratorHasPermission(WalnutAdminConstPermissionOpaque.CHANGE_PASSWORD)
+  @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOpaqueKeys>(
+    WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE,
+    'change',
   )
-  @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOpaqueKeys>(WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE, 'change')
   @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Finish password change with new registration record',
@@ -211,12 +260,12 @@ export class AuthOpaqueUserController {
     @Body() dto: AuthOpaqueFinishChangePasswordDTO,
   ) {
     // B7b 归一：signout 的 refresh 写腿迁 PG —— 单 em
-    await this.signoutService.doSignout(user.userId, { trigger: 'security-policy', revokeReason: 'updatePass' }, ctx.em)
-
-    return this.authOpaqueCoreService.finishChangePassword(
-      user.userName,
-      dto.finish,
+    await this.signoutService.doSignout(
+      user.userId,
+      { trigger: 'security-policy', revokeReason: 'updatePass' },
       ctx.em,
     )
+
+    return this.authOpaqueCoreService.finishChangePassword(user.userName, dto.finish, ctx.em)
   }
 }

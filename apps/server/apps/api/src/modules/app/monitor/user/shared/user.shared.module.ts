@@ -30,6 +30,10 @@ import { AppMonitorUserSharedService } from './user.shared.service'
       useExisting: AppMonitorUserSharedService,
     },
   ],
-  exports: [AppMonitorUserSharedService, WALNUT_ADMIN_IDENTITY_USER_NOTIFIER, WALNUT_ADMIN_AUTH_MONITOR_SERVICE],
+  exports: [
+    AppMonitorUserSharedService,
+    WALNUT_ADMIN_IDENTITY_USER_NOTIFIER,
+    WALNUT_ADMIN_AUTH_MONITOR_SERVICE,
+  ],
 })
-export class AppMonitorUserSharedModule { }
+export class AppMonitorUserSharedModule {}

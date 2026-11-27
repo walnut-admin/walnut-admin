@@ -1,8 +1,15 @@
-import type { IWalnutAdminRecoverableRecoverer, WalnutAdminRecoverableRegistry } from '@walnut-server/repository'
+import type {
+  IWalnutAdminRecoverableRecoverer,
+  WalnutAdminRecoverableRegistry,
+} from '@walnut-server/repository'
 import type { EntityManager } from 'typeorm'
 import { WalnutModelName } from '@walnut-server/db'
 import { createWalnutAdminRecoverableRegistrar } from '@walnut-server/repository'
-import { readStringField, replayLocaleSnapshotsByKey, replaySnapshots } from '../../../deleted/repo/cascade-snapshot.replayer'
+import {
+  readStringField,
+  replayLocaleSnapshotsByKey,
+  replaySnapshots,
+} from '../../../deleted/repo/cascade-snapshot.replayer'
 import { SysDictDataEntity } from '../../dictData/entity/dict-data.entity'
 import { SysDictTypeEntity } from '../entity/dict-type.entity'
 
@@ -47,4 +54,6 @@ export function registerSysDictTypeRecoverable(registry: WalnutAdminRecoverableR
   })
 }
 
-export const sysDictTypeRecoverableProvider = createWalnutAdminRecoverableRegistrar(registerSysDictTypeRecoverable)
+export const sysDictTypeRecoverableProvider = createWalnutAdminRecoverableRegistrar(
+  registerSysDictTypeRecoverable,
+)

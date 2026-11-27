@@ -31,66 +31,72 @@ describe('no-cross-lib-relative-import —— lib 内相对路径禁止跨 lib �
     tester.run('no-cross-lib-relative-import', localRules.rules['no-cross-lib-relative-import'], {
       valid: [
         // 同目录 / 同 lib 内跨目录
-        { code: 'import { roleConst } from \'./role.const\'', filename: LIB_SERVICE },
-        { code: 'import { shared } from \'../shared/role.shared\'', filename: LIB_SERVICE },
-        { code: 'import { root } from \'../../system.module\'', filename: LIB_SERVICE },
+        { code: "import { roleConst } from './role.const'", filename: LIB_SERVICE },
+        { code: "import { shared } from '../shared/role.shared'", filename: LIB_SERVICE },
+        { code: "import { root } from '../../system.module'", filename: LIB_SERVICE },
         // ../../ 从 role/ 只到 libs/system，仍是同一 lib（判定按「是否逃出 lib 根」，不按段数）
-        { code: 'import { x } from \'../../identity/src/index\'', filename: LIB_SERVICE },
+        { code: "import { x } from '../../identity/src/index'", filename: LIB_SERVICE },
         // re-export 同一判定：lib 内部的相对 re-export 放行
-        { code: 'export * from \'./role.const\'', filename: LIB_SERVICE },
-        { code: 'export { roleConst } from \'../shared/role.shared\'', filename: LIB_SERVICE },
-        { code: 'export { IRole } from \'./role.types\'', filename: LIB_SERVICE },
+        { code: "export * from './role.const'", filename: LIB_SERVICE },
+        { code: "export { roleConst } from '../shared/role.shared'", filename: LIB_SERVICE },
+        { code: "export { IRole } from './role.types'", filename: LIB_SERVICE },
         // 无 source 的 export 不适用（source 缺省 / null）
         { code: 'const value = 1\nexport { value }', filename: LIB_SERVICE },
         // 非相对路径：别名 / 裸包 / 绝对路径形态都不归本规则管
-        { code: 'import { x } from \'@walnut-server/identity\'', filename: LIB_SERVICE },
-        { code: 'export * from \'@walnut-server/identity\'', filename: LIB_SERVICE },
-        { code: 'import { x } from \'@/app/app.module\'', filename: LIB_SERVICE },
-        { code: 'import { x } from \'lodash\'', filename: LIB_SERVICE },
-        { code: 'export { x } from \'lodash\'', filename: LIB_SERVICE },
+        { code: "import { x } from '@walnut-server/identity'", filename: LIB_SERVICE },
+        { code: "export * from '@walnut-server/identity'", filename: LIB_SERVICE },
+        { code: "import { x } from '@/app/app.module'", filename: LIB_SERVICE },
+        { code: "import { x } from 'lodash'", filename: LIB_SERVICE },
+        { code: "export { x } from 'lodash'", filename: LIB_SERVICE },
         // Windows 反斜杠 filename（分隔符归一后仍是 lib 内相对路径）
-        { code: 'import { roleConst } from \'./role.const\'', filename: LIB_SERVICE_BACKSLASH },
+        { code: "import { roleConst } from './role.const'", filename: LIB_SERVICE_BACKSLASH },
         // libs/ 之外（apps/**）不适用
-        { code: 'import { x } from \'../../libs/identity/src/index\'', filename: 'apps/api/src/app.module.ts' },
+        {
+          code: "import { x } from '../../libs/identity/src/index'",
+          filename: 'apps/api/src/app.module.ts',
+        },
         // 相对路径里带 libs/ 字样但不在 <cwd>/libs 下（如 apps/server/libs/...）也不适用
-        { code: 'import { x } from \'../../libs/identity/src/index\'', filename: 'apps/server/libs/system/src/index.ts' },
+        {
+          code: "import { x } from '../../libs/identity/src/index'",
+          filename: 'apps/server/libs/system/src/index.ts',
+        },
       ],
       invalid: [
         {
-          code: 'import { x } from \'../../identity/src/index\'',
+          code: "import { x } from '../../identity/src/index'",
           filename: LIB_INDEX,
           errors: [{ messageId: 'crossLib' }],
         },
         // re-export：具名 / 全量 / 命名空间三种形态都必须报
         {
-          code: 'export { x } from \'../../identity/src/index\'',
+          code: "export { x } from '../../identity/src/index'",
           filename: LIB_INDEX,
           errors: [{ messageId: 'crossLib' }],
         },
         {
-          code: 'export * from \'../../identity/src/index\'',
+          code: "export * from '../../identity/src/index'",
           filename: LIB_INDEX,
           errors: [{ messageId: 'crossLib' }],
         },
         {
-          code: 'export * as identity from \'../../identity/src/index\'',
+          code: "export * as identity from '../../identity/src/index'",
           filename: LIB_INDEX,
           errors: [{ messageId: 'crossLib' }],
         },
         {
-          code: 'export { x } from \'../../../apps/api/src/app.module\'',
+          code: "export { x } from '../../../apps/api/src/app.module'",
           filename: LIB_INDEX,
           errors: [{ messageId: 'crossLib' }],
         },
         // 已逃出仓库更高层目录也算（规则只关心「是否还在当前 lib 根内」）
         {
-          code: 'import { x } from \'../../../../outside/index\'',
+          code: "import { x } from '../../../../outside/index'",
           filename: LIB_SERVICE,
           errors: [{ messageId: 'crossLib' }],
         },
         // Windows 反斜杠 filename 同样生效
         {
-          code: 'export * from \'../../../../outside/index\'',
+          code: "export * from '../../../../outside/index'",
           filename: LIB_SERVICE_BACKSLASH,
           errors: [{ messageId: 'crossLib' }],
         },
@@ -112,8 +118,9 @@ describe('resolveLibRoot —— lib 根推导锚定 <cwd>/libs', () => {
     // cwd 本身位于 `libs/checkout/` 之下：旧实现在整条路径里找第一个 `libs/<name>/`，
     // 会把 `<pkg>/libs/checkout` 误认成 lib 根，从而放过所有逃逸边
     const cwd = resolve(process.cwd(), 'libs/checkout/apps/server')
-    expect(resolveLibRoot(cwd, resolve(cwd, 'libs/identity/src/index.ts')))
-      .toBe(resolve(cwd, 'libs/identity').replace(/\\/g, '/'))
+    expect(resolveLibRoot(cwd, resolve(cwd, 'libs/identity/src/index.ts'))).toBe(
+      resolve(cwd, 'libs/identity').replace(/\\/g, '/'),
+    )
   })
 
   it('libs/ 之外返回 null', () => {
@@ -172,22 +179,33 @@ describe('sort-nestjs-decorators —— 方法装饰器顺序表（含 4A 新收
   }
 
   it('合法顺序不报：ApiOkResponse → ApiOperation → ApiResponse → FreeResponse → UseGuards', () => {
-    expect(runSort([
-      'Get',
-      'HttpCode',
-      'WalnutAdminDecoratorHasPermission',
-      'ApiParam',
-      'ApiQuery',
-      'ApiOkResponse',
-      'ApiOperation',
-      'ApiResponse',
-      'WalnutAdminDecoratorFreeResponse',
-      'UseGuards',
-    ])).toEqual([])
+    expect(
+      runSort([
+        'Get',
+        'HttpCode',
+        'WalnutAdminDecoratorHasPermission',
+        'ApiParam',
+        'ApiQuery',
+        'ApiOkResponse',
+        'ApiOperation',
+        'ApiResponse',
+        'WalnutAdminDecoratorFreeResponse',
+        'UseGuards',
+      ]),
+    ).toEqual([])
   })
 
   it('cap 形态（FreeResponse 收尾）合法：ApiOkResponse → ApiOperation → FreeResponse', () => {
-    expect(runSort(['Post', 'HttpCode', 'WalnutAdminGuardSignFree', 'ApiOkResponse', 'ApiOperation', 'WalnutAdminDecoratorFreeResponse'])).toEqual([])
+    expect(
+      runSort([
+        'Post',
+        'HttpCode',
+        'WalnutAdminGuardSignFree',
+        'ApiOkResponse',
+        'ApiOperation',
+        'WalnutAdminDecoratorFreeResponse',
+      ]),
+    ).toEqual([])
   })
 
   it('apiOperation 排在 @UseGuards 之后要报（这正是漏收进顺序表时的旧行为）', () => {

@@ -8,13 +8,21 @@
 
 import type { ParsedCommit } from '../commit-intent.ts'
 import { describe, expect, it } from 'vitest'
-import { BREAKING_BUMP, buildIntentSummary, BUMP_MAP, getBump, hashesInIntentBodies, hashFromIntentBody, isNoise, parseCommit } from '../commit-intent.ts'
+import {
+  BREAKING_BUMP,
+  buildIntentSummary,
+  BUMP_MAP,
+  getBump,
+  hashesInIntentBodies,
+  hashFromIntentBody,
+  isNoise,
+  parseCommit,
+} from '../commit-intent.ts'
 
 /** 解析一条提交；解析不出来即用例失败 */
 function parsed(subject: string, hash = '1a82770'): ParsedCommit {
   const result = parseCommit(hash, subject)
-  if (!result)
-    throw new Error(`期望解析出 commit，实际返回 null：${JSON.stringify(subject)}`)
+  if (!result) throw new Error(`期望解析出 commit，实际返回 null：${JSON.stringify(subject)}`)
   return result
 }
 
@@ -95,8 +103,18 @@ describe('parseCommit —— 约定式与非约定式输入', () => {
   })
 
   it('破坏性形态 `type(scope)!:` 与 `type!:`', () => {
-    expect(parsed('feat(admin)!: 不再支持 IE')).toMatchObject({ type: 'feat', scope: 'admin', breaking: true, summary: '不再支持 IE' })
-    expect(parsed('feat!: 大改')).toMatchObject({ type: 'feat', scope: null, breaking: true, summary: '大改' })
+    expect(parsed('feat(admin)!: 不再支持 IE')).toMatchObject({
+      type: 'feat',
+      scope: 'admin',
+      breaking: true,
+      summary: '不再支持 IE',
+    })
+    expect(parsed('feat!: 大改')).toMatchObject({
+      type: 'feat',
+      scope: null,
+      breaking: true,
+      summary: '大改',
+    })
   })
 
   it('type 统一小写（`FEAT:` 也算 feat）', () => {
@@ -154,12 +172,18 @@ describe('getBump —— 这条提交该发哪一档', () => {
 
 describe('buildIntentSummary / hashFromIntentBody —— 幂等键往返', () => {
   it('形状 `<hash> ::: <type> ::: <scope: 主题>`', () => {
-    expect(buildIntentSummary(parsed('feat(admin): 支持记住登录状态', '1a82770'))).toBe('1a82770 ::: feat ::: admin: 支持记住登录状态')
-    expect(buildIntentSummary(parsed('fix: 修掉分页', 'abc1234'))).toBe('abc1234 ::: fix ::: 修掉分页')
+    expect(buildIntentSummary(parsed('feat(admin): 支持记住登录状态', '1a82770'))).toBe(
+      '1a82770 ::: feat ::: admin: 支持记住登录状态',
+    )
+    expect(buildIntentSummary(parsed('fix: 修掉分页', 'abc1234'))).toBe(
+      'abc1234 ::: fix ::: 修掉分页',
+    )
   })
 
   it('无 type 时第一段写 other', () => {
-    expect(buildIntentSummary(parsed('没有前缀的提交', '1a82770'))).toBe('1a82770 ::: other ::: 没有前缀的提交')
+    expect(buildIntentSummary(parsed('没有前缀的提交', '1a82770'))).toBe(
+      '1a82770 ::: other ::: 没有前缀的提交',
+    )
   })
 
   it('往返：生成的正文能被 hashFromIntentBody 读回同一个 hash', () => {

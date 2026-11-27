@@ -45,20 +45,16 @@ export function bumpPriority(bump: Bump): number {
  * 出现那种版本号说明有人手工改了 manifest，应当响亮报错而不是按 patch 算出一个更错的号。
  */
 export function nextVersion(version: string, bump: Bump): string | null {
-  if (bump === 'none')
-    return version
+  if (bump === 'none') return version
   const matched = /^(\d+)\.(\d+)\.(\d+)$/.exec(version.trim())
-  if (!matched)
-    return null
+  if (!matched) return null
   const major = Number(matched[1])
   const minor = Number(matched[2])
   const patch = Number(matched[3])
   if (!Number.isSafeInteger(major) || !Number.isSafeInteger(minor) || !Number.isSafeInteger(patch))
     return null
-  if (bump === 'major')
-    return `${major + 1}.0.0`
-  if (bump === 'minor')
-    return `${major}.${minor + 1}.0`
+  if (bump === 'major') return `${major + 1}.0.0`
+  if (bump === 'minor') return `${major}.${minor + 1}.0`
   return `${major}.${minor}.${patch + 1}`
 }
 
@@ -78,8 +74,7 @@ export function nextVersion(version: string, bump: Bump): string | null {
 export function parseIntent(file: string, content: string): Intent | null {
   const normalized = content.replace(/\r\n/g, '\n')
   const matched = /^---\n([\s\S]*?)\n---(?:\n([\s\S]*))?$/.exec(normalized)
-  if (!matched)
-    return null
+  if (!matched) return null
 
   const packages: string[] = []
   let maxBump: Bump | null = null
@@ -88,26 +83,23 @@ export function parseIntent(file: string, content: string): Intent | null {
     // "pkg": patch   /   pkg: patch   /   "./packages/x": minor
     // 复用 bump.ts 的行解析（同一条判据被两处需要，收在一处才不会漂）
     const entry = parseFrontmatterLine(rawLine)
-    if (!entry || !isBump(entry.bump))
-      continue
+    if (!entry || !isBump(entry.bump)) continue
     const { name } = entry
     const bump = entry.bump
-    if (!packages.includes(name))
-      packages.push(name)
+    if (!packages.includes(name)) packages.push(name)
     // `none` 不参与取最大：它只声明「这个包这次不发版」
     if (bump !== 'none' && (maxBump === null || bumpPriority(bump) > bumpPriority(maxBump)))
       maxBump = bump
   }
 
-  if (packages.length === 0 || maxBump === null)
-    return null
+  if (packages.length === 0 || maxBump === null) return null
 
   return { file, packages, bump: maxBump, summary: (matched[2] ?? '').trim() }
 }
 
 /** 一组意图里是否**全部**是 none（= 明确声明本次不发版） */
 export function allNone(intents: Intent[]): boolean {
-  return intents.length > 0 && intents.every(intent => intent.bump === 'none')
+  return intents.length > 0 && intents.every((intent) => intent.bump === 'none')
 }
 
 /**
@@ -123,10 +115,11 @@ export function allNone(intents: Intent[]): boolean {
  * 放在本模块（而不是 bump.ts）的原因：解析与改写同属「意图 frontmatter」这件事，
  * 而 bump.ts 已经 import 本模块 —— 反过来放会形成循环 import。
  */
-export function parseFrontmatterLine(line: string): { name: string, prefix: string, bump: string, suffix: string } | null {
+export function parseFrontmatterLine(
+  line: string,
+): { name: string; prefix: string; bump: string; suffix: string } | null {
   const colon = line.indexOf(':')
-  if (colon < 0)
-    return null
+  if (colon < 0) return null
 
   const leading = /^\s*/.exec(line)?.[0] ?? ''
   /**
@@ -139,14 +132,15 @@ export function parseFrontmatterLine(line: string): { name: string, prefix: stri
    */
   const rawName = line.slice(0, colon).trim()
   let name = rawName
-  if (name.length >= 2 && ((name.startsWith('"') && name.endsWith('"')) || (name.startsWith('\'') && name.endsWith('\''))))
+  if (
+    name.length >= 2 &&
+    ((name.startsWith('"') && name.endsWith('"')) || (name.startsWith("'") && name.endsWith("'")))
+  )
     name = name.slice(1, -1)
-  if (name === '' || name.includes(':') || name.includes('"') || name.includes('\''))
-    return null
+  if (name === '' || name.includes(':') || name.includes('"') || name.includes("'")) return null
 
   const tail = /^(\s*)(\w+)(\s*)$/.exec(line.slice(colon + 1))
-  if (!tail)
-    return null
+  if (!tail) return null
 
   return {
     name,

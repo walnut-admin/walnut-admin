@@ -1,9 +1,6 @@
 import type { IWalnutAdminDataScopeDescriptor } from '@walnut-server/db'
 import { WalnutAdminConstDataScopeMode } from '@walnut-server/const/app/dataScope'
-import {
-  applyWalnutDataScopeRlsSettings,
-  WALNUT_DATA_SCOPE_RLS_MODE,
-} from '@walnut-server/db'
+import { applyWalnutDataScopeRlsSettings, WALNUT_DATA_SCOPE_RLS_MODE } from '@walnut-server/db'
 import { buildWalnutDataScopeRlsSettings } from '@walnut-server/system'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -20,8 +17,14 @@ describe('buildWalnutDataScopeRlsSettings', () => {
     ['SELF', { mode: WalnutAdminConstDataScopeMode.SELF }],
     ['CUSTOM', { mode: WalnutAdminConstDataScopeMode.CUSTOM, deptIds: ['d1', 'd1', 'd2', ''] }],
     ['DEPT', { mode: WalnutAdminConstDataScopeMode.DEPT, deptIds: ['d1'] }],
-    ['DEPT_AND_CHILD', { mode: WalnutAdminConstDataScopeMode.DEPT_AND_CHILD, deptIds: ['d1', 'd2'] }],
-    ['DEPT_OR_SELF', { mode: WalnutAdminConstDataScopeMode.DEPT_OR_SELF, deptIds: ['d1'], userIds: [userId] }],
+    [
+      'DEPT_AND_CHILD',
+      { mode: WalnutAdminConstDataScopeMode.DEPT_AND_CHILD, deptIds: ['d1', 'd2'] },
+    ],
+    [
+      'DEPT_OR_SELF',
+      { mode: WalnutAdminConstDataScopeMode.DEPT_OR_SELF, deptIds: ['d1'], userIds: [userId] },
+    ],
   ]
 
   it.each(cases)('%s → scoped（部门腿取描述符 deptIds）', (_name, descriptor) => {
@@ -29,7 +32,9 @@ describe('buildWalnutDataScopeRlsSettings', () => {
 
     expect(settings.mode).toBe(WALNUT_DATA_SCOPE_RLS_MODE.SCOPED)
     expect(settings.userId).toBe(userId)
-    expect(settings.deptIds).toEqual([...new Set(descriptor.deptIds ?? [])].filter(id => id !== ''))
+    expect(settings.deptIds).toEqual(
+      [...new Set(descriptor.deptIds ?? [])].filter((id) => id !== ''),
+    )
   })
 
   it('all 档位映射成独立模式 all（而不是空 deptIds）', () => {
@@ -38,17 +43,30 @@ describe('buildWalnutDataScopeRlsSettings', () => {
       userId,
     )
 
-    expect(settings).toEqual({ mode: WALNUT_DATA_SCOPE_RLS_MODE.ALL, userId, deptIds: [], userDeptId: '' })
+    expect(settings).toEqual({
+      mode: WALNUT_DATA_SCOPE_RLS_MODE.ALL,
+      userId,
+      deptIds: [],
+      userDeptId: '',
+    })
   })
 
   it('无描述符：普通匿名请求 → anonymous（fail-closed）', () => {
-    expect(buildWalnutDataScopeRlsSettings(undefined, undefined))
-      .toEqual({ mode: WALNUT_DATA_SCOPE_RLS_MODE.ANONYMOUS, userId: '', deptIds: [], userDeptId: '' })
+    expect(buildWalnutDataScopeRlsSettings(undefined, undefined)).toEqual({
+      mode: WALNUT_DATA_SCOPE_RLS_MODE.ANONYMOUS,
+      userId: '',
+      deptIds: [],
+      userDeptId: '',
+    })
   })
 
   it('无描述符：系统通道（登录链 / 心跳）→ system', () => {
-    expect(buildWalnutDataScopeRlsSettings(undefined, undefined, { systemChannel: true }))
-      .toEqual({ mode: WALNUT_DATA_SCOPE_RLS_MODE.SYSTEM, userId: '', deptIds: [], userDeptId: '' })
+    expect(buildWalnutDataScopeRlsSettings(undefined, undefined, { systemChannel: true })).toEqual({
+      mode: WALNUT_DATA_SCOPE_RLS_MODE.SYSTEM,
+      userId: '',
+      deptIds: [],
+      userDeptId: '',
+    })
   })
 
   it('账号部门透传（sys_user / sys_employee 的 WITH CHECK 腿）', () => {

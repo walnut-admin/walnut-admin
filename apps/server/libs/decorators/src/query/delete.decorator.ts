@@ -1,8 +1,4 @@
-import {
-  DefaultValuePipe,
-  ParseIntPipe,
-  Query,
-} from '@nestjs/common'
+import { DefaultValuePipe, ParseIntPipe, Query } from '@nestjs/common'
 import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
 
 import { merge } from 'lodash'
@@ -18,7 +14,9 @@ interface IWalnutAdminDecoratorQueryDeleteCascadeOptions {
 }
 
 // delete joint document query
-export function WalnutAdminDecoratorQueryDeleteCascade(options?: IWalnutAdminDecoratorQueryDeleteCascadeOptions) {
+export function WalnutAdminDecoratorQueryDeleteCascade(
+  options?: IWalnutAdminDecoratorQueryDeleteCascadeOptions,
+) {
   const o = merge({ required: false, type: Number, default: 0 }, options)
   const arr = [
     new DefaultValuePipe(o.default),

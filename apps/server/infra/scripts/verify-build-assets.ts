@@ -32,7 +32,7 @@ export const REQUIRED_ASSETS = [
 
 /** 返回 distRoot 下缺失的必需资产清单（空数组 = 全部就位）。 */
 export function checkAssets(distRoot: string): string[] {
-  return REQUIRED_ASSETS.filter(asset => !existsSync(join(distRoot, asset)))
+  return REQUIRED_ASSETS.filter((asset) => !existsSync(join(distRoot, asset)))
 }
 
 function main(): void {
@@ -50,7 +50,9 @@ function main(): void {
     for (const asset of missing) {
       console.error(`  - ${asset}`)
     }
-    console.error('[verify-build-assets] 多半是 Nest CLI assets 的 strip root 与 outDir 不再匹配；见 infra/README.md「静态资源处理」')
+    console.error(
+      '[verify-build-assets] 多半是 Nest CLI assets 的 strip root 与 outDir 不再匹配；见 infra/README.md「静态资源处理」',
+    )
     process.exit(1)
   }
 

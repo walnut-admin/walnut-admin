@@ -17,9 +17,18 @@
 import { writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { expect } from '@playwright/test'
-import { installRealIpRoute, resolveDeviceId, trackDevice, uniqueLocalIp } from '../../lib/device-fixtures.ts'
+import {
+  installRealIpRoute,
+  resolveDeviceId,
+  trackDevice,
+  uniqueLocalIp,
+} from '../../lib/device-fixtures.ts'
 import { findDeviceRow, LOOPBACK_IP_PATTERN, withPg } from '../../lib/pg.ts'
-import { AuthRoutes, SystemEndpointRoutes, WalnutAdminConstAppResponseCode } from '../../lib/protocol/contract.ts'
+import {
+  AuthRoutes,
+  SystemEndpointRoutes,
+  WalnutAdminConstAppResponseCode,
+} from '../../lib/protocol/contract.ts'
 import {
   captureEnvelopes,
   expectSidebarRendered,
@@ -55,13 +64,27 @@ test('auth：UI 登录（CAP + MFA）并核对设备登记 / cookie / 库行', a
   expect(login.mfaVerified, '新设备登录应经过 /mfa-verified（TOTP）').toBe(true)
 
   // 业务码证据（原 login.spec）：设备登记 20000 + 登录后的 permissions 20000
-  await waitForEnvelope(captured.entries, entry => entry.url.includes(SystemEndpointRoutes.DEVICE_INITIAL) && entry.code === WalnutAdminConstAppResponseCode.SUCCESS)
-  await waitForEnvelope(captured.entries, entry => entry.url.includes(AuthRoutes.PERMISSIONS) && entry.code === WalnutAdminConstAppResponseCode.SUCCESS, 40_000)
+  await waitForEnvelope(
+    captured.entries,
+    (entry) =>
+      entry.url.includes(SystemEndpointRoutes.DEVICE_INITIAL) &&
+      entry.code === WalnutAdminConstAppResponseCode.SUCCESS,
+  )
+  await waitForEnvelope(
+    captured.entries,
+    (entry) =>
+      entry.url.includes(AuthRoutes.PERMISSIONS) &&
+      entry.code === WalnutAdminConstAppResponseCode.SUCCESS,
+    40_000,
+  )
   captured.stop()
 
   // Phase 0 gate 3：stage 形态的无前缀 DEVICE_ID + Secure cookie 能否落在 http://127.0.0.1
   const cookie = await readDeviceCookie(page.context())
-  expect(cookie, `${DEVICE_COOKIE_NAME} cookie 没有落盘（Chrome 拒收 Secure cookie？）`).not.toBeNull()
+  expect(
+    cookie,
+    `${DEVICE_COOKIE_NAME} cookie 没有落盘（Chrome 拒收 Secure cookie？）`,
+  ).not.toBeNull()
   expect(cookie!.secure, 'stage 的 cookie 是 Secure（F-43 收紧后）').toBe(true)
   expect(cookie!.httpOnly).toBe(true)
   expect(cookie!.path).toBe('/')
@@ -87,15 +110,25 @@ test('auth：UI 登录（CAP + MFA）并核对设备登记 / cookie / 库行', a
 
   writeFileSync(
     GATE_REPORT_FILE,
-    `${JSON.stringify({
-      measuredAt: new Date().toISOString(),
-      uiLogin: { capSolved: login.capSolved, mfaVerified: login.mfaVerified, landing: login.url },
-      deviceCookie: { name: DEVICE_COOKIE_NAME, secure: cookie!.secure, httpOnly: cookie!.httpOnly, path: cookie!.path },
-      storageStateReuse: {
-        decision: 'not-reusable',
-        reason: 'storageState({indexedDB:true}) 不能恢复 IndexedDB 里的 AES CryptoKey（Phase 0 gate 2 判死）',
+    `${JSON.stringify(
+      {
+        measuredAt: new Date().toISOString(),
+        uiLogin: { capSolved: login.capSolved, mfaVerified: login.mfaVerified, landing: login.url },
+        deviceCookie: {
+          name: DEVICE_COOKIE_NAME,
+          secure: cookie!.secure,
+          httpOnly: cookie!.httpOnly,
+          path: cookie!.path,
+        },
+        storageStateReuse: {
+          decision: 'not-reusable',
+          reason:
+            'storageState({indexedDB:true}) 不能恢复 IndexedDB 里的 AES CryptoKey（Phase 0 gate 2 判死）',
+        },
       },
-    }, null, 2)}\n`,
+      null,
+      2,
+    )}\n`,
     'utf8',
   )
 

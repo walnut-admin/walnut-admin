@@ -16,9 +16,8 @@ export const useConversationLifecycle = createGlobalState(() => {
     stream.abortStreaming(id)
     stream.removeStreamState(id)
 
-    const idx = store.conversations.value.findIndex(c => c.id === id)
-    if (idx === -1)
-      return
+    const idx = store.conversations.value.findIndex((c) => c.id === id)
+    if (idx === -1) return
 
     store.conversations.value.splice(idx, 1)
     clearFormatCache()

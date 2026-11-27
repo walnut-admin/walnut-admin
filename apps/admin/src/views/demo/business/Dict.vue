@@ -36,16 +36,9 @@ const showHook = ref(true)
             <WJSON :value="dictData2" height="300px" />
           </n-spin>
 
-          <WTitle
-            class="mb-2"
-            prefix="bar"
-          >
-            useDict hook single
-          </WTitle>
+          <WTitle class="mb-2" prefix="bar"> useDict hook single </WTitle>
 
-          <n-button @click="execDict2">
-            exec single
-          </n-button>
+          <n-button @click="execDict2"> exec single </n-button>
         </n-list-item>
 
         <n-list-item>
@@ -53,16 +46,9 @@ const showHook = ref(true)
             <WJSON :value="dictData" height="300px" />
           </n-spin>
 
-          <WTitle
-            class="mb-2"
-            prefix="bar"
-          >
-            useDict hook multiple
-          </WTitle>
+          <WTitle class="mb-2" prefix="bar"> useDict hook multiple </WTitle>
 
-          <n-button @click="execDict">
-            exec multiple
-          </n-button>
+          <n-button @click="execDict"> exec multiple </n-button>
         </n-list-item>
       </n-list>
     </template>
@@ -83,50 +69,26 @@ const showHook = ref(true)
           <n-space vertical>
             <WDict v-model:value="state.dict1" dict-type="gbt_sex" />
 
-            <WDict
-              v-model:value="state.dict2"
-              dict-type="gbt_sex"
-              render-type="checkbox"
-            />
+            <WDict v-model:value="state.dict2" dict-type="gbt_sex" render-type="checkbox" />
 
-            <WDict
-              v-model:value="state.dict3"
-              dict-type="gbt_sex"
-              render-type="radio"
-            />
+            <WDict v-model:value="state.dict3" dict-type="gbt_sex" render-type="radio" />
           </n-space>
         </n-list-item>
 
         <n-list-item>
-          <WTitle
-            prefix="bar" class="mb-2"
-          >
-            Feedback
-          </WTitle>
+          <WTitle prefix="bar" class="mb-2"> Feedback </WTitle>
 
           <n-space vertical>
             <WDict v-model:value="state.dict4" dict-type="gbt_sex" />
 
-            <WDict
-              v-model:value="state.dict5"
-              dict-type="gbt_sex"
-              render-type="checkbox"
-            />
+            <WDict v-model:value="state.dict5" dict-type="gbt_sex" render-type="checkbox" />
 
-            <WDict
-              v-model:value="state.dict6"
-              dict-type="gbt_sex"
-              render-type="radio"
-            />
+            <WDict v-model:value="state.dict6" dict-type="gbt_sex" render-type="radio" />
           </n-space>
         </n-list-item>
 
         <n-list-item>
-          <WTitle
-            class="mb-2" prefix="bar"
-          >
-            Also support original component props
-          </WTitle>
+          <WTitle class="mb-2" prefix="bar"> Also support original component props </WTitle>
 
           <WDict
             v-model:value="state.dict7"
@@ -139,11 +101,7 @@ const showHook = ref(true)
         </n-list-item>
 
         <n-list-item>
-          <WTitle
-            class="mb-2" prefix="bar"
-          >
-            Handle boolean value
-          </WTitle>
+          <WTitle class="mb-2" prefix="bar"> Handle boolean value </WTitle>
 
           <n-space vertical>
             <WDict

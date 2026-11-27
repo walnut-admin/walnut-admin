@@ -51,9 +51,7 @@ const UP_SQL = [
   `ALTER TABLE sys_device ADD CONSTRAINT ${CONSTRAINT} CHECK (device_id ~ '${DEVICE_ID_REGEX}')`,
 ]
 
-const DOWN_SQL = [
-  `ALTER TABLE sys_device DROP CONSTRAINT IF EXISTS ${CONSTRAINT}`,
-]
+const DOWN_SQL = [`ALTER TABLE sys_device DROP CONSTRAINT IF EXISTS ${CONSTRAINT}`]
 
 export class DeviceIdFormCheck1793390000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {

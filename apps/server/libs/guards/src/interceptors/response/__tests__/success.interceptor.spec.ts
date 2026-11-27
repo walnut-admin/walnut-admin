@@ -31,7 +31,10 @@ interface ISpecRequest {
   riskDegraded?: string
 }
 
-function createContext(options: { riskDegraded?: string, freeResponse?: boolean }): ExecutionContext {
+function createContext(options: {
+  riskDegraded?: string
+  freeResponse?: boolean
+}): ExecutionContext {
   const request: ISpecRequest = {
     id: 'spec-request-id',
     url: '/w/v1/app/monitor/user/state',
@@ -64,9 +67,11 @@ function createInterceptor(freeResponse?: boolean) {
   return new WalnutAdminInterceptorResponseSuccess(reflector as never)
 }
 
-async function run(options: { riskDegraded?: string, freeResponse?: boolean, data?: unknown }) {
+async function run(options: { riskDegraded?: string; freeResponse?: boolean; data?: unknown }) {
   const interceptor = createInterceptor(options.freeResponse)
-  const next: CallHandler = { handle: () => of(options.data ?? { ok: true }) as Observable<unknown> }
+  const next: CallHandler = {
+    handle: () => of(options.data ?? { ok: true }) as Observable<unknown>,
+  }
 
   const stream = await interceptor.intercept(createContext(options), next)
 
@@ -83,7 +88,11 @@ describe('成功拦截器：风控降级留痕（meta.riskDegraded）', () => {
   })
 
   it('三种降级原因原样透出（no-device-id / risk-evaluation-failed / risk-recommendation-missing）', async () => {
-    for (const reason of ['no-device-id', 'risk-evaluation-failed', 'risk-recommendation-missing']) {
+    for (const reason of [
+      'no-device-id',
+      'risk-evaluation-failed',
+      'risk-recommendation-missing',
+    ]) {
       const response = await run({ riskDegraded: reason })
 
       expect(response.meta, reason).toEqual({ riskDegraded: reason })

@@ -1,5 +1,8 @@
 import { createHash } from 'node:crypto'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+} from '@walnut-server/const/app/cache'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AppTechCacheCapService } from '../cap.cache'
@@ -23,7 +26,7 @@ const SEED_TTL_SECONDS = 3600
 interface ISetCall {
   key: string
   value: unknown
-  options: { t: string, ttl: number }
+  options: { t: string; ttl: number }
 }
 
 function createService(ttl: number) {

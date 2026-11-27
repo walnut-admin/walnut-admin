@@ -22,8 +22,8 @@ export function registerAfterCommitHook(hook: TransactionHook): void {
   const hooks = DBTransactionHooksStore.getStore()
   if (!hooks) {
     throw new Error(
-      'registerAfterCommitHook() must be called within a transaction interceptor context. '
-      + 'If the transaction context is optional, use runAfterCommit() instead.',
+      'registerAfterCommitHook() must be called within a transaction interceptor context. ' +
+        'If the transaction context is optional, use runAfterCommit() instead.',
     )
   }
   hooks.push(hook)
@@ -49,8 +49,7 @@ export async function runAfterCommit(hook: TransactionHook): Promise<void> {
   const hooks = DBTransactionHooksStore.getStore()
   if (hooks) {
     hooks.push(hook)
-  }
-  else {
+  } else {
     await hook()
   }
 }

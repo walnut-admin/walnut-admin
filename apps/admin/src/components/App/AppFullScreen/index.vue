@@ -19,11 +19,7 @@ withDefaults(defineProps<WAppFullScreenProps>(), {
 
       <template #trigger>
         <WIcon
-          :icon="
-            isFullscreen
-              ? 'mdi:fullscreen-exit'
-              : 'mdi:fullscreen'
-          "
+          :icon="isFullscreen ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'"
           :width="size"
           @click="clickEvent"
         />

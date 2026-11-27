@@ -40,8 +40,7 @@ function mergeRequestParams(paramsList: Record<string, any>[]): Record<string, a
 
         // Merge and deduplicate values
         merged[key] = [...new Set([...existingValues, ...newValue])].join(',')
-      }
-      else {
+      } else {
         // New parameter key, set directly
         merged[key] = value
       }
@@ -95,34 +94,37 @@ function distributeResponse(mergedResponse: AxiosResponse, requests: PendingRequ
  * @param group Request group
  * @param originalAdapter Original axios adapter
  */
-const scheduleMergeRequest = debounce((groupKey: string, group: RequestGroup, originalAdapter: AxiosAdapter) => {
-  // Merge all requests in the group
-  const allRequests = Array.from(group.values()).flat()
+const scheduleMergeRequest = debounce(
+  (groupKey: string, group: RequestGroup, originalAdapter: AxiosAdapter) => {
+    // Merge all requests in the group
+    const allRequests = Array.from(group.values()).flat()
 
-  // Merge parameters
-  const mergedParams = mergeRequestParams(allRequests.map(r => r.originalParams))
+    // Merge parameters
+    const mergedParams = mergeRequestParams(allRequests.map((r) => r.originalParams))
 
-  // Create merged request configuration
-  const mergedConfig: InternalAxiosRequestConfig = {
-    ...allRequests[0].config,
-    params: mergedParams,
-  }
+    // Create merged request configuration
+    const mergedConfig: InternalAxiosRequestConfig = {
+      ...allRequests[0].config,
+      params: mergedParams,
+    }
 
-  // Send merged request
-  originalAdapter(mergedConfig)
-    .then((response) => {
-      // Distribute merged response to individual requests
-      distributeResponse(response, allRequests)
-    })
-    .catch((error) => {
-      // Reject all requests on error
-      allRequests.forEach(request => request.reject(error))
-    })
-    .finally(() => {
-      // Clean up processed request group
-      requestGroups.delete(groupKey)
-    })
-}, DEFAULT_DELAY)
+    // Send merged request
+    originalAdapter(mergedConfig)
+      .then((response) => {
+        // Distribute merged response to individual requests
+        distributeResponse(response, allRequests)
+      })
+      .catch((error) => {
+        // Reject all requests on error
+        allRequests.forEach((request) => request.reject(error))
+      })
+      .finally(() => {
+        // Clean up processed request group
+        requestGroups.delete(groupKey)
+      })
+  },
+  DEFAULT_DELAY,
+)
 
 /**
  * Axios adapter that merges multiple requests with same URL and method

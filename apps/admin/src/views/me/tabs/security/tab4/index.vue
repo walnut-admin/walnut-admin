@@ -2,7 +2,12 @@
 import type { MeSecurityTab1Status, SystemUserIdentityType } from '@walnut/api-types'
 import type { DropdownOption } from 'naive-ui'
 import { onBeforeMount, ref, useTemplateRef } from 'vue'
-import { getSecurityTab1StatusAPI2, sendCodeForVerifyAPI, unBindUserIdentityAPI, updateUserIdentityStatusAPI } from '@/api/system/user_identity'
+import {
+  getSecurityTab1StatusAPI2,
+  sendCodeForVerifyAPI,
+  unBindUserIdentityAPI,
+  updateUserIdentityStatusAPI,
+} from '@/api/system/user_identity'
 // TODO 111
 import WIcon from '@/components/UI/Icon'
 import { useAppConfirm } from '@/hooks/component/useConfirm'
@@ -22,10 +27,8 @@ const optRef = useTemplateRef('optRef')
 const status = ref<Partial<MeSecurityTab1Status>>({})
 
 function getIconType(item?: MeSecurityTab1Status['phoneNumber']) {
-  if (item?.bound && item?.verified)
-    return 'info'
-  if (item?.bound && !item?.verified)
-    return 'warning'
+  if (item?.bound && item?.verified) return 'info'
+  if (item?.bound && !item?.verified) return 'warning'
   return 'default'
 }
 
@@ -84,7 +87,15 @@ function dropdownOptions(type: SystemUserIdentityType): DropdownOption[] {
     {
       label: status.value[type]?.status ? t('dict.status.false') : t('dict.status.true'),
       key: 0,
-      icon: () => <WIcon icon={status.value[type]?.status ? 'mdi:toggle-switch-off-outline' : 'mdi:toggle-switch-outline'}></WIcon>,
+      icon: () => (
+        <WIcon
+          icon={
+            status.value[type]?.status
+              ? 'mdi:toggle-switch-off-outline'
+              : 'mdi:toggle-switch-outline'
+          }
+        ></WIcon>
+      ),
       disabled: !status.value[type]?.bound || !status.value[type]?.verified,
     },
     {
@@ -101,7 +112,11 @@ function dropdownOptions(type: SystemUserIdentityType): DropdownOption[] {
     },
     {
       // data-testid：40119 二次验证旅程点「解绑」（文案来自语言包，testid 落在 dropdown 选项 label 内）
-      label: () => <span data-testid={`me-security-${getIdentityTestId(type)}-unbind`}>{t('app.base.unbind')}</span>,
+      label: () => (
+        <span data-testid={`me-security-${getIdentityTestId(type)}-unbind`}>
+          {t('app.base.unbind')}
+        </span>
+      ),
       key: 3,
       disabled: !status.value[type]?.bound && status.value[type]?.verified,
       icon: () => <WIcon icon="mdi:backup-restore"></WIcon>,

@@ -1,6 +1,9 @@
 import type { WalnutAdminRecoverableRegistry } from '@walnut-server/repository'
 import { WalnutModelName } from '@walnut-server/db'
-import { createWalnutAdminRecoverableRegistrar, createWalnutAdminSnapshotRecoverer } from '@walnut-server/repository'
+import {
+  createWalnutAdminRecoverableRegistrar,
+  createWalnutAdminSnapshotRecoverer,
+} from '@walnut-server/repository'
 import { SysRoleEntity } from '../entity/role.entity'
 
 /**
@@ -14,4 +17,6 @@ export function registerSysRoleRecoverable(registry: WalnutAdminRecoverableRegis
   })
 }
 
-export const sysRoleRecoverableProvider = createWalnutAdminRecoverableRegistrar(registerSysRoleRecoverable)
+export const sysRoleRecoverableProvider = createWalnutAdminRecoverableRegistrar(
+  registerSysRoleRecoverable,
+)

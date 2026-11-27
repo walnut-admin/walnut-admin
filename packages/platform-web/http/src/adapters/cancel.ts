@@ -17,7 +17,12 @@ interface IAxiosCancelPoolItem {
 
 const AxiosCancelPool = new Map<string, IAxiosCancelPoolItem>()
 
-function addToCancelPool(config: AxiosRequestConfig, id: string, pathname: string, controller: AbortController) {
+function addToCancelPool(
+  config: AxiosRequestConfig,
+  id: string,
+  pathname: string,
+  controller: AbortController,
+) {
   const key = buildSortedURL(config.url, config.params, config.paramsSerializer)
 
   AxiosCancelPool.set(id, {
@@ -60,7 +65,7 @@ export function removeAllCancel() {
 
 // remove all requests in current page from cancel pool
 export function removeCurrentPageRequests(path: string) {
-  const arr = Array.from(AxiosCancelPool).filter(i => i[1].p === path)
+  const arr = Array.from(AxiosCancelPool).filter((i) => i[1].p === path)
 
   for (let i = 0; i < arr.length; i++) {
     const id = arr[i][0]
@@ -76,8 +81,7 @@ function getCurrentPath(): string {
 
 export function cancelAdapter(adapter: AxiosAdapter): AxiosAdapter {
   return async (config) => {
-    if (!config._cancelOnRouteChange)
-      return await adapter(config)
+    if (!config._cancelOnRouteChange) return await adapter(config)
 
     const requestId = config._requestId!
 
@@ -89,11 +93,9 @@ export function cancelAdapter(adapter: AxiosAdapter): AxiosAdapter {
     try {
       const res = await adapter(config)
       return res
-    }
-    catch (error) {
+    } catch (error) {
       return Promise.reject(error)
-    }
-    finally {
+    } finally {
       // always remove from cancel pool
       removeFromCancelPool(requestId)
     }

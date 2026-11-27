@@ -104,19 +104,20 @@ describe('数据权限二期：部门维度（DEPT / DEPT_AND_CHILD / CUSTOM / D
   let userDeptAAdmin: UserFixture
   let userTarget: UserFixture
 
-  const allFixtures = () => [
-    userDeptA,
-    userDeptChild,
-    userDeptChildManager,
-    userDeptB,
-    userDeptBManager,
-    userCustom,
-    userOrSelf,
-    userSolo,
-    userNoDept,
-    userDeptAAdmin,
-    userTarget,
-  ].filter(item => item !== undefined)
+  const allFixtures = () =>
+    [
+      userDeptA,
+      userDeptChild,
+      userDeptChildManager,
+      userDeptB,
+      userDeptBManager,
+      userCustom,
+      userOrSelf,
+      userSolo,
+      userNoDept,
+      userDeptAAdmin,
+      userTarget,
+    ].filter((item) => item !== undefined)
 
   async function createClient(): Promise<WalnutApiClient> {
     // device/initial 上限 4 次/60s（按 IP）；本 spec 需要 11 个独立设备（每用户一个，
@@ -136,11 +137,17 @@ describe('数据权限二期：部门维度（DEPT / DEPT_AND_CHILD / CUSTOM / D
     return client
   }
 
-  async function loginAs(client: WalnutApiClient, fixture: { userId: string, userName: string, password: string }) {
+  async function loginAs(
+    client: WalnutApiClient,
+    fixture: { userId: string; userName: string; password: string },
+  ) {
     const tokens = await performHttpOpaqueLogin(client, app, fixture)
     client.setAuth(tokens)
     await client.seedMfaVerifiedCache(fixture.userId)
-    expectOk(await client.root('GET', client.apiPath('/auth/permissions')), `prime permissions ${fixture.userName}`)
+    expectOk(
+      await client.root('GET', client.apiPath('/auth/permissions')),
+      `prime permissions ${fixture.userName}`,
+    )
   }
 
   async function createDept(tag: string, parentId: string | null): Promise<DeptRow> {
@@ -166,13 +173,21 @@ describe('数据权限二期：部门维度（DEPT / DEPT_AND_CHILD / CUSTOM / D
   }
 
   async function createEmployee(tag: string, deptId: string): Promise<string> {
-    const res = await rootApi.root('POST', rootApi.apiPath('/system/employee'), employeePayload(tag, deptId))
+    const res = await rootApi.root(
+      'POST',
+      rootApi.apiPath('/system/employee'),
+      employeePayload(tag, deptId),
+    )
     expectOk(res, `employee create ${tag}`)
     return bodyOf<EmployeeRow>(res).data.id
   }
 
   async function bindEmployee(employeeId: string, userId: string) {
-    const res = await rootApi.root('POST', rootApi.apiPath(`/system/employee/${employeeId}/bind-user`), { userId })
+    const res = await rootApi.root(
+      'POST',
+      rootApi.apiPath(`/system/employee/${employeeId}/bind-user`),
+      { userId },
+    )
     expectOk(res, 'employee bind user')
   }
 
@@ -211,7 +226,10 @@ describe('数据权限二期：部门维度（DEPT / DEPT_AND_CHILD / CUSTOM / D
     expectOk(res, 'update user dept')
 
     // update DTO 的 roles 必填，写路径会同时清掉权限缓存（P1-18）——重新拉一次
-    expectOk(await user.client.root('GET', user.client.apiPath('/auth/permissions')), 'prime permissions after dept update')
+    expectOk(
+      await user.client.root('GET', user.client.apiPath('/auth/permissions')),
+      'prime permissions after dept update',
+    )
   }
 
   beforeAll(async () => {
@@ -234,7 +252,11 @@ describe('数据权限二期：部门维度（DEPT / DEPT_AND_CHILD / CUSTOM / D
 
     userDeptA = await seedUser('dsd-a', WalnutAdminConstDataScope.DEPT, deptA)
     userDeptChild = await seedUser('dsd-child', WalnutAdminConstDataScope.DEPT, deptChild)
-    userDeptChildManager = await seedUser('dsd-child-mgr', WalnutAdminConstDataScope.DEPT_AND_CHILD, deptA)
+    userDeptChildManager = await seedUser(
+      'dsd-child-mgr',
+      WalnutAdminConstDataScope.DEPT_AND_CHILD,
+      deptA,
+    )
     userDeptB = await seedUser('dsd-b', WalnutAdminConstDataScope.DEPT, deptB)
     userDeptBManager = await seedUser('dsd-b-mgr', WalnutAdminConstDataScope.DEPT_AND_CHILD, deptB)
     userCustom = await seedUser('dsd-custom', WalnutAdminConstDataScope.CUSTOM, deptB)
@@ -242,7 +264,12 @@ describe('数据权限二期：部门维度（DEPT / DEPT_AND_CHILD / CUSTOM / D
     userSolo = await seedUser('dsd-solo', WalnutAdminConstDataScope.SELF, deptA)
     userNoDept = await seedUser('dsd-no-dept', WalnutAdminConstDataScope.DEPT, null)
     // B1 回归：DEPT 管理员（可更新用户）+ 同部门目标用户（dept_id = deptA 非空）
-    userDeptAAdmin = await seedUser('dsd-user-admin', WalnutAdminConstDataScope.DEPT, deptA, USER_UPDATE_PERMISSIONS)
+    userDeptAAdmin = await seedUser(
+      'dsd-user-admin',
+      WalnutAdminConstDataScope.DEPT,
+      deptA,
+      USER_UPDATE_PERMISSIONS,
+    )
     userTarget = await seedUser('dsd-user-target', WalnutAdminConstDataScope.SELF, deptA)
 
     // CUSTOM 部门清单：deptA + deptB（不含 deptA-child）。必须在**登录前**写好 ——
@@ -265,27 +292,34 @@ describe('数据权限二期：部门维度（DEPT / DEPT_AND_CHILD / CUSTOM / D
 
   afterAll(async () => {
     if (rootApi !== undefined) {
-      await rootApi.pgDataSource.query('DELETE FROM sys_employee WHERE employee_no LIKE $1', [`${employeePrefix}%`])
+      await rootApi.pgDataSource.query('DELETE FROM sys_employee WHERE employee_no LIKE $1', [
+        `${employeePrefix}%`,
+      ])
 
       await cleanupPermissionChainSeed(
         rootApi,
-        allFixtures().map(item => item.fixture),
-        clients.map(client => client.deviceId),
+        allFixtures().map((item) => item.fixture),
+        clients.map((client) => client.deviceId),
       )
 
       // 部门树自底向上删（FK self RESTRICT）
       await rootApi.pgDataSource.query('DELETE FROM sys_dept WHERE id = $1', [deptChild])
-      await rootApi.pgDataSource.query('DELETE FROM sys_dept WHERE id = ANY($1::uuid[])', [[deptA, deptB]])
+      await rootApi.pgDataSource.query('DELETE FROM sys_dept WHERE id = ANY($1::uuid[])', [
+        [deptA, deptB],
+      ])
 
       if (rootFixture !== undefined) {
         await rootApi.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [rootFixture.userId])
         await rootApi.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [rootFixture.roleId])
-        await rootApi.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [clients.map(client => client.deviceId)])
+        await rootApi.pgDataSource.query(
+          'DELETE FROM sys_device WHERE device_id = ANY($1::text[])',
+          [clients.map((client) => client.deviceId)],
+        )
         await rootApi.cleanupWalnutCacheKeys(
           seed8,
-          ...clients.map(client => client.deviceId),
+          ...clients.map((client) => client.deviceId),
           rootFixture.userId,
-          ...allFixtures().map(item => item.fixture.userId),
+          ...allFixtures().map((item) => item.fixture.userId),
         )
       }
     }
@@ -296,57 +330,62 @@ describe('数据权限二期：部门维度（DEPT / DEPT_AND_CHILD / CUSTOM / D
   it('root（ALL）看到全部职工行', async () => {
     const list = await listEmployees(rootApi)
 
-    expect(new Set(list.data.map(row => row.id)))
-      .toEqual(new Set([empA1, empA2, empChild1, empB1, empOrSelf, empSolo]))
+    expect(new Set(list.data.map((row) => row.id))).toEqual(
+      new Set([empA1, empA2, empChild1, empB1, empOrSelf, empSolo]),
+    )
     expect(list.total).toBe(6)
   })
 
   it('DEPT：只见本部门（deptA 两行，child / deptB 不可见）', async () => {
     const list = await listEmployees(userDeptA.client)
 
-    expect(new Set(list.data.map(row => row.id))).toEqual(new Set([empA1, empA2]))
+    expect(new Set(list.data.map((row) => row.id))).toEqual(new Set([empA1, empA2]))
     expect(list.total).toBe(2)
   })
 
   it('DEPT_AND_CHILD：本部门及以下（deptA + deptA-child）', async () => {
     const list = await listEmployees(userDeptChildManager.client)
 
-    expect(new Set(list.data.map(row => row.id))).toEqual(new Set([empA1, empA2, empChild1]))
+    expect(new Set(list.data.map((row) => row.id))).toEqual(new Set([empA1, empA2, empChild1]))
     expect(list.total).toBe(3)
   })
 
   it('DEPT：deptA-child 只看到 child 行', async () => {
     const list = await listEmployees(userDeptChild.client)
 
-    expect(new Set(list.data.map(row => row.id))).toEqual(new Set([empChild1]))
+    expect(new Set(list.data.map((row) => row.id))).toEqual(new Set([empChild1]))
     expect(list.total).toBe(1)
   })
 
   it('DEPT：deptB 看到 deptB 三行（含绑定到其他用户的职工）', async () => {
     const list = await listEmployees(userDeptB.client)
 
-    expect(new Set(list.data.map(row => row.id))).toEqual(new Set([empB1, empOrSelf, empSolo]))
+    expect(new Set(list.data.map((row) => row.id))).toEqual(new Set([empB1, empOrSelf, empSolo]))
     expect(list.total).toBe(3)
   })
 
   it('CUSTOM：sys_role_dept 清单（deptA ∪ deptB，不递归 child）', async () => {
     const list = await listEmployees(userCustom.client)
 
-    expect(new Set(list.data.map(row => row.id))).toEqual(new Set([empA1, empA2, empB1, empOrSelf, empSolo]))
+    expect(new Set(list.data.map((row) => row.id))).toEqual(
+      new Set([empA1, empA2, empB1, empOrSelf, empSolo]),
+    )
     expect(list.total).toBe(5)
   })
 
   it('DEPT_OR_SELF：deptA 子树 ∪ 本人绑定行（empOrSelf 在 deptB）', async () => {
     const list = await listEmployees(userOrSelf.client)
 
-    expect(new Set(list.data.map(row => row.id))).toEqual(new Set([empA1, empA2, empChild1, empOrSelf]))
+    expect(new Set(list.data.map((row) => row.id))).toEqual(
+      new Set([empA1, empA2, empChild1, empOrSelf]),
+    )
     expect(list.total).toBe(4)
   })
 
   it('SELF：只看到本人绑定行（empSolo，即使它在 deptB）', async () => {
     const list = await listEmployees(userSolo.client)
 
-    expect(new Set(list.data.map(row => row.id))).toEqual(new Set([empSolo]))
+    expect(new Set(list.data.map((row) => row.id))).toEqual(new Set([empSolo]))
     expect(list.total).toBe(1)
   })
 
@@ -358,16 +397,30 @@ describe('数据权限二期：部门维度（DEPT / DEPT_AND_CHILD / CUSTOM / D
   })
 
   it('越权 read/update 一律 404；本部门行可读可改', async () => {
-    const readChild = await userDeptA.client.root('GET', userDeptA.client.apiPath(`/system/employee/${empChild1}`))
+    const readChild = await userDeptA.client.root(
+      'GET',
+      userDeptA.client.apiPath(`/system/employee/${empChild1}`),
+    )
     expect(bodyOf(readChild).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
 
-    const updateB = await userDeptA.client.root('PUT', userDeptA.client.apiPath(`/system/employee/${empB1}`), employeePayload('b1', deptB))
+    const updateB = await userDeptA.client.root(
+      'PUT',
+      userDeptA.client.apiPath(`/system/employee/${empB1}`),
+      employeePayload('b1', deptB),
+    )
     expect(bodyOf(updateB).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
 
-    const readOwn = await userDeptA.client.root('GET', userDeptA.client.apiPath(`/system/employee/${empA1}`))
+    const readOwn = await userDeptA.client.root(
+      'GET',
+      userDeptA.client.apiPath(`/system/employee/${empA1}`),
+    )
     expectOk(readOwn, 'DEPT user read own dept row')
 
-    const updateOwn = await userDeptA.client.root('PUT', userDeptA.client.apiPath(`/system/employee/${empA1}`), employeePayload('a1', deptA))
+    const updateOwn = await userDeptA.client.root(
+      'PUT',
+      userDeptA.client.apiPath(`/system/employee/${empA1}`),
+      employeePayload('a1', deptA),
+    )
     expectOk(updateOwn, 'DEPT user update own dept row')
   })
 
@@ -394,7 +447,11 @@ describe('数据权限二期：部门维度（DEPT / DEPT_AND_CHILD / CUSTOM / D
 
     // 值未变化（本部门）照常放行
     expectOk(
-      await userDeptA.client.root('PUT', userDeptA.client.apiPath(`/system/employee/${empA1}`), employeePayload('a1', deptA)),
+      await userDeptA.client.root(
+        'PUT',
+        userDeptA.client.apiPath(`/system/employee/${empA1}`),
+        employeePayload('a1', deptA),
+      ),
       'unchanged dept still allowed',
     )
   })
@@ -416,12 +473,11 @@ describe('数据权限二期：部门维度（DEPT / DEPT_AND_CHILD / CUSTOM / D
 
       // 原部门用户列表失去该行、新部门用户列表获得该行（功能级可见性迁移）
       const sourceAfter = await listEmployees(userDeptA.client)
-      expect(new Set(sourceAfter.data.map(row => row.id))).toEqual(new Set([empA2]))
+      expect(new Set(sourceAfter.data.map((row) => row.id))).toEqual(new Set([empA2]))
 
       const targetAfter = await listEmployees(userDeptChild.client)
-      expect(new Set(targetAfter.data.map(row => row.id))).toEqual(new Set([empChild1, empA1]))
-    }
-    finally {
+      expect(new Set(targetAfter.data.map((row) => row.id))).toEqual(new Set([empChild1, empA1]))
+    } finally {
       // 断言失败也要把 empA1 移回 deptA（后续部门移动用例依赖该分布）
       expectOk(
         await userDeptChildManager.client.root(
@@ -491,7 +547,9 @@ describe('数据权限二期：部门维度（DEPT / DEPT_AND_CHILD / CUSTOM / D
     await updateUserDept(userDeptA, deptB)
 
     const afterMove = await listEmployees(userDeptA.client)
-    expect(new Set(afterMove.data.map(row => row.id))).toEqual(new Set([empB1, empOrSelf, empSolo]))
+    expect(new Set(afterMove.data.map((row) => row.id))).toEqual(
+      new Set([empB1, empOrSelf, empSolo]),
+    )
 
     // 复原，避免影响后续部门移动用例的预期
     await updateUserDept(userDeptA, deptA)
@@ -522,13 +580,15 @@ describe('数据权限二期：部门维度（DEPT / DEPT_AND_CHILD / CUSTOM / D
 
     // deptA 总监（DEPT_AND_CHILD deptA）失去 child 子树；deptB 经理获得 child
     const aAfter = await listEmployees(userDeptChildManager.client)
-    expect(new Set(aAfter.data.map(row => row.id))).toEqual(new Set([empA1, empA2]))
+    expect(new Set(aAfter.data.map((row) => row.id))).toEqual(new Set([empA1, empA2]))
 
     const bAfter = await listEmployees(userDeptBManager.client)
-    expect(new Set(bAfter.data.map(row => row.id))).toEqual(new Set([empB1, empOrSelf, empSolo, empChild1]))
+    expect(new Set(bAfter.data.map((row) => row.id))).toEqual(
+      new Set([empB1, empOrSelf, empSolo, empChild1]),
+    )
 
     // child 自己的经理（DEPT deptA-child）不受影响
     const childAfter = await listEmployees(userDeptChild.client)
-    expect(new Set(childAfter.data.map(row => row.id))).toEqual(new Set([empChild1]))
+    expect(new Set(childAfter.data.map((row) => row.id))).toEqual(new Set([empChild1]))
   })
 })

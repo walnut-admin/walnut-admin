@@ -14,7 +14,9 @@ defineProps<{
     >
       <div class="flex items-center gap-2">
         <WIcon icon="carbon:user-avatar" width="14" class="text-text-placeholder shrink-0" />
-        <span class="text-text-primary min-w-0 flex-1 truncate text-13px font-500">{{ message.content }}</span>
+        <span class="text-text-primary min-w-0 flex-1 truncate text-13px font-500">{{
+          message.content
+        }}</span>
       </div>
     </div>
   </Transition>

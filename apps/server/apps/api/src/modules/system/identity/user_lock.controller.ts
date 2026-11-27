@@ -1,14 +1,43 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Request } from '@nestjs/common'
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Request,
+} from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 
 import { AuthOpaqueCoreService } from '@walnut-server/auth'
-import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
+import {
+  WalnutAdminConstDecoratorLogOperateAction,
+  WalnutAdminConstDecoratorLogOperateTitle,
+  WalnutAdminConstDecoratorLogOperateType,
+} from '@walnut-server/const/decorator/logOperate'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminExceptionInvalidCredential } from '@walnut-server/exceptions/business/auth'
 
-import { WalnutAdminDecoratorDecryptRequest, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser, WalnutAdminGuardLockFree } from '@walnut-server/guards'
-import { SysUserLockDoLockDto, SysUserLockPreferenceDTO, SysUserLockPreferenceUpdateDto, SysUserLockService, SysUserLockUnLockDto, SysUserLockVerifyFinishDto, SysUserLockVerifyStartDto } from '@walnut-server/identity'
+import {
+  WalnutAdminDecoratorDecryptRequest,
+  WalnutAdminDecoratorDeviceId,
+  WalnutAdminDecoratorHasPermission,
+  WalnutAdminDecoratorUser,
+  WalnutAdminGuardLockFree,
+} from '@walnut-server/guards'
+import {
+  SysUserLockDoLockDto,
+  SysUserLockPreferenceDTO,
+  SysUserLockPreferenceUpdateDto,
+  SysUserLockService,
+  SysUserLockUnLockDto,
+  SysUserLockVerifyFinishDto,
+  SysUserLockVerifyStartDto,
+} from '@walnut-server/identity'
 import { WalnutAdminPipeUuid } from '@walnut-server/pipes'
 import { SystemEndpointRoutes } from '@walnut/contract'
 import { WalnutAdminDecoratorOperateLog } from '@/decorators/walnut/log.operate.decorator'
@@ -35,7 +64,10 @@ export class SysUserLockController {
     description: 'Get current user lock status',
     DTO: SysUserLockPreferenceDTO,
   })
-  async get(@WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload, @WalnutAdminDecoratorDeviceId() deviceId: string) {
+  async get(
+    @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
+    @WalnutAdminDecoratorDeviceId() deviceId: string,
+  ) {
     const res = await this.lockService.getLockStatusForUser(user?.userId, deviceId)
     return new SysUserLockPreferenceDTO(res)
   }
@@ -122,7 +154,8 @@ export class SysUserLockController {
   @WalnutAdminGuardLockFree()
   @WalnutTx()
   @ApiWalnutOkResponse({
-    description: 'Start login-password verification for unlocking (OPAQUE step 1/2, no token issued)',
+    description:
+      'Start login-password verification for unlocking (OPAQUE step 1/2, no token issued)',
     primitive: 'string',
   })
   async verifyStart(
@@ -134,7 +167,13 @@ export class SysUserLockController {
     // 退避期内连 start 也不给（省 OPAQUE 计算，语义：先等倒计时）
     await this.lockService.assertUnlockBackoffForUser(user.userId, ctx.em)
 
-    return this.authOpaqueCoreService.startLogin(user.userName, dto.start, deviceId, ctx.em, 'unlock')
+    return this.authOpaqueCoreService.startLogin(
+      user.userName,
+      dto.start,
+      deviceId,
+      ctx.em,
+      'unlock',
+    )
   }
 
   /**
@@ -163,11 +202,18 @@ export class SysUserLockController {
     let verified: { userId: string }
 
     try {
-      verified = await this.authOpaqueCoreService.verifyLoginForUnlock(user.userName, dto.finish, deviceId, ctx.em, 'unlock')
-    }
-    catch (error) {
+      verified = await this.authOpaqueCoreService.verifyLoginForUnlock(
+        user.userName,
+        dto.finish,
+        deviceId,
+        ctx.em,
+        'unlock',
+      )
+    } catch (error) {
       // 计次落在独立事务（请求事务随异常回滚），见 SysUserLockRepositoryService.recordUnlockFailure
-      const { failCount, retryAfterSec } = await this.lockService.recordFallbackVerifyFailure(user.userId)
+      const { failCount, retryAfterSec } = await this.lockService.recordFallbackVerifyFailure(
+        user.userId,
+      )
 
       if (error instanceof WalnutAdminExceptionInvalidCredential) {
         throw new WalnutAdminExceptionInvalidCredential({
@@ -186,7 +232,12 @@ export class SysUserLockController {
       throw new WalnutAdminExceptionInvalidCredential()
     }
 
-    return this.lockService.unlockAfterCredentialVerified(user.userId, deviceId, req.fingerprint, ctx.em)
+    return this.lockService.unlockAfterCredentialVerified(
+      user.userId,
+      deviceId,
+      req.fingerprint,
+      ctx.em,
+    )
   }
 
   /**
@@ -202,7 +253,8 @@ export class SysUserLockController {
   @WalnutAdminDecoratorHasPermission(Permissions.RESET)
   @WalnutTx()
   @ApiWalnutOkResponse({
-    description: 'Reset (unlock) the lock screen state of a user, without reading or changing the lock password',
+    description:
+      'Reset (unlock) the lock screen state of a user, without reading or changing the lock password',
     primitive: 'boolean',
   })
   @WalnutAdminDecoratorOperateLog({

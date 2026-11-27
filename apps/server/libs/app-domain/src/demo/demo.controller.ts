@@ -56,7 +56,7 @@ const {
 @Controller(AppRoutes.DEMO)
 @ApiTags('app/demo')
 export class AppDemoController {
-  constructor(private readonly demoService: AppDemoService) { }
+  constructor(private readonly demoService: AppDemoService) {}
 
   @WalnutAdminDecoratorHasPermission(Permissions.CREATE)
   @WalnutAdminDecoratorCreate()
@@ -103,7 +103,7 @@ export class AppDemoController {
   ) {
     const deleted = await this.demoService.deleteMany(ids, user.userId, ctx.em)
 
-    return deleted.map(i => plainToInstance(AppDemoDTODeleteResponse, i))
+    return deleted.map((i) => plainToInstance(AppDemoDTODeleteResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)

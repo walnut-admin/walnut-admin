@@ -8,7 +8,10 @@ import { ref, watch } from 'vue'
 import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
 import { useFormDict } from './useFormDict'
 
-export function useFormSchemas<T>(props: ComputedRef<WForm.Props<T>>, formItemIdCtx: ICompUIFormHooksItemId<T>) {
+export function useFormSchemas<T>(
+  props: ComputedRef<WForm.Props<T>>,
+  formItemIdCtx: ICompUIFormHooksItemId<T>,
+) {
   const userStorePreference = useAppStoreUserPreference()
 
   const formSchemas = ref<WForm.Schema.Item<T>[]>([])
@@ -17,14 +20,16 @@ export function useFormSchemas<T>(props: ComputedRef<WForm.Props<T>>, formItemId
 
   function updateSchema(schema: WForm.Schema.Item<T>[]) {
     formSchemas.value = schema.map((i, idx) => {
-      if (isUndefined(getFormItemId(i, idx)))
-        setFormItemId(i, idx, true)
+      if (isUndefined(getFormItemId(i, idx))) setFormItemId(i, idx, true)
 
       return {
         ...i,
         formProp: {
           ...i.formProp,
-          labelWidth: i.formProp?.labelWidth && typeof i.formProp.labelWidth === 'number' ? `${i.formProp.labelWidth / userStorePreference.getFontSize}rem` : i.formProp?.labelWidth,
+          labelWidth:
+            i.formProp?.labelWidth && typeof i.formProp.labelWidth === 'number'
+              ? `${i.formProp.labelWidth / userStorePreference.getFontSize}rem`
+              : i.formProp?.labelWidth,
         },
         _internalShow: getFormItemId(i, idx),
       }
@@ -52,8 +57,7 @@ export function useFormSchemas<T>(props: ComputedRef<WForm.Props<T>>, formItemId
   watchThrottled(
     () => props.value.schemas,
     (v) => {
-      if (!v)
-        return
+      if (!v) return
 
       updateSchema(v)
 

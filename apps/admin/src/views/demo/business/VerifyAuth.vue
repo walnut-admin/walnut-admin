@@ -26,14 +26,10 @@ function onOpen(key: number) {
 
 <template>
   <WDemoCard title="Cap">
-    <n-button class="mb-2" @click="onOpen(1)">
-      Open verify auth modal
-    </n-button>
+    <n-button class="mb-2" @click="onOpen(1)"> Open verify auth modal </n-button>
 
-    <br>
+    <br />
 
-    <n-button class="mb-2" @click="onOpen(2)">
-      Open bind auth modal
-    </n-button>
+    <n-button class="mb-2" @click="onOpen(2)"> Open bind auth modal </n-button>
   </WDemoCard>
 </template>

@@ -22,7 +22,10 @@ test('首页：侧边栏 / 标题 / 已登录请求 20000', { tag: '@smoke' }, a
   await expectSidebarRendered(authedPage)
 
   const menuItems = authedPage.locator(SIDEBAR_MENU_ITEM_SELECTOR)
-  expect(await menuItems.count(), '侧边栏一个菜单项都没有（menus 来自 /auth/permissions）').toBeGreaterThan(0)
+  expect(
+    await menuItems.count(),
+    '侧边栏一个菜单项都没有（menus 来自 /auth/permissions）',
+  ).toBeGreaterThan(0)
 
   // 标题由 useAppTitle 拼：`<当前路由 title> - <VITE_APP_TITLE>`
   await expect(authedPage).toHaveTitle(/ - Walnut Admin$/)
@@ -30,7 +33,9 @@ test('首页：侧边栏 / 标题 / 已登录请求 20000', { tag: '@smoke' }, a
   // 已登录请求的硬证据：permissions 返回 20000（不是 HTTP 200 —— 业务错误也是 200）
   const permissions = await waitForEnvelope(
     captured.entries,
-    entry => entry.url.includes(AuthRoutes.PERMISSIONS) && entry.code === WalnutAdminConstAppResponseCode.SUCCESS,
+    (entry) =>
+      entry.url.includes(AuthRoutes.PERMISSIONS) &&
+      entry.code === WalnutAdminConstAppResponseCode.SUCCESS,
     40_000,
   )
   expect(permissions.code).toBe(WalnutAdminConstAppResponseCode.SUCCESS)

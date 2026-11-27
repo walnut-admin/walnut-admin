@@ -23,7 +23,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<AppMonitorUse
 
   tableProps: {
     localeUniqueKey: localeKey,
-    rowKey: row => row[keyField]!,
+    rowKey: (row) => row[keyField]!,
     striped: true,
     bordered: true,
     singleLine: false,
@@ -207,11 +207,11 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<AppMonitorUse
         key: 'auth',
         width: 120,
         extendType: 'tag',
-        tagProps: row => ({
+        tagProps: (row) => ({
           type: row.auth === true ? 'success' : 'warning',
           size: 'small',
         }),
-        formatter: row =>
+        formatter: (row) =>
           row.auth === true
             ? t('table.app.monitor.user.auth.true')
             : t('table.app.monitor.user.auth.false'),
@@ -233,11 +233,11 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<AppMonitorUse
         key: 'focus',
         width: 160,
         extendType: 'tag',
-        tagProps: row => ({
+        tagProps: (row) => ({
           type: row.focus === true ? 'success' : 'info',
           size: 'small',
         }),
-        formatter: row =>
+        formatter: (row) =>
           row.focus === true
             ? t('table.app.monitor.user.focus.true')
             : t('table.app.monitor.user.focus.false'),
@@ -259,11 +259,11 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<AppMonitorUse
         key: 'left',
         width: 120,
         extendType: 'tag',
-        tagProps: row => ({
+        tagProps: (row) => ({
           type: row.left === true ? 'error' : 'success',
           size: 'small',
         }),
-        formatter: row =>
+        formatter: (row) =>
           row.left === true
             ? t('table.app.monitor.user.left.true')
             : t('table.app.monitor.user.left.false'),
@@ -298,7 +298,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<AppMonitorUse
           {
             _builtInType: 'force-quit',
             confirm: true,
-            _disabled: row => !row.auth,
+            _disabled: (row) => !row.auth,
             iconProps: {
               icon: 'ant-design:logout-outlined',
             },

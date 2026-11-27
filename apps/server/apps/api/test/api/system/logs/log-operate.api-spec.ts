@@ -83,9 +83,13 @@ describe('D 段：system/log/operate list/read/snapshot/device（真实写操作
 
   afterAll(async () => {
     if (api !== undefined && fixture !== null) {
-      await api.pgDataSource.query('DELETE FROM sys_dict_type WHERE type LIKE $1', [`${typePrefix}%`])
+      await api.pgDataSource.query('DELETE FROM sys_dict_type WHERE type LIKE $1', [
+        `${typePrefix}%`,
+      ])
       // 本设备产生的操作日志行整体清（本文件的 device id 全仓唯一）
-      await api.pgDataSource.query('DELETE FROM sys_log_operate WHERE device_id = $1', [api.deviceId])
+      await api.pgDataSource.query('DELETE FROM sys_log_operate WHERE device_id = $1', [
+        api.deviceId,
+      ])
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
       await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [api.deviceId])
@@ -109,13 +113,15 @@ describe('D 段：system/log/operate list/read/snapshot/device（真实写操作
       expectOk(res, 'log operate list (poll)')
       const list = bodyOf<LogListData>(res).data
       last = list.data
-      const hit = list.data.find(row => JSON.stringify(row.requestData ?? {}).includes(substring))
+      const hit = list.data.find((row) => JSON.stringify(row.requestData ?? {}).includes(substring))
       if (hit !== undefined) {
         return hit
       }
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
     }
-    throw new Error(`[log-operate] row with marker "${substring}" not found; saw ${last.length} rows for this device`)
+    throw new Error(
+      `[log-operate] row with marker "${substring}" not found; saw ${last.length} rows for this device`,
+    )
   }
 
   it('update（真实写操作）→ 产 UPDATE 日志行：字段面齐 + 快照腿 ALS 双值', async () => {
@@ -158,7 +164,9 @@ describe('D 段：system/log/operate list/read/snapshot/device（真实写操作
     const res = await api.root('GET', api.apiPath(`/system/log/operate/${updateRow.id}/snapshot`))
     expectOk(res, 'log operate snapshot')
 
-    const data = bodyOf<{ snapshotBefore: { name?: string }, snapshotAfter: { name?: string } }>(res).data
+    const data = bodyOf<{ snapshotBefore: { name?: string }; snapshotAfter: { name?: string } }>(
+      res,
+    ).data
     expect(data.snapshotBefore.name).toBe(`dict-${marker}-create`)
     expect(data.snapshotAfter.name).toBe(`dict-${marker}-updated`)
   })
@@ -169,7 +177,9 @@ describe('D 段：system/log/operate list/read/snapshot/device（真实写操作
     const res = await api.root('GET', api.apiPath(`/system/log/operate/${updateRow.id}/device`))
     expectOk(res, 'log operate device')
 
-    const data = bodyOf<{ deviceId?: string, deviceName?: string, sr?: unknown, vp?: unknown }>(res).data
+    const data = bodyOf<{ deviceId?: string; deviceName?: string; sr?: unknown; vp?: unknown }>(
+      res,
+    ).data
     expect(data.deviceId).toBe(api.deviceId)
     expect(typeof data.deviceName).toBe('string')
     expect(data.sr).toBeTruthy()
@@ -189,8 +199,13 @@ describe('D 段：system/log/operate list/read/snapshot/device（真实写操作
     const missing = await api.root('GET', api.apiPath(`/system/log/operate/${randomUUID()}`))
     expect(bodyOf(missing).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
 
-    const missingSnapshot = await api.root('GET', api.apiPath(`/system/log/operate/${randomUUID()}/snapshot`))
-    expect(bodyOf(missingSnapshot).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
+    const missingSnapshot = await api.root(
+      'GET',
+      api.apiPath(`/system/log/operate/${randomUUID()}/snapshot`),
+    )
+    expect(bodyOf(missingSnapshot).code).toBe(
+      WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND,
+    )
   })
 
   it('list → deviceId 过滤命中本轮行 + 分页生效；本轮 create 行也在（actionType 无快照）', async () => {

@@ -1,9 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import {
-  TypeOrmModuleOptions,
-  TypeOrmOptionsFactory,
-} from '@nestjs/typeorm'
+import { TypeOrmModuleOptions, TypeOrmOptionsFactory } from '@nestjs/typeorm'
 
 import { WalnutPGConnectionName } from './pg.const'
 

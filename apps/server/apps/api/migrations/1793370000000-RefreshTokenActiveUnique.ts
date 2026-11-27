@@ -48,9 +48,7 @@ const UP_SQL = [
      WHERE revoked = false`,
 ]
 
-const DOWN_SQL = [
-  `DROP INDEX IF EXISTS ${ACTIVE_UNIQUE_INDEX}`,
-]
+const DOWN_SQL = [`DROP INDEX IF EXISTS ${ACTIVE_UNIQUE_INDEX}`]
 
 export class RefreshTokenActiveUnique1793370000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {

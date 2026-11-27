@@ -3,7 +3,10 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { AppTechCacheService } from '@walnut-server/cache'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+} from '@walnut-server/const/app/cache'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { LocaleType } from '@walnut/contract'
 
@@ -76,9 +79,7 @@ export class OAuthStateService {
   }
 
   private sign(encodedPayload: string): string {
-    return createHmac('sha256', this.signingKey)
-      .update(encodedPayload, 'utf8')
-      .digest('base64url')
+    return createHmac('sha256', this.signingKey).update(encodedPayload, 'utf8').digest('base64url')
   }
 
   private static safeEqual(left: string, right: string): boolean {
@@ -124,7 +125,10 @@ export class OAuthStateService {
    * 校验顺序：形态 → 签名（时序安全比较）→ payload 解析 → Redis 存在性 + 设备绑定 →
    * DEL 计数（=1 才视为消费成功，并发重放只有一个赢家）。
    */
-  async consumeState(state: string | undefined, deviceId: string): Promise<IWalnutOAuthStateConsumed | null> {
+  async consumeState(
+    state: string | undefined,
+    deviceId: string,
+  ): Promise<IWalnutOAuthStateConsumed | null> {
     if (typeof state !== 'string' || state.length === 0) {
       return null
     }
@@ -151,14 +155,15 @@ export class OAuthStateService {
 
     let payload: IWalnutOAuthStatePayload
     try {
-      const parsed = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as Partial<IWalnutOAuthStatePayload>
+      const parsed = JSON.parse(
+        Buffer.from(encodedPayload, 'base64url').toString('utf8'),
+      ) as Partial<IWalnutOAuthStatePayload>
       if (typeof parsed.nonce !== 'string' || parsed.nonce.length === 0) {
         this.logger.warn('oauth state rejected: payload shape invalid')
         return null
       }
       payload = parsed as IWalnutOAuthStatePayload
-    }
-    catch {
+    } catch {
       this.logger.warn('oauth state rejected: payload not JSON')
       return null
     }
@@ -166,8 +171,15 @@ export class OAuthStateService {
     const nonceCacheKey = this.getNonceCacheKey(payload.nonce)
     const stored = await this.cacheService.get<{ deviceId: string }>(nonceCacheKey)
 
-    if (stored === null || typeof stored.deviceId !== 'string' || stored.deviceId.length === 0 || stored.deviceId !== deviceId) {
-      this.logger.warn(`oauth state rejected: nonce missing or device mismatch (nonce=${payload.nonce})`)
+    if (
+      stored === null ||
+      typeof stored.deviceId !== 'string' ||
+      stored.deviceId.length === 0 ||
+      stored.deviceId !== deviceId
+    ) {
+      this.logger.warn(
+        `oauth state rejected: nonce missing or device mismatch (nonce=${payload.nonce})`,
+      )
       return null
     }
 

@@ -14,11 +14,17 @@ import { describe, expect, it } from 'vitest'
 import { readServerCookieSecret, readServerStageEnv, SERVER_STAGE_ENV_FILE } from './env.ts'
 
 describe('readServerCookieSecret（⑤）', () => {
-  it.skipIf(!existsSync(SERVER_STAGE_ENV_FILE))('与 readServerStageEnv 同值，且不含 #（两套解析器不再分歧）', () => {
-    const value = readServerCookieSecret()
+  it.skipIf(!existsSync(SERVER_STAGE_ENV_FILE))(
+    '与 readServerStageEnv 同值，且不含 #（两套解析器不再分歧）',
+    () => {
+      const value = readServerCookieSecret()
 
-    expect(value).toBe(readServerStageEnv().APP_COOKIE_SECRET)
-    expect(value.includes('#'), '.env.stage 的 APP_COOKIE_SECRET 不能含未加引号的 #（dotenv 会截断）').toBe(false)
-    expect(value.length).toBeGreaterThanOrEqual(32)
-  })
+      expect(value).toBe(readServerStageEnv().APP_COOKIE_SECRET)
+      expect(
+        value.includes('#'),
+        '.env.stage 的 APP_COOKIE_SECRET 不能含未加引号的 #（dotenv 会截断）',
+      ).toBe(false)
+      expect(value.length).toBeGreaterThanOrEqual(32)
+    },
+  )
 })

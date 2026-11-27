@@ -36,13 +36,12 @@ interface ICorsConfig {
   allowHeader: string[]
 }
 
-function loadCorsConfig(options: { prod?: boolean, override?: string } = {}): ICorsConfig {
+function loadCorsConfig(options: { prod?: boolean; override?: string } = {}): ICorsConfig {
   envMock.isProd = options.prod ?? false
 
   if (options.override === undefined) {
     vi.stubEnv('APP_CORS_ALLOW_ORIGINS', '')
-  }
-  else {
+  } else {
     vi.stubEnv('APP_CORS_ALLOW_ORIGINS', options.override)
   }
 

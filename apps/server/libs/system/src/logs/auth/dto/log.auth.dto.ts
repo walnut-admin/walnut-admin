@@ -1,5 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { IWalnutAdminConstDecoratorLogAuthType, WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
+import {
+  IWalnutAdminConstDecoratorLogAuthType,
+  WalnutAdminConstDecoratorLogAuthType,
+} from '@walnut-server/const/decorator/logAuth'
 import {
   WalnutAdminDecoratorFieldBoolean,
   WalnutAdminDecoratorFieldDate,
@@ -149,7 +152,9 @@ export class SysLogAuthDTOSafe extends SysLogAuthDTO {
   }
 }
 
-class SysLogAuthDTOSafeRequest extends RealPartialType(RealOmitType(SysLogAuthDTOSafe, ['type'] as const)) {
+class SysLogAuthDTOSafeRequest extends RealPartialType(
+  RealOmitType(SysLogAuthDTOSafe, ['type'] as const),
+) {
   // 列表查询可选过滤：query 信封不挂 ValidateNested（见 list.dto.ts 的 required: false），
   // enum 校验器也没有 nullable 选项 —— 此处无需 IsOptional（F-38：不裸挂 class-validator）
   @WalnutAdminDecoratorFieldEnum(() => WalnutAdminConstDecoratorLogAuthType, {
@@ -176,13 +181,16 @@ class SysLogAuthDTOSafeRequest extends RealPartialType(RealOmitType(SysLogAuthDT
 // （views/system/log/auth 四列 sorter，authenticatedAt 为 defaultSortOrder descend，
 // 有 idx_log_auth_at DESC）；userName/success/type 无索引但 admin 在用 → 保留，
 // 见报告建议补索引。实体只有 authenticated_at 一个时间列，无 createdAt/updatedAt
-export class SysLogAuthDTOListRequest extends CreateWalnutAdminRequestListDTO(SysLogAuthDTOSafeRequest, {
-  sortOnlyIn: ['userName', 'success', 'type', 'authenticatedAt'],
-}) { }
+export class SysLogAuthDTOListRequest extends CreateWalnutAdminRequestListDTO(
+  SysLogAuthDTOSafeRequest,
+  {
+    sortOnlyIn: ['userName', 'success', 'type', 'authenticatedAt'],
+  },
+) {}
 
 export class SysLogAuthDTOListResponse extends CreateWalnutAdminResponseListDTO(
   RealPartialType(SysLogAuthDTOSafe),
-) { }
+) {}
 
 // delete
-export class SysLogAuthDTODeleteResponse extends SysLogAuthDTOSafe { }
+export class SysLogAuthDTODeleteResponse extends SysLogAuthDTOSafe {}

@@ -150,7 +150,7 @@ export class SysEmployeeService {
   }
 
   private async ensureUserExists(userId: string, em?: EntityManager) {
-    if (await this.employeeBasicRepo.countUserById(userId, em) === 0) {
+    if ((await this.employeeBasicRepo.countUserById(userId, em)) === 0) {
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.employee.userNotFound' })
     }
   }

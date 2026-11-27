@@ -73,7 +73,7 @@ function readEnvLocalValue(key: string): string {
   const envPath = resolve(process.cwd(), 'env-local', '.env.development')
   const line = readFileSync(envPath, 'utf-8')
     .split(/\r?\n/)
-    .find(l => l.startsWith(`${key}=`))
+    .find((l) => l.startsWith(`${key}=`))
 
   if (line === undefined) {
     throw new Error(`[integration] missing ${key} in ${envPath}`)
@@ -96,7 +96,7 @@ export async function initWalnutPgAdminDataSource(app: INestApplication): Promis
     database: appOptions.database,
     username: adminUser,
     password: adminPass,
-    entities: appDataSource.entityMetadatas.map(meta => meta.target) as never,
+    entities: appDataSource.entityMetadatas.map((meta) => meta.target) as never,
     synchronize: false,
     migrations: [],
     logging: ['error'],
@@ -108,7 +108,9 @@ export async function initWalnutPgAdminDataSource(app: INestApplication): Promis
   const [dbRow] = await admin.query<Array<{ db: string }>>('SELECT current_database() AS db')
   if (dbRow?.db !== INTEGRATION_DATABASE_NAME) {
     await admin.destroy()
-    throw new Error(`[integration] admin connection points to "${dbRow?.db}", expected "${INTEGRATION_DATABASE_NAME}"`)
+    throw new Error(
+      `[integration] admin connection points to "${dbRow?.db}", expected "${INTEGRATION_DATABASE_NAME}"`,
+    )
   }
 
   adminDataSources.set(app, admin)

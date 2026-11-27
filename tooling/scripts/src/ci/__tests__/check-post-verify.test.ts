@@ -36,7 +36,10 @@ describe('judgeApplicability —— 什么时候需要真跑', () => {
   })
 
   it('只改了无关文件 ⇒ 不适用，并带上上游名与改动文件数（结论行要说清依据）', () => {
-    const verdict = judgeApplicability({ ...base, changed: ['README.md', 'apps/admin/src/main.ts'] })
+    const verdict = judgeApplicability({
+      ...base,
+      changed: ['README.md', 'apps/admin/src/main.ts'],
+    })
     expect(verdict).toEqual({ kind: 'not-applicable', upstream: 'origin/main', changedCount: 2 })
   })
 
@@ -70,7 +73,7 @@ describe('parseTally —— 脚本末尾的「通过 N，失败 M」', () => {
     expect(parseTally(FAIL_OUTPUT)).toEqual({ passed: 14, failed: 1 })
   })
 
-  it('半角逗号也认（脚本改成 `printf \'通过 %d, 失败 %d\'` 时不至于解析退化）', () => {
+  it("半角逗号也认（脚本改成 `printf '通过 %d, 失败 %d'` 时不至于解析退化）", () => {
     expect(parseTally('通过 3, 失败 2')).toEqual({ passed: 3, failed: 2 })
   })
 
@@ -80,8 +83,10 @@ describe('parseTally —— 脚本末尾的「通过 N，失败 M」', () => {
   })
 
   it('取最后一个匹配（失败回放的日志里出现同形状文字时不带偏）', () => {
-    expect(parseTally('通过 99，失败 0\n回放：通过 1，失败 2\n通过 15，失败 0'))
-      .toEqual({ passed: 15, failed: 0 })
+    expect(parseTally('通过 99，失败 0\n回放：通过 1，失败 2\n通过 15，失败 0')).toEqual({
+      passed: 15,
+      failed: 0,
+    })
   })
 })
 
@@ -104,13 +109,17 @@ describe('tailOf —— 违规时带出的输出尾部', () => {
 
 describe('interpretRunResult —— 退出码到结论', () => {
   it('退出码 0 ⇒ 通过，并带出计数行', () => {
-    expect(interpretRunResult({ code: 0, output: OK_OUTPUT }))
-      .toEqual({ kind: 'passed', tally: { passed: 15, failed: 0 } })
+    expect(interpretRunResult({ code: 0, output: OK_OUTPUT })).toEqual({
+      kind: 'passed',
+      tally: { passed: 15, failed: 0 },
+    })
   })
 
   it('退出码 0 但计数行解析不到 ⇒ 仍是通过（退出码才是契约），tally 为 null', () => {
-    expect(interpretRunResult({ code: 0, output: 'done\n' }))
-      .toEqual({ kind: 'passed', tally: null })
+    expect(interpretRunResult({ code: 0, output: 'done\n' })).toEqual({
+      kind: 'passed',
+      tally: null,
+    })
   })
 
   it('非 0 且输出里有失败计数 ⇒ 违规，带计数与输出尾部', () => {
@@ -118,8 +127,7 @@ describe('interpretRunResult —— 退出码到结论', () => {
     const longOutput = `HEADER\n${'某条用例的日志\n'.repeat(30)}${FAIL_OUTPUT}`
     const verdict = interpretRunResult({ code: 1, output: longOutput })
     expect(verdict.kind).toBe('violation')
-    if (verdict.kind !== 'violation')
-      return
+    if (verdict.kind !== 'violation') return
     expect(verdict.tally).toEqual({ passed: 14, failed: 1 })
     expect(verdict.tail).toContain('只缺 Referrer-Policy')
     expect(verdict.tail).toContain('通过 14，失败 1')
@@ -128,19 +136,23 @@ describe('interpretRunResult —— 退出码到结论', () => {
   })
 
   it('非 0 但没有计数行 ⇒ 违规，tally 为 null，尾部照带', () => {
-    const verdict = interpretRunResult({ code: 2, output: 'bash: deploy/post-verify.test.sh: line 9: unexpected EOF\n' })
+    const verdict = interpretRunResult({
+      code: 2,
+      output: 'bash: deploy/post-verify.test.sh: line 9: unexpected EOF\n',
+    })
     expect(verdict.kind).toBe('violation')
-    if (verdict.kind !== 'violation')
-      return
+    if (verdict.kind !== 'violation') return
     expect(verdict.tally).toBeNull()
     expect(verdict.tail).toContain('unexpected EOF')
   })
 
   it('脚本没跑起来（code 为 null）⇒ 前置条件未满足，而不是违规', () => {
-    const verdict = interpretRunResult({ code: null, output: '找不到测试脚本：deploy/post-verify.test.sh' })
+    const verdict = interpretRunResult({
+      code: null,
+      output: '找不到测试脚本：deploy/post-verify.test.sh',
+    })
     expect(verdict.kind).toBe('precondition')
-    if (verdict.kind !== 'precondition')
-      return
+    if (verdict.kind !== 'precondition') return
     expect(verdict.detail).toContain('没跑起来')
     expect(verdict.detail).toContain('找不到测试脚本')
   })

@@ -29,8 +29,8 @@ const pkg = getPackageJsonData()
 const DEV_ALLOW_ORIGIN_HOSTS = ['127.0.0.1', 'localhost'] as const
 const DEV_ALLOW_ORIGIN_PORTS = [3100, 3000, 8886, 4173] as const
 
-const DEV_ALLOW_ORIGINS: string[] = DEV_ALLOW_ORIGIN_HOSTS.flatMap(host =>
-  DEV_ALLOW_ORIGIN_PORTS.flatMap(port => [`http://${host}:${port}`, `https://${host}:${port}`]),
+const DEV_ALLOW_ORIGINS: string[] = DEV_ALLOW_ORIGIN_HOSTS.flatMap((host) =>
+  DEV_ALLOW_ORIGIN_PORTS.flatMap((port) => [`http://${host}:${port}`, `https://${host}:${port}`]),
 )
 
 /**
@@ -40,8 +40,8 @@ const DEV_ALLOW_ORIGINS: string[] = DEV_ALLOW_ORIGIN_HOSTS.flatMap(host =>
 function readAllowOriginOverride() {
   return (process.env.APP_CORS_ALLOW_ORIGINS ?? '')
     .split(',')
-    .map(origin => origin.trim())
-    .filter(origin => origin.length > 0)
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0)
 }
 
 function resolveAllowOrigin() {
@@ -52,9 +52,7 @@ function resolveAllowOrigin() {
   }
 
   // 生产：单源（www 域），与改造前一致；dev / stage：本地白名单
-  return isProd
-    ? `https://www.${(pkg.config as Recordable).domain as string}`
-    : DEV_ALLOW_ORIGINS
+  return isProd ? `https://www.${(pkg.config as Recordable).domain as string}` : DEV_ALLOW_ORIGINS
 }
 
 export default registerAs('middleware', () => ({

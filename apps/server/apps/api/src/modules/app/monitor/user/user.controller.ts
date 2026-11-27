@@ -1,25 +1,27 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  HttpCode,
-  HttpStatus,
-  Logger,
-  Post,
-  Req,
-} from '@nestjs/common'
+import { Body, Controller, Delete, HttpCode, HttpStatus, Logger, Post, Req } from '@nestjs/common'
 import { ApiParam, ApiTags } from '@nestjs/swagger'
 import { AppMonitorUserService } from '@walnut-server/app-domain'
 
 import { WalnutAdminGuardJwtFree } from '@walnut-server/auth'
-import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
+import {
+  WalnutAdminConstDecoratorLogOperateAction,
+  WalnutAdminConstDecoratorLogOperateTitle,
+  WalnutAdminConstDecoratorLogOperateType,
+} from '@walnut-server/const/decorator/logOperate'
 import { WalnutAdminDecoratorOperateLog, WalnutCrudDecorators } from '@walnut-server/crud'
 
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 
 import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { WalnutAdminDecoratorDataScopeSystemChannel, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorHasPermission, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import {
+  WalnutAdminDecoratorDataScopeSystemChannel,
+  WalnutAdminDecoratorDeviceId,
+  WalnutAdminDecoratorHasPermission,
+  WalnutAdminGuardCapFree,
+  WalnutAdminGuardDeviceFree,
+  WalnutAdminGuardSignFree,
+} from '@walnut-server/guards'
 import { AppTokenService } from '@walnut-server/token'
 import { AppRoutes } from '@walnut/contract'
 import { RequestHeaders } from '@walnut/contract/http'
@@ -58,7 +60,7 @@ export class AppMonitorUserController {
   constructor(
     private readonly monitorUserService: AppMonitorUserService,
     private readonly tokenService: AppTokenService,
-  ) { }
+  ) {}
 
   /**
    * F-47（2026-11，安全纵深）：`POST state` 的 `userId` 是**客户端自报的身份声明**，
@@ -77,7 +79,9 @@ export class AppMonitorUserController {
    * 不参与任何数据关联；真正的用户关联只看 userId。
    */
   private async resolveVerifiedUserId(req: IWalnutAdminExpressRequest) {
-    const authorization = req.headers?.[RequestHeaders.AUTHORIZATION.toLowerCase()] as string | undefined
+    const authorization = req.headers?.[RequestHeaders.AUTHORIZATION.toLowerCase()] as
+      | string
+      | undefined
 
     if (typeof authorization !== 'string' || !authorization.startsWith('Bearer ')) {
       return null
@@ -97,7 +101,10 @@ export class AppMonitorUserController {
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
   @WalnutAdminDecoratorList()
   async list(@Body() payload: AppMonitorUserDTOListRequest) {
-    return plainToInstance(AppMonitorUserDTOListResponse, await this.monitorUserService.list(payload))
+    return plainToInstance(
+      AppMonitorUserDTOListResponse,
+      await this.monitorUserService.list(payload),
+    )
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
@@ -156,10 +163,6 @@ export class AppMonitorUserController {
     // 清零分支仍照旧生效：登出后 user_id 清空）。
     const userId = await this.resolveVerifiedUserId(req)
 
-    return this.monitorUserService.updateState(
-      deviceId,
-      { ...data, userId },
-      ctx.em,
-    )
+    return this.monitorUserService.updateState(deviceId, { ...data, userId }, ctx.em)
   }
 }

@@ -1,11 +1,18 @@
 import type { AppTechCacheMfaService } from '@walnut-server/cache'
 import type { AppTechCryptoService } from '@walnut-server/crypto'
-import type { SysUserDeviceSharedService, SysUserRepositoryService, SysUserSharedService } from '@walnut-server/identity'
+import type {
+  SysUserDeviceSharedService,
+  SysUserRepositoryService,
+  SysUserSharedService,
+} from '@walnut-server/identity'
 import type { AppTokenService } from '@walnut-server/token'
 import type { EntityManager } from 'typeorm'
 import type { AuthSessionService } from '../../../session/session.service'
 import type { AuthRefreshTokenEntity } from '../../entity/refresh-token.entity'
-import { WalnutAdminExceptionDuplicateSignIn, WalnutAdminExceptionRefreshTokenExpired } from '@walnut-server/exceptions/business/auth'
+import {
+  WalnutAdminExceptionDuplicateSignIn,
+  WalnutAdminExceptionRefreshTokenExpired,
+} from '@walnut-server/exceptions/business/auth'
 import { QueryFailedError } from 'typeorm'
 import { describe, expect, it, vi } from 'vitest'
 import { AuthRefreshSharedService } from '../refresh.shared.service'
@@ -54,7 +61,7 @@ function pgUniqueViolation(constraint: string): QueryFailedError {
 
 /** 记录调用的假仓储（风格对照 employee.service.spec 的 Fake*Repo） */
 class FakeRefreshRepo {
-  readonly calls: Array<{ method: string, args: unknown[] }> = []
+  readonly calls: Array<{ method: string; args: unknown[] }> = []
 
   active: AuthRefreshTokenEntity | null = null
   latest: AuthRefreshTokenEntity | null = null
@@ -62,14 +69,19 @@ class FakeRefreshRepo {
   saveError: unknown = undefined
 
   argsOf(method: string): unknown[] | undefined {
-    return this.calls.find(call => call.method === method)?.args
+    return this.calls.find((call) => call.method === method)?.args
   }
 
   private record(method: string, args: unknown[]): void {
     this.calls.push({ method, args })
   }
 
-  async findActiveByDeviceIdAndUserId(deviceId: string, userId: string, em?: EntityManager, options?: unknown) {
+  async findActiveByDeviceIdAndUserId(
+    deviceId: string,
+    userId: string,
+    em?: EntityManager,
+    options?: unknown,
+  ) {
     this.record('findActiveByDeviceIdAndUserId', [deviceId, userId, em, options])
     return this.active
   }
@@ -97,7 +109,7 @@ class FakeRefreshRepo {
     if (this.createError !== undefined) {
       throw this.createError
     }
-    return { ...activeToken(), ...(data) }
+    return { ...activeToken(), ...data }
   }
 }
 
@@ -143,20 +155,25 @@ describe('refresh generateRefreshToken：duplicate-signin 竞态（F-26）', () 
     const { service, repo } = createService()
     repo.active = activeToken()
 
-    await expect(service.generateRefreshToken(USER_ID, DEVICE_ID, SESSION_ID, EM))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionDuplicateSignIn)
+    await expect(
+      service.generateRefreshToken(USER_ID, DEVICE_ID, SESSION_ID, EM),
+    ).rejects.toBeInstanceOf(WalnutAdminExceptionDuplicateSignIn)
 
-    expect(repo.argsOf('findActiveByDeviceIdAndUserId')).toEqual([DEVICE_ID, USER_ID, EM, { lock: true }])
+    expect(repo.argsOf('findActiveByDeviceIdAndUserId')).toEqual([
+      DEVICE_ID,
+      USER_ID,
+      EM,
+      { lock: true },
+    ])
   })
 
   it('并发首插撞部分唯一索引 → 受控 40109（不是裸露的驱动错误 / 笼统 40000）', async () => {
     const { service, repo } = createService()
     repo.createError = pgUniqueViolation('uq_rt_active_device_user')
 
-    await expect(service.generateRefreshToken(USER_ID, DEVICE_ID, SESSION_ID, EM))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionDuplicateSignIn)
+    await expect(
+      service.generateRefreshToken(USER_ID, DEVICE_ID, SESSION_ID, EM),
+    ).rejects.toBeInstanceOf(WalnutAdminExceptionDuplicateSignIn)
   })
 
   it('复活旧行（revoke-and-insert 的补充分支）撞同一索引 → 同样 40109', async () => {
@@ -164,9 +181,9 @@ describe('refresh generateRefreshToken：duplicate-signin 竞态（F-26）', () 
     repo.latest = activeToken({ revoked: true })
     repo.saveError = pgUniqueViolation('uq_rt_active_device_user')
 
-    await expect(service.generateRefreshToken(USER_ID, DEVICE_ID, SESSION_ID, EM))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionDuplicateSignIn)
+    await expect(
+      service.generateRefreshToken(USER_ID, DEVICE_ID, SESSION_ID, EM),
+    ).rejects.toBeInstanceOf(WalnutAdminExceptionDuplicateSignIn)
   })
 
   it('uq_jti 的 23505 不被翻译（jti 重复是真 bug，必须原样暴露）', async () => {
@@ -174,7 +191,9 @@ describe('refresh generateRefreshToken：duplicate-signin 竞态（F-26）', () 
     const { service, repo } = createService()
     repo.createError = error
 
-    await expect(service.generateRefreshToken(USER_ID, DEVICE_ID, SESSION_ID, EM)).rejects.toBe(error)
+    await expect(service.generateRefreshToken(USER_ID, DEVICE_ID, SESSION_ID, EM)).rejects.toBe(
+      error,
+    )
   })
 
   it('非 23505 的写腿失败原样抛出（不吞、不改写语义）', async () => {
@@ -182,13 +201,17 @@ describe('refresh generateRefreshToken：duplicate-signin 竞态（F-26）', () 
     const { service, repo } = createService()
     repo.createError = error
 
-    await expect(service.generateRefreshToken(USER_ID, DEVICE_ID, SESSION_ID, EM)).rejects.toBe(error)
+    await expect(service.generateRefreshToken(USER_ID, DEVICE_ID, SESSION_ID, EM)).rejects.toBe(
+      error,
+    )
   })
 
   it('正常新建分支：写腿带事务 em，返回新 jti；读腿（含「取最新行」）同样带 em', async () => {
     const { service, repo, generateJwtRefreshToken } = createService()
 
-    await expect(service.generateRefreshToken(USER_ID, DEVICE_ID, SESSION_ID, EM)).resolves.toBe('jti-new')
+    await expect(service.generateRefreshToken(USER_ID, DEVICE_ID, SESSION_ID, EM)).resolves.toBe(
+      'jti-new',
+    )
 
     expect(repo.argsOf('findByDeviceIdAndUserId')).toEqual([DEVICE_ID, USER_ID, EM])
     expect(repo.argsOf('create')?.[0]).toMatchObject({
@@ -205,7 +228,9 @@ describe('refresh generateRefreshToken：duplicate-signin 竞态（F-26）', () 
     const latest = activeToken({ revoked: true, jti: 'jti-revive' })
     repo.latest = latest
 
-    await expect(service.generateRefreshToken(USER_ID, DEVICE_ID, SESSION_ID, EM)).resolves.toBe('jti-revive')
+    await expect(service.generateRefreshToken(USER_ID, DEVICE_ID, SESSION_ID, EM)).resolves.toBe(
+      'jti-revive',
+    )
 
     expect(repo.argsOf('saveRefreshTokenDoc')?.[0]).toBe(latest)
     expect(repo.argsOf('saveRefreshTokenDoc')?.[1]).toMatchObject({ revoked: false })
@@ -215,6 +240,8 @@ describe('refresh generateRefreshToken：duplicate-signin 竞态（F-26）', () 
   it('回归：40102（RefreshTokenExpired）不受影响（本文件未改轮换腿）', async () => {
     const { service } = createService()
 
-    await expect(service.getTokenByJti('missing')).rejects.toBeInstanceOf(WalnutAdminExceptionRefreshTokenExpired)
+    await expect(service.getTokenByJti('missing')).rejects.toBeInstanceOf(
+      WalnutAdminExceptionRefreshTokenExpired,
+    )
   })
 })

@@ -61,10 +61,8 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  if (originalApiUrl === undefined)
-    delete process.env.GITHUB_API_URL
-  else
-    process.env.GITHUB_API_URL = originalApiUrl
+  if (originalApiUrl === undefined) delete process.env.GITHUB_API_URL
+  else process.env.GITHUB_API_URL = originalApiUrl
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
   rmSync(tempDir, { recursive: true, force: true })
@@ -112,13 +110,20 @@ describe('localLatestTag / resolveRepo', () => {
 
 describe('decideVersion —— 状态码 → 取哪个版本或抛什么', () => {
   it('200 + 有效 tag_name ⇒ 用它，来源 GitHub Release', () => {
-    const lookup: ReleaseLookup = { ok: true, status: 200, body: JSON.stringify({ tag_name: 'v0.1.24' }) }
+    const lookup: ReleaseLookup = {
+      ok: true,
+      status: 200,
+      body: JSON.stringify({ tag_name: 'v0.1.24' }),
+    }
     expect(decideVersion(lookup, ['v9.9.9'])).toEqual({ version: 'v0.1.24', source: 'release' })
   })
 
   it('404 ⇒ 回退本机最新 tag，来源 local-tag', () => {
     const lookup: ReleaseLookup = { ok: true, status: 404, body: '{"message":"Not Found"}' }
-    expect(decideVersion(lookup, ['v0.2.0', 'v0.1.0'])).toEqual({ version: 'v0.2.0', source: 'local-tag' })
+    expect(decideVersion(lookup, ['v0.2.0', 'v0.1.0'])).toEqual({
+      version: 'v0.2.0',
+      source: 'local-tag',
+    })
   })
 
   it('404 且本机没有 tag ⇒ 前置条件错误', () => {
@@ -127,17 +132,25 @@ describe('decideVersion —— 状态码 → 取哪个版本或抛什么', () =>
   })
 
   it('200 但 tag_name 为空 / 响应体不是 JSON ⇒ 前置条件错误（不能写成空版本）', () => {
-    expect(() => decideVersion({ ok: true, status: 200, body: '{"tag_name":""}' }, ['v1.0.0'])).toThrow(/tag_name/)
-    expect(() => decideVersion({ ok: true, status: 200, body: '<html>oops</html>' }, ['v1.0.0'])).toThrow(/tag_name/)
+    expect(() =>
+      decideVersion({ ok: true, status: 200, body: '{"tag_name":""}' }, ['v1.0.0']),
+    ).toThrow(/tag_name/)
+    expect(() =>
+      decideVersion({ ok: true, status: 200, body: '<html>oops</html>' }, ['v1.0.0']),
+    ).toThrow(/tag_name/)
   })
 
   it('其它非 200 ⇒ 前置条件错误，消息带状态码', () => {
     expect(() => decideVersion({ ok: true, status: 500, body: 'boom' }, [])).toThrow(/HTTP 500/)
-    expect(() => decideVersion({ ok: true, status: 403, body: 'rate limited' }, [])).toThrow(/HTTP 403/)
+    expect(() => decideVersion({ ok: true, status: 403, body: 'rate limited' }, [])).toThrow(
+      /HTTP 403/,
+    )
   })
 
   it('网络错误 / 超时 ⇒ 前置条件错误（不是「没有 Release」）', () => {
-    expect(() => decideVersion({ ok: false, reason: 'fetch failed' }, ['v1.0.0'])).toThrow(/网络错误或超时/)
+    expect(() => decideVersion({ ok: false, reason: 'fetch failed' }, ['v1.0.0'])).toThrow(
+      /网络错误或超时/,
+    )
   })
 })
 
@@ -147,7 +160,12 @@ describe('runDocsVersion —— 网络 + 文件写入', () => {
     stubFetch(responseOf(JSON.stringify({ tag_name: 'v0.1.24' })))
 
     const result = await runDocsVersion(inputWith())
-    expect(result).toEqual({ previous: 'v1.10.0', version: 'v0.1.24', source: 'release', file: versionFile })
+    expect(result).toEqual({
+      previous: 'v1.10.0',
+      version: 'v0.1.24',
+      source: 'release',
+      file: versionFile,
+    })
     expect(readFileSync(versionFile, 'utf8')).toBe('{\n  "version": "v0.1.24"\n}\n')
   })
 
@@ -185,9 +203,12 @@ describe('runDocsVersion —— 网络 + 文件写入', () => {
   })
 
   it('网络异常 / 超时 ⇒ 前置条件错误', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => {
-      throw new TypeError('fetch failed')
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('fetch failed')
+      }),
+    )
     await expect(runDocsVersion(inputWith())).rejects.toThrow(/网络错误或超时/)
   })
 
@@ -226,12 +247,16 @@ describe('runDocsVersion —— 网络 + 文件写入', () => {
     process.env.GITHUB_API_URL = 'https://ghe.internal/api/v3/'
     const fetchMock = stubFetch(responseOf(JSON.stringify({ tag_name: 'v0.1.24' })))
     await runDocsVersion(inputWith())
-    expect(String(fetchMock.mock.calls[0]?.[0])).toBe('https://ghe.internal/api/v3/repos/o/r/releases/latest')
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
+      'https://ghe.internal/api/v3/repos/o/r/releases/latest',
+    )
   })
 
   it('remote 解析不出 ⇒ 前置条件错误，且一个请求都不发', async () => {
     const fetchMock = stubFetch(responseOf(JSON.stringify({ tag_name: 'v0.1.24' })))
-    await expect(runDocsVersion(inputWith({ remoteUrl: 'file:///d/repo.git' }))).rejects.toThrow(PreconditionError)
+    await expect(runDocsVersion(inputWith({ remoteUrl: 'file:///d/repo.git' }))).rejects.toThrow(
+      PreconditionError,
+    )
     expect(fetchMock).not.toHaveBeenCalled()
   })
 })

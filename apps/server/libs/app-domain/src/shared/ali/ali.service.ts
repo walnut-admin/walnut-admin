@@ -5,7 +5,14 @@ import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { buildAliOSSStsPolicy } from './ali.policy'
 
-async function generateSTSToken(accessKeyId: string, accessKeySecret: string, endpoint: string, roleArn: string, roleSessionName: string, policy?: string) {
+async function generateSTSToken(
+  accessKeyId: string,
+  accessKeySecret: string,
+  endpoint: string,
+  roleArn: string,
+  roleSessionName: string,
+  policy?: string,
+) {
   const config = new $OpenApi.Config({
     accessKeyId,
     accessKeySecret,
@@ -30,8 +37,8 @@ export class SharedAliService {
   constructor(private readonly configService: ConfigService) {}
 
   async getSTSToken(user: IWalnutAdminAccessTokenPayload) {
-    const { id, secret, region, bucket, endPoint, roleArn, roleSessionName }
-      = this.configService.get<{
+    const { id, secret, region, bucket, endPoint, roleArn, roleSessionName } =
+      this.configService.get<{
         region: string
         bucket: string
         id: string
@@ -55,14 +62,7 @@ export class SharedAliService {
       objectKeyPrefix: null,
     })
 
-    const res = await generateSTSToken(
-      id,
-      secret,
-      endPoint,
-      roleArn,
-      roleSessionName,
-      policy,
-    )
+    const res = await generateSTSToken(id, secret, endPoint, roleArn, roleSessionName, policy)
 
     return {
       accessKeyId: res.body?.credentials?.accessKeyId,

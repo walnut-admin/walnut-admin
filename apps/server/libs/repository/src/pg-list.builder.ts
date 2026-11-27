@@ -84,8 +84,8 @@ export interface IListRequestParams<T> {
    * 删完 `resolvePgListCondition` 只剩「手写构造」的调用面，届时再决定它是否也退场。
    */
   query?: Partial<T>
-  sort?: Array<{ field: string, order: 'ascend' | 'descend' | false, priority?: number }>
-  page?: { page: number, pageSize: number }
+  sort?: Array<{ field: string; order: 'ascend' | 'descend' | false; priority?: number }>
+  page?: { page: number; pageSize: number }
 }
 
 export interface IWalnutPgListQueryOptions {
@@ -146,8 +146,7 @@ export function buildPgListQueryOptions<T>(
 
       if (!isWalnutPgFilterOp(wireOp)) {
         rejections.push(
-          `filters[${key}]: 未知算子 ${String(wireOp)
-          }（只允许 eq / like / in / range / isNull）`,
+          `filters[${key}]: 未知算子 ${String(wireOp)}（只允许 eq / like / in / range / isNull）`,
         )
         return
       }
@@ -176,7 +175,9 @@ export function buildPgListQueryOptions<T>(
     })
 
     if (rejections.length > 0) {
-      throw new WalnutAdminExceptionRequestDataError(`非法 list 过滤条件 —— ${rejections.join('; ')}`)
+      throw new WalnutAdminExceptionRequestDataError(
+        `非法 list 过滤条件 —— ${rejections.join('; ')}`,
+      )
     }
   }
 
@@ -237,16 +238,30 @@ export function buildPgListQueryOptions<T>(
 
           return { field: item.field, direction, priority: item.priority ?? 0 }
         })
-        .filter((item): item is { field: string, direction: 'ASC' | 'DESC', priority: number } => item !== undefined)
+        .filter(
+          (item): item is { field: string; direction: 'ASC' | 'DESC'; priority: number } =>
+            item !== undefined,
+        )
         .sort((a, b) => b.priority - a.priority)
     : []
 
   // D15 稳定性兜底：任何排序都追加主键作最后一个键（否则同毫秒行在 LIMIT/OFFSET 下漏行/重行）
-  const sortOptions: Record<string, 'ASC' | 'DESC'> = sortEntries.length > 0
-    ? withPgListTiebreaker(Object.fromEntries(sortEntries.map(item => [item.field, item.direction])), metadata)
-    : defaultSort
+  const sortOptions: Record<string, 'ASC' | 'DESC'> =
+    sortEntries.length > 0
+      ? withPgListTiebreaker(
+          Object.fromEntries(sortEntries.map((item) => [item.field, item.direction])),
+          metadata,
+        )
+      : defaultSort
 
-  return { match, sort: sortOptions, skip: normalized.skip, limit: normalized.limit, metadata, pageAdjusted: normalized.adjusted }
+  return {
+    match,
+    sort: sortOptions,
+    skip: normalized.skip,
+    limit: normalized.limit,
+    metadata,
+    pageAdjusted: normalized.adjusted,
+  }
 }
 
 /**
@@ -270,7 +285,12 @@ export function buildPgListQueryOptionsFromQb<T>(
 ): IWalnutPgListQueryOptions {
   const metadata = qb.expressionMap.mainAlias?.metadata
 
-  return buildPgListQueryOptions<T>(params, extraMatch, createPgColumnKindResolver(metadata), metadata)
+  return buildPgListQueryOptions<T>(
+    params,
+    extraMatch,
+    createPgColumnKindResolver(metadata),
+    metadata,
+  )
 }
 
 /**
@@ -320,11 +340,9 @@ export function applyPgListQuery<T extends ObjectLiteral>(
       }
 
       resolved = verdict.condition
-    }
-    else if (condition.raw === undefined) {
+    } else if (condition.raw === undefined) {
       resolved = isPgListOpAllowed(condition.op, kind) ? condition : undefined
-    }
-    else {
+    } else {
       resolved = resolvePgListCondition(kind, condition.raw)
 
       if (resolved !== undefined && !isPgListOpAllowed(resolved.op, kind)) {
@@ -333,7 +351,12 @@ export function applyPgListQuery<T extends ObjectLiteral>(
     }
 
     if (resolved === undefined) {
-      warnDroppedPgListCondition(key, kind, condition.raw ?? condition.value, 'SQL 层裁决拒绝该算子/值')
+      warnDroppedPgListCondition(
+        key,
+        kind,
+        condition.raw ?? condition.value,
+        'SQL 层裁决拒绝该算子/值',
+      )
       return
     }
 
@@ -344,7 +367,9 @@ export function applyPgListQuery<T extends ObjectLiteral>(
 
     if (resolved.op === 'ilike') {
       const param = nextParam(key)
-      qb.andWhere(`${alias}.${key} ILIKE :${param}`, { [param]: `%${escapeLikePattern(String(resolved.value))}%` })
+      qb.andWhere(`${alias}.${key} ILIKE :${param}`, {
+        [param]: `%${escapeLikePattern(String(resolved.value))}%`,
+      })
       return
     }
 
@@ -381,9 +406,10 @@ export function applyPgListQuery<T extends ObjectLiteral>(
     }
   })
 
-  const finalSort = Object.keys(sortable).length > 0
-    ? withPgListTiebreaker(sortable, metadata)
-    : withPgListTiebreaker(defaultPgListSort(metadata), metadata)
+  const finalSort =
+    Object.keys(sortable).length > 0
+      ? withPgListTiebreaker(sortable, metadata)
+      : withPgListTiebreaker(defaultPgListSort(metadata), metadata)
 
   Object.entries(finalSort).forEach(([key, direction]) => {
     if (isPgSortableColumnKind(resolveKind(key))) {
@@ -400,7 +426,9 @@ export function applyPgListQuery<T extends ObjectLiteral>(
  * 执行已构建的列表查询：单趟 SELECT 借 `COUNT(*) OVER()` 同时带出过滤后总数，
  * 返回与 Mongo 版消费端兼容的 `{ data, total }`。
  */
-export async function executePgListQuery<T extends ObjectLiteral>(qb: SelectQueryBuilder<T>): Promise<{ data: T[], total: number }> {
+export async function executePgListQuery<T extends ObjectLiteral>(
+  qb: SelectQueryBuilder<T>,
+): Promise<{ data: T[]; total: number }> {
   qb.addSelect(`COUNT(*) OVER()`, WALNUT_PG_LIST_TOTAL_ALIAS)
 
   const { entities, raw } = await qb.getRawAndEntities()

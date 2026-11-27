@@ -4,7 +4,10 @@ import {
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
-import { CreateWalnutAdminRequestListDTO, CreateWalnutAdminResponseListDTO } from '@walnut-server/list'
+import {
+  CreateWalnutAdminRequestListDTO,
+  CreateWalnutAdminResponseListDTO,
+} from '@walnut-server/list'
 import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose, Transform } from 'class-transformer'
 import { Recordable } from 'easy-fns-ts'
@@ -29,8 +32,15 @@ export const WALNUT_DELETED_MASKED_CONTENT_KEYS = [
 ] as const
 
 /** 对快照 content 做浅层脱敏：命中敏感键且有值 → 替换为 `***`（不改原对象） */
-export function maskDeletedSnapshotContent(content: Recordable | null | undefined): Recordable | null | undefined {
-  if (content === null || content === undefined || typeof content !== 'object' || Array.isArray(content)) {
+export function maskDeletedSnapshotContent(
+  content: Recordable | null | undefined,
+): Recordable | null | undefined {
+  if (
+    content === null ||
+    content === undefined ||
+    typeof content !== 'object' ||
+    Array.isArray(content)
+  ) {
     return content
   }
 
@@ -153,7 +163,9 @@ export class SysDeletedDTOSafe extends SysDeletedDTO {
   }
 }
 
-class SysDeletedDTOSafeRequest extends RealPartialType(RealOmitType(SysDeletedDTOSafe, ['deletedAt'] as const)) {
+class SysDeletedDTOSafeRequest extends RealPartialType(
+  RealOmitType(SysDeletedDTOSafe, ['deletedAt'] as const),
+) {
   @WalnutAdminDecoratorFieldDate({
     isArray: true,
     swaggerOptions: {
@@ -188,10 +200,10 @@ export class SystemDeletedDTOReadResponse extends SysDeletedDTOSafe {}
 export class SystemDeletedDTODeleteResponse extends SysDeletedDTOSafe {}
 
 // recover
-export class SysDeletedDTORecoverRequest extends RealPickType(
-  SysDeletedDTOSafe,
-  ['id', 'deletedId'] as const,
-) {
+export class SysDeletedDTORecoverRequest extends RealPickType(SysDeletedDTOSafe, [
+  'id',
+  'deletedId',
+] as const) {
   // 恢复定位键必填（F-38 起基座 id 不再挂 IsOptional，PickType 不再继承"可选"：
   // 缺省 id 直接 40099，不允许落到条件为空的 findOne 上）；deletedId 的必填 uuid
   // 约束继承自 DTOSafe

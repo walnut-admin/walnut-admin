@@ -66,27 +66,28 @@ export class SocketAuthMiddleware {
 
       // 2. get access token from handshake headers
       const authHeader = socket.handshake.headers.authorization?.replace('Bearer ', '') as string
-      if (!authHeader)
-        return next(new Error('Missing Bearer token'))
+      if (!authHeader) return next(new Error('Missing Bearer token'))
 
       // 3. get fingerprint from handshake headers
       const fingerprint = req.headers[RequestHeaders.FINGERPRINT.toLocaleLowerCase()] as string
-      if (!fingerprint)
-        return next(new Error('Missing fingerprint'))
+      if (!fingerprint) return next(new Error('Missing fingerprint'))
 
       // 4. verify (signature + expiry) — F-02 前这里是 decodeAccessToken（不验签）
       const payload = await this.tokenService.verifyAccessToken(authHeader)
 
-      if (!payload)
-        return next(new Error('Invalid access token'))
+      if (!payload) return next(new Error('Invalid access token'))
 
       // 5. session key existence — 与 jwt-access.strategy.validate 的第三重对齐
-      const sessionKeyHash = payload.sid == null || deviceId == null
-        ? null
-        : await this.authSessionService.getAuthSessionKeyHash(payload.userId, deviceId, payload.sid)
+      const sessionKeyHash =
+        payload.sid == null || deviceId == null
+          ? null
+          : await this.authSessionService.getAuthSessionKeyHash(
+              payload.userId,
+              deviceId,
+              payload.sid,
+            )
 
-      if (!sessionKeyHash)
-        return next(new Error('Invalid access token'))
+      if (!sessionKeyHash) return next(new Error('Invalid access token'))
 
       // 5.5 device state — 拍板-4：封禁 / 锁定的设备不允许握手（原先只验 JWT + 会话键，
       // 已封设备照常建连收实时事件）。与 HTTP 侧同口径：行不存在按「设备不可用」拒绝。
@@ -112,8 +113,7 @@ export class SocketAuthMiddleware {
       }
 
       next()
-    }
-    catch (e) {
+    } catch (e) {
       next(e as Error)
     }
   }

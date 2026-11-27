@@ -1,6 +1,9 @@
 import type { IWalnutAdminTokenTtl } from '../token-ttl.port'
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+} from '@walnut-server/const/app/cache'
 import { Role } from '@walnut/contract'
 import { AppTechCacheService } from '../cache.service'
 import { WALNUT_ADMIN_TOKEN_TTL } from '../token-ttl.port'
@@ -20,9 +23,7 @@ export class AppTechCachePermissionsService {
 
   // get permission strings from cache
   async getPermissionsFromCache(userId: string, deviceId: string) {
-    return this.cacheService.get<string[]>(
-      this.getPermissionCacheKey(userId, deviceId),
-    )
+    return this.cacheService.get<string[]>(this.getPermissionCacheKey(userId, deviceId))
   }
 
   // set permission strings to cache
@@ -45,14 +46,10 @@ export class AppTechCachePermissionsService {
     const atTtl = this.tokenService.getAccessTokenExpireSeconds()
 
     // set permissions into cache
-    await this.cacheService.set(
-      this.getPermissionCacheKey(user.userId, deviceId),
-      permissions,
-      {
-        ttl: atTtl,
-        t: WalnutAdminConstAppCacheType.AUTH,
-      },
-    )
+    await this.cacheService.set(this.getPermissionCacheKey(user.userId, deviceId), permissions, {
+      ttl: atTtl,
+      t: WalnutAdminConstAppCacheType.AUTH,
+    })
   }
 
   async delPermissions(token: string, deviceId: string) {
@@ -65,7 +62,9 @@ export class AppTechCachePermissionsService {
    * 服务端没有反查设备的通道，按 pattern 一次清干净）。
    */
   async delPermissionsForUser(userId: string) {
-    const deleted = await this.cacheService.delByPattern(`${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:${userId}:*`)
+    const deleted = await this.cacheService.delByPattern(
+      `${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:${userId}:*`,
+    )
     this.logger.debug(`del permissions cache for user ${userId}, keys=${deleted.length}`)
   }
 
@@ -75,7 +74,9 @@ export class AppTechCachePermissionsService {
    * 重建，全清是明确取舍）。
    */
   async delAllPermissions() {
-    const deleted = await this.cacheService.delByPattern(`${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:*`)
+    const deleted = await this.cacheService.delByPattern(
+      `${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:*`,
+    )
     this.logger.debug(`del all permissions cache, keys=${deleted.length}`)
   }
 }

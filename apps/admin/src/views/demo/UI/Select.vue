@@ -16,16 +16,18 @@ const state = reactive<any>({
   select6: '999',
 })
 
-const options = ref<SelectMixedOption[]>(Array.from({ length: 100 }).map((_, i) => ({
-  value: `${i + 1}`,
-  label: `label-${i + 1}`,
-})))
+const options = ref<SelectMixedOption[]>(
+  Array.from({ length: 100 }).map((_, i) => ({
+    value: `${i + 1}`,
+    label: `label-${i + 1}`,
+  })),
+)
 
 options.value.push({
   value: '999',
   tooltop: true,
   label:
-      'label-999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999',
+    'label-999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999',
 })
 </script>
 
@@ -35,25 +37,14 @@ options.value.push({
 
     <n-list>
       <n-list-item>
-        <WTitle
-          prefix="bar"
-          help-message="string/number will all feedback correctly"
-        >
+        <WTitle prefix="bar" help-message="string/number will all feedback correctly">
           Basic usage
         </WTitle>
 
         <n-space vertical>
-          <WSelect
-            v-model:value="state.select1"
-            :options="options"
-            clearable
-          />
+          <WSelect v-model:value="state.select1" :options="options" clearable />
 
-          <WSelect
-            v-model:value="state.select2"
-            :options="options"
-            clearable
-          />
+          <WSelect v-model:value="state.select2" :options="options" clearable />
         </n-space>
       </n-list-item>
 
@@ -66,19 +57,9 @@ options.value.push({
         </WTitle>
 
         <n-space vertical>
-          <WSelect
-            v-model:value="state.select3"
-            :options="options"
-            clearable
-            multiple
-          />
+          <WSelect v-model:value="state.select3" :options="options" clearable multiple />
 
-          <WSelect
-            v-model:value="state.select4"
-            :options="options"
-            clearable
-            multiple
-          />
+          <WSelect v-model:value="state.select4" :options="options" clearable multiple />
         </n-space>
       </n-list-item>
 
@@ -100,9 +81,7 @@ options.value.push({
       </n-list-item>
 
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          If label too long, you can add a tooltip prop
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> If label too long, you can add a tooltip prop </WTitle>
 
         <WSelect
           v-model:value="state.select6"

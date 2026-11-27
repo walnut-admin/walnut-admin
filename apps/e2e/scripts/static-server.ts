@@ -41,8 +41,7 @@ const SOCKET_PATH = (() => {
   try {
     const env = parseEnvFile(readFileSync(SERVER_STAGE_ENV_FILE, 'utf8'))
     return env.SOCKET_SERVER_PATH ?? '/walnut-path/'
-  }
-  catch {
+  } catch {
     return '/walnut-path/'
   }
 })()
@@ -74,14 +73,17 @@ function contentTypeOf(file: string): string {
 }
 
 /** `/api/foo?x=1` → `/w/v1/foo?x=1`；`/socket/...` → `/walnut-path/...` 的同一条拼接 */
-function upstreamPathFor(url: string): { port: number, path: string } | null {
+function upstreamPathFor(url: string): { port: number; path: string } | null {
   const queryIndex = url.indexOf('?')
   const pathname = queryIndex === -1 ? url : url.slice(0, queryIndex)
   const search = queryIndex === -1 ? '' : url.slice(queryIndex)
 
   if (pathname === '/api' || pathname.startsWith('/api/')) {
     const rest = pathname.slice('/api'.length)
-    return { port: BACKEND_PORT, path: `${API_UPSTREAM_PREFIX}${rest === '' ? '/' : rest}${search}` }
+    return {
+      port: BACKEND_PORT,
+      path: `${API_UPSTREAM_PREFIX}${rest === '' ? '/' : rest}${search}`,
+    }
   }
 
   if (pathname === '/socket' || pathname.startsWith('/socket/')) {
@@ -102,7 +104,10 @@ function proxyHttp(req: IncomingMessage, res: ServerResponse): void {
   }
 
   // 只改 Host（上游要看到自己的地址）；其余头原样透传 —— 包括 X-Forwarded-For。
-  const headers: Record<string, string | string[]> = { ...req.headers } as Record<string, string | string[]>
+  const headers: Record<string, string | string[]> = { ...req.headers } as Record<
+    string,
+    string | string[]
+  >
   headers.host = `127.0.0.1:${target.port}`
 
   const upstream = httpRequest(
@@ -148,7 +153,9 @@ function proxyUpgrade(req: IncomingMessage, socket: Duplex, head: Buffer): void 
   const upstream = connect(target.port, '127.0.0.1', () => {
     const rawHeaders = req.rawHeaders.slice()
     // 替换 Host（成对出现：name, value）
-    const hostIndex = rawHeaders.findIndex((value, index) => index % 2 === 0 && value.toLowerCase() === 'host')
+    const hostIndex = rawHeaders.findIndex(
+      (value, index) => index % 2 === 0 && value.toLowerCase() === 'host',
+    )
     if (hostIndex !== -1) {
       rawHeaders[hostIndex + 1] = `127.0.0.1:${target.port}`
     }
@@ -173,8 +180,7 @@ function proxyUpgrade(req: IncomingMessage, socket: Duplex, head: Buffer): void 
 function isRegularFile(file: string): boolean {
   try {
     return existsSync(file) && statSync(file).isFile()
-  }
-  catch {
+  } catch {
     return false
   }
 }
@@ -217,8 +223,7 @@ function serveStatic(req: IncomingMessage, res: ServerResponse): void {
   let pathname: string
   try {
     pathname = decodeURIComponent(url.split('?')[0] ?? '/')
-  }
-  catch {
+  } catch {
     // 非法百分号编码（如 /%E0%A4%A）：400 而不是让 URIError 变成未捕获异常
     res.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' })
     res.end('bad request')
@@ -249,7 +254,10 @@ function serveStatic(req: IncomingMessage, res: ServerResponse): void {
   if (path.extname(pathname) === '') {
     const indexFile = path.join(ADMIN_DIST_DIR, 'index.html')
     if (isRegularFile(indexFile)) {
-      sendFile(res, indexFile, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' })
+      sendFile(res, indexFile, {
+        'content-type': 'text/html; charset=utf-8',
+        'cache-control': 'no-store',
+      })
       return
     }
   }
@@ -272,7 +280,12 @@ function main(): void {
       res.end(JSON.stringify({ status: 'ok' }))
       return
     }
-    if (pathname === '/api' || pathname.startsWith('/api/') || pathname === '/socket' || pathname.startsWith('/socket/')) {
+    if (
+      pathname === '/api' ||
+      pathname.startsWith('/api/') ||
+      pathname === '/socket' ||
+      pathname.startsWith('/socket/')
+    ) {
       proxyHttp(req, res)
       return
     }
@@ -292,21 +305,25 @@ function main(): void {
   // 与「反代逻辑坏了」（1）区分开。
   server.on('error', (error: NodeJS.ErrnoException) => {
     const precondition = error.code === 'EADDRINUSE' || error.code === 'EACCES'
-    const hint = error.code === 'EADDRINUSE'
-      ? ` —— ${WEB_PORT} 被残留进程占着？见 apps/e2e/README.md 的「排障」`
-      : ''
-    console.error(`[e2e/static-server] 监听 ${WEB_PORT} 失败（${error.code ?? error.message}）${hint}`)
+    const hint =
+      error.code === 'EADDRINUSE'
+        ? ` —— ${WEB_PORT} 被残留进程占着？见 apps/e2e/README.md 的「排障」`
+        : ''
+    console.error(
+      `[e2e/static-server] 监听 ${WEB_PORT} 失败（${error.code ?? error.message}）${hint}`,
+    )
     process.exitCode = precondition ? EXIT_PRECONDITION : EXIT_FAILURE
   })
 
   server.listen(WEB_PORT, '127.0.0.1', () => {
-    console.log(`[e2e/static-server] profile=${STACK_PROFILE.name}  ${ADMIN_DIST_DIR} @ http://127.0.0.1:${WEB_PORT} → api :${BACKEND_PORT}${API_UPSTREAM_PREFIX}, socket :${SOCKET_PORT}${SOCKET_PATH}`)
+    console.log(
+      `[e2e/static-server] profile=${STACK_PROFILE.name}  ${ADMIN_DIST_DIR} @ http://127.0.0.1:${WEB_PORT} → api :${BACKEND_PORT}${API_UPSTREAM_PREFIX}, socket :${SOCKET_PORT}${SOCKET_PATH}`,
+    )
   })
 }
 
 try {
   main()
-}
-catch (error) {
+} catch (error) {
   process.exitCode = reportFailure('e2e/static-server', error)
 }

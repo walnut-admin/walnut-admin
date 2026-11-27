@@ -45,27 +45,96 @@ const UUID = '5fbd10a4-3039-4c14-b8ef-8aa012345678'
 
 const rows: IRow[] = [
   // ---- text（sys_device.device_name / sys_user.user_name）----
-  { kind: 'text', column: 'deviceName', form: '普通字符串', raw: 'iPhone', expectCondition: true, expectedOp: 'ilike' },
-  { kind: 'text', column: 'deviceName', form: 'uuid 串', raw: UUID, expectCondition: true, expectedOp: 'ilike' },
-  { kind: 'text', column: 'deviceName', form: '数字', raw: 123, expectCondition: true, expectedOp: 'eq' },
-  { kind: 'text', column: 'deviceName', form: '布尔', raw: true, expectCondition: true, expectedOp: 'eq' },
-  { kind: 'text', column: 'deviceName', form: '日期数组', raw: DATE_RANGE, expectCondition: true, expectedOp: 'in' },
-  { kind: 'text', column: 'deviceName', form: '数字数组', raw: [1, 2], expectCondition: true, expectedOp: 'in' },
+  {
+    kind: 'text',
+    column: 'deviceName',
+    form: '普通字符串',
+    raw: 'iPhone',
+    expectCondition: true,
+    expectedOp: 'ilike',
+  },
+  {
+    kind: 'text',
+    column: 'deviceName',
+    form: 'uuid 串',
+    raw: UUID,
+    expectCondition: true,
+    expectedOp: 'ilike',
+  },
+  {
+    kind: 'text',
+    column: 'deviceName',
+    form: '数字',
+    raw: 123,
+    expectCondition: true,
+    expectedOp: 'eq',
+  },
+  {
+    kind: 'text',
+    column: 'deviceName',
+    form: '布尔',
+    raw: true,
+    expectCondition: true,
+    expectedOp: 'eq',
+  },
+  {
+    kind: 'text',
+    column: 'deviceName',
+    form: '日期数组',
+    raw: DATE_RANGE,
+    expectCondition: true,
+    expectedOp: 'in',
+  },
+  {
+    kind: 'text',
+    column: 'deviceName',
+    form: '数字数组',
+    raw: [1, 2],
+    expectCondition: true,
+    expectedOp: 'in',
+  },
 
   // ---- uuid（sys_device.id）----
   { kind: 'uuid', column: 'id', form: '普通字符串', raw: 'abc', expectCondition: false },
-  { kind: 'uuid', column: 'id', form: 'uuid 串', raw: UUID, expectCondition: true, expectedOp: 'eq' },
+  {
+    kind: 'uuid',
+    column: 'id',
+    form: 'uuid 串',
+    raw: UUID,
+    expectCondition: true,
+    expectedOp: 'eq',
+  },
   { kind: 'uuid', column: 'id', form: '数字', raw: 123, expectCondition: false },
   { kind: 'uuid', column: 'id', form: '布尔', raw: true, expectCondition: false },
   { kind: 'uuid', column: 'id', form: '日期数组', raw: DATE_RANGE, expectCondition: false },
   { kind: 'uuid', column: 'id', form: '数字数组', raw: [1, 2], expectCondition: false },
 
   // ---- datetime（sys_device.created_at）----
-  { kind: 'datetime', column: 'createdAt', form: '普通字符串', raw: '2024-01-01', expectCondition: true, expectedOp: 'eq' },
+  {
+    kind: 'datetime',
+    column: 'createdAt',
+    form: '普通字符串',
+    raw: '2024-01-01',
+    expectCondition: true,
+    expectedOp: 'eq',
+  },
   { kind: 'datetime', column: 'createdAt', form: 'uuid 串', raw: UUID, expectCondition: false },
-  { kind: 'datetime', column: 'createdAt', form: '数字', raw: 1700000000000, expectCondition: false },
+  {
+    kind: 'datetime',
+    column: 'createdAt',
+    form: '数字',
+    raw: 1700000000000,
+    expectCondition: false,
+  },
   { kind: 'datetime', column: 'createdAt', form: '布尔', raw: true, expectCondition: false },
-  { kind: 'datetime', column: 'createdAt', form: '日期数组', raw: DATE_RANGE, expectCondition: true, expectedOp: 'range' },
+  {
+    kind: 'datetime',
+    column: 'createdAt',
+    form: '日期数组',
+    raw: DATE_RANGE,
+    expectCondition: true,
+    expectedOp: 'range',
+  },
   // R1 坑 3：`new Date(1)` 合法，旧实现把 [1,2] 判成 1970 区间 → 22008/22P02。现在必须丢弃。
   { kind: 'datetime', column: 'createdAt', form: '数字数组', raw: [1, 2], expectCondition: false },
 
@@ -73,29 +142,83 @@ const rows: IRow[] = [
   { kind: 'boolean', column: 'active', form: '普通字符串', raw: 'abc', expectCondition: false },
   { kind: 'boolean', column: 'active', form: 'uuid 串', raw: UUID, expectCondition: false },
   { kind: 'boolean', column: 'active', form: '数字', raw: 1, expectCondition: false },
-  { kind: 'boolean', column: 'active', form: '布尔', raw: true, expectCondition: true, expectedOp: 'eq' },
+  {
+    kind: 'boolean',
+    column: 'active',
+    form: '布尔',
+    raw: true,
+    expectCondition: true,
+    expectedOp: 'eq',
+  },
   { kind: 'boolean', column: 'active', form: '日期数组', raw: DATE_RANGE, expectCondition: false },
   { kind: 'boolean', column: 'active', form: '数字数组', raw: [1, 2], expectCondition: false },
 
   // ---- number（sys_device.risk_score smallint）----
   { kind: 'number', column: 'riskScore', form: '普通字符串', raw: 'abc', expectCondition: false },
   { kind: 'number', column: 'riskScore', form: 'uuid 串', raw: UUID, expectCondition: false },
-  { kind: 'number', column: 'riskScore', form: '数字', raw: 50, expectCondition: true, expectedOp: 'eq' },
+  {
+    kind: 'number',
+    column: 'riskScore',
+    form: '数字',
+    raw: 50,
+    expectCondition: true,
+    expectedOp: 'eq',
+  },
   { kind: 'number', column: 'riskScore', form: '布尔', raw: true, expectCondition: false },
-  { kind: 'number', column: 'riskScore', form: '日期数组', raw: DATE_RANGE, expectCondition: false },
-  { kind: 'number', column: 'riskScore', form: '数字数组', raw: [1, 2], expectCondition: true, expectedOp: 'in' },
+  {
+    kind: 'number',
+    column: 'riskScore',
+    form: '日期数组',
+    raw: DATE_RANGE,
+    expectCondition: false,
+  },
+  {
+    kind: 'number',
+    column: 'riskScore',
+    form: '数字数组',
+    raw: [1, 2],
+    expectCondition: true,
+    expectedOp: 'in',
+  },
 
   // ---- json（sys_device.device_info）----
   { kind: 'json', column: 'deviceInfo', form: '普通字符串', raw: 'abc', expectCondition: false },
   { kind: 'json', column: 'deviceInfo', form: 'uuid 串', raw: UUID, expectCondition: false },
-  { kind: 'json', column: 'deviceInfo', form: '数字', raw: 123, expectCondition: true, expectedOp: 'eq' },
-  { kind: 'json', column: 'deviceInfo', form: '布尔', raw: true, expectCondition: true, expectedOp: 'eq' },
+  {
+    kind: 'json',
+    column: 'deviceInfo',
+    form: '数字',
+    raw: 123,
+    expectCondition: true,
+    expectedOp: 'eq',
+  },
+  {
+    kind: 'json',
+    column: 'deviceInfo',
+    form: '布尔',
+    raw: true,
+    expectCondition: true,
+    expectedOp: 'eq',
+  },
   { kind: 'json', column: 'deviceInfo', form: '日期数组', raw: DATE_RANGE, expectCondition: false },
   { kind: 'json', column: 'deviceInfo', form: '数字数组', raw: [1, 2], expectCondition: false },
-  { kind: 'json', column: 'deviceInfo', form: '对象', raw: { os: 'iOS' }, expectCondition: true, expectedOp: 'eq' },
+  {
+    kind: 'json',
+    column: 'deviceInfo',
+    form: '对象',
+    raw: { os: 'iOS' },
+    expectCondition: true,
+    expectedOp: 'eq',
+  },
 
   // ---- array（sys_device.ip_history text[]）----
-  { kind: 'array', column: 'ipHistory', form: '普通字符串', raw: '1.2.3.4', expectCondition: false },
+  {
+    kind: 'array',
+    column: 'ipHistory',
+    form: '普通字符串',
+    raw: '1.2.3.4',
+    expectCondition: false,
+  },
   { kind: 'array', column: 'ipHistory', form: '数字数组', raw: [1, 2], expectCondition: false },
 ]
 
@@ -115,7 +238,16 @@ describe('pg-column-op · 6 列类型 × 5 入参形态矩阵（R1 实测固化�
   })
 
   it('不变式：任意 kind × 任意值都不抛，且返回的条件恒与列类型兼容', () => {
-    const kinds: ColumnKind[] = ['text', 'uuid', 'datetime', 'boolean', 'number', 'json', 'array', undefined]
+    const kinds: ColumnKind[] = [
+      'text',
+      'uuid',
+      'datetime',
+      'boolean',
+      'number',
+      'json',
+      'array',
+      undefined,
+    ]
     const values: unknown[] = [
       'abc',
       '',
@@ -157,7 +289,9 @@ describe('pg-column-op · 6 列类型 × 5 入参形态矩阵（R1 实测固化�
   it('datetime 只认 Date / 可解析字符串 —— 数字必须拒（R1 坑 3）', () => {
     expect(resolvePgListCondition('datetime', [1, 2])).toBeUndefined()
     expect(resolvePgListCondition('datetime', [1700000000000, 1700000000001])).toBeUndefined()
-    expect(resolvePgListCondition('datetime', [new Date('2024-01-01'), new Date('2024-02-01')])?.op).toBe('range')
+    expect(
+      resolvePgListCondition('datetime', [new Date('2024-01-01'), new Date('2024-02-01')])?.op,
+    ).toBe('range')
   })
 
   it('text 的 ilike 只对字符串生成；数字/布尔走等值', () => {
@@ -232,13 +366,16 @@ describe('pg-column-op · 排序方向归一', () => {
 })
 
 describe('pg-column-op · 缺省排序与可排序列', () => {
-  const mk = (props: string[], pks: string[] = []) => ({
-    columns: props.map(propertyName => ({ propertyName, type: 'text', isArray: false })),
-    primaryColumns: pks.map(propertyName => ({ propertyName })),
-  }) as unknown as EntityMetadata
+  const mk = (props: string[], pks: string[] = []) =>
+    ({
+      columns: props.map((propertyName) => ({ propertyName, type: 'text', isArray: false })),
+      primaryColumns: pks.map((propertyName) => ({ propertyName })),
+    }) as unknown as EntityMetadata
 
   it('createdAt 优先；其次 deletedAt；最后主键', () => {
-    expect(defaultPgListSort(mk(['createdAt', 'deletedAt', 'id'], ['id']))).toEqual({ createdAt: 'DESC' })
+    expect(defaultPgListSort(mk(['createdAt', 'deletedAt', 'id'], ['id']))).toEqual({
+      createdAt: 'DESC',
+    })
     expect(defaultPgListSort(mk(['deletedAt', 'id'], ['id']))).toEqual({ deletedAt: 'DESC' })
     expect(defaultPgListSort(mk(['name', 'id'], ['id']))).toEqual({ id: 'DESC' })
     expect(defaultPgListSort(undefined)).toEqual({})

@@ -30,12 +30,24 @@ const ENC_KEY = Buffer.alloc(32, 7).toString('base64')
 const HASH_SALT = 'spec-identity-salt'
 
 const opaque = vi.hoisted(() => ({
-  startRegistration: vi.fn(() => ({ clientRegistrationState: 'reg-state', registrationRequest: 'reg-request' })),
-  finishRegistration: vi.fn(() => ({ registrationRecord: 'registration-record', serverStaticPublicKey: 'server-pk' })),
+  startRegistration: vi.fn(() => ({
+    clientRegistrationState: 'reg-state',
+    registrationRequest: 'reg-request',
+  })),
+  finishRegistration: vi.fn(() => ({
+    registrationRecord: 'registration-record',
+    serverStaticPublicKey: 'server-pk',
+  })),
   createRegistrationResponse: vi.fn(() => ({ registrationResponse: 'reg-response' })),
-  startLogin: vi.fn(() => ({ clientLoginState: 'login-state', startLoginRequest: 'login-request' })),
+  startLogin: vi.fn(() => ({
+    clientLoginState: 'login-state',
+    startLoginRequest: 'login-request',
+  })),
   clientFinishLogin: vi.fn(() => ({ finishLoginRequest: 'finish-request' })),
-  serverStartLogin: vi.fn(() => ({ serverLoginState: 'server-login-state', loginResponse: 'login-response' })),
+  serverStartLogin: vi.fn(() => ({
+    serverLoginState: 'server-login-state',
+    loginResponse: 'login-response',
+  })),
   serverFinishLogin: vi.fn(() => ({ sessionKey: 'k'.repeat(86) })),
 }))
 
@@ -63,9 +75,14 @@ describe('buildOpaqueIdentifiers（注册与登录共用的唯一出口）', () 
   })
 
   it('与 apps/admin 的 opaqueServerIdentifier 逐字一致（漂移守卫：读真源而不是抄一份）', () => {
-    const source = readFileSync(join(REPO_ROOT, 'apps/admin/src/store/modules/user/user-auth.ts'), 'utf8')
+    const source = readFileSync(
+      join(REPO_ROOT, 'apps/admin/src/store/modules/user/user-auth.ts'),
+      'utf8',
+    )
     const matched = source.match(/const opaqueServerIdentifier = '([^']+)'/)
-    expect(matched?.[1], 'user-auth.ts 里应能定位到 opaqueServerIdentifier 的字面量').toBe(OPAQUE_SERVER_IDENTIFIER)
+    expect(matched?.[1], 'user-auth.ts 里应能定位到 opaqueServerIdentifier 的字面量').toBe(
+      OPAQUE_SERVER_IDENTIFIER,
+    )
   })
 })
 
@@ -86,12 +103,18 @@ describe('buildPasswordIdentity（--admin 注册侧）', () => {
     buildPasswordIdentity('u1', 'admin', 'pw-123456', 'server-setup', ENC_KEY, HASH_SALT)
     buildPasswordIdentity('u2', 'tron97', 'pw-123456', 'server-setup', ENC_KEY, HASH_SALT)
 
-    expect(opaque.finishRegistration).toHaveBeenNthCalledWith(1, expect.objectContaining({
-      identifiers: { client: 'admin', server: 'walnut-admin' },
-    }))
-    expect(opaque.finishRegistration).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      identifiers: { client: 'tron97', server: 'walnut-admin' },
-    }))
+    expect(opaque.finishRegistration).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        identifiers: { client: 'admin', server: 'walnut-admin' },
+      }),
+    )
+    expect(opaque.finishRegistration).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        identifiers: { client: 'tron97', server: 'walnut-admin' },
+      }),
+    )
   })
 
   it('服务端注册响应仍按 userName 做 userIdentifier（identifiers 不替代它）', () => {
@@ -105,7 +128,14 @@ describe('buildPasswordIdentity（--admin 注册侧）', () => {
   })
 
   it('①：value 是 AES-GCM 密文（可解密回 registrationRecord），valueHash 是盐化 HMAC（不是 record 本身）', () => {
-    const identity = buildPasswordIdentity('u1', 'visitor', 'pw-123456', 'server-setup', ENC_KEY, HASH_SALT)
+    const identity = buildPasswordIdentity(
+      'u1',
+      'visitor',
+      'pw-123456',
+      'server-setup',
+      ENC_KEY,
+      HASH_SALT,
+    )
 
     // 落库列 ≠ 明文记录（① 之前两者都是 'registration-record'）
     expect(identity.value).not.toBe('registration-record')
@@ -139,21 +169,32 @@ describe('decryptIdentityValue（encryptIdentityValue 的镜像，供 db:credent
   it('换一把密钥 ⇒ 解密抛错（AES-GCM auth tag 失败，不返回半截明文）', () => {
     const encrypted = encryptIdentityValue(plain, ENC_KEY)
     const otherKey = Buffer.alloc(32, 9).toString('base64')
-    expect(() => decryptIdentityValue(encrypted, otherKey)).toThrowError(/unable to authenticate|Unsupported state/)
+    expect(() => decryptIdentityValue(encrypted, otherKey)).toThrowError(
+      /unable to authenticate|Unsupported state/,
+    )
   })
 
   it('① 之前的旧明文行（不是信封）⇒ 解密抛错，供探针判 stale-format', () => {
-    expect(() => decryptIdentityValue('this-is-a-plain-registration-record', ENC_KEY)).toThrowError(/长度不足|unable to authenticate|Unsupported state/)
+    expect(() => decryptIdentityValue('this-is-a-plain-registration-record', ENC_KEY)).toThrowError(
+      /长度不足|unable to authenticate|Unsupported state/,
+    )
   })
 
   it('密钥不是 32 字节 ⇒ 明确报错（不静默解出空串）', () => {
-    expect(() => decryptIdentityValue('AAAA', Buffer.alloc(16, 1).toString('base64'))).toThrowError(/32 字节/)
+    expect(() => decryptIdentityValue('AAAA', Buffer.alloc(16, 1).toString('base64'))).toThrowError(
+      /32 字节/,
+    )
   })
 })
 
 describe('verifyPasswordIdentity（--admin 自带的登录验证）', () => {
   it('登录两侧也带同一份 identifiers —— 注册绑定了什么，登录就必须原样提供', () => {
-    const proof = verifyPasswordIdentity('visitor', 'pw-123456', 'registration-record', 'server-setup')
+    const proof = verifyPasswordIdentity(
+      'visitor',
+      'pw-123456',
+      'registration-record',
+      'server-setup',
+    )
 
     expect(proof.ok).toBe(true)
     expect(opaque.serverStartLogin).toHaveBeenCalledWith({

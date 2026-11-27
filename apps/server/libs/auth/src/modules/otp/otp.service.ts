@@ -4,9 +4,18 @@ import type { IOtpType } from './const/otp.const'
 
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
-import { WALNUT_DATA_SCOPE_RLS_SYSTEM_SETTINGS, WalnutPGConnectionName, withWalnutRlsTransaction } from '@walnut-server/db'
+import {
+  WALNUT_DATA_SCOPE_RLS_SYSTEM_SETTINGS,
+  WalnutPGConnectionName,
+  withWalnutRlsTransaction,
+} from '@walnut-server/db'
 import { WalnutAdminExceptionSignupBanned } from '@walnut-server/exceptions/business/auth'
-import { SysUserIdentityRepositoryService, SysUserIdentitySharedService, SysUserRepositoryService, SysUserSharedService } from '@walnut-server/identity'
+import {
+  SysUserIdentityRepositoryService,
+  SysUserIdentitySharedService,
+  SysUserRepositoryService,
+  SysUserSharedService,
+} from '@walnut-server/identity'
 import { fireAndForget } from '@walnut-server/utils/fire-and-forget'
 import { DataSource } from 'typeorm'
 import { AuthSharedService } from '../shared/shared.service'
@@ -74,7 +83,11 @@ export class OtpService {
             this.logger.error(`${type} identity exists but user not found: ${identity.userId}`)
             throw new WalnutAdminExceptionSignupBanned()
           }
-          return this.sysUserSharedService.getAccessTokenPayloadWhenUserExisted(user, deviceId, manager)
+          return this.sysUserSharedService.getAccessTokenPayloadWhenUserExisted(
+            user,
+            deviceId,
+            manager,
+          )
         }
 
         // New user：先确认允许自动注册，再落 user + identity（同一事务）
@@ -85,11 +98,12 @@ export class OtpService {
         }
 
         // Auto signup for new user (sensitive fields stored in user_identity, not user table)
-        const result = await this.sysUserSharedService.getAccessTokenPayloadAfterAutomaticSignUpForNonExistUser(
-          {},
-          deviceId,
-          manager,
-        )
+        const result =
+          await this.sysUserSharedService.getAccessTokenPayloadAfterAutomaticSignUpForNonExistUser(
+            {},
+            deviceId,
+            manager,
+          )
 
         // Create identity in user_identity table
         await this.userIdentitySharedService.createIdentity(
@@ -116,11 +130,7 @@ export class OtpService {
   /**
    * Send OTP verification code
    */
-  async sendVerifyCode(
-    type: IOtpType,
-    identifier: string,
-    language: LocaleType,
-  ) {
+  async sendVerifyCode(type: IOtpType, identifier: string, language: LocaleType) {
     return this.otpSharedService.sendVerifyCode(type, identifier, language)
   }
 
@@ -136,8 +146,7 @@ export class OtpService {
   ) {
     try {
       return await this.authSharedService.generateAuthTokens(payload, deviceId, em)
-    }
-    finally {
+    } finally {
       // Remove verify code
       await this.otpSharedService.removeVerifyCode(identifier)
     }

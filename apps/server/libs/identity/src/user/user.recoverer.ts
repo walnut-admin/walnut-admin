@@ -26,8 +26,16 @@ export const WALNUT_USER_PERIPHERAL_RECOVERABLES: ReadonlyArray<{
   entityTarget: EntityTarget<ObjectLiteral>
   optional: boolean
 }> = [
-  { modelName: WalnutModelName.SYS_USER_IDENTITY, entityTarget: SysUserIdentityEntity, optional: false },
-  { modelName: WalnutModelName.SYS_USER_PREFERENCE, entityTarget: SysUserPreferenceEntity, optional: false },
+  {
+    modelName: WalnutModelName.SYS_USER_IDENTITY,
+    entityTarget: SysUserIdentityEntity,
+    optional: false,
+  },
+  {
+    modelName: WalnutModelName.SYS_USER_PREFERENCE,
+    entityTarget: SysUserPreferenceEntity,
+    optional: false,
+  },
   { modelName: WalnutModelName.SYS_USER_DEVICE, entityTarget: SysUserDeviceEntity, optional: true },
   { modelName: WalnutModelName.SYS_USER_MFA, entityTarget: SysUserMfaEntity, optional: true },
   { modelName: WalnutModelName.SYS_USER_LOCK, entityTarget: SysUserLockEntity, optional: true },
@@ -52,7 +60,8 @@ export function createWalnutUserSnapshotRecoverer(): IWalnutAdminRecoverableReco
       const userId = content.id
       const deletedRepository = em.getRepository(SysDeletedEntity)
       for (const peripheral of WALNUT_USER_PERIPHERAL_RECOVERABLES) {
-        const snapshots = await deletedRepository.createQueryBuilder('deleted')
+        const snapshots = await deletedRepository
+          .createQueryBuilder('deleted')
           .where('deleted.modelName = :modelName', { modelName: peripheral.modelName })
           .andWhere(`deleted.content ->> 'userId' = :userId`, { userId })
           .orderBy('deleted.deletedAt', 'DESC')
@@ -75,8 +84,7 @@ export function createWalnutUserSnapshotRecoverer(): IWalnutAdminRecoverableReco
             await em.getRepository(peripheral.entityTarget).insert(snapshot.content)
             await deletedRepository.delete({ id: snapshot.id })
             await em.query('RELEASE SAVEPOINT walnut_user_recover')
-          }
-          catch (error) {
+          } catch (error) {
             await em.query('ROLLBACK TO SAVEPOINT walnut_user_recover')
 
             if (!peripheral.optional) {

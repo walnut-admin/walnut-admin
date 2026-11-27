@@ -12,7 +12,7 @@ const value = ref(
 const _formData = ref({
   title: 'This is default title',
   content:
-      '<p style="text-align: center;"><span style="color: rgb(224, 62, 45); font-size: 36pt;"><em><strong>This is default content</strong></em></span></p>',
+    '<p style="text-align: center;"><span style="color: rgb(224, 62, 45); font-size: 36pt;"><em><strong>This is default content</strong></em></span></p>',
 })
 
 // const [register] = useForm<typeof formData.value>({
@@ -42,9 +42,7 @@ const _formData = ref({
   <WDemoCard title="Tinymce Demo">
     <n-list>
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Basic usage
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Basic usage </WTitle>
 
         <pre class="whitespace-pre-wrap">Value: {{ value }}</pre>
         <WTinymce v-model:value="value" />

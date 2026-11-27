@@ -6,7 +6,7 @@ import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
 export class SecurityCapSettingService implements IWalnutAdminThrottleConfigProvider {
   private readonly logger = new Logger(SecurityCapSettingService.name)
 
-  constructor(private readonly cacheAppSettingsService: AppTechCacheAppSettingsService) { }
+  constructor(private readonly cacheAppSettingsService: AppTechCacheAppSettingsService) {}
 
   // implement IThrottleConfigProvider methods
   async getThrottleLimit() {

@@ -13,9 +13,7 @@ import { SysDeviceRepositoryService } from './device.repo.service'
  */
 @Global()
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([SysDeviceEntity], WalnutPGConnectionName),
-  ],
+  imports: [TypeOrmModule.forFeature([SysDeviceEntity], WalnutPGConnectionName)],
   controllers: [],
   // SYS_DEVICE_RETENTION_PURGE（批次 11）：90 天留存清理 cron —— 与本仓库同模块，
   // 数据访问仍走 SysDeviceRepositoryService，cron 只编排 + 打日志。

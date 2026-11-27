@@ -84,9 +84,7 @@ watch(
 
                 <WIcon
                   :icon="
-                    isPositive
-                      ? 'ant-design:arrow-up-outlined'
-                      : 'ant-design:arrow-down-outlined'
+                    isPositive ? 'ant-design:arrow-up-outlined' : 'ant-design:arrow-down-outlined'
                   "
                 />
               </div>

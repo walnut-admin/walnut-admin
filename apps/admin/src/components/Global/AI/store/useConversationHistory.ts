@@ -3,11 +3,15 @@ import { computed, ref } from 'vue'
 import { useConversationStore } from './useConversationStore'
 
 export const useConversationHistory = createGlobalState(() => {
-  const { conversationList: conversations, switchConversation, updateConversationTitle } = useConversationStore()
+  const {
+    conversationList: conversations,
+    switchConversation,
+    updateConversationTitle,
+  } = useConversationStore()
 
   const searchKeyword = ref('')
   const filteredConversations = computed(() =>
-    conversations.value.filter(c =>
+    conversations.value.filter((c) =>
       c.title.toLowerCase().includes(searchKeyword.value.toLowerCase()),
     ),
   )
@@ -19,7 +23,7 @@ export const useConversationHistory = createGlobalState(() => {
   const editingTitle = ref('')
 
   /** Enter edit mode for a conversation title */
-  function startEditTitle(conv: { id: string, title: string }) {
+  function startEditTitle(conv: { id: string; title: string }) {
     editingConvId.value = conv.id
     editingTitle.value = conv.title
   }

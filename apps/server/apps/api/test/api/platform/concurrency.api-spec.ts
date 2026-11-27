@@ -12,7 +12,11 @@ import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import supertest from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from '../helpers/api-client'
-import { performHttpOpaqueLogin, registerRootUserFixture, WALNUT_DEFAULT_VISITOR_ROLE_UUID } from '../helpers/auth-login'
+import {
+  performHttpOpaqueLogin,
+  registerRootUserFixture,
+  WALNUT_DEFAULT_VISITOR_ROLE_UUID,
+} from '../helpers/auth-login'
 import { createApiApp } from '../helpers/create-api-app'
 import { WALNUT_TEST_USER_AGENT } from '../helpers/sign-handshake'
 
@@ -79,7 +83,9 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
         await api.pgDataSource.query('DELETE FROM app_demo WHERE id = ANY($1::uuid[])', [demoIds])
       }
       if (deletedDemoIds.length > 0) {
-        await api.pgDataSource.query('DELETE FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])', [deletedDemoIds])
+        await api.pgDataSource.query('DELETE FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])', [
+          deletedDemoIds,
+        ])
       }
       if (createdKeyIds.length > 0) {
         await api.pgDataSource.getRepository(AppKeyEntity).delete(createdKeyIds)
@@ -88,12 +94,20 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
       // 设备行（bootstrap + G3 竞态设备）与设备缓存键
       const deviceIds = [api.deviceId, ...(raceDeviceId !== '' ? [raceDeviceId] : [])]
-      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [deviceIds])
+      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [
+        deviceIds,
+      ])
       const deviceCache = app.get(AppTechCacheDeviceService)
       for (const deviceId of deviceIds) {
         await deviceCache.delSysDeviceCache(deviceId)
       }
-      await api.cleanupWalnutCacheKeys(seed8, api.deviceId, raceDeviceId, fixture.userId, raceUserId)
+      await api.cleanupWalnutCacheKeys(
+        seed8,
+        api.deviceId,
+        raceDeviceId,
+        fixture.userId,
+        raceUserId,
+      )
     }
     await app.close()
   })
@@ -130,11 +144,15 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     // 按 user+device 定位行 —— auth-session spec 同口径）
     expect(api.getCookie(WalnutAdminConstCookieKeys.RT_JTI)).toBeTruthy()
 
-    const before: Array<{ jti: string, encrypted_token: string, expired_at: Date, revoked: boolean }>
-      = await api.pgDataSource.query(
-        'SELECT jti, encrypted_token, expired_at, revoked FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
-        [fixture!.userId, api.deviceId],
-      )
+    const before: Array<{
+      jti: string
+      encrypted_token: string
+      expired_at: Date
+      revoked: boolean
+    }> = await api.pgDataSource.query(
+      'SELECT jti, encrypted_token, expired_at, revoked FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
+      [fixture!.userId, api.deviceId],
+    )
     expect(before).toHaveLength(1)
     expect(before[0].revoked).toBe(false)
     const jti = before[0].jti
@@ -147,24 +165,31 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     const responses = await Promise.all(
       Array.from({ length: N }, async () => api.unsigned('POST', api.apiPath('/auth/refresh'))),
     )
-    const codes = responses.map(res => bodyOf(res).code)
+    const codes = responses.map((res) => bodyOf(res).code)
 
     // 底线：无未受控错误（全 2xxxx/4xxxx）
-    expect(codes.filter(code => code >= 50000)).toEqual([])
+    expect(codes.filter((code) => code >= 50000)).toEqual([])
 
     // 【revoke-and-insert（2026-10-27）】恰 1 路胜出、其余受控 40102 —— 行级撤销后
     // 确定性成立（对照历史：原地换锁时代五路全 20000；快照比对时代 1×20000 但依赖
     // 「五路在胜者提交前读到同一密文」的时序假设，错峰到达实测出过 2×20000）。
-    expect(codes.filter(code => code === WalnutAdminConstAppResponseCode.SUCCESS)).toHaveLength(1)
-    expect(codes.filter(code => code !== WalnutAdminConstAppResponseCode.SUCCESS))
-      .toEqual(Array.from({ length: N - 1 }).fill(WalnutAdminConstAppResponseCode.UNAUTHORIZED_REFRESH_TOKEN_EXPIRED))
+    expect(codes.filter((code) => code === WalnutAdminConstAppResponseCode.SUCCESS)).toHaveLength(1)
+    expect(codes.filter((code) => code !== WalnutAdminConstAppResponseCode.SUCCESS)).toEqual(
+      Array.from({ length: N - 1 }).fill(
+        WalnutAdminConstAppResponseCode.UNAUTHORIZED_REFRESH_TOKEN_EXPIRED,
+      ),
+    )
 
     // 行形态自洽：该会话恰两行 —— 旧行 revoked（reason=rotate）+ 新行未撤销（密文换新）
-    const after: Array<{ jti: string, encrypted_token: string, revoked: boolean, revoke_reason: string | null }>
-      = await api.pgDataSource.query(
-        'SELECT jti, encrypted_token, revoked, revoke_reason FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2 ORDER BY created_at ASC',
-        [fixture!.userId, api.deviceId],
-      )
+    const after: Array<{
+      jti: string
+      encrypted_token: string
+      revoked: boolean
+      revoke_reason: string | null
+    }> = await api.pgDataSource.query(
+      'SELECT jti, encrypted_token, revoked, revoke_reason FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2 ORDER BY created_at ASC',
+      [fixture!.userId, api.deviceId],
+    )
     expect(after).toHaveLength(2)
     expect(after[0].jti).toBe(jti)
     expect(after[0].revoked).toBe(true)
@@ -207,7 +232,9 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     // 两份真实 opaque registration record（串行备料，竞态只在写腿）
     async function makeRecord(): Promise<string> {
       const password = `Pwd-${randomUUID().slice(0, 12)}#42`
-      const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({ password })
+      const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({
+        password,
+      })
       const registrationResponse = await opaqueCore.startRegister(userName, registrationRequest)
       const { registrationRecord } = opaque.client.finishRegistration({
         clientRegistrationState,
@@ -221,8 +248,12 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
 
     // 两路并发：各自独立 PG 事务（与拦截器 @WalnutTx 的 queryRunner 事务同构）
     const results = await Promise.all([
-      api.pgDataSource.transaction(async em => opaqueCore.finishRegister(raceUserId, recordA, em)),
-      api.pgDataSource.transaction(async em => opaqueCore.finishRegister(raceUserId, recordB, em)),
+      api.pgDataSource.transaction(async (em) =>
+        opaqueCore.finishRegister(raceUserId, recordA, em),
+      ),
+      api.pgDataSource.transaction(async (em) =>
+        opaqueCore.finishRegister(raceUserId, recordB, em),
+      ),
     ])
     expect(results).toEqual([true, true])
 
@@ -234,7 +265,7 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     expect(users).toHaveLength(1)
     expect(users[0].id).toBe(raceUserId)
 
-    const identities: Array<{ c: number, value_hash: string }> = await api.pgDataSource.query(
+    const identities: Array<{ c: number; value_hash: string }> = await api.pgDataSource.query(
       'SELECT count(*)::int AS c, min(value_hash) AS value_hash FROM sys_user_identity WHERE user_id = $1 AND type = $2 AND purpose = $3',
       [raceUserId, 'password', 'login'],
     )
@@ -270,7 +301,7 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
 
     const rawCookies = (first.headers['set-cookie'] ?? []) as unknown as string[]
     const cookieKey = `${WalnutAdminConstCookieKeys.DEVICE_ID}=`
-    const deviceCookie = rawCookies.find(c => c.startsWith(cookieKey))
+    const deviceCookie = rawCookies.find((c) => c.startsWith(cookieKey))
     expect(deviceCookie, 'initial 必须下发 DEVICE_ID cookie').toBeTruthy()
     const cookiePair = deviceCookie!.split(';')[0]
 
@@ -281,23 +312,31 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
           .set('user-agent', WALNUT_TEST_USER_AGENT)
           .set('X-Fingerprint', fingerprint)
           .set('Cookie', cookiePair)
-          .send(basePayload)),
+          .send(basePayload),
+      ),
     )
-    const codes = responses.map(res => (res.body as { code: number }).code)
+    const codes = responses.map((res) => (res.body as { code: number }).code)
 
     // 底线：无未受控错误；且至少一路成功
-    expect(codes.filter(code => code >= 50000)).toEqual([])
+    expect(codes.filter((code) => code >= 50000)).toEqual([])
     expect(codes).toContain(WalnutAdminConstAppResponseCode.SUCCESS)
     // initial 有 4 次/60s 的限流，本用例连打 1+3 次 ⇒ 失败侧可能是「冲突 40000」也可能是「限流 42900」，
     // 两者都是**受控拒绝**；真正的底线是「没有 5xxxx」。
-    expect(codes.every(code => code === WalnutAdminConstAppResponseCode.SUCCESS
-      || code === WalnutAdminConstAppResponseCode.BAD_REQUEST
-      || code === WalnutAdminConstAppResponseCode.TOO_MANY_REQUESTS)).toBe(true)
+    expect(
+      codes.every(
+        (code) =>
+          code === WalnutAdminConstAppResponseCode.SUCCESS ||
+          code === WalnutAdminConstAppResponseCode.BAD_REQUEST ||
+          code === WalnutAdminConstAppResponseCode.TOO_MANY_REQUESTS,
+      ),
+    ).toBe(true)
 
     // 成功侧回同一 deviceId；库恰一行（业务键 = cookie 里那个 d1_ id）
     const deviceIds = responses
-      .filter(res => (res.body as { code: number }).code === WalnutAdminConstAppResponseCode.SUCCESS)
-      .map(res => (res.body as { data: { deviceId: string } }).data.deviceId)
+      .filter(
+        (res) => (res.body as { code: number }).code === WalnutAdminConstAppResponseCode.SUCCESS,
+      )
+      .map((res) => (res.body as { data: { deviceId: string } }).data.deviceId)
     expect(deviceIds.length).toBeGreaterThanOrEqual(1)
     expect(new Set(deviceIds).size).toBe(1)
     raceDeviceId = deviceIds[0]
@@ -312,7 +351,9 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
   it('G4 同一 user 四段并发 PATCH preference —— ON CONFLICT DO UPDATE 按列回写，四段齐落无死锁', async () => {
     // 起点干净（无偏好行）：四路并发首插在 uq_user_preference_user 上决出插入者，
     // 其余走 ON CONFLICT (user_id) DO UPDATE 只回写各自携带列
-    await api.pgDataSource.query('DELETE FROM sys_user_preference WHERE user_id = $1', [fixture!.userId])
+    await api.pgDataSource.query('DELETE FROM sys_user_preference WHERE user_id = $1', [
+      fixture!.userId,
+    ])
 
     const responses = await Promise.all([
       api.root('PATCH', api.apiPath('/system/user/preference/basic'), { locale: 'en_US' }),
@@ -339,12 +380,22 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     expectOk(readRes, 'preference read after race')
     const data = bodyOf<{
       basic: { locale: string }
-      accessibility: { fontSize: number, reducedMotion: boolean, colorMode: string, CVD: string | null }
+      accessibility: {
+        fontSize: number
+        reducedMotion: boolean
+        colorMode: string
+        CVD: string | null
+      }
       theme: { dark: boolean }
       layout: { layoutMode: string }
     }>(readRes).data
     expect(data.basic.locale).toBe('en_US')
-    expect(data.accessibility).toEqual({ fontSize: 16, reducedMotion: true, colorMode: 'grayscale', CVD: 'protanopia' })
+    expect(data.accessibility).toEqual({
+      fontSize: 16,
+      reducedMotion: true,
+      colorMode: 'grayscale',
+      CVD: 'protanopia',
+    })
     expect(data.theme.dark).toBe(true)
     expect(data.layout.layoutMode).toBe('top-menu')
   })
@@ -365,13 +416,21 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     // 两路并发管理端恢复（root 短路 @HasRole；两条恢复腿「原表 insert + 快照行 delete」
     // 各自同事务）：败者要么读腿 NotFound（40401），要么原表 insert 撞 PK（40000 recoverFail）
     const [r1, r2] = await Promise.all([
-      api.root('POST', api.apiPath('/system/deleted/recover'), { id: snapshotId, deletedId: demo.id }),
-      api.root('POST', api.apiPath('/system/deleted/recover'), { id: snapshotId, deletedId: demo.id }),
+      api.root('POST', api.apiPath('/system/deleted/recover'), {
+        id: snapshotId,
+        deletedId: demo.id,
+      }),
+      api.root('POST', api.apiPath('/system/deleted/recover'), {
+        id: snapshotId,
+        deletedId: demo.id,
+      }),
     ])
     const codes = [bodyOf(r1).code, bodyOf(r2).code].sort((a, b) => a - b)
     expect(codes[0]).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
-    expect([WalnutAdminConstAppResponseCode.BAD_REQUEST, WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND])
-      .toContain(codes[1])
+    expect([
+      WalnutAdminConstAppResponseCode.BAD_REQUEST,
+      WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND,
+    ]).toContain(codes[1])
 
     // 原集合恰恢复一行；快照行被胜者事务删掉且败者回滚没有把它带回来
     const demoRows: Array<{ c: number }> = await api.pgDataSource.query(
@@ -429,15 +488,13 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
       })
       seededKeyId = inserted.id
       await seedRunner.commitTransaction()
-    }
-    catch (e) {
+    } catch (e) {
       // 提交失败必须显式回滚再还池 —— release 不回滚活跃事务（会把未提交事务留给下个借主）
       if (seedRunner.isTransactionActive) {
         await seedRunner.rollbackTransaction().catch(() => undefined)
       }
       throw e
-    }
-    finally {
+    } finally {
       await seedRunner.release()
     }
     // 种子行一并进清场名单 —— initFirst 的 existsByType 不筛 status，残留行（哪怕已
@@ -445,7 +502,7 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     createdKeyIds.push(seededKeyId)
 
     // ② 换一条连接复核已提交（借连接本身就是复核的意义）
-    const visibleRows: Array<{ version: number, status: string }> = await api.appDataSource.query(
+    const visibleRows: Array<{ version: number; status: string }> = await api.appDataSource.query(
       'SELECT version, status FROM app_key WHERE id = $1',
       [seededKeyId],
     )
@@ -460,7 +517,10 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     const targetRows: Array<{ id: string }> = await api.appDataSource.query(
       `SELECT id FROM app_key WHERE type = 'RSA_PAIR' AND status = 'ACTIVE' ORDER BY version DESC LIMIT 1`,
     )
-    expect(targetRows[0]?.id, 'rotate 的命中行必须是种子行（该 type 下 version 最大的 ACTIVE 行）').toBe(seededKeyId)
+    expect(
+      targetRows[0]?.id,
+      'rotate 的命中行必须是种子行（该 type 下 version 最大的 ACTIVE 行）',
+    ).toBe(seededKeyId)
 
     // 两路并发 rotate（@WalnutTx 各自事务）：P1-1 修复后 getCurrentActiveKey 在事务内
     // FOR UPDATE。两种合法时序：
@@ -475,11 +535,14 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     ])
     const codes = [bodyOf(r1).code, bodyOf(r2).code].sort((a, b) => a - b)
     expect(codes[0]).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
-    expect([WalnutAdminConstAppResponseCode.SUCCESS, WalnutAdminConstAppResponseCode.NOT_FOUND]).toContain(codes[1])
+    expect([
+      WalnutAdminConstAppResponseCode.SUCCESS,
+      WalnutAdminConstAppResponseCode.NOT_FOUND,
+    ]).toContain(codes[1])
 
     const successResults = [r1, r2]
-      .filter(res => bodyOf(res).code === WalnutAdminConstAppResponseCode.SUCCESS)
-      .map(res => bodyOf<{ id: string, version: number }>(res).data)
+      .filter((res) => bodyOf(res).code === WalnutAdminConstAppResponseCode.SUCCESS)
+      .map((res) => bodyOf<{ id: string; version: number }>(res).data)
       .sort((a, b) => a.version - b.version)
     expect(successResults[0].version).toBe(seededKeyVersion + 1)
     if (successResults.length === 2) {
@@ -492,14 +555,15 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     // 竞态轮次按成功的 version 圈定 ACTIVE 行（集成库可能残留其他历史 ACTIVE 行，
     // 不影响「同轮不得双插」的判据）：每个 version 恰一条 ACTIVE，条数 = 成功路数，
     // 且 set(version) 无重复 —— 修复前此处会是同 version 两条。
-    const successVersions = successResults.map(row => row.version)
-    const actives: Array<{ id: string, version: number, status: string }> = await api.pgDataSource.query(
-      `SELECT id, version, status FROM app_key WHERE type = 'RSA_PAIR' AND status = 'ACTIVE' AND version = ANY($1::int[])`,
-      [successVersions],
-    )
+    const successVersions = successResults.map((row) => row.version)
+    const actives: Array<{ id: string; version: number; status: string }> =
+      await api.pgDataSource.query(
+        `SELECT id, version, status FROM app_key WHERE type = 'RSA_PAIR' AND status = 'ACTIVE' AND version = ANY($1::int[])`,
+        [successVersions],
+      )
     expect(actives).toHaveLength(successResults.length)
-    expect(actives.map(row => row.id).sort()).toEqual(successResults.map(row => row.id).sort())
-    expect(new Set(actives.map(row => row.version)).size).toBe(actives.length)
+    expect(actives.map((row) => row.id).sort()).toEqual(successResults.map((row) => row.id).sort())
+    expect(new Set(actives.map((row) => row.version)).size).toBe(actives.length)
 
     const seededRow = await repo.findOne({ where: { id: seededKeyId } })
     expect(seededRow?.status).toBe('DEPRECATED')

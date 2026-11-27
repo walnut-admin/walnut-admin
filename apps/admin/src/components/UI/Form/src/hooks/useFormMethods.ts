@@ -9,14 +9,13 @@ export function useFormMethods<T>(formRef: Ref<WForm.Inst.NFormInst | null>) {
           resolve(!err)
         })
       })
-    }
-    else {
+    } else {
       return new Promise<boolean>((resolve) => {
         formRef.value?.validate(
           (err) => {
             resolve(!err)
           },
-          rule => fields?.includes(rule?.key as keyof T),
+          (rule) => fields?.includes(rule?.key as keyof T),
         )
       })
     }

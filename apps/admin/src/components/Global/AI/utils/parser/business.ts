@@ -1,8 +1,9 @@
 // src/components/Global/AI/utils/parser/business.ts
 
-export function parseBusinessContent(parsed: Record<string, any> | null): IAIBusinessContent | null {
-  if (!parsed || typeof parsed.type !== 'string')
-    return null
+export function parseBusinessContent(
+  parsed: Record<string, any> | null,
+): IAIBusinessContent | null {
+  if (!parsed || typeof parsed.type !== 'string') return null
 
   const { type, ...rest } = parsed
 

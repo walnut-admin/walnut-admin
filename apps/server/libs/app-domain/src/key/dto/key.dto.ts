@@ -1,12 +1,28 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { WalnutAdminDecoratorFieldDate, WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldNumber, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
+import {
+  WalnutAdminDecoratorFieldDate,
+  WalnutAdminDecoratorFieldEnum,
+  WalnutAdminDecoratorFieldNumber,
+  WalnutAdminDecoratorFieldString,
+} from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
 import { WalnutAdminCommonBasicModel } from '@walnut-server/identity'
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
-import { IsEnum, IsNotEmpty, Validate, ValidatorConstraint, ValidatorConstraintInterface } from 'class-validator'
-import { AppKeyStatusConst, AppKeyStatusConstType, AppKeyTypeConst, AppKeyTypeConstType } from '../key.const'
+import {
+  IsEnum,
+  IsNotEmpty,
+  Validate,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+} from 'class-validator'
+import {
+  AppKeyStatusConst,
+  AppKeyStatusConstType,
+  AppKeyTypeConst,
+  AppKeyTypeConstType,
+} from '../key.const'
 
 // 批 4 结构重构：schema/ 并入 dto/（原 schema/key.schema.ts 的 AppKeyModel 改名
 // AppKeyDTOBase，AppKeyMetaTypeRaw / AppKeyMetaType 随基座类一并搬入），
@@ -17,7 +33,8 @@ class AppKeyMetaTypeRaw {
     swaggerOptions: {
       title: 'RSA Public Key (PEM)',
       description: 'PEM-formatted RSA public key for encryption or signature verification.',
-      example: '-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...\n-----END PUBLIC KEY-----',
+      example:
+        '-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...\n-----END PUBLIC KEY-----',
     },
   })
   publicKeyPem: string
@@ -46,7 +63,8 @@ class AppKeyMetaTypeRaw {
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
       title: 'JWT / HMAC Secret',
-      description: 'Plain secret string used for signing or verifying JWT tokens, or as an HMAC key.',
+      description:
+        'Plain secret string used for signing or verifying JWT tokens, or as an HMAC key.',
       example: 'jwt_secret_32bytes_super_secure_random_string',
     },
   })
@@ -73,7 +91,7 @@ class AppKeyMetaTypeRaw {
 
 // meta 的每个键都可缺省（按 type 二选一）：可选性由 RealPartialType 统一表达
 // （RealPartialType 会给每个键补 @IsOptional），字段声明不写 ?（F-38）
-export class AppKeyMetaType extends RealPartialType(AppKeyMetaTypeRaw) { }
+export class AppKeyMetaType extends RealPartialType(AppKeyMetaTypeRaw) {}
 
 export class AppKeyDTOBase extends WalnutAdminCommonBasicModel {
   @WalnutAdminDecoratorFieldString({
@@ -173,7 +191,8 @@ export class AppKeyCurrentResponseDTO {
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
       title: 'RSA public key (PEM)',
-      description: 'Only present when type is RSA_PAIR. PEM-formatted RSA public key used for request decryption.',
+      description:
+        'Only present when type is RSA_PAIR. PEM-formatted RSA public key used for request decryption.',
       required: false,
     },
   })
@@ -182,7 +201,8 @@ export class AppKeyCurrentResponseDTO {
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
       title: 'Symmetric key (Base64)',
-      description: 'Only present when type is AES_KEY_URL. Base64-encoded AES key used by the client for URL masking.',
+      description:
+        'Only present when type is AES_KEY_URL. Base64-encoded AES key used by the client for URL masking.',
       required: false,
     },
   })

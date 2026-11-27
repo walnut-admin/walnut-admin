@@ -20,9 +20,7 @@ async function onGet() {
   <WDemoCard title="Signature Pad Demo">
     <n-list>
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Basic
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Basic </WTitle>
 
         <WSignPad height="300px" width="800px" />
       </n-list-item>
@@ -30,36 +28,20 @@ async function onGet() {
 
     <n-list>
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Disabled
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Disabled </WTitle>
 
-        <WSignPad
-          height="300px"
-          width="800px"
-          :default-url="url"
-          disabled
-        />
+        <WSignPad height="300px" width="800px" :default-url="url" disabled />
       </n-list-item>
     </n-list>
 
     <n-list>
       <n-list-item>
         <n-space vertical size="small">
-          <WTitle prefix="bar" class="mb-2">
-            Watermark
-          </WTitle>
+          <WTitle prefix="bar" class="mb-2"> Watermark </WTitle>
 
-          <n-button class="mb-2" @click="onGet">
-            Get Picture
-          </n-button>
+          <n-button class="mb-2" @click="onGet"> Get Picture </n-button>
 
-          <WSignPad
-            ref="signPadRef"
-            height="300px"
-            width="800px"
-            content="walnut admin"
-          />
+          <WSignPad ref="signPadRef" height="300px" width="800px" content="walnut admin" />
 
           <n-image :src="imageSrc" />
         </n-space>

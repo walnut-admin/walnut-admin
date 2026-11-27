@@ -24,8 +24,18 @@ export type IOtpType = 'email' | 'sms'
 export const WALNUT_ADMIN_IDENTITY_OTP_SERVICE = Symbol('WALNUT_ADMIN_IDENTITY_OTP_SERVICE')
 
 export interface IIdentityOtpService {
-  sendVerifyCode: (type: IOtpType, identifier: string, language: LocaleType, userId?: string) => Promise<boolean>
-  verifyCode: (type: IOtpType, identifier: string, code: string, userId?: string) => Promise<boolean>
+  sendVerifyCode: (
+    type: IOtpType,
+    identifier: string,
+    language: LocaleType,
+    userId?: string,
+  ) => Promise<boolean>
+  verifyCode: (
+    type: IOtpType,
+    identifier: string,
+    code: string,
+    userId?: string,
+  ) => Promise<boolean>
 }
 
 // ─── MFA 验证后置动作（auth/modules/mfa/mfa.post.service）───────────────────────
@@ -35,7 +45,9 @@ export interface IIdentityMfaPostVerificationResult {
   jti: string
 }
 
-export const WALNUT_ADMIN_IDENTITY_MFA_POST_VERIFICATION = Symbol('WALNUT_ADMIN_IDENTITY_MFA_POST_VERIFICATION')
+export const WALNUT_ADMIN_IDENTITY_MFA_POST_VERIFICATION = Symbol(
+  'WALNUT_ADMIN_IDENTITY_MFA_POST_VERIFICATION',
+)
 
 export interface IIdentityMfaPostVerification {
   handlePostVerification: (
@@ -66,7 +78,9 @@ export interface IIdentitySignoutService {
 
 // ─── 数据权限缓存失效（system/data-scope/data-scope.service）────────────────────
 
-export const WALNUT_ADMIN_IDENTITY_DATA_SCOPE_INVALIDATOR = Symbol('WALNUT_ADMIN_IDENTITY_DATA_SCOPE_INVALIDATOR')
+export const WALNUT_ADMIN_IDENTITY_DATA_SCOPE_INVALIDATOR = Symbol(
+  'WALNUT_ADMIN_IDENTITY_DATA_SCOPE_INVALIDATOR',
+)
 
 export interface IIdentityDataScopeInvalidator {
   invalidateForUser: (userId: string) => Promise<void>
@@ -82,11 +96,20 @@ export interface IIdentityMonitorUserRow {
   lastActiveAt: Date
 }
 
-export const WALNUT_ADMIN_IDENTITY_MONITOR_REPOSITORY = Symbol('WALNUT_ADMIN_IDENTITY_MONITOR_REPOSITORY')
+export const WALNUT_ADMIN_IDENTITY_MONITOR_REPOSITORY = Symbol(
+  'WALNUT_ADMIN_IDENTITY_MONITOR_REPOSITORY',
+)
 
 export interface IIdentityMonitorRepository {
-  findFirstByDeviceId: (deviceId: string, em?: EntityManager) => Promise<IIdentityMonitorUserRow | null>
-  findByUserIdAndDeviceId: (userId: string, deviceId: string, em?: EntityManager) => Promise<IIdentityMonitorUserRow | null>
+  findFirstByDeviceId: (
+    deviceId: string,
+    em?: EntityManager,
+  ) => Promise<IIdentityMonitorUserRow | null>
+  findByUserIdAndDeviceId: (
+    userId: string,
+    deviceId: string,
+    em?: EntityManager,
+  ) => Promise<IIdentityMonitorUserRow | null>
   findActiveByDeviceId: (deviceId: string) => Promise<IIdentityMonitorUserRow | null>
   delMonitorByDeviceId: (deviceId: string) => Promise<IIdentityMonitorUserRow | null>
   /**
@@ -112,8 +135,16 @@ export type IIdentitySocketEvent = 'lock:lock' | 'lock:unlock'
 export const WALNUT_ADMIN_IDENTITY_USER_NOTIFIER = Symbol('WALNUT_ADMIN_IDENTITY_USER_NOTIFIER')
 
 export interface IIdentityUserNotifier {
-  sendSocketEventToUserAllMonitors: (userId: string, event: IIdentitySocketEvent, data?: object) => Promise<void>
-  sendSocketEventToUserDevice: (userId: string, fingerprint: string, event: IIdentitySocketEvent) => void
+  sendSocketEventToUserAllMonitors: (
+    userId: string,
+    event: IIdentitySocketEvent,
+    data?: object,
+  ) => Promise<void>
+  sendSocketEventToUserDevice: (
+    userId: string,
+    fingerprint: string,
+    event: IIdentitySocketEvent,
+  ) => void
 }
 
 // ─── 设备注册表（system/device 的 repo + shared service）────────────────────────
@@ -123,7 +154,7 @@ export interface IIdentityDeviceRow {
   deviceId: string
   deviceName?: string | null
   deviceInfo?: { type?: unknown } | null
-  locationInfo?: { country?: unknown, region?: unknown, city?: unknown } | null
+  locationInfo?: { country?: unknown; region?: unknown; city?: unknown } | null
 }
 
 export const WALNUT_ADMIN_IDENTITY_DEVICE_SERVICE = Symbol('WALNUT_ADMIN_IDENTITY_DEVICE_SERVICE')

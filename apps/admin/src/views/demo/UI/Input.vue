@@ -38,9 +38,7 @@ function onClear(e: MouseEvent) {
 
     <n-list>
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Black List
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Black List </WTitle>
 
         <WInput
           v-model:value="state.input1"
@@ -56,9 +54,7 @@ function onClear(e: MouseEvent) {
       </n-list-item>
 
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Password
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Password </WTitle>
 
         <WInput
           v-model:value="state.input2"
@@ -70,9 +66,7 @@ function onClear(e: MouseEvent) {
       </n-list-item>
 
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Suffix(prop)
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Suffix(prop) </WTitle>
 
         <WInput
           v-model:value="state.input3"
@@ -84,9 +78,7 @@ function onClear(e: MouseEvent) {
       </n-list-item>
 
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Suffix Icon(prop)
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Suffix Icon(prop) </WTitle>
 
         <WInput
           v-model:value="state.input4"
@@ -98,9 +90,7 @@ function onClear(e: MouseEvent) {
       </n-list-item>
 
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Help Message
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Help Message </WTitle>
 
         <WInput
           v-model:value="state.input5"
@@ -111,9 +101,7 @@ function onClear(e: MouseEvent) {
       </n-list-item>
 
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Copiable
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Copiable </WTitle>
 
         <n-space vertical>
           <WInput
@@ -133,16 +121,10 @@ function onClear(e: MouseEvent) {
       </n-list-item>
 
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Builtin Modifier
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Builtin Modifier </WTitle>
 
         <n-space vertical>
-          <WInput
-            v-model:value.trim="state.input6"
-            placeholder="Trim modifier"
-            clearable
-          />
+          <WInput v-model:value.trim="state.input6" placeholder="Trim modifier" clearable />
 
           <WInput
             v-model:value.capitalize="state.input7"

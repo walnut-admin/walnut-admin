@@ -18,13 +18,12 @@ export class AppTechEventService {
    * 这条链彻底不可观测（回收站里的行没有操作人，且没有任何痕迹）。
    */
   @OnEvent(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE, { async: true })
-  async _eventLogOperateDelete(payload: { logOperateId: string, deletedId: string }) {
+  async _eventLogOperateDelete(payload: { logOperateId: string; deletedId: string }) {
     this.logger.log('Deleted Log Operate Id Received', payload)
 
     try {
       await this.deletedRepoService.updateDeletedWithLogOperateId(payload)
-    }
-    catch (error) {
+    } catch (error) {
       // 不回写即审计断链：把 id 一起打出来，运维可按 logOperateId 手工补
       this.logger.error(
         `Failed to bind logOperateId to the soft-deleted row (logOperateId=${payload.logOperateId}, deletedId=${payload.deletedId})`,
@@ -39,13 +38,12 @@ export class AppTechEventService {
    * F-41：同上的可观测性补偿（批量形态）。
    */
   @OnEvent(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE_MANY, { async: true })
-  async _eventLogOperateDeleteMany(payload: { logOperateId: string, deletedIds: string }) {
+  async _eventLogOperateDeleteMany(payload: { logOperateId: string; deletedIds: string }) {
     this.logger.log('Deleted Log Operate Id Received', payload)
 
     try {
       await this.deletedRepoService.updateDeletedManyWithLogOperateId(payload)
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.error(
         `Failed to bind logOperateId to the soft-deleted rows (logOperateId=${payload.logOperateId}, deletedIds=${payload.deletedIds})`,
         error instanceof Error ? error.stack : String(error),

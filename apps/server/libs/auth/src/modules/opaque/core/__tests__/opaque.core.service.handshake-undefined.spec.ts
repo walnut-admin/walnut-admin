@@ -26,7 +26,10 @@ const mockState = vi.hoisted(() => ({
 vi.mock('@serenity-kit/opaque', () => ({
   ready: Promise.resolve(),
   client: {
-    startLogin: vi.fn(() => ({ clientLoginState: 'client-state', startLoginRequest: 'start-request' })),
+    startLogin: vi.fn(() => ({
+      clientLoginState: 'client-state',
+      startLoginRequest: 'start-request',
+    })),
   },
   server: {
     createSetup: vi.fn(() => 'server-setup'),
@@ -74,15 +77,22 @@ describe('opaque.core.startLogin：OPAQUE 握手没有产出（方案 a）', () 
   it('loginResponse 为 undefined：照常写一次 SERVER_STATE，日志 reason=credential-handshake-undefined，dev 附 hint', async () => {
     const { service, setOpaqueServerStateCache } = createService('development')
 
-    const caught = await service.startLogin(USER_NAME, 'start-request', DEVICE_ID, EM).catch((e: unknown) => e)
+    const caught = await service
+      .startLogin(USER_NAME, 'start-request', DEVICE_ID, EM)
+      .catch((e: unknown) => e)
 
     expect(caught).toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
     // 等时性：握手阶段不抛，缓存写仍然发生（与成功 / fake 路径同量）
     expect(setOpaqueServerStateCache).toHaveBeenCalledOnce()
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('reason: credential-handshake-undefined'))
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining(`pnpm walnut db:seed:pg --admin ${USER_NAME}`))
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('reason: credential-handshake-undefined'),
+    )
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining(`pnpm walnut db:seed:pg --admin ${USER_NAME}`),
+    )
 
-    const meta = (caught as { getResponse: () => { meta?: Record<string, string> } }).getResponse().meta!
+    const meta = (caught as { getResponse: () => { meta?: Record<string, string> } }).getResponse()
+      .meta!
     expect(meta.reason).toBe('credential-handshake-undefined')
     expect(meta.hint).toContain(`pnpm walnut db:seed:pg --admin ${USER_NAME}`)
   })
@@ -90,10 +100,13 @@ describe('opaque.core.startLogin：OPAQUE 握手没有产出（方案 a）', () 
   it('production：同一失败不改变响应（无 meta），但日志仍可定位', async () => {
     const { service } = createService('production')
 
-    const caught = await service.startLogin(USER_NAME, 'start-request', DEVICE_ID, EM).catch((e: unknown) => e)
+    const caught = await service
+      .startLogin(USER_NAME, 'start-request', DEVICE_ID, EM)
+      .catch((e: unknown) => e)
 
     expect(caught).toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
-    const meta = (caught as { getResponse: () => { meta?: Record<string, string> } }).getResponse().meta
+    const meta = (caught as { getResponse: () => { meta?: Record<string, string> } }).getResponse()
+      .meta
     expect(meta).toBeUndefined()
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('credential-handshake-undefined'))
   })

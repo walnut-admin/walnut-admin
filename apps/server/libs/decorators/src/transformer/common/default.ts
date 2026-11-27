@@ -30,7 +30,7 @@ export function WalnutAdminDecoratorTransformDefault(
     const toInstance = (input: unknown): unknown => plainToInstance(cls, input as object)
 
     if (isArray && Array.isArray(value)) {
-      return value.map((item: unknown) => isPlainObject(item) ? toInstance(item) : item)
+      return value.map((item: unknown) => (isPlainObject(item) ? toInstance(item) : item))
     }
     return isPlainObject(value) ? toInstance(value) : value
   }
@@ -41,7 +41,9 @@ export function WalnutAdminDecoratorTransformDefault(
     }
 
     if (isArray && Array.isArray(value)) {
-      return value.map((item: unknown) => isNil(item) ? instantiate(cloneDeep(defaultValue)) : item)
+      return value.map((item: unknown) =>
+        isNil(item) ? instantiate(cloneDeep(defaultValue)) : item,
+      )
     }
 
     // 单个值直接返回

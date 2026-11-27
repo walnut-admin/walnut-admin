@@ -1,21 +1,18 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Logger,
-  Param,
-} from '@nestjs/common'
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Logger, Param } from '@nestjs/common'
 import { ApiParam, ApiTags } from '@nestjs/swagger'
 
 import { AppTechCacheAppSettingsService, AppTechCacheService } from '@walnut-server/cache'
-import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
+import {
+  WalnutAdminConstDecoratorLogOperateAction,
+  WalnutAdminConstDecoratorLogOperateTitle,
+} from '@walnut-server/const/decorator/logOperate'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
 import { WalnutAdminDecoratorOperateLog, WalnutCrudDecorators } from '@walnut-server/crud'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorHasRole } from '@walnut-server/guards'
+import {
+  WalnutAdminDecoratorHasPermission,
+  WalnutAdminDecoratorHasRole,
+} from '@walnut-server/guards'
 import { WalnutAdminPipeCacheKey } from '@walnut-server/pipes'
 import { fireAndForget } from '@walnut-server/utils/fire-and-forget'
 import { AppRoutes, Role } from '@walnut/contract'
@@ -49,7 +46,7 @@ export class AppMonitorCacheController {
   constructor(
     private readonly cacheService: AppTechCacheService,
     private readonly cacheAppSettingsService: AppTechCacheAppSettingsService,
-  ) { }
+  ) {}
 
   @Get(':key')
   @HttpCode(HttpStatus.OK)

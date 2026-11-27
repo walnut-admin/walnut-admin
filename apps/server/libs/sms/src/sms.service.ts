@@ -38,8 +38,7 @@ export class AppSmsService implements OnModuleInit {
 
   // send welcome email
   async sendWelcomeTextMessage(phoneNumber: string | string[], lang: LocaleType) {
-    if (isNil(phoneNumber))
-      return
+    if (isNil(phoneNumber)) return
 
     // push to queue
     await this.smsQueue.add(
@@ -62,8 +61,7 @@ export class AppSmsService implements OnModuleInit {
     expireSeconds: number,
     lang: LocaleType,
   ) {
-    if (!phoneNumber)
-      return
+    if (!phoneNumber) return
 
     // push to queue
     await this.smsQueue.add(

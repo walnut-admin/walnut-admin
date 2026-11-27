@@ -1,6 +1,10 @@
 import { randomBytes } from 'node:crypto'
 import { Injectable, Logger } from '@nestjs/common'
-import { AppTechCacheAppSettingsService, AppTechCacheRsaService, AppTechCacheSignService } from '@walnut-server/cache'
+import {
+  AppTechCacheAppSettingsService,
+  AppTechCacheRsaService,
+  AppTechCacheSignService,
+} from '@walnut-server/cache'
 import { isNil } from 'lodash'
 import { SecuritySignHandShakeRequestDTO } from './sign.dto'
 
@@ -12,7 +16,7 @@ export class SecuritySignService {
     private readonly cacheSignService: AppTechCacheSignService,
     private readonly cacheRsaService: AppTechCacheRsaService,
     private readonly appSettingCacheService: AppTechCacheAppSettingsService,
-  ) { }
+  ) {}
 
   /**
    * @description initial sign
@@ -22,8 +26,7 @@ export class SecuritySignService {
 
     // 必须用探测版：首次握手时「缓存里没有公钥」是正常分支，不能抛 40012
     const cached = await this.cacheRsaService.findRsaPubKeyCache(deviceId)
-    if (!isNil(cached) && !force)
-      return cached
+    if (!isNil(cached) && !force) return cached
 
     await this.cacheRsaService.setRsaPubKeyCache(deviceId, rsaPubKey)
     return true

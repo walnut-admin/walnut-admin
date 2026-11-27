@@ -1,9 +1,22 @@
-import type { EntityManager, EntityTarget, FindOptionsWhere, ObjectLiteral, SelectQueryBuilder } from 'typeorm'
-import type { IWalnutAdminDataScopeEntityConfig, IWalnutAdminDataScopePolicy } from './ports/data-scope.port'
+import type {
+  EntityManager,
+  EntityTarget,
+  FindOptionsWhere,
+  ObjectLiteral,
+  SelectQueryBuilder,
+} from 'typeorm'
+import type {
+  IWalnutAdminDataScopeEntityConfig,
+  IWalnutAdminDataScopePolicy,
+} from './ports/data-scope.port'
 import type { ISoftDeleteStrategy } from './ports/soft-delete.port'
 import { Inject } from '@nestjs/common'
 import { ALSRequestService } from '@walnut-server/als'
-import { DBTransactionHooksStore, runInWalnutSystemTransaction, withWalnutRlsTransaction } from '@walnut-server/db'
+import {
+  DBTransactionHooksStore,
+  runInWalnutSystemTransaction,
+  withWalnutRlsTransaction,
+} from '@walnut-server/db'
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
 
 import {
@@ -13,7 +26,11 @@ import {
 import { IWalnutAdminRequestList } from '@walnut-server/list'
 import { cloneDeep } from 'lodash'
 import { DataSource } from 'typeorm'
-import { applyPgListQuery, buildPgListQueryOptionsFromQb, executePgListQuery } from './pg-list.builder'
+import {
+  applyPgListQuery,
+  buildPgListQueryOptionsFromQb,
+  executePgListQuery,
+} from './pg-list.builder'
 import { WALNUT_ADMIN_DATA_SCOPE_POLICY } from './ports/data-scope.port'
 import { WALNUT_ADMIN_SOFT_DELETE_STRATEGY } from './ports/soft-delete.port'
 
@@ -68,7 +85,7 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
     readonly entityTarget: EntityTarget<Entity>,
     readonly modelName: string,
     protected readonly dataSource: DataSource,
-  ) { }
+  ) {}
 
   /**
    * @description PG 表名（对应 Mongo 版的 collection name）
@@ -108,7 +125,7 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
   protected async withScopedManager<T>(
     em: EntityManager | undefined,
     fn: (manager: EntityManager) => Promise<T>,
-    options: { readOnly?: boolean, systemWhenExempt?: boolean } = {},
+    options: { readOnly?: boolean; systemWhenExempt?: boolean } = {},
   ): Promise<T> {
     if (em !== undefined) {
       return fn(em)
@@ -133,12 +150,15 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
     // 优先取请求级预计算的设置（含账号部门，供 sys_user/sys_employee 的 WITH CHECK）；
     // 直接调仓库的测试/脚本没有这份设置时按描述符重算（userDeptId 为空）。
     const { descriptor, userId } = this.requireDataScopeContext()
-    const settings = this.alsRequestService.get('rlsSettings')
-      ?? this.dataScopePolicy.buildRlsSettings(descriptor, userId)
+    const settings =
+      this.alsRequestService.get('rlsSettings') ??
+      this.dataScopePolicy.buildRlsSettings(descriptor, userId)
 
     // 生命周期（connect / start / 只读声明 / RLS 设置 / commit / rollback / release 与守卫）
     // 一律委托 libs/db 的唯一帮手：这里只决定「这条事务是不是只读、设置是什么」。
-    return withWalnutRlsTransaction(this.dataSource, settings, fn, { readOnly: options.readOnly === true })
+    return withWalnutRlsTransaction(this.dataSource, settings, fn, {
+      readOnly: options.readOnly === true,
+    })
   }
 
   /**
@@ -237,12 +257,7 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
     const { descriptor } = this.requireDataScopeContext()
     const currentDeptId: unknown = current[config.deptColumn]
 
-    const decision = this.dataScopePolicy.resolveDeptUpdate(
-      config,
-      descriptor,
-      dto,
-      currentDeptId,
-    )
+    const decision = this.dataScopePolicy.resolveDeptUpdate(config, descriptor, dto, currentDeptId)
 
     if (decision === 'deny') {
       throw new WalnutAdminExceptionDataNotFound()
@@ -256,7 +271,10 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
    * 基类 list 在 customize 之后调用；覆写 list 的模块（user / deleted / monitor）
    * 也必须显式调用本方法（applyPgListQuery 之后）。
    */
-  protected applyDataScope<T extends ObjectLiteral>(qb: SelectQueryBuilder<T>, alias = 'entity'): void {
+  protected applyDataScope<T extends ObjectLiteral>(
+    qb: SelectQueryBuilder<T>,
+    alias = 'entity',
+  ): void {
     const config = this.getDataScopeEntityConfig()
 
     if (config === undefined) {
@@ -316,23 +334,27 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
    * @description read（带数据权限：越权读 = DataNotFound，不泄露行存在性）
    */
   public async readById(id: string, em?: EntityManager): Promise<Entity> {
-    return this.withScopedManager(em, async (manager) => {
-      const where = this.buildScopedWhere({ id } as unknown as FindOptionsWhere<Entity>)
+    return this.withScopedManager(
+      em,
+      async (manager) => {
+        const where = this.buildScopedWhere({ id } as unknown as FindOptionsWhere<Entity>)
 
-      if (where === 'deny') {
-        throw new WalnutAdminExceptionDataNotFound()
-      }
+        if (where === 'deny') {
+          throw new WalnutAdminExceptionDataNotFound()
+        }
 
-      const read = await manager.getRepository(this.entityTarget).findOne({
-        where,
-      })
+        const read = await manager.getRepository(this.entityTarget).findOne({
+          where,
+        })
 
-      if (!read) {
-        throw new WalnutAdminExceptionDataNotFound()
-      }
+        if (!read) {
+          throw new WalnutAdminExceptionDataNotFound()
+        }
 
-      return read
-    }, { readOnly: true })
+        return read
+      },
+      { readOnly: true },
+    )
   }
 
   /**
@@ -356,7 +378,7 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
 
       Object.entries(dto).forEach(([k, v]) => {
         if (k !== 'id' && k !== ownerColumn && k !== deptColumn) {
-          (res as Record<string, unknown>)[k] = v
+          ;(res as Record<string, unknown>)[k] = v
         }
       })
 
@@ -371,7 +393,11 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
   /**
    * @description update one by query（带数据权限：越权行等同不存在）
    */
-  public async updateByField(query: Partial<Entity>, dto: Partial<Entity>, em?: EntityManager): Promise<Entity> {
+  public async updateByField(
+    query: Partial<Entity>,
+    dto: Partial<Entity>,
+    em?: EntityManager,
+  ): Promise<Entity> {
     return this.withScopedManager(em, async (manager) => {
       const repository = manager.getRepository(this.entityTarget)
 
@@ -395,7 +421,7 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
 
       Object.entries(dto).forEach(([k, v]) => {
         if (k !== 'id' && k !== ownerColumn && k !== deptColumn) {
-          (res as Record<string, unknown>)[k] = v
+          ;(res as Record<string, unknown>)[k] = v
         }
       })
 
@@ -407,26 +433,33 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
    * @description delete soft by id：sys_deleted 快照 + 原行删除，同一 em 下即同一事务
    */
   public async deleteSoftById(id: string, userId: string, em?: EntityManager): Promise<Entity> {
-    return this.withScopedManager(em, async (manager) => {
-      const deleted = await this.readById(id, manager)
+    return this.withScopedManager(
+      em,
+      async (manager) => {
+        const deleted = await this.readById(id, manager)
 
-      // TypeORM 的 remove() 会就地变更传入实体（删除后生成列被置空），快照与返回值
-      // 都取删除前的浅拷贝，不能直接把被删实体交出去
-      const snapshot: Entity = { ...deleted }
+        // TypeORM 的 remove() 会就地变更传入实体（删除后生成列被置空），快照与返回值
+        // 都取删除前的浅拷贝，不能直接把被删实体交出去
+        const snapshot: Entity = { ...deleted }
 
-      await this.deletedRepoService.createSoftDelete({
-        content: snapshot,
-        modelName: this.modelName,
-        collectionName: this.getTableName,
-        // PK 属性约定为 id（见类注释），泛型上无以声明，取前收窄
-        deletedId: (snapshot as Entity & { id: string }).id,
-        deletedBy: userId,
-      }, manager)
+        await this.deletedRepoService.createSoftDelete(
+          {
+            content: snapshot,
+            modelName: this.modelName,
+            collectionName: this.getTableName,
+            // PK 属性约定为 id（见类注释），泛型上无以声明，取前收窄
+            deletedId: (snapshot as Entity & { id: string }).id,
+            deletedBy: userId,
+          },
+          manager,
+        )
 
-      await manager.getRepository(this.entityTarget).remove(deleted)
+        await manager.getRepository(this.entityTarget).remove(deleted)
 
-      return snapshot
-    }, { systemWhenExempt: true })
+        return snapshot
+      },
+      { systemWhenExempt: true },
+    )
   }
 
   /**
@@ -450,8 +483,7 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
         if (result.affected !== 1) {
           throw new WalnutAdminExceptionDataNotFound()
         }
-      }
-      else {
+      } else {
         await manager.getRepository(this.entityTarget).remove(deleted)
       }
 
@@ -463,14 +495,22 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
    * @description delete soft multiple by ids（顺序执行 —— 事务内并发写不做 Promise.all，
    * 语义与 Mongo 版一致）
    */
-  public async deleteSoftByIdMany(ids: string[], userId: string, em?: EntityManager): Promise<Entity[]> {
-    return this.withScopedManager(em, async (manager) => {
-      const res: Entity[] = []
-      for (const id of ids) {
-        res.push(await this.deleteSoftById(id, userId, manager))
-      }
-      return res
-    }, { systemWhenExempt: true })
+  public async deleteSoftByIdMany(
+    ids: string[],
+    userId: string,
+    em?: EntityManager,
+  ): Promise<Entity[]> {
+    return this.withScopedManager(
+      em,
+      async (manager) => {
+        const res: Entity[] = []
+        for (const id of ids) {
+          res.push(await this.deleteSoftById(id, userId, manager))
+        }
+        return res
+      },
+      { systemWhenExempt: true },
+    )
   }
 
   /**
@@ -490,20 +530,29 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
    * @description delete soft multiple by condition（命中 0 行返回空数组，与 Mongo 版
    * 有效行为一致；条件先按数据权限收窄，逐行删除仍走带 scope 的 readById）
    */
-  public async deleteSoftManyByCondition(conditions: Partial<Entity>, userId: string, em?: EntityManager): Promise<Entity[]> {
-    return this.withScopedManager(em, async (manager) => {
-      const where = this.buildScopedWhere(conditions)
+  public async deleteSoftManyByCondition(
+    conditions: Partial<Entity>,
+    userId: string,
+    em?: EntityManager,
+  ): Promise<Entity[]> {
+    return this.withScopedManager(
+      em,
+      async (manager) => {
+        const where = this.buildScopedWhere(conditions)
 
-      const found = where === 'deny'
-        ? []
-        : await manager.getRepository(this.entityTarget).find({ where })
+        const found =
+          where === 'deny' ? [] : await manager.getRepository(this.entityTarget).find({ where })
 
-      const res: Entity[] = []
-      for (const element of found) {
-        res.push(await this.deleteSoftById((element as Entity & { id: string }).id, userId, manager))
-      }
-      return res
-    }, { systemWhenExempt: true })
+        const res: Entity[] = []
+        for (const element of found) {
+          res.push(
+            await this.deleteSoftById((element as Entity & { id: string }).id, userId, manager),
+          )
+        }
+        return res
+      },
+      { systemWhenExempt: true },
+    )
   }
 
   /**
@@ -518,17 +567,21 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
     params: IWalnutAdminRequestList<T>,
     customize?: (qb: SelectQueryBuilder<Entity>) => void,
     em?: EntityManager,
-  ): Promise<{ data: Entity[], total: number }> {
-    return this.withScopedManager(em, async (manager) => {
-      const qb = manager.createQueryBuilder(this.entityTarget, 'entity')
+  ): Promise<{ data: Entity[]; total: number }> {
+    return this.withScopedManager(
+      em,
+      async (manager) => {
+        const qb = manager.createQueryBuilder(this.entityTarget, 'entity')
 
-      applyPgListQuery(qb, 'entity', buildPgListQueryOptionsFromQb<T>(qb, params))
+        applyPgListQuery(qb, 'entity', buildPgListQueryOptionsFromQb<T>(qb, params))
 
-      customize?.(qb)
+        customize?.(qb)
 
-      this.applyDataScope(qb, 'entity')
+        this.applyDataScope(qb, 'entity')
 
-      return executePgListQuery(qb)
-    }, { readOnly: true })
+        return executePgListQuery(qb)
+      },
+      { readOnly: true },
+    )
   }
 }

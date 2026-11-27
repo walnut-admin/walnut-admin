@@ -10,10 +10,7 @@ export function WalnutAdminDecoratorValidatorBoolean(
   isArray?: boolean,
   arrayOptions?: IWalnutAdminDecoratorArrayOptions,
 ): PropertyDecorator {
-  let decorators = [
-    IsBoolean({ each: isArray }),
-    IsNotEmpty({ each: isArray }),
-  ]
+  let decorators = [IsBoolean({ each: isArray }), IsNotEmpty({ each: isArray })]
 
   const {} = Object.assign(defaultOptions(), options)
 

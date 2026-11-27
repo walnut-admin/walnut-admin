@@ -29,7 +29,7 @@ const GIT_TIMEOUT_MS = 5 * 60_000
  *
  * 刻意不导出：对外只有下面那些具名只读查询 —— 这样「只读」不是一句承诺，而是没有别的写法。
  */
-function runGit(args: string[]): { ok: true, out: string } | { ok: false, detail: string } {
+function runGit(args: string[]): { ok: true; out: string } | { ok: false; detail: string } {
   return runGitInternal(args, true)
 }
 
@@ -40,11 +40,14 @@ function runGit(args: string[]): { ok: true, out: string } | { ok: false, detail
  * 整段 `.trim()` 会吃掉**第一行**的前导空格 ⇒ 按「状态位 + 空格」切路径时首行少一个字符，
  * 路径判据（`.changeset/` 之类）静默失效。
  */
-function runGitRaw(args: string[]): { ok: true, out: string } | { ok: false, detail: string } {
+function runGitRaw(args: string[]): { ok: true; out: string } | { ok: false; detail: string } {
   return runGitInternal(args, false)
 }
 
-function runGitInternal(args: string[], trim: boolean): { ok: true, out: string } | { ok: false, detail: string } {
+function runGitInternal(
+  args: string[],
+  trim: boolean,
+): { ok: true; out: string } | { ok: false; detail: string } {
   try {
     const raw = execFileSync('git', args, {
       stdio: 'pipe',
@@ -54,10 +57,11 @@ function runGitInternal(args: string[], trim: boolean): { ok: true, out: string 
       env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
     }).toString()
     return { ok: true, out: trim ? raw.trim() : raw }
-  }
-  catch (error) {
-    const e = error as { stderr?: unknown, stdout?: unknown, message?: unknown }
-    const detail = [e.stderr?.toString().trim(), e.stdout?.toString().trim()].filter(Boolean).join('\n')
+  } catch (error) {
+    const e = error as { stderr?: unknown; stdout?: unknown; message?: unknown }
+    const detail = [e.stderr?.toString().trim(), e.stdout?.toString().trim()]
+      .filter(Boolean)
+      .join('\n')
     return { ok: false, detail: detail || String(e.message ?? 'git 失败') }
   }
 }
@@ -71,8 +75,7 @@ function tryGit(args: string[]): string | null {
 /** 断言版：失败时抛 `PreconditionError` 并带上 stderr 正文（读不到的原因才是排查需要的） */
 function git(args: string[]): string {
   const result = runGit(args)
-  if (!result.ok)
-    throw new PreconditionError(result.detail)
+  if (!result.ok) throw new PreconditionError(result.detail)
   return result.out
 }
 
@@ -114,12 +117,14 @@ export function lastTag(): string | null {
 export function tagsByVersion(): string[] {
   return (tryGit(['tag', '--sort=-v:refname']) ?? '')
     .split('\n')
-    .map(line => line.trim())
+    .map((line) => line.trim())
     .filter(Boolean)
 }
 
 export function tagExistsLocally(tag: string): boolean {
-  return tryGit(['rev-parse', '-q', '--verify', `refs/tags/${assertSafeRef(tag, 'tag 名')}`]) !== null
+  return (
+    tryGit(['rev-parse', '-q', '--verify', `refs/tags/${assertSafeRef(tag, 'tag 名')}`]) !== null
+  )
 }
 
 export function tagExistsRemotely(tag: string): boolean {
@@ -137,7 +142,7 @@ export function tagCommit(tag: string): string | null {
  *
  * 分隔符用 `%x1f`（US，ASCII 控制字符）而不是 `||` / 空格：后两者在摘要里常见，会被内容误伤。
  */
-export function commitsSince(tag: string | null): { hash: string, subject: string }[] {
+export function commitsSince(tag: string | null): { hash: string; subject: string }[] {
   const out = tryGit(['log', '--no-merges', '--format=%h%x1f%s', rangeSince(tag)]) ?? ''
   return out
     .split('\n')
@@ -171,7 +176,16 @@ function rangeSince(tag: string | null): string {
  * 注入（以 `-` 开头即拒），又允许调用方传 `HEAD` 这种正常 ref。
  */
 export function commitFiles(hash: string): string[] {
-  return (tryGit(['diff-tree', '--no-commit-id', '--name-only', '-r', '--root', assertSafeRef(hash, '提交 hash')]) ?? '')
+  return (
+    tryGit([
+      'diff-tree',
+      '--no-commit-id',
+      '--name-only',
+      '-r',
+      '--root',
+      assertSafeRef(hash, '提交 hash'),
+    ]) ?? ''
+  )
     .split('\n')
     .filter(Boolean)
 }
@@ -195,7 +209,11 @@ export function branchIsPushed(branch: string): boolean {
 export function branchBehind(branch: string): number {
   const safe = assertSafeRef(branch, '分支名')
   const upstream = tryGit(['rev-parse', '--abbrev-ref', `${safe}@{upstream}`]) ?? `origin/${safe}`
-  const behind = tryGit(['rev-list', '--count', `${safe}..${assertSafeRef(upstream, '上游分支名')}`])
+  const behind = tryGit([
+    'rev-list',
+    '--count',
+    `${safe}..${assertSafeRef(upstream, '上游分支名')}`,
+  ])
   return behind === null ? 0 : Number(behind)
 }
 
@@ -218,9 +236,14 @@ export function upstreamRef(): string | null {
  */
 export function changedFilesSinceUpstream(): string[] | null {
   const upstream = upstreamRef()
-  if (upstream === null)
-    return null
-  const out = tryGit(['-c', 'core.quotePath=false', 'diff', '--name-only', assertSafeRef(upstream, '上游名')])
+  if (upstream === null) return null
+  const out = tryGit([
+    '-c',
+    'core.quotePath=false',
+    'diff',
+    '--name-only',
+    assertSafeRef(upstream, '上游名'),
+  ])
   return out === null ? null : out.split('\n').filter(Boolean)
 }
 
@@ -234,7 +257,7 @@ export function changedFilesSinceUpstream(): string[] | null {
 export function lsFiles(pattern: string): string[] {
   return (tryGit(['-c', 'core.quotePath=false', 'ls-files', '--full-name', pattern]) ?? '')
     .split('\n')
-    .map(line => line.trim())
+    .map((line) => line.trim())
     .filter(Boolean)
 }
 
@@ -248,7 +271,7 @@ export function lsFiles(pattern: string): string[] {
 export function lsFilesStrict(pattern: string): string[] {
   return git(['-c', 'core.quotePath=false', 'ls-files', '--full-name', pattern])
     .split('\n')
-    .map(line => line.trim())
+    .map((line) => line.trim())
     .filter(Boolean)
 }
 
@@ -265,9 +288,8 @@ export function lsFilesStrict(pattern: string): string[] {
  */
 export function ignoredPaths(paths: Iterable<string>): Set<string> {
   const list = [...paths]
-  if (list.length === 0)
-    return new Set()
-  const input = `${[...list, ...list.map(p => `${p}/`)].join('\0')}\0`
+  if (list.length === 0) return new Set()
+  const input = `${[...list, ...list.map((p) => `${p}/`)].join('\0')}\0`
   try {
     const out = execFileSync('git', ['check-ignore', '-z', '--stdin'], {
       cwd: REPO_ROOT,
@@ -276,9 +298,13 @@ export function ignoredPaths(paths: Iterable<string>): Set<string> {
       timeout: GIT_TIMEOUT_MS,
       windowsHide: true,
     }).toString()
-    return new Set(out.split('\0').filter(Boolean).map(p => p.replace(/\/$/, '')))
-  }
-  catch {
+    return new Set(
+      out
+        .split('\0')
+        .filter(Boolean)
+        .map((p) => p.replace(/\/$/, '')),
+    )
+  } catch {
     // 「一个都没被忽略」时 git 的退出码是 1 —— 对我们要的语义来说就是空集
     return new Set()
   }
@@ -294,9 +320,18 @@ export function ignoredPaths(paths: Iterable<string>): Set<string> {
  * `--exclude-standard` 仍然生效 ⇒ 被忽略的目录不会被卷进来。
  */
 export function lsFilesWithUntracked(pattern: string): string[] {
-  return git(['-c', 'core.quotePath=false', 'ls-files', '--full-name', '--cached', '--others', '--exclude-standard', pattern])
+  return git([
+    '-c',
+    'core.quotePath=false',
+    'ls-files',
+    '--full-name',
+    '--cached',
+    '--others',
+    '--exclude-standard',
+    pattern,
+  ])
     .split('\n')
-    .map(line => line.trim())
+    .map((line) => line.trim())
     .filter(Boolean)
 }
 
@@ -310,12 +345,10 @@ export function porcelain(includeUntracked = true): string[] {
   // `-c core.quotePath=false` 与 ls-files 同口径：默认值把非 ASCII 路径按 C 风格转义并加引号，
   // 于是路径前缀判断（`.changeset/`、`apps/admin/`）全部失效。
   const args = ['-c', 'core.quotePath=false', 'status', '--porcelain']
-  if (!includeUntracked)
-    args.push('--untracked-files=no')
+  if (!includeUntracked) args.push('--untracked-files=no')
   const result = runGitRaw(args)
-  if (!result.ok)
-    return []
-  return result.out.split('\n').filter(line => line.length > 0)
+  if (!result.ok) return []
+  return result.out.split('\n').filter((line) => line.length > 0)
 }
 
 /**
@@ -330,7 +363,9 @@ export function trackedDirtyFiles(): string[] {
       const matched = /^.{2}\s(.*)$/.exec(line)
       const path = (matched ? matched[1] : line).trim()
       // 仍然可能被 git 加引号（路径含 `"` 或 `\`）—— 剥掉外层成对引号
-      return path.length > 1 && path.startsWith('"') && path.endsWith('"') ? path.slice(1, -1) : path
+      return path.length > 1 && path.startsWith('"') && path.endsWith('"')
+        ? path.slice(1, -1)
+        : path
     })
     .filter(Boolean)
 }

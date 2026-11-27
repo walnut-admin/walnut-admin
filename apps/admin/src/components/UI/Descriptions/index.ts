@@ -8,10 +8,13 @@ export interface ICompUIDescTypeTag<T> extends ICompUIDescItemExtend<T, TagProps
   type?: 'tag'
 }
 
-export interface ICompUIDescTypeLink<T> extends ICompUIDescItemExtend<T, TextProps & {
-  link?: string
-  onLinkClick?: (val: BaseDataType, record?: T) => void
-}> {
+export interface ICompUIDescTypeLink<T> extends ICompUIDescItemExtend<
+  T,
+  TextProps & {
+    link?: string
+    onLinkClick?: (val: BaseDataType, record?: T) => void
+  }
+> {
   type?: 'link'
 }
 
@@ -32,8 +35,11 @@ export interface ICompUIDescItemExtend<T, P> extends DescriptionItemProps {
   typeProps?: P
 }
 
-export type ICompUIDescriptionsItem<D = any>
-  = ICompUIDescTypeTag<D> | ICompUIDescTypeLink<D> | ICompUIDescTypeJson<D> | ICompUIDescTypeDict<D>
+export type ICompUIDescriptionsItem<D = any> =
+  | ICompUIDescTypeTag<D>
+  | ICompUIDescTypeLink<D>
+  | ICompUIDescTypeJson<D>
+  | ICompUIDescTypeDict<D>
 
 export interface ICompUIDescriptionProps extends /* @vue-ignore */ DescriptionsProps {
   items: ICompUIDescriptionsItem[]

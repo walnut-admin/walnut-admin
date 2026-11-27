@@ -11,7 +11,8 @@ import type { WalnutAdminConstDataScopeMode } from '@walnut-server/const/app/dat
  */
 
 /** 数据权限档位的字面量联合（六档 as const 的 keyof typeof 推导） */
-export type IWalnutAdminDataScopeMode = typeof WalnutAdminConstDataScopeMode[keyof typeof WalnutAdminConstDataScopeMode]
+export type IWalnutAdminDataScopeMode =
+  (typeof WalnutAdminConstDataScopeMode)[keyof typeof WalnutAdminConstDataScopeMode]
 
 /**
  * 解析后的数据权限描述符（二期）。

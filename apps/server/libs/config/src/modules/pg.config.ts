@@ -19,9 +19,9 @@ export default registerAs('pg', () => {
 
   if (appUser === undefined || appUser === '' || appPass === undefined || appPass === '') {
     throw new Error(
-      '[pg.config] DATABASE_PG_APP_USER / DATABASE_PG_APP_PASS 未配置。'
-      + '请执行 `pnpm setup-env`（解密 env-local）并确认迁移 1793360000000-DataScopePhase3Rls '
-      + '已创建 walnut_app 角色；生产环境按部署文档预建角色并配置强密码。',
+      '[pg.config] DATABASE_PG_APP_USER / DATABASE_PG_APP_PASS 未配置。' +
+        '请执行 `pnpm setup-env`（解密 env-local）并确认迁移 1793360000000-DataScopePhase3Rls ' +
+        '已创建 walnut_app 角色；生产环境按部署文档预建角色并配置强密码。',
     )
   }
 

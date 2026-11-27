@@ -14,17 +14,23 @@ const { closeHistoryPopover } = useConversationHistory()
 
 const toggleIcon = computed(() => {
   switch (aiPrefs.value.panelMode) {
-    case 'panel': return 'carbon:maximize'
-    case 'large-panel': return 'carbon:open-panel-filled-right'
-    default: return 'carbon:minimize'
+    case 'panel':
+      return 'carbon:maximize'
+    case 'large-panel':
+      return 'carbon:open-panel-filled-right'
+    default:
+      return 'carbon:minimize'
   }
 })
 
 const toggleTitle = computed(() => {
   switch (aiPrefs.value.panelMode) {
-    case 'panel': return '放大面板'
-    case 'large-panel': return '固定到侧边'
-    default: return '切换到浮动面板'
+    case 'panel':
+      return '放大面板'
+    case 'large-panel':
+      return '固定到侧边'
+    default:
+      return '切换到浮动面板'
   }
 })
 </script>
@@ -73,8 +79,14 @@ const toggleTitle = computed(() => {
 
 <style>
 @keyframes header-btn-in {
-  from { opacity: 0; transform: translateX(-8px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 .header-btn-anim {
   animation: header-btn-in 0.35s ease both;

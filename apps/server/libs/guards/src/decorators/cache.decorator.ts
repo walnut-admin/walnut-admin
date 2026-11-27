@@ -1,8 +1,25 @@
-import { CACHE_KEY_METADATA, CACHE_MANAGER, CACHE_TTL_METADATA, CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager'
-import { applyDecorators, CallHandler, ExecutionContext, Inject, Logger, UseInterceptors } from '@nestjs/common'
+import {
+  CACHE_KEY_METADATA,
+  CACHE_MANAGER,
+  CACHE_TTL_METADATA,
+  CacheInterceptor,
+  CacheKey,
+  CacheTTL,
+} from '@nestjs/cache-manager'
+import {
+  applyDecorators,
+  CallHandler,
+  ExecutionContext,
+  Inject,
+  Logger,
+  UseInterceptors,
+} from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { AppTechCacheService } from '@walnut-server/cache'
-import { IWalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import {
+  IWalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+} from '@walnut-server/const/app/cache'
 import { Cache } from 'cache-manager'
 import { isNil } from 'lodash'
 import { firstValueFrom, Observable, of } from 'rxjs'
@@ -25,7 +42,10 @@ class WalnutAdminDecoratorCacheInterceptor extends CacheInterceptor {
   }
 
   async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
-    const cacheKey = this.reflector.get<IWalnutAdminConstAppCacheKeys>(CACHE_KEY_METADATA, context.getHandler())
+    const cacheKey = this.reflector.get<IWalnutAdminConstAppCacheKeys>(
+      CACHE_KEY_METADATA,
+      context.getHandler(),
+    )
     const ttl = this.reflector.get<number>(CACHE_TTL_METADATA, context.getHandler())
 
     if (!cacheKey) {
@@ -40,7 +60,10 @@ class WalnutAdminDecoratorCacheInterceptor extends CacheInterceptor {
     }
 
     const response: unknown = await firstValueFrom(next.handle())
-    await this.appCacheService.set(cacheKey, response, { t: WalnutAdminConstAppCacheType.CONTROLLER, ttl })
+    await this.appCacheService.set(cacheKey, response, {
+      t: WalnutAdminConstAppCacheType.CONTROLLER,
+      ttl,
+    })
 
     return of(response)
   }
@@ -53,7 +76,7 @@ export function WalnutAdminDecoratorCache(config: IWalnutAdminDecoratorCacheConf
   return applyDecorators(
     CacheKey(config.key),
     // default 1h cache
-    CacheTTL((config.ttl ?? 3600)),
+    CacheTTL(config.ttl ?? 3600),
     UseInterceptors(WalnutAdminDecoratorCacheInterceptor),
   )
 }

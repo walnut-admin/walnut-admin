@@ -4,8 +4,22 @@ import { AuthCookieService, AuthSuccessDTO } from '@walnut-server/auth'
 
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorJti, WalnutAdminDecoratorUser, WalnutAdminGuardLockFree, WalnutAdminGuardMFAFree } from '@walnut-server/guards'
-import { SysUserMfaBindTotpDTO, SysUserMfaBindTotpResponseDTO, SysUserMfaDeviceVerifyTotpDTO, SysUserMfaGenerateTotpResponseDTO, SysUserMfaTotpService, SysUserMfaUpdateStatusDTO } from '@walnut-server/identity'
+import {
+  WalnutAdminDecoratorDeviceId,
+  WalnutAdminDecoratorHasPermission,
+  WalnutAdminDecoratorJti,
+  WalnutAdminDecoratorUser,
+  WalnutAdminGuardLockFree,
+  WalnutAdminGuardMFAFree,
+} from '@walnut-server/guards'
+import {
+  SysUserMfaBindTotpDTO,
+  SysUserMfaBindTotpResponseDTO,
+  SysUserMfaDeviceVerifyTotpDTO,
+  SysUserMfaGenerateTotpResponseDTO,
+  SysUserMfaTotpService,
+  SysUserMfaUpdateStatusDTO,
+} from '@walnut-server/identity'
 import { SystemRoutes } from '@walnut/contract'
 
 // TODO fulfill
@@ -66,7 +80,10 @@ export class SysUserMfaTotpController {
     description: 'unbind TOTP device',
     primitive: 'boolean',
   })
-  async unbindDevice(@WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload, @WalnutTxSession() ctx: WalnutTxContext) {
+  async unbindDevice(
+    @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
+    @WalnutTxSession() ctx: WalnutTxContext,
+  ) {
     return this.userMfaTotpService.unbindTotp(user.userId, ctx.em)
   }
 
@@ -88,7 +105,13 @@ export class SysUserMfaTotpController {
     // B7b 归一：mfa 表写腿迁 PG —— 双句柄收成单 em
     // revoke-and-insert（2026-10-27）：verify 轮换 RT —— 新 jti 回种 cookie，
     // 否则客户端旧 jti 已撤销、下次 refresh 必 40102
-    const { accessToken, jti: newJti } = await this.userMfaTotpService.verifyTotp(jti, deviceId, user, dto, ctx.em)
+    const { accessToken, jti: newJti } = await this.userMfaTotpService.verifyTotp(
+      jti,
+      deviceId,
+      user,
+      dto,
+      ctx.em,
+    )
     this.authCookieService.setRTJtiCookie(req, newJti)
     return new AuthSuccessDTO({ accessToken })
   }

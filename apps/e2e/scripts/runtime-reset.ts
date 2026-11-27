@@ -56,8 +56,7 @@ export async function clearAppSettingCache(): Promise<void> {
   try {
     await redis.connect()
     await redis.del(['WALNUT_CACHE_APP:SETTING', 'APP:SETTING'])
-  }
-  finally {
+  } finally {
     await redis.quit().catch(() => {})
   }
   log('已清 Redis 应用设置缓存（WALNUT_CACHE_APP:SETTING / APP:SETTING）')

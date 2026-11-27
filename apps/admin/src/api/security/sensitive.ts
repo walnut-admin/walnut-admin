@@ -16,7 +16,9 @@ import { AppAxios } from '@/utils/axios'
  * `apps/server/libs/security/src/sensitive/sensitive.const.ts` 的 `WalnutAdminConstVerifyMethod`），
  * 与组件那套 sms / email / totp / webauthn 不是同一套词表，映射只在 40119 接线处做一次。
  */
-export function verifySensitiveAPI(data: components['schemas']['SecuritySensitiveVerifyRequestDTO']) {
+export function verifySensitiveAPI(
+  data: components['schemas']['SecuritySensitiveVerifyRequestDTO'],
+) {
   return AppAxios.post<boolean>({
     url: `${SecurityRoutes.SENSITIVE}/verify`,
     data: {

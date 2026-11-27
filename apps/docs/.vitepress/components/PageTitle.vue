@@ -14,8 +14,7 @@ function findTitleInNav(navItems, path) {
     }
     if (item.items) {
       const nestedTitle = findTitleInNav(item.items, path)
-      if (nestedTitle)
-        return nestedTitle
+      if (nestedTitle) return nestedTitle
     }
   }
   return null
@@ -29,8 +28,7 @@ function findTitleInSidebar(sidebarItems, path) {
     }
     if (item.items) {
       const nestedTitle = findTitleInSidebar(item.items, path)
-      if (nestedTitle)
-        return nestedTitle
+      if (nestedTitle) return nestedTitle
     }
   }
   return null
@@ -44,15 +42,13 @@ function getPageTitle() {
 
   // 优先从导航中查找
   const navTitle = findTitleInNav(navItems, path)
-  if (navTitle)
-    return navTitle
+  if (navTitle) return navTitle
 
   // 然后从侧边栏查找
   const sidebarGroups = Object.values(sidebar)
   for (const group of sidebarGroups) {
     const sidebarTitle = findTitleInSidebar(group, path)
-    if (sidebarTitle)
-      return sidebarTitle
+    if (sidebarTitle) return sidebarTitle
   }
 
   // 最后使用frontmatter或默认标题

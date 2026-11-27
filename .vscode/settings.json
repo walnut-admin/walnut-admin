@@ -86,9 +86,7 @@
   "eslint.quiet": true,
   "json.schemas": [
     {
-      "fileMatch": [
-        "src/settings-dev.json"
-      ],
+      "fileMatch": ["src/settings-dev.json"],
       "url": ".vscode/settings-dev.schema.json"
     }
   ],

@@ -28,7 +28,10 @@ export class SecurityRiskService implements IAuthRiskService {
   private readonly logger = new Logger(SecurityRiskService.name)
 
   // Mapping of internal keys to config weight keys
-  private readonly WEIGHT_KEY_MAP: Record<string, 'IP' | 'DEVICE' | 'FAILED_LOGIN' | 'LOCATION' | 'RATE' | 'USER' | 'USER_DEVICE'> = {
+  private readonly WEIGHT_KEY_MAP: Record<
+    string,
+    'IP' | 'DEVICE' | 'FAILED_LOGIN' | 'LOCATION' | 'RATE' | 'USER' | 'USER_DEVICE'
+  > = {
     ip: 'IP',
     device: 'DEVICE',
     failedLogin: 'FAILED_LOGIN',
@@ -52,16 +55,21 @@ export class SecurityRiskService implements IAuthRiskService {
 
   // ==================== Evaluation Methods ====================
 
-  async evaluatePreAuth(params: { ip: string, deviceId: string, identifier?: string }): Promise<IWalnutAdminPreAuthRiskResult> {
+  async evaluatePreAuth(params: {
+    ip: string
+    deviceId: string
+    identifier?: string
+  }): Promise<IWalnutAdminPreAuthRiskResult> {
     const { ip, deviceId, identifier } = params
 
-    const [ipResult, deviceResult, failedLoginResult, locationResult, rateResult] = await Promise.all([
-      this.ipService.evaluateIP(ip),
-      this.deviceService.evaluateDevice(deviceId),
-      this.failedLoginService.evaluateFailedLogin(deviceId, identifier),
-      this.locationService.evaluateLocationRisk(ip),
-      this.rateService.evaluateRateRisk(ip, deviceId),
-    ])
+    const [ipResult, deviceResult, failedLoginResult, locationResult, rateResult] =
+      await Promise.all([
+        this.ipService.evaluateIP(ip),
+        this.deviceService.evaluateDevice(deviceId),
+        this.failedLoginService.evaluateFailedLogin(deviceId, identifier),
+        this.locationService.evaluateLocationRisk(ip),
+        this.rateService.evaluateRateRisk(ip, deviceId),
+      ])
 
     const score = this.calculateWeightedScore({
       ip: ipResult,
@@ -85,7 +93,11 @@ export class SecurityRiskService implements IAuthRiskService {
     }
   }
 
-  async evaluatePostAuth(params: { userId: string, deviceId: string, ip: string }): Promise<IWalnutAdminPostAuthRiskResult> {
+  async evaluatePostAuth(params: {
+    userId: string
+    deviceId: string
+    ip: string
+  }): Promise<IWalnutAdminPostAuthRiskResult> {
     const { userId, deviceId } = params
 
     const [userResult, userDeviceResult] = await Promise.all([
@@ -120,7 +132,7 @@ export class SecurityRiskService implements IAuthRiskService {
       preAuth.failedLogin,
       preAuth.location,
       preAuth.rate,
-    ].flatMap(r => r.factors)
+    ].flatMap((r) => r.factors)
 
     const score = Number(preAuth.score.toFixed(2))
     const level = getRiskLevel(score)
@@ -155,8 +167,10 @@ export class SecurityRiskService implements IAuthRiskService {
     const postAuth = await this.evaluatePostAuth({ userId, deviceId, ip })
 
     const allFactors = [
-      ...[preAuth.ip, preAuth.device, preAuth.failedLogin, preAuth.location, preAuth.rate].flatMap(r => r.factors),
-      ...[postAuth.user, postAuth.userDevice].flatMap(r => r.factors),
+      ...[preAuth.ip, preAuth.device, preAuth.failedLogin, preAuth.location, preAuth.rate].flatMap(
+        (r) => r.factors,
+      ),
+      ...[postAuth.user, postAuth.userDevice].flatMap((r) => r.factors),
     ]
 
     // 50/50 Weighting
@@ -187,14 +201,15 @@ export class SecurityRiskService implements IAuthRiskService {
 
   // ==================== Score Calculation ====================
 
-  private calculateWeightedScore(results: Record<string, IWalnutAdminRiskEvaluationResult<any>>): number {
+  private calculateWeightedScore(
+    results: Record<string, IWalnutAdminRiskEvaluationResult<any>>,
+  ): number {
     const weights = this.configService.moduleWeights
     let totalScore = 0
     let totalWeight = 0
 
     for (const [key, result] of Object.entries(results)) {
-      if (isNil(result))
-        continue
+      if (isNil(result)) continue
 
       const weightKey = this.WEIGHT_KEY_MAP[key]
       const weight = weightKey ? weights[weightKey] : 0
@@ -221,7 +236,12 @@ export class SecurityRiskService implements IAuthRiskService {
     // 返回面整体摘除，风险层只输出挑战/记录建议。
 
     // 1. Check unhandled critical factors that require verification
-    const unhandledCritical = await this.getUnhandledCriticalFactors(stage, preAuth, postAuth, challengeParams)
+    const unhandledCritical = await this.getUnhandledCriticalFactors(
+      stage,
+      preAuth,
+      postAuth,
+      challengeParams,
+    )
 
     if (unhandledCritical.length > 0) {
       this.logger.warn(`Unhandled critical factors: [${unhandledCritical.join(', ')}]`)
@@ -251,32 +271,32 @@ export class SecurityRiskService implements IAuthRiskService {
     postAuth: IWalnutAdminPostAuthRiskResult | undefined,
     params: ChallengeParams,
   ): Promise<string[]> {
-    const config = stage === 'pre-auth'
-      ? this.configService.getPreAuthCriticalFactors()
-      : this.configService.getPostAuthCriticalFactors()
+    const config =
+      stage === 'pre-auth'
+        ? this.configService.getPreAuthCriticalFactors()
+        : this.configService.getPostAuthCriticalFactors()
 
     // Collect factors based on authentication stage
     let factors: string[] = []
     if (stage === 'pre-auth') {
       factors = [...preAuth.device.factors, ...preAuth.location.factors]
-    }
-    else if (postAuth) {
-      if (isNil(params.userId))
-        return [] // Skip if no user context
+    } else if (postAuth) {
+      if (isNil(params.userId)) return [] // Skip if no user context
       factors = [...postAuth.userDevice.factors]
     }
 
-    const criticalFactors = factors.filter(f => config.has(f))
-    if (criticalFactors.length === 0)
-      return []
+    const criticalFactors = factors.filter((f) => config.has(f))
+    if (criticalFactors.length === 0) return []
 
     const statusMap = await this.challengeStateService.batchCheckChallenges(criticalFactors, params)
-    return criticalFactors.filter(f => !statusMap.get(f))
+    return criticalFactors.filter((f) => !statusMap.get(f))
   }
 
   private logHighRisk(level: string, score: number, factors: string[], context: string): void {
     if (level === WalnutAdminConstRiskLevel.HIGH || level === WalnutAdminConstRiskLevel.CRITICAL) {
-      this.logger.warn(`High Risk [${context}] Score: ${score}, Factors: ${factors.slice(0, 5).join(', ')}`)
+      this.logger.warn(
+        `High Risk [${context}] Score: ${score}, Factors: ${factors.slice(0, 5).join(', ')}`,
+      )
     }
   }
 

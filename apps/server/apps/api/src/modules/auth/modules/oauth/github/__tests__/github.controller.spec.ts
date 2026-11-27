@@ -51,7 +51,11 @@ function createHarness(rejectTokens = false): Harness {
       ? vi.fn(async () => {
           throw new Error('token generation failed')
         })
-      : vi.fn(async () => ({ accessToken: 'at-1', refreshTokenJti: 'jti-1', authSessionKey: 'sk-1' })),
+      : vi.fn(async () => ({
+          accessToken: 'at-1',
+          refreshTokenJti: 'jti-1',
+          authSessionKey: 'sk-1',
+        })),
   }
 
   const risk = { collect: vi.fn(async () => 1) }

@@ -25,7 +25,11 @@ import { SERVER_ROOT } from './module-graph'
  */
 
 const TSCONFIG_FILE = 'tsconfig.json'
-const SWCRC_FILES = ['infra/swc/dev.swcrc', 'infra/swc/prod.swcrc', 'infra/swc/stage.swcrc'] as const
+const SWCRC_FILES = [
+  'infra/swc/dev.swcrc',
+  'infra/swc/prod.swcrc',
+  'infra/swc/stage.swcrc',
+] as const
 
 type PathsTable = Record<string, string[]>
 
@@ -43,7 +47,7 @@ function readSwcPaths(file: string): PathsTable {
 
 /** 剥掉值的前导 `./`（只剥一个）：tsconfig 写 `./libs/x/src`，swcrc 可能写 `libs/x/src` */
 function normalizeTargets(targets: readonly string[]): string[] {
-  return targets.map(target => target.replace(/^\.\//, ''))
+  return targets.map((target) => target.replace(/^\.\//, ''))
 }
 
 /**
@@ -56,21 +60,21 @@ function collectProblems(ref: PathsTable, cand: PathsTable): string[] {
   const refKeys = Object.keys(ref)
   const candKeys = Object.keys(cand)
 
-  const missing = refKeys.filter(key => !(key in cand))
-  if (missing.length > 0)
-    problems.push(`缺键 ${missing.length} 个：[${missing.join(', ')}]`)
+  const missing = refKeys.filter((key) => !(key in cand))
+  if (missing.length > 0) problems.push(`缺键 ${missing.length} 个：[${missing.join(', ')}]`)
 
-  const extra = candKeys.filter(key => !(key in ref))
+  const extra = candKeys.filter((key) => !(key in ref))
   if (extra.length > 0)
     problems.push(`多键 ${extra.length} 个（真源里没有）：[${extra.join(', ')}]`)
 
   for (const key of refKeys) {
-    if (!(key in cand))
-      continue
+    if (!(key in cand)) continue
     const expected = normalizeTargets(ref[key])
     const actual = normalizeTargets(cand[key])
     if (JSON.stringify(expected) !== JSON.stringify(actual))
-      problems.push(`键 "${key}" 的值不一致：真源 [${ref[key].join(', ')}]，候选 [${cand[key].join(', ')}]`)
+      problems.push(
+        `键 "${key}" 的值不一致：真源 [${ref[key].join(', ')}]，候选 [${cand[key].join(', ')}]`,
+      )
   }
 
   if (missing.length === 0 && extra.length === 0) {
@@ -111,17 +115,23 @@ describe('路径别名表漂移：tsconfig 为真源，三份 swcrc 逐键对账
 
     // 正例：原样表、以及只剩「无 ./ 形态」的表都必须判绿（证明归一化两侧而非只归一化一侧）
     expect(collectProblems(ref, { ...ref })).toEqual([])
-    expect(collectProblems(
-      ref,
-      Object.fromEntries(Object.entries(ref).map(([key, targets]) => [key, normalizeTargets(targets)])),
-    )).toEqual([])
+    expect(
+      collectProblems(
+        ref,
+        Object.fromEntries(
+          Object.entries(ref).map(([key, targets]) => [key, normalizeTargets(targets)]),
+        ),
+      ),
+    ).toEqual([])
 
     const missing = collectProblems(ref, withoutKey(ref, '@walnut-server/const/*')).join('\n')
     expect(missing).toContain('缺键')
     expect(missing).toContain('@walnut-server/const/*')
     expect(missing).not.toContain('键序不同')
 
-    const extra = collectProblems(ref, { ...ref, '@walnut-server/zzz': ['libs/zzz/src'] }).join('\n')
+    const extra = collectProblems(ref, { ...ref, '@walnut-server/zzz': ['libs/zzz/src'] }).join(
+      '\n',
+    )
     expect(extra).toContain('多键')
     expect(extra).toContain('@walnut-server/zzz')
     expect(extra).not.toContain('键序不同')
@@ -130,24 +140,22 @@ describe('路径别名表漂移：tsconfig 为真源，三份 swcrc 逐键对账
     expect(changed).toContain('值不一致')
     expect(changed).toContain('./apps/api/src2/*')
 
-    const reordered = collectProblems(
-      ref,
-      Object.fromEntries(Object.entries(ref).reverse()),
-    ).join('\n')
+    const reordered = collectProblems(ref, Object.fromEntries(Object.entries(ref).reverse())).join(
+      '\n',
+    )
     expect(reordered).toContain('键序不同')
     expect(reordered).not.toContain('缺键')
     expect(reordered).not.toContain('多键')
   })
 
   it('三份 swcrc 的键序彼此一致（两两比对）', () => {
-    const tables = SWCRC_FILES.map(file => ({ file, keys: Object.keys(readSwcPaths(file)) }))
+    const tables = SWCRC_FILES.map((file) => ({ file, keys: Object.keys(readSwcPaths(file)) }))
 
     for (let left = 0; left < tables.length; left++) {
       for (let right = left + 1; right < tables.length; right++) {
-        expect(
-          tables[left].keys,
-          `${tables[left].file} 与 ${tables[right].file} 的键序`,
-        ).toEqual(tables[right].keys)
+        expect(tables[left].keys, `${tables[left].file} 与 ${tables[right].file} 的键序`).toEqual(
+          tables[right].keys,
+        )
       }
     }
   })

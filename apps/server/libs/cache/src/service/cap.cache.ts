@@ -1,6 +1,9 @@
 import { createHash } from 'node:crypto'
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+} from '@walnut-server/const/app/cache'
 import { resolveCapCacheTtlSeconds } from '@walnut-server/const/app/cap'
 import { AppTechCacheService } from '../cache.service'
 import { AppTechCacheAppSettingsService } from './appSettings.cache'
@@ -24,9 +27,10 @@ export class AppTechCacheCapService {
   constructor(
     private readonly cacheService: AppTechCacheService,
     private readonly cacheAppSettingsService: AppTechCacheAppSettingsService,
-  ) { }
+  ) {}
 
-  private readonly getCapTokenCacheKey = (deviceId: string, tokenFingerprint: string) => `${WalnutAdminConstAppCacheKeys.SECURITY_CAP_TOKEN}:${deviceId}:${tokenFingerprint}`
+  private readonly getCapTokenCacheKey = (deviceId: string, tokenFingerprint: string) =>
+    `${WalnutAdminConstAppCacheKeys.SECURITY_CAP_TOKEN}:${deviceId}:${tokenFingerprint}`
 
   /**
    * @description token 指纹（值绑定设备）：完整 token 不进 Redis 键，取 sha256 前 16 hex
@@ -57,7 +61,9 @@ export class AppTechCacheCapService {
   async delCapTokenCache(deviceId: string) {
     const pattern = `${this.getCapTokenCacheKey(deviceId, '*')}`
     const deletedKeys = await this.cacheService.delByPattern(pattern)
-    this.logger.debug(`Delete CAP token cache: pattern => ${pattern}, deleted => ${deletedKeys.length}`)
+    this.logger.debug(
+      `Delete CAP token cache: pattern => ${pattern}, deleted => ${deletedKeys.length}`,
+    )
     return deletedKeys
   }
 

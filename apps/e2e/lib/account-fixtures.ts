@@ -44,7 +44,7 @@ export function uniqueUserName(prefix: string): string {
  */
 export async function createLoginableUser(
   root: WalnutProtocolClient,
-  options: { userNamePrefix: string, roleId: string },
+  options: { userNamePrefix: string; roleId: string },
 ): Promise<LoginableUser> {
   const userName = uniqueUserName(options.userNamePrefix)
   const password = `E2e-${randomBytes(12).toString('hex')}`
@@ -61,7 +61,9 @@ export async function createLoginableUser(
 }
 
 /** 新设备 + 真实 OPAQUE 登录（设备登记给清理 fixture；不要求 MFA 已绑定） */
-export async function loginAs(user: Pick<LoginableUser, 'userName' | 'password'>): Promise<WalnutProtocolClient> {
+export async function loginAs(
+  user: Pick<LoginableUser, 'userName' | 'password'>,
+): Promise<WalnutProtocolClient> {
   const client = new WalnutProtocolClient({ realIp: uniqueLocalIp() })
   await client.bootstrap()
   trackDevice(client.deviceId)
@@ -115,14 +117,16 @@ async function installInitialPassword(
 
   if (appName === undefined) {
     throw new E2ePreconditionError(
-      '[e2e/account] .env.stage 缺 APP_NAME —— 可登录账号 fixture 的 OPAQUE identifiers'
-      + ' 依赖与服务端同源的 app.name（先跑 `pnpm setup-env`）',
+      '[e2e/account] .env.stage 缺 APP_NAME —— 可登录账号 fixture 的 OPAQUE identifiers' +
+        ' 依赖与服务端同源的 app.name（先跑 `pnpm setup-env`）',
     )
   }
 
   await opaque.ready
 
-  const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({ password })
+  const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({
+    password,
+  })
   const registrationResponse = await root.root<string>(
     'POST',
     AuthRoutes.OPAQUE_ADMIN_PASSWORD_UPDATE_START,
@@ -134,11 +138,10 @@ async function installInitialPassword(
     password,
     identifiers: { client: userName, server: appName },
   })
-  const done = await root.root<boolean>(
-    'POST',
-    AuthRoutes.OPAQUE_ADMIN_PASSWORD_UPDATE_FINISH,
-    { id: userId, finish: registrationRecord },
-  )
+  const done = await root.root<boolean>('POST', AuthRoutes.OPAQUE_ADMIN_PASSWORD_UPDATE_FINISH, {
+    id: userId,
+    finish: registrationRecord,
+  })
 
   if (done !== true) {
     throw new Error(`[e2e/account] admin password/update/finish 未返回 true（userId=${userId}）`)

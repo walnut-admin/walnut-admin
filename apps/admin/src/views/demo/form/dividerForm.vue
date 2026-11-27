@@ -40,7 +40,7 @@ const [register1] = useForm<typeof configData.value>({
         path: 'titlePlacement',
       },
       componentProp: {
-        options: ['left', 'center', 'right'].map(i => ({
+        options: ['left', 'center', 'right'].map((i) => ({
           value: i,
           label: i,
         })),
@@ -136,9 +136,10 @@ const [register1] = useForm<typeof configData.value>({
         path: 'type',
       },
       componentProp: {
-        options: ['default', 'success', 'info', 'warning', 'error'].map(
-          i => ({ value: i, label: i }),
-        ),
+        options: ['default', 'success', 'info', 'warning', 'error'].map((i) => ({
+          value: i,
+          label: i,
+        })),
       },
       visibleProp: {
         vShow: ({ formData }) => formData.prefix.length !== 0,

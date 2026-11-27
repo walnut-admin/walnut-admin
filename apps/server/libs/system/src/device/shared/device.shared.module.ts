@@ -10,9 +10,7 @@ import { SysDeviceSharedService } from './device.shared.service'
  */
 @Global()
 @Module({
-  imports: [
-    SysDeviceRepositoryModule,
-  ],
+  imports: [SysDeviceRepositoryModule],
   controllers: [],
   providers: [
     SysDeviceSharedService,
@@ -24,4 +22,4 @@ import { SysDeviceSharedService } from './device.shared.service'
   ],
   exports: [SysDeviceSharedService, WALNUT_ADMIN_IDENTITY_DEVICE_SERVICE],
 })
-export class SysDeviceSharedModule { }
+export class SysDeviceSharedModule {}

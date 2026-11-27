@@ -22,7 +22,9 @@ export function clearPasswordAPI(data: { id: string }) {
 /**
  * @description update password start
  */
-export function updatePasswordStartAPI(data: IRequestPayload.Auth.Opaque.Admin.UpdatePasswordStart) {
+export function updatePasswordStartAPI(
+  data: IRequestPayload.Auth.Opaque.Admin.UpdatePasswordStart,
+) {
   return AppAxios.post<string>({
     url: AuthRoutes.OPAQUE_ADMIN_PASSWORD_UPDATE_START,
     data,
@@ -32,7 +34,9 @@ export function updatePasswordStartAPI(data: IRequestPayload.Auth.Opaque.Admin.U
 /**
  * @description update password finish
  */
-export function updatePasswordFinishAPI(data: IRequestPayload.Auth.Opaque.Admin.UpdatePasswordFinish) {
+export function updatePasswordFinishAPI(
+  data: IRequestPayload.Auth.Opaque.Admin.UpdatePasswordFinish,
+) {
   return AppAxios.post<boolean>({
     url: AuthRoutes.OPAQUE_ADMIN_PASSWORD_UPDATE_FINISH,
     data,

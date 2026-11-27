@@ -2,11 +2,23 @@ import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
-import { WALNUT_DATA_SCOPE_RLS_SYSTEM_SETTINGS, WalnutPGConnectionName, withWalnutRlsTransaction } from '@walnut-server/db'
+import {
+  WALNUT_DATA_SCOPE_RLS_SYSTEM_SETTINGS,
+  WalnutPGConnectionName,
+  withWalnutRlsTransaction,
+} from '@walnut-server/db'
 
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { WalnutAdminExceptionSignupBanned } from '@walnut-server/exceptions/business/auth'
-import { SysUserIdentityRepositoryService, SysUserIdentitySharedService, SysUserOAuthRepositoryService, SysUserRepositoryService, SysUserSharedService, WalnutAdminConstSysUserIdentityPurpose, WalnutAdminConstSysUserIdentityType } from '@walnut-server/identity'
+import {
+  SysUserIdentityRepositoryService,
+  SysUserIdentitySharedService,
+  SysUserOAuthRepositoryService,
+  SysUserRepositoryService,
+  SysUserSharedService,
+  WalnutAdminConstSysUserIdentityPurpose,
+  WalnutAdminConstSysUserIdentityType,
+} from '@walnut-server/identity'
 import { fireAndForget } from '@walnut-server/utils/fire-and-forget'
 import { LocaleType } from '@walnut/contract'
 import { DataSource } from 'typeorm'
@@ -26,7 +38,7 @@ export class OAuthGiteeService {
     private readonly sysUserOAuthRepoService: SysUserOAuthRepositoryService,
     private readonly welcomeService: SharedWelcomeService,
     private readonly cacheAppSettingsService: AppTechCacheAppSettingsService,
-  ) { }
+  ) {}
 
   /**
    * @description Validate user identity from gitee
@@ -76,7 +88,11 @@ export class OAuthGiteeService {
             this.logger.error(`OAuth binding exists but user not found: ${existingBinding.userId}`)
             throw new WalnutAdminExceptionSignupBanned()
           }
-          return this.sysUserSharedService.getAccessTokenPayloadWhenUserExisted(user, deviceId, manager)
+          return this.sysUserSharedService.getAccessTokenPayloadWhenUserExisted(
+            user,
+            deviceId,
+            manager,
+          )
         }
 
         // Step 2: Not bound - check if new user signup is allowed early
@@ -134,11 +150,12 @@ export class OAuthGiteeService {
     this.logger.log(`Creating new user from Gitee: ${email}`)
 
     // Create new user
-    const result = await this.sysUserSharedService.getAccessTokenPayloadAfterAutomaticSignUpForNonExistUser(
-      { userName, avatar },
-      deviceId,
-      em,
-    )
+    const result =
+      await this.sysUserSharedService.getAccessTokenPayloadAfterAutomaticSignUpForNonExistUser(
+        { userName, avatar },
+        deviceId,
+        em,
+      )
 
     // Create email identity in user_identity table
     await this.userIdentitySharedService.createIdentity(
@@ -150,12 +167,7 @@ export class OAuthGiteeService {
     )
 
     // Bind gitee OAuth info
-    await this.sysUserOAuthRepoService.bindOAuthForUser(
-      result.userId,
-      'gitee',
-      giteeUserId,
-      em,
-    )
+    await this.sysUserOAuthRepoService.bindOAuthForUser(result.userId, 'gitee', giteeUserId, em)
 
     // Send welcome email
     fireAndForget(

@@ -129,13 +129,9 @@ export class SysDeptDTOListResponse extends CreateWalnutAdminResponseListDTO(
 // create：deptCode / deptName / status 必填，其余可选（sortOrder / 联系方式 / 父节点）
 export class SysDeptDTOCreateRequest extends IntersectionType(
   RealPickType(SysDeptDTOSafe, ['deptCode', 'deptName', 'status'] as const),
-  RealPartialType(RealPickType(SysDeptDTOSafe, [
-    'parentId',
-    'leader',
-    'phone',
-    'email',
-    'sortOrder',
-  ] as const)),
+  RealPartialType(
+    RealPickType(SysDeptDTOSafe, ['parentId', 'leader', 'phone', 'email', 'sortOrder'] as const),
+  ),
 ) {}
 export class SysDeptDTOCreateResponse extends SysDeptDTOSafe {}
 
@@ -147,13 +143,9 @@ export class SysDeptDTOReadResponse extends SysDeptDTOSafe {}
 // 前端编辑表单始终回填全量字段。主键只走路由参数。
 export class SysDeptDTOUpdateRequest extends IntersectionType(
   RealPickType(SysDeptDTOSafe, ['deptCode', 'deptName', 'status'] as const),
-  RealPartialType(RealPickType(SysDeptDTOSafe, [
-    'parentId',
-    'leader',
-    'phone',
-    'email',
-    'sortOrder',
-  ] as const)),
+  RealPartialType(
+    RealPickType(SysDeptDTOSafe, ['parentId', 'leader', 'phone', 'email', 'sortOrder'] as const),
+  ),
 ) {}
 export class SysDeptDTOUpdateResponse extends SysDeptDTOSafe {}
 

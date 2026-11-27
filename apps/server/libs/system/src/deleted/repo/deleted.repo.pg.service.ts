@@ -4,7 +4,11 @@ import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutAdminConstAppConfig } from '@walnut-server/const/app/config'
-import { runInWalnutSystemTransaction, WalnutPGConnectionName, withWalnutSystemManager } from '@walnut-server/db'
+import {
+  runInWalnutSystemTransaction,
+  WalnutPGConnectionName,
+  withWalnutSystemManager,
+} from '@walnut-server/db'
 import { WalnutAdminExceptionInternalServerError } from '@walnut-server/exceptions/base.exception'
 
 import { SysDeletedEntity } from '@walnut-server/repository'
@@ -66,7 +70,7 @@ export class SysDeletedPgRepoService implements ISoftDeleteStrategy {
   // P2-29（2026-10-29）：更新条件补 `log_operate_id IS NULL` —— 同一行被软删多次
   // （恢复后再删）会在 sys_deleted 留下多份历史快照，按 deletedId 无条件更新会把
   // 旧快照的日志关联改写成最新一条。只回填「还没关联过」的快照。
-  async updateDeletedWithLogOperateId(payload: { logOperateId: string, deletedId: string }) {
+  async updateDeletedWithLogOperateId(payload: { logOperateId: string; deletedId: string }) {
     // 数据权限三期：sys_deleted 缺省 anonymous —— 事件旁路写必须显式 system 事务。
     // P2-6 + P3-9 合并：这条回填是「一条删除日志 ↔ 一份快照」的一对一关联，
     // 恰好命中 1 行才是正确形态；0 行（快照不存在/已被关联）或多行（条件写坏）
@@ -74,7 +78,8 @@ export class SysDeletedPgRepoService implements ISoftDeleteStrategy {
     return runInWalnutSystemTransaction(this.dataSource, async (manager) => {
       const repository = manager.getRepository(SysDeletedEntity)
 
-      const res = await repository.createQueryBuilder()
+      const res = await repository
+        .createQueryBuilder()
         .update(SysDeletedEntity)
         .set({ logOperateId: payload.logOperateId })
         .where('deleted_id = :deletedId', { deletedId: payload.deletedId })
@@ -95,12 +100,15 @@ export class SysDeletedPgRepoService implements ISoftDeleteStrategy {
   }
 
   // same as above, but mulitple
-  async updateDeletedManyWithLogOperateId(payload: { logOperateId: string, deletedIds: string }) {
+  async updateDeletedManyWithLogOperateId(payload: { logOperateId: string; deletedIds: string }) {
     const deletedIdArr = payload.deletedIds.split(WalnutAdminConstAppConfig.idSeparator)
 
     const res: SysDeletedEntity[] = []
     for (const id of deletedIdArr) {
-      const deleted = await this.updateDeletedWithLogOperateId({ deletedId: id, logOperateId: payload.logOperateId })
+      const deleted = await this.updateDeletedWithLogOperateId({
+        deletedId: id,
+        logOperateId: payload.logOperateId,
+      })
       if (deleted) {
         res.push(deleted)
       }

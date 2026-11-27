@@ -21,9 +21,16 @@ describe('isOwnFile —— 「谁的错」按路径判', () => {
 
   it('node_modules 里的不算 —— 包括 pnpm 的真实落点 `node_modules/.pnpm/**`', () => {
     expect(isOwnFile('/repo/node_modules/vue/dist/vue.d.ts', ROOT)).toBe(false)
-    expect(isOwnFile('/repo/node_modules/.pnpm/@vueuse+core@14.3.0/node_modules/@vueuse/core/dist/index.d.ts', ROOT)).toBe(false)
+    expect(
+      isOwnFile(
+        '/repo/node_modules/.pnpm/@vueuse+core@14.3.0/node_modules/@vueuse/core/dist/index.d.ts',
+        ROOT,
+      ),
+    ).toBe(false)
     // workspace symlink 解析出来的真实路径也在 .pnpm 下，必须一起挡住
-    expect(isOwnFile('/repo/packages/platform-any/types/node_modules/.pnpm/x/y.d.ts', ROOT)).toBe(false)
+    expect(isOwnFile('/repo/packages/platform-any/types/node_modules/.pnpm/x/y.d.ts', ROOT)).toBe(
+      false,
+    )
   })
 
   it('仓库外的路径不算（`..` 开头）', () => {
@@ -47,30 +54,63 @@ describe('isOwnFile —— 「谁的错」按路径判', () => {
 
 describe('ownFindings —— 只留我们自己的诊断', () => {
   it('依赖的诊断整条丢掉，我们的原样留下（行号与消息都不动）', () => {
-    const got = ownFindings([
-      { file: '/repo/node_modules/.pnpm/vue-i18n/x/vue-i18n.d.ts', line: 12, message: '依赖自己的问题' },
-      { file: '/repo/apps/admin/types/window.d.ts', line: 25, message: 'TS1038: A declare modifier…' },
-      { file: undefined, line: 0, message: '全局诊断' },
-      { file: '/repo/packages/platform-any/types/src/storage.d.ts', line: 3, message: 'TS2430: …' },
-    ], ROOT)
+    const got = ownFindings(
+      [
+        {
+          file: '/repo/node_modules/.pnpm/vue-i18n/x/vue-i18n.d.ts',
+          line: 12,
+          message: '依赖自己的问题',
+        },
+        {
+          file: '/repo/apps/admin/types/window.d.ts',
+          line: 25,
+          message: 'TS1038: A declare modifier…',
+        },
+        { file: undefined, line: 0, message: '全局诊断' },
+        {
+          file: '/repo/packages/platform-any/types/src/storage.d.ts',
+          line: 3,
+          message: 'TS2430: …',
+        },
+      ],
+      ROOT,
+    )
     expect(got).toEqual([
-      { file: '/repo/apps/admin/types/window.d.ts', line: 25, message: 'TS1038: A declare modifier…' },
+      {
+        file: '/repo/apps/admin/types/window.d.ts',
+        line: 25,
+        message: 'TS1038: A declare modifier…',
+      },
       { file: '/repo/packages/platform-any/types/src/storage.d.ts', line: 3, message: 'TS2430: …' },
     ])
   })
 
   it('普通 .ts 文件上的诊断也不算（门禁只管 .d.ts）', () => {
-    expect(ownFindings([
-      { file: '/repo/apps/admin/src/components/Vendor/ECharts/on-demand.ts', line: 28, message: 'echarts 双身份' },
-      { file: '/repo/apps/admin/types/window.d.ts', line: 1, message: '我们的' },
-    ], ROOT)).toEqual([{ file: '/repo/apps/admin/types/window.d.ts', line: 1, message: '我们的' }])
+    expect(
+      ownFindings(
+        [
+          {
+            file: '/repo/apps/admin/src/components/Vendor/ECharts/on-demand.ts',
+            line: 28,
+            message: 'echarts 双身份',
+          },
+          { file: '/repo/apps/admin/types/window.d.ts', line: 1, message: '我们的' },
+        ],
+        ROOT,
+      ),
+    ).toEqual([{ file: '/repo/apps/admin/types/window.d.ts', line: 1, message: '我们的' }])
   })
 
   it('全是依赖问题时返回空 —— 门禁不许因为「改不了的错」变红', () => {
-    expect(ownFindings([
-      { file: '/repo/node_modules/naive-ui/lib/x.d.ts', line: 1, message: 'a' },
-      { file: '/repo/node_modules/naive-ui/lib/y.d.ts', line: 2, message: 'b' },
-    ], ROOT)).toEqual([])
+    expect(
+      ownFindings(
+        [
+          { file: '/repo/node_modules/naive-ui/lib/x.d.ts', line: 1, message: 'a' },
+          { file: '/repo/node_modules/naive-ui/lib/y.d.ts', line: 2, message: 'b' },
+        ],
+        ROOT,
+      ),
+    ).toEqual([])
   })
 })
 

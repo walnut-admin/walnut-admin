@@ -24,15 +24,18 @@ import {
   ISocketInterServerEvents,
   ISocketServerToClientEvents,
 } from './socket'
-import { WalnutAdminSocketEvents, WalnutAdminSocketNamespace, WalnutAdminSocketRooms } from './socket.const'
+import {
+  WalnutAdminSocketEvents,
+  WalnutAdminSocketNamespace,
+  WalnutAdminSocketRooms,
+} from './socket.const'
 import { SocketAuthMiddleware } from './socket.middleware'
 import { SocketService } from './socket.service'
 
 @WebSocketGateway({
   namespace: WalnutAdminSocketNamespace,
 })
-export class SocketGateway
-implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(SocketGateway.name)
 
   constructor(
@@ -70,28 +73,27 @@ implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
     const adminUiPassword = this.configService.get<string>('SOCKET_ADMIN_UI_PASSWORD')
 
     // 显式 nullish/empty 判定（ts/strict-boolean-expressions）：任一缺失/空串 = 未配置
-    const hasAdminUiCredentials = adminUiUser !== undefined
-      && adminUiUser !== ''
-      && adminUiPassword !== undefined
-      && adminUiPassword !== ''
+    const hasAdminUiCredentials =
+      adminUiUser !== undefined &&
+      adminUiUser !== '' &&
+      adminUiPassword !== undefined &&
+      adminUiPassword !== ''
 
     if (hasAdminUiCredentials) {
       // mode 经 WalnutAdminEnv（libs/const/app/env）判定，不用裸 as：production 之外
       // （development / stage / 测试）一律 development 模式
-      const mode: 'development' | 'production' = WalnutAdminEnv === WalnutAdminConstAppEnv.PROD
-        ? 'production'
-        : 'development'
+      const mode: 'development' | 'production' =
+        WalnutAdminEnv === WalnutAdminConstAppEnv.PROD ? 'production' : 'development'
 
       instrument(namespace.server, {
         auth: { type: 'basic', username: adminUiUser, password: adminUiPassword },
         mode,
         namespaceName: WalnutAdminSocketNamespace,
       })
-    }
-    else {
+    } else {
       this.logger.warn(
-        'SOCKET_ADMIN_UI_USER / SOCKET_ADMIN_UI_PASSWORD 未同时配置 —— socket.io Admin UI 不挂载（fail-closed）。'
-        + '生产如需使用请补配：PASSWORD 用 bcryptjs.hash(强口令, 10) 生成（强口令 >= 8 位），不接受明文',
+        'SOCKET_ADMIN_UI_USER / SOCKET_ADMIN_UI_PASSWORD 未同时配置 —— socket.io Admin UI 不挂载（fail-closed）。' +
+          '生产如需使用请补配：PASSWORD 用 bcryptjs.hash(强口令, 10) 生成（强口令 >= 8 位），不接受明文',
       )
     }
 
@@ -110,7 +112,9 @@ implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
 
     const { userId, fingerprint, deviceId } = client.data
 
-    this.logger.log(`Client data: userId => ${userId}; deviceId => ${deviceId}; fingerprint => ${fingerprint}`)
+    this.logger.log(
+      `Client data: userId => ${userId}; deviceId => ${deviceId}; fingerprint => ${fingerprint}`,
+    )
 
     // join userId room
     await client.join(WalnutAdminSocketRooms.USER(userId, fingerprint))
@@ -120,10 +124,11 @@ implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
       const result = await this.monitorUserService.handleSocketInitForceQuit(userId, deviceId)
 
       if (result.shouldForceQuit && result.revokeReason) {
-      // 获取对应的退出策略（'rotate' 是 RT 轮换行标记，非 force-quit 触发因，不可能成为
-      // 「最新撤销行」的原因 —— 新插入的现役行永远比 rotate 旧行新；类型面收窄）
+        // 获取对应的退出策略（'rotate' 是 RT 轮换行标记，非 force-quit 触发因，不可能成为
+        // 「最新撤销行」的原因 —— 新插入的现役行永远比 rotate 旧行新；类型面收窄）
         const forceQuitConfig = await this.cacheAppSettingsService.getForceQuitConfig()
-        const strategy = forceQuitConfig[result.revokeReason as Exclude<IWalnutAdminConstRevokeRTType, 'rotate'>]
+        const strategy =
+          forceQuitConfig[result.revokeReason as Exclude<IWalnutAdminConstRevokeRTType, 'rotate'>]
 
         // 只通知当前 socket，不触发新的踢人流程
         client.emit(WalnutAdminSocketEvents.FORCE_QUIT, { strategy })
@@ -132,8 +137,7 @@ implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
           `Force quit on init - device: ${deviceId}, reason: ${result.revokeReason}, strategy: ${strategy}`,
         )
       }
-    }
-    catch (error: any) {
+    } catch (error: any) {
       this.logger.error(`Force quit user failed: ${error}`)
     }
   }

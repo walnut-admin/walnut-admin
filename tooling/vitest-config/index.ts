@@ -37,20 +37,14 @@ export interface WalnutVitestConfigOptions {
 }
 
 export function defineWalnutVitestConfig(options: WalnutVitestConfigOptions = {}): ViteUserConfig {
-  const {
-    environment = 'node',
-    coverageInclude = ['src'],
-    plugins,
-    test,
-  } = options
+  const { environment = 'node', coverageInclude = ['src'], plugins, test } = options
 
   const test_: NonNullable<ViteUserConfig['test']> = {
     environment,
     include: [...INCLUDE],
   }
 
-  if (coverageInclude !== false)
-    test_.coverage = { provider: 'v8', include: coverageInclude }
+  if (coverageInclude !== false) test_.coverage = { provider: 'v8', include: coverageInclude }
 
   return defineConfig({
     plugins,

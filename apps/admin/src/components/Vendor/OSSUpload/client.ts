@@ -12,20 +12,16 @@ export class AliOSSClient {
   private static checkPoint: OSS.Checkpoint | null
 
   private constructor() {
-    if (AliOSSClient._instance)
-      throw new Error('Use AliOSSClient.instance instead of new.')
+    if (AliOSSClient._instance) throw new Error('Use AliOSSClient.instance instead of new.')
     AliOSSClient._instance = this
   }
 
   static get instance() {
-    return (
-      AliOSSClient._instance ?? (AliOSSClient._instance = new AliOSSClient())
-    )
+    return AliOSSClient._instance ?? (AliOSSClient._instance = new AliOSSClient())
   }
 
   public async getConfig() {
-    if (AliOSSClient.config)
-      return AliOSSClient.config
+    if (AliOSSClient.config) return AliOSSClient.config
     const config = await getAliSTSTokenAPI()
     AliOSSClient.config = {
       ...config,
@@ -39,8 +35,7 @@ export class AliOSSClient {
   }
 
   public async getClient() {
-    if (AliOSSClient.client)
-      return AliOSSClient.client
+    if (AliOSSClient.client) return AliOSSClient.client
     const config = await this.getConfig()
     AliOSSClient.client = new OSS(config)
     return AliOSSClient.client
@@ -55,7 +50,7 @@ export class AliOSSClient {
   public async upload(
     data: UploadFileInfo,
     folder: string,
-  ): Promise<{ id: string, value: string } | undefined> {
+  ): Promise<{ id: string; value: string } | undefined> {
     const headers = {
       // 指定该Object被下载时网页的缓存行为。
       // 'Cache-Control': 'no-cache',
@@ -89,10 +84,8 @@ export class AliOSSClient {
         id: data.id,
         value: result.name,
       }
-    }
-    catch (error: any) {
-      if (error.name === 'FileAlreadyExistsError')
-        useAppMessage().error('File Already Exists')
+    } catch (error: any) {
+      if (error.name === 'FileAlreadyExistsError') useAppMessage().error('File Already Exists')
     }
   }
 
@@ -101,7 +94,7 @@ export class AliOSSClient {
     data: UploadFileInfo,
     folder: string,
     onProcessCallback: (e: { percent: number }) => void,
-  ): Promise<{ id: string, value: string } | undefined> {
+  ): Promise<{ id: string; value: string } | undefined> {
     const headers = {
       // 指定该Object被下载时网页的缓存行为。
       // 'Cache-Control': 'no-cache',
@@ -127,44 +120,36 @@ export class AliOSSClient {
     try {
       const client = await this.getClient()
 
-      const result = await client.multipartUpload(
-        `${folder}/${data.name}`,
-        data.file,
-        {
-          headers,
-          checkpoint: AliOSSClient.checkPoint!,
-          // 获取分片上传进度、断点和返回值。
-          progress: (p, cpt, _res) => {
-            AliOSSClient.checkPoint = cpt
-            onProcessCallback({ percent: Math.ceil(p * 100) })
-          },
-          // 设置并发上传的分片数量。
-          parallel: 4,
-          // 设置分片大小。默认值为1 MB，最小值为100 KB。
-          partSize: 1024 * 1024,
-          // headers,
-          // 自定义元数据，通过HeadObject接口可以获取Object的元数据。
-          // meta: { year: 2020, people: 'test' },
-          mime: data.type!,
+      const result = await client.multipartUpload(`${folder}/${data.name}`, data.file, {
+        headers,
+        checkpoint: AliOSSClient.checkPoint!,
+        // 获取分片上传进度、断点和返回值。
+        progress: (p, cpt, _res) => {
+          AliOSSClient.checkPoint = cpt
+          onProcessCallback({ percent: Math.ceil(p * 100) })
         },
-      )
+        // 设置并发上传的分片数量。
+        parallel: 4,
+        // 设置分片大小。默认值为1 MB，最小值为100 KB。
+        partSize: 1024 * 1024,
+        // headers,
+        // 自定义元数据，通过HeadObject接口可以获取Object的元数据。
+        // meta: { year: 2020, people: 'test' },
+        mime: data.type!,
+      })
 
       return {
         id: data.id,
         value: result.name,
       }
-    }
-    catch (error: any) {
+    } catch (error: any) {
       console.log(error.name)
 
-      if (error.name === 'FileAlreadyExistsError')
-        useAppMessage().error('File Already Exists')
+      if (error.name === 'FileAlreadyExistsError') useAppMessage().error('File Already Exists')
 
-      if (error.name === 'cancel')
-        useAppMessage().error('Canceled')
+      if (error.name === 'cancel') useAppMessage().error('Canceled')
 
-      if (error.name === 'abort')
-        useAppMessage().error('Aborted')
+      if (error.name === 'abort') useAppMessage().error('Aborted')
     }
   }
 
@@ -179,8 +164,7 @@ export class AliOSSClient {
       )
       AliOSSClient.checkPoint = null
       console.log(res)
-    }
-    catch (error) {
+    } catch (error) {
       console.log(error)
     }
   }

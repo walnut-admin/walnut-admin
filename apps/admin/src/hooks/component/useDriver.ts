@@ -15,14 +15,17 @@ export function useDriver(key: string, steps: DriveStep[]) {
   const { t } = useAppI18n()
   const { toggleLink } = useLinkTag('/assets/css/driver-dark.css')
 
-  watch(() => isDark.value, async (v) => {
-    if (v) {
-      await toggleLink()
-    }
-    else {
-      import('driver.js/dist/driver.css')
-    }
-  }, { immediate: true })
+  watch(
+    () => isDark.value,
+    async (v) => {
+      if (v) {
+        await toggleLink()
+      } else {
+        import('driver.js/dist/driver.css')
+      }
+    },
+    { immediate: true },
+  )
 
   driverInst.value = driver({
     animate: true,

@@ -114,7 +114,10 @@ export class SysEmployeeController {
     @Body() payload: SysEmployeeDTOUpdateRequest,
     @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return plainToInstance(SysEmployeeDTOUpdateResponse, await this.employeeService.update(id, payload))
+    return plainToInstance(
+      SysEmployeeDTOUpdateResponse,
+      await this.employeeService.update(id, payload),
+    )
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE)

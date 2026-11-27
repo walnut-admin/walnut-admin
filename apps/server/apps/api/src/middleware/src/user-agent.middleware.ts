@@ -9,7 +9,7 @@ import { UAParser } from 'ua-parser-js'
 
 @Injectable()
 export class UserAgentMiddleware implements NestMiddleware {
-  constructor() { }
+  constructor() {}
 
   async use(
     req: IWalnutAdminExpressRequest,
@@ -32,17 +32,17 @@ export class UserAgentMiddleware implements NestMiddleware {
     req.isSuspicious = this.detectSuspiciousRequest(req, parsedUA)
 
     // os/browser/engine context
-    req.os = parsedUA?.os?.name as string
-      ? `${parsedUA?.os.name}${parsedUA?.os?.version as string ? ` ${parsedUA?.os.version}` : ''}`
-      : parsedUA?.ua as string
+    req.os = (parsedUA?.os?.name as string)
+      ? `${parsedUA?.os.name}${(parsedUA?.os?.version as string) ? ` ${parsedUA?.os.version}` : ''}`
+      : (parsedUA?.ua as string)
 
-    req.browser = parsedUA?.browser?.name as string
-      ? `${parsedUA?.browser.name}${parsedUA?.browser?.version as string ? ` ${parsedUA?.browser.version}` : ''}`
-      : parsedUA?.ua as string
+    req.browser = (parsedUA?.browser?.name as string)
+      ? `${parsedUA?.browser.name}${(parsedUA?.browser?.version as string) ? ` ${parsedUA?.browser.version}` : ''}`
+      : (parsedUA?.ua as string)
 
     req.engine = parsedUA?.engine.name
-      ? `${parsedUA?.engine.name}${parsedUA?.engine?.version as string ? ` ${parsedUA?.engine.version}` : ''}`
-      : parsedUA?.ua as string
+      ? `${parsedUA?.engine.name}${(parsedUA?.engine?.version as string) ? ` ${parsedUA?.engine.version}` : ''}`
+      : (parsedUA?.ua as string)
 
     next()
   }
@@ -108,7 +108,7 @@ export class UserAgentMiddleware implements NestMiddleware {
     ]
 
     const lowerUA = userAgent.toLowerCase()
-    if (suspiciousKeywords.some(keyword => lowerUA.includes(keyword))) {
+    if (suspiciousKeywords.some((keyword) => lowerUA.includes(keyword))) {
       return true
     }
 

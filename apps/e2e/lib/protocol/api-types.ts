@@ -50,18 +50,18 @@ export type AppMonitorCacheListPage = EndpointData<'/app/monitor/cache/list', 'P
 type MethodKey<M extends HttpMethod> = Lowercase<M>
 
 /** 某路径 + 方法的 200 操作对象；路径或方法不在生成物里就是 `never` */
-type OperationOf<P extends string, M extends HttpMethod>
-  = P extends keyof paths
-    ? MethodKey<M> extends keyof paths[P]
-      ? NonNullable<paths[P][MethodKey<M>]>
-      : never
+type OperationOf<P extends string, M extends HttpMethod> = P extends keyof paths
+  ? MethodKey<M> extends keyof paths[P]
+    ? NonNullable<paths[P][MethodKey<M>]>
     : never
+  : never
 
 /** 操作对象的 JSON 响应壳（`{ data?, code?, msg? }`） */
-type JsonBodyOf<Op>
-  = Op extends { responses: { 200: { content: { 'application/json': infer Body } } } }
-    ? Body
-    : never
+type JsonBodyOf<Op> = Op extends {
+  responses: { 200: { content: { 'application/json': infer Body } } }
+}
+  ? Body
+  : never
 
 /**
  * 壳里的 `data`。生成侧把它标成可选（同一个 DTO 有时兼任入参），但**成功响应必然带 data** ——
@@ -77,9 +77,8 @@ type BodyOf<P extends string, M extends HttpMethod> = JsonBodyOf<OperationOf<P, 
  * 注意条件写成分发关闭的元组（`[T] extends [never]`）：直接用 `T extends never` 在 `T` 是
  * 未解析的泛型时会得到 `never` 而不是分支结果。
  */
-export type EndpointData<P extends string, M extends HttpMethod>
-  = [BodyOf<P, M>] extends [never]
+export type EndpointData<P extends string, M extends HttpMethod> = [BodyOf<P, M>] extends [never]
+  ? Record<string, unknown>
+  : [DataOf<BodyOf<P, M>>] extends [never]
     ? Record<string, unknown>
-    : [DataOf<BodyOf<P, M>>] extends [never]
-        ? Record<string, unknown>
-        : DataOf<BodyOf<P, M>>
+    : DataOf<BodyOf<P, M>>

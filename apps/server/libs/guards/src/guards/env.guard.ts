@@ -15,7 +15,5 @@ class WalnutAdminGuardDevOnly implements CanActivate {
 }
 
 export function WalnutAdminDecoratorDevOnly() {
-  return applyDecorators(
-    UseGuards(WalnutAdminGuardDevOnly),
-  )
+  return applyDecorators(UseGuards(WalnutAdminGuardDevOnly))
 }

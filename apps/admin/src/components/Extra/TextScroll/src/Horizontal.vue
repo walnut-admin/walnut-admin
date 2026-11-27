@@ -32,8 +32,7 @@ const getWrapperStyle = computed<CSSProperties>(() => ({
 const getTranslateX = computed(() => `translateX(-${contentWidthRef.value}px)`)
 
 watchEffect(() => {
-  if (!containerRef.value || !wrapperRef.value)
-    return
+  if (!containerRef.value || !wrapperRef.value) return
 
   let contentWidth = 0
   const containerWidth = containerRef.value.clientWidth
@@ -42,8 +41,7 @@ watchEffect(() => {
 
   if (children.length === 1) {
     contentWidth = children[0].scrollWidth + containerWidth
-  }
-  else {
+  } else {
     for (let i = 0; i < children.length!; i++) {
       contentWidth += children[i].scrollWidth
       contentWidth += containerWidth
@@ -61,7 +59,7 @@ watchEffect(() => {
 </script>
 
 <template>
-  <div v-if="texts?.some(i => i.length < maxLength)" class="truncate whitespace-nowrap">
+  <div v-if="texts?.some((i) => i.length < maxLength)" class="truncate whitespace-nowrap">
     {{ texts[0] }}
   </div>
   <div

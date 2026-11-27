@@ -1,5 +1,12 @@
 import type { WalnutAdminRecoverableRegistry } from '@walnut-server/repository'
-import { registerAppDemoRecoverable, registerAppErrorRecoverable, registerAppKeyRecoverable, registerAppMonitorUserRecoverable, registerAppSettingRecoverable, registerSharedAreaRecoverable } from '@walnut-server/app-domain'
+import {
+  registerAppDemoRecoverable,
+  registerAppErrorRecoverable,
+  registerAppKeyRecoverable,
+  registerAppMonitorUserRecoverable,
+  registerAppSettingRecoverable,
+  registerSharedAreaRecoverable,
+} from '@walnut-server/app-domain'
 import { registerAuthRefreshTokenRecoverable } from '@walnut-server/auth'
 
 /**

@@ -77,7 +77,9 @@ export function askSecret(text: string): Promise<string> {
         return
       }
       // 粘贴会一次性送来多个字符；只收可见字符（码点 ≥ 0x20 且非 DEL），避免控制序列混进 token
-      const visible = [...(chunk ?? '')].filter(char => (char.codePointAt(0) ?? 0) >= 0x20 && char.codePointAt(0) !== 0x7F).join('')
+      const visible = [...(chunk ?? '')]
+        .filter((char) => (char.codePointAt(0) ?? 0) >= 0x20 && char.codePointAt(0) !== 0x7f)
+        .join('')
       if (visible) {
         value += visible
         process.stdout.write('*'.repeat(visible.length))

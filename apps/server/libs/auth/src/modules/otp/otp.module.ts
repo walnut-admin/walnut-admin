@@ -7,16 +7,8 @@ import { OtpStrategy } from './otp.strategy'
 import { OtpSharedModule } from './shared/otp.shared.module'
 
 @Module({
-  imports: [
-    OtpSharedModule,
-    AuthSharedModule,
-    SysUserIdentitySharedModule,
-  ],
-  providers: [
-    OtpService,
-    OtpStrategy,
-    OtpSettingService,
-  ],
+  imports: [OtpSharedModule, AuthSharedModule, SysUserIdentitySharedModule],
+  providers: [OtpService, OtpStrategy, OtpSettingService],
   exports: [OtpService, OtpSettingService],
 })
 export class OtpModule {}

@@ -37,16 +37,16 @@ import { BUMP_MAP } from './commit-intent.ts'
  */
 export const SCOPE_TO_PACKAGE: Record<string, string> = {
   // apps
-  'admin': '@walnut/admin',
-  'server': '@walnut/server',
-  'docs': '@walnut/docs',
+  admin: '@walnut/admin',
+  server: '@walnut/server',
+  docs: '@walnut/docs',
   // platform-any
-  'utils': '@walnut/utils',
-  'contract': '@walnut/contract',
-  'types': '@walnut/types',
+  utils: '@walnut/utils',
+  contract: '@walnut/contract',
+  types: '@walnut/types',
   // platform-web
-  'client': '@walnut/client',
-  'http': '@walnut/http',
+  client: '@walnut/client',
+  http: '@walnut/http',
   // tooling
   'eslint-config': '@walnut/eslint-config',
   'commitlint-config': '@walnut/commitlint-config',
@@ -96,24 +96,20 @@ export function workspacePackages(): WorkspacePackage[] {
   const packages: WorkspacePackage[] = []
   for (const file of lsFilesWithUntracked('*package.json')) {
     const dir = path.posix.dirname(file)
-    if (!isWorkspacePackageDir(dir))
-      continue
+    if (!isWorkspacePackageDir(dir)) continue
     const absolute = path.join(REPO_ROOT, file)
     // 被跟踪但盘上已不存在 = 删除还没进提交（`git ls-files` 只看索引）。
     // 这是**合法**的过渡状态（改名/删包之后、提交之前），跳过而不是抛错 ——
     // 真正的「组里有、工作区没有」由 auditFixedGroup() 的 unknown 集在提交后拦。
-    if (!fs.existsSync(absolute))
-      continue
+    if (!fs.existsSync(absolute)) continue
     try {
       const manifest = JSON.parse(fs.readFileSync(absolute, 'utf8')) as {
         name?: string
         version?: string
       }
-      if (!manifest.name)
-        continue
+      if (!manifest.name) continue
       packages.push({ dir, name: manifest.name, version: manifest.version ?? null })
-    }
-    catch (error: any) {
+    } catch (error: any) {
       throw new PreconditionError(`读不动 workspace 清单 ${file}：${error?.message ?? error}`)
     }
   }
@@ -121,8 +117,10 @@ export function workspacePackages(): WorkspacePackage[] {
 }
 
 /** 该 workspace 包是否有版本号（= 该被 fixed 组覆盖的那些） */
-export function versionedPackages(packages: WorkspacePackage[] = workspacePackages()): WorkspacePackage[] {
-  return packages.filter(pkg => pkg.version !== null)
+export function versionedPackages(
+  packages: WorkspacePackage[] = workspacePackages(),
+): WorkspacePackage[] {
+  return packages.filter((pkg) => pkg.version !== null)
 }
 
 export interface WorkspaceVersioningConfig {
@@ -141,25 +139,31 @@ export function readVersioningConfig(): WorkspaceVersioningConfig {
   let raw: string
   try {
     raw = fs.readFileSync(configPath, 'utf8')
-  }
-  catch (error: any) {
-    throw new PreconditionError(`读不到 pnpm-workspace.yaml（${configPath}）：${error?.message ?? error}`)
+  } catch (error: any) {
+    throw new PreconditionError(
+      `读不到 pnpm-workspace.yaml（${configPath}）：${error?.message ?? error}`,
+    )
   }
   let parsed: any
   try {
     parsed = parseYaml(raw)
-  }
-  catch (error: any) {
+  } catch (error: any) {
     throw new PreconditionError(`pnpm-workspace.yaml 不是合法 YAML：${error?.message ?? error}`)
   }
   const versioning = parsed?.versioning
   if (!versioning || typeof versioning !== 'object')
-    throw new PreconditionError('pnpm-workspace.yaml 里没有 versioning 段 —— 本仓的版本策略以它为唯一真源')
+    throw new PreconditionError(
+      'pnpm-workspace.yaml 里没有 versioning 段 —— 本仓的版本策略以它为唯一真源',
+    )
   const fixed = Array.isArray(versioning.fixed) ? versioning.fixed : []
   if (fixed.length === 0)
-    throw new PreconditionError('pnpm-workspace.yaml 的 versioning.fixed 为空 —— 发版编排依赖它做整组锁步')
+    throw new PreconditionError(
+      'pnpm-workspace.yaml 的 versioning.fixed 为空 —— 发版编排依赖它做整组锁步',
+    )
   return {
-    fixed: fixed.map((group: unknown) => (Array.isArray(group) ? group.map(String) : [String(group)])),
+    fixed: fixed.map((group: unknown) =>
+      Array.isArray(group) ? group.map(String) : [String(group)],
+    ),
     changelogStorage: versioning?.changelog?.storage ?? null,
   }
 }
@@ -188,14 +192,16 @@ export function auditFixedGroup(
   const seen = new Set<string>()
   const duplicated: string[] = []
   for (const name of members) {
-    if (seen.has(name))
-      duplicated.push(name)
+    if (seen.has(name)) duplicated.push(name)
     seen.add(name)
   }
-  const workspace = new Set(packages.map(pkg => pkg.name))
+  const workspace = new Set(packages.map((pkg) => pkg.name))
   return {
-    missing: packages.map(pkg => pkg.name).filter(name => !memberSet.has(name)).sort(),
-    unknown: [...memberSet].filter(name => !workspace.has(name)).sort(),
+    missing: packages
+      .map((pkg) => pkg.name)
+      .filter((name) => !memberSet.has(name))
+      .sort(),
+    unknown: [...memberSet].filter((name) => !workspace.has(name)).sort(),
     duplicated: [...new Set(duplicated)].sort(),
   }
 }
@@ -237,7 +243,9 @@ export interface AttributionContext {
  */
 export const INFRA_CARRIER = '@walnut/scripts'
 
-export function buildAttributionContext(packages: WorkspacePackage[] = workspacePackages()): AttributionContext {
+export function buildAttributionContext(
+  packages: WorkspacePackage[] = workspacePackages(),
+): AttributionContext {
   return { dirIndex: packages }
 }
 
@@ -257,36 +265,29 @@ export function attributeCommit(
   for (const file of files) {
     let best: WorkspacePackage | null = null
     for (const pkg of context.dirIndex) {
-      if (!file.startsWith(`${pkg.dir}/`))
-        continue
-      if (best === null || pkg.dir.length > best.dir.length)
-        best = pkg
+      if (!file.startsWith(`${pkg.dir}/`)) continue
+      if (best === null || pkg.dir.length > best.dir.length) best = pkg
     }
-    if (best)
-      byPath.add(best.name)
+    if (best) byPath.add(best.name)
   }
-  if (byPath.size > 0)
-    return [...byPath].sort()
+  if (byPath.size > 0) return [...byPath].sort()
 
   // ② scope 兜底（仅当路径一个包都没命中）
   const scope = parsed.scope
   if (scope !== null && !NON_PACKAGE_SCOPES.includes(scope)) {
     const scoped = SCOPE_TO_PACKAGE[scope]
-    if (scoped)
-      return [scoped]
+    if (scoped) return [scoped]
   }
 
   // ③ 基建提交挂到载体包（见 `INFRA_CARRIER`：pnpm 只接受本 workspace 的真实包名）
-  if (files.length > 0)
-    return [INFRA_CARRIER]
+  if (files.length > 0) return [INFRA_CARRIER]
 
   return null
 }
 
 /** 诊断用：这条提交被谁挡住了（`--status` 与日志里解释「为什么没有意图」） */
 export function describeAttributionSkip(parsed: ParsedCommit, files: string[]): string {
-  if (files.length === 0)
-    return '空改动（没有改任何文件）'
+  if (files.length === 0) return '空改动（没有改任何文件）'
   if (parsed.type !== null && BUMP_MAP[parsed.type] === 'skip')
     return `类型 ${parsed.type} 按约定不进 changelog / 不升级版本（见 commit-intent.ts 的 BUMP_MAP）`
   return `无归属（本应挂到载体包 ${INFRA_CARRIER}）`

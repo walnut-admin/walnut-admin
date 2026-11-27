@@ -11,7 +11,7 @@ export function createAfterEachGuard(router: Router) {
     // if the route exists in tabs
     // and when going to the route, it carrys query
     // add the query to the tab for user experience
-    const isExistInTab = appStoreTab.tabs.some(i => i.name === to.name)
+    const isExistInTab = appStoreTab.tabs.some((i) => i.name === to.name)
     if (isExistInTab && Reflect.ownKeys(to.query).length !== 0)
       appStoreTab.setTabByName(to.name as string, { query: to.query })
 

@@ -32,11 +32,15 @@ const inputRef = useTemplateRef<InputInst>('inputRef')
 const inputFocus = ref(false)
 
 // loading example json and get input placeholder
-watch(() => example, async (v) => {
-  if (v) {
-    await getExamplePhoneNumber()
-  }
-}, { immediate: true })
+watch(
+  () => example,
+  async (v) => {
+    if (v) {
+      await getExamplePhoneNumber()
+    }
+  },
+  { immediate: true },
+)
 const getInputPlaceholder = computed(() => {
   if (countryCode.value && example && phoneNumberExample.value) {
     const res = getExampleNumber(countryCode.value, phoneNumberExample.value)
@@ -49,22 +53,19 @@ const getInputPlaceholder = computed(() => {
 
 // get input status based on input phone number valid or not
 const getInputStatus = computed<FormValidationStatus | undefined>(() => {
-  if (!inputFocus.value || !value.value)
-    return
+  if (!inputFocus.value || !value.value) return
 
   const parsed = parsePhoneNumberFromString(value.value!, countryCode.value)
-  if (parsed?.isValid())
-    return 'success'
-  else
-    return 'warning'
+  if (parsed?.isValid()) return 'success'
+  else return 'warning'
 })
 
 const getSelectSpan = computed(() => {
-  return countrySelect ? flag ? 10 : 8 : 0
+  return countrySelect ? (flag ? 10 : 8) : 0
 })
 
 const getInputSpan = computed(() => {
-  return countrySelect ? flag ? 14 : 16 : 24
+  return countrySelect ? (flag ? 14 : 16) : 24
 })
 
 function onUpdateSelectValue() {
@@ -81,8 +82,7 @@ function onAllowInput(v: string) {
   const r1 = /[\x21-\x2F\x3A-\x40\x5B-\x60\x7B-\x7E]+$/
   const r2 = /[a-z]+$/i
 
-  if (r1.test(v) || r2.test(v))
-    return false
+  if (r1.test(v) || r2.test(v)) return false
 
   return true
 }

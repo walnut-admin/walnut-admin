@@ -62,9 +62,7 @@ const [register] = useForm<typeof menuRelatives>({
         path: 'transition',
       },
       componentProp: {
-        disabled: computed(
-          () => !menuRelatives.status || getCanAnimate.value,
-        ),
+        disabled: computed(() => !menuRelatives.status || getCanAnimate.value),
         tooltip: true,
       },
     },

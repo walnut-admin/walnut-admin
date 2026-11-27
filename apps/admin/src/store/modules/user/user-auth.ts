@@ -8,7 +8,13 @@ import { defineStore } from 'pinia'
 import { getCurrentInstance } from 'vue'
 import { refreshTokenAPI, signoutAPI } from '@/api/auth'
 import { authWithGoogleAPI } from '@/api/auth/google'
-import { opaqueChangePasswordFinishAPI, opaqueChangePasswordStartAPI, opaqueLoginClientErrorAPI, opaqueLoginFinishAPI, opaqueLoginStartAPI } from '@/api/auth/opaque'
+import {
+  opaqueChangePasswordFinishAPI,
+  opaqueChangePasswordStartAPI,
+  opaqueLoginClientErrorAPI,
+  opaqueLoginFinishAPI,
+  opaqueLoginStartAPI,
+} from '@/api/auth/opaque'
 import { verifyWithOTPAPI } from '@/api/auth/otp'
 import { updatePasswordFinishAPI, updatePasswordStartAPI } from '@/api/system/user'
 import { AppConstPersistKey } from '@/const/persistent'
@@ -36,14 +42,20 @@ import { store } from '../../pinia'
 const opaqueServerIdentifier = 'walnut-admin'
 
 // eslint-disable-next-line antfu/no-top-level-await
-const accessTokenStorage = await useAppStorageAsync(AppConstPersistKey.ACCESS_TOKEN, '', { storage: enhancedAesGcmLocalStorage(true) })
-// eslint-disable-next-line antfu/no-top-level-await
-const rememberStorage = await useAppStorageAsync(AppConstPersistKey.REMEMBER, {
-  userName: '',
-  password: '',
-}, {
+const accessTokenStorage = await useAppStorageAsync(AppConstPersistKey.ACCESS_TOKEN, '', {
   storage: enhancedAesGcmLocalStorage(true),
 })
+// eslint-disable-next-line antfu/no-top-level-await
+const rememberStorage = await useAppStorageAsync(
+  AppConstPersistKey.REMEMBER,
+  {
+    userName: '',
+    password: '',
+  },
+  {
+    storage: enhancedAesGcmLocalStorage(true),
+  },
+)
 
 const useAppStoreUserAuthInside = defineStore(StoreKeys.USER_AUTH, {
   state: (): IStoreUser.Auth => ({
@@ -136,8 +148,7 @@ const useAppStoreUserAuthInside = defineStore(StoreKeys.USER_AUTH, {
       // 后返回即可；解锁成功后 `logicAfterUnlock` 会重新走完整的 profile + core init。
       try {
         await userStoreProfile.getProfile()
-      }
-      catch (error) {
+      } catch (error) {
         if (error instanceof Error && error.message === 'User Locked') {
           await useAppStoreLock().onInitLockState()
           return
@@ -253,15 +264,12 @@ const useAppStoreUserAuthInside = defineStore(StoreKeys.USER_AUTH, {
         })
 
         // remember me
-        if (payload.rememberMe)
-          this.setRemember({ userName, password })
-        else
-          this.setRemember(undefined)
+        if (payload.rememberMe) this.setRemember({ userName, password })
+        else this.setRemember(undefined)
 
         // execute core fn
         await this.ExecuteCoreFnAfterAuth(res.accessToken, res.sessionKey)
-      }
-      catch (error: any) {
+      } catch (error: any) {
         console.error('Login failed:', error)
       }
     },
@@ -269,8 +277,20 @@ const useAppStoreUserAuthInside = defineStore(StoreKeys.USER_AUTH, {
     async opaqueRegisterCore(
       userName: string,
       newPassword: string,
-      startApi: ({ userName, registrationRequest }: { userName: string, registrationRequest: string }) => Promise<string>,
-      finishApi: ({ userName, registrationRecord }: { userName: string, registrationRecord: string }) => Promise<boolean>,
+      startApi: ({
+        userName,
+        registrationRequest,
+      }: {
+        userName: string
+        registrationRequest: string
+      }) => Promise<string>,
+      finishApi: ({
+        userName,
+        registrationRecord,
+      }: {
+        userName: string
+        registrationRecord: string
+      }) => Promise<boolean>,
     ) {
       try {
         // ==================== 步骤 1: 开始注册流程 ====================
@@ -300,8 +320,7 @@ const useAppStoreUserAuthInside = defineStore(StoreKeys.USER_AUTH, {
 
         // ==================== 步骤 4: 提交新的注册记录 ====================
         await finishApi({ userName, registrationRecord })
-      }
-      catch (error: any) {
+      } catch (error: any) {
         console.error(error)
         throw new Error(error.response?.data?.message)
       }
@@ -327,13 +346,23 @@ const useAppStoreUserAuthInside = defineStore(StoreKeys.USER_AUTH, {
     /**
      * @description opaque way to update password for admin
      */
-    async updatePasswordWithOpaqueForAdmin({ userId, userName, newPassword }: { userId: string, userName: string, newPassword: string }) {
+    async updatePasswordWithOpaqueForAdmin({
+      userId,
+      userName,
+      newPassword,
+    }: {
+      userId: string
+      userName: string
+      newPassword: string
+    }) {
       // password change also means re-register in opaque auth system
       await this.opaqueRegisterCore(
         userName,
         newPassword,
-        ({ registrationRequest }) => updatePasswordStartAPI({ id: userId, start: registrationRequest }),
-        ({ registrationRecord }) => updatePasswordFinishAPI({ id: userId, finish: registrationRecord }),
+        ({ registrationRequest }) =>
+          updatePasswordStartAPI({ id: userId, start: registrationRequest }),
+        ({ registrationRecord }) =>
+          updatePasswordFinishAPI({ id: userId, finish: registrationRecord }),
       )
     },
 
@@ -404,7 +433,6 @@ const useAppStoreUserAuthInside = defineStore(StoreKeys.USER_AUTH, {
 const useAppStoreUserAuthOutside = () => useAppStoreUserAuthInside(store)
 
 export function useAppStoreUserAuth() {
-  if (getCurrentInstance())
-    return useAppStoreUserAuthInside()
+  if (getCurrentInstance()) return useAppStoreUserAuthInside()
   return useAppStoreUserAuthOutside()
 }

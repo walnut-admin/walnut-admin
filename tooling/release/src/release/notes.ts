@@ -27,7 +27,7 @@ const RELEASE_NOTES_PATH = path.join(REPO_ROOT, RELEASE_NOTES_FILE)
 
 export interface WriteNotesInput {
   version: string
-  summaries: { packages: string[], summary: string }[]
+  summaries: { packages: string[]; summary: string }[]
   dryRun?: boolean
 }
 
@@ -37,7 +37,10 @@ export interface WriteNotesOutcome {
   file: string
 }
 
-export async function writeReleaseNotes(ui: ReleaseUi, input: WriteNotesInput): Promise<WriteNotesOutcome> {
+export async function writeReleaseNotes(
+  ui: ReleaseUi,
+  input: WriteNotesInput,
+): Promise<WriteNotesOutcome> {
   const { version, summaries, dryRun = false } = input
 
   // 链接是字面量 ⇒ 发版前必须确认 cliff.toml 与实际 remote 一致（不一致则 die(1)）
@@ -48,14 +51,15 @@ export async function writeReleaseNotes(ui: ReleaseUi, input: WriteNotesInput): 
   const source = releaseNoteSource(noteInput)
   const body = buildReleaseNotes(noteInput)
 
-  ui.log(`   Release 正文来源：${source}`
-    + `${source === 'cliff' ? '（整仓本次发版的 git-cliff 渲染）' : source === 'intents' ? '（cliff 渲不出来，退回意图摘要）' : '（没有条目）'}`)
+  ui.log(
+    `   Release 正文来源：${source}` +
+      `${source === 'cliff' ? '（整仓本次发版的 git-cliff 渲染）' : source === 'intents' ? '（cliff 渲不出来，退回意图摘要）' : '（没有条目）'}`,
+  )
 
   let existing = ''
   try {
     existing = fs.readFileSync(RELEASE_NOTES_PATH, 'utf8')
-  }
-  catch {
+  } catch {
     existing = ''
   }
 
@@ -68,12 +72,17 @@ export async function writeReleaseNotes(ui: ReleaseUi, input: WriteNotesInput): 
     ui.banner([
       `  🧪 --dry-run：${RELEASE_NOTES_FILE} 预览（${source}）`,
       '',
-      ...body.split('\n').slice(0, 20).map(line => `   ${line}`),
+      ...body
+        .split('\n')
+        .slice(0, 20)
+        .map((line) => `   ${line}`),
     ])
     return { action: 'preview', source, file: RELEASE_NOTES_FILE }
   }
 
   fs.writeFileSync(RELEASE_NOTES_PATH, body)
-  ui.log(`   ${RELEASE_NOTES_FILE} 已更新（${source}）—— 会随 release commit 提交，CI 的 Release 正文读它`)
+  ui.log(
+    `   ${RELEASE_NOTES_FILE} 已更新（${source}）—— 会随 release commit 提交，CI 的 Release 正文读它`,
+  )
   return { action: 'written', source, file: RELEASE_NOTES_FILE }
 }

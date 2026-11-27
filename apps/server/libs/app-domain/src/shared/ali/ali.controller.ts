@@ -3,7 +3,11 @@ import { Controller, Get } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
-import { WalnutAdminDecoratorEncryptResponse, WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
+import {
+  WalnutAdminDecoratorEncryptResponse,
+  WalnutAdminDecoratorHasPermission,
+  WalnutAdminDecoratorUser,
+} from '@walnut-server/guards'
 import { SharedRoutes } from '@walnut/contract'
 import { SharedAliOSSDTO } from './ali.dto'
 import { SharedAliService } from './ali.service'
@@ -20,10 +24,15 @@ export class SharedAliController {
   @Get('/sts')
   @WalnutAdminDecoratorHasPermission(Permissions.ALI_OSS_STS)
   @ApiWalnutOkResponse({
-    description: 'get Ali OSS STS token (accessKeyId/accessKeySecret/stsToken are RSA envelope payload strings)',
+    description:
+      'get Ali OSS STS token (accessKeyId/accessKeySecret/stsToken are RSA envelope payload strings)',
     DTO: SharedAliOSSDTO,
   })
-  @WalnutAdminDecoratorEncryptResponse<SharedAliOSSDTO>(['accessKeyId', 'accessKeySecret', 'stsToken'])
+  @WalnutAdminDecoratorEncryptResponse<SharedAliOSSDTO>([
+    'accessKeyId',
+    'accessKeySecret',
+    'stsToken',
+  ])
   async getSTSToken(@WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload) {
     return new SharedAliOSSDTO(await this.sharedAliService.getSTSToken(user))
   }

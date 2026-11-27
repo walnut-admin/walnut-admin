@@ -1,7 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminConstAppSettingForceQuitStrategy } from '@walnut/contract/setting'
 import { Namespace } from 'socket.io'
-import { ISocketClientToServerEvents, ISocketData, ISocketInterServerEvents, ISocketServerToClientEvents } from './socket'
+import {
+  ISocketClientToServerEvents,
+  ISocketData,
+  ISocketInterServerEvents,
+  ISocketServerToClientEvents,
+} from './socket'
 import { WalnutAdminSocketEvents, WalnutAdminSocketRooms } from './socket.const'
 // Note: IWalnutAdminSocketEvents and IWalnutAdminSocketEventDataMap are now global types from @walnut-server/types
 

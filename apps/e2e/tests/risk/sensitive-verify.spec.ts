@@ -44,7 +44,10 @@ import type { WalnutProtocolClient } from '../../lib/protocol/client.ts'
 import { createLoginableUser, deleteLoginableUser, loginAs } from '../../lib/account-fixtures.ts'
 import { newBrowserContext, resolveDeviceId, trackDevice } from '../../lib/device-fixtures.ts'
 import { findRoleIdByName, withPg } from '../../lib/pg.ts'
-import { SystemEndpointRoutes, WalnutAdminConstAppResponseCode } from '../../lib/protocol/contract.ts'
+import {
+  SystemEndpointRoutes,
+  WalnutAdminConstAppResponseCode,
+} from '../../lib/protocol/contract.ts'
 import { rootClient } from '../../lib/protocol/root-client.ts'
 import { withRedis } from '../../lib/redis.ts'
 import { captureEnvelopes, loginViaUI, waitForEnvelope } from '../../lib/ui.ts'
@@ -93,7 +96,11 @@ function uniqueEmail(prefix: string): string {
  * 读 auth-user 的验证码缓存（`{v: <code>, ...}`）。发码是 `check` / `send-code` 的同步写，
  * 这里仍轮询 —— 避免「弹窗已切到输入步但缓存写入还没落地」的时序假设。
  */
-async function waitForVerifyCode(userId: string, identifier: string, timeoutMs = 15_000): Promise<string> {
+async function waitForVerifyCode(
+  userId: string,
+  identifier: string,
+  timeoutMs = 15_000,
+): Promise<string> {
   const raw = await withRedis(async (redis) => {
     const key = `${VERIFY_CODE_KEY_PREFIX}:${userId}:${identifier}`
     const deadline = Date.now() + timeoutMs
@@ -103,9 +110,11 @@ async function waitForVerifyCode(userId: string, identifier: string, timeoutMs =
         return value
       }
       if (Date.now() > deadline) {
-        throw new Error(`[e2e/sensitive] ${timeoutMs}ms 内 ${key} 没有写入验证码（send-code 没发出去？）`)
+        throw new Error(
+          `[e2e/sensitive] ${timeoutMs}ms 内 ${key} 没有写入验证码（send-code 没发出去？）`,
+        )
       }
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
     }
   })
 
@@ -119,11 +128,14 @@ async function waitForVerifyCode(userId: string, identifier: string, timeoutMs =
 
 /** 清掉本用例造的验证码键（按 userId + identifier 精确删；用户随后会被硬删，键否则残留到 TTL） */
 async function deleteVerifyCode(userId: string, identifier: string): Promise<void> {
-  await withRedis(redis => redis.del(`${VERIFY_CODE_KEY_PREFIX}:${userId}:${identifier}`))
+  await withRedis((redis) => redis.del(`${VERIFY_CODE_KEY_PREFIX}:${userId}:${identifier}`))
 }
 
 /** security 用途的身份行数（`/me` 安全页的解绑对象就是它） */
-async function countSecurityIdentity(userId: string, type: 'emailAddress' | 'phoneNumber'): Promise<number> {
+async function countSecurityIdentity(
+  userId: string,
+  type: 'emailAddress' | 'phoneNumber',
+): Promise<number> {
   return withPg(async (pg) => {
     const { rows } = await pg.query<{ c: number }>(
       'SELECT count(*)::int AS c FROM sys_user_identity WHERE user_id = $1 AND type = $2 AND purpose = $3',
@@ -135,7 +147,10 @@ async function countSecurityIdentity(userId: string, type: 'emailAddress' | 'pho
 
 /** 该设备在 account_critical 级的敏感授权键是否存在（服务端 `sensitive_op:<userId>:<deviceId>:<level>`） */
 async function hasSensitiveGrant(userId: string, deviceId: string): Promise<boolean> {
-  return withRedis(async redis => (await redis.exists(`sensitive_op:${userId}:${deviceId}:${SENSITIVE_LEVEL}`)) === 1)
+  return withRedis(
+    async (redis) =>
+      (await redis.exists(`sensitive_op:${userId}:${deviceId}:${SENSITIVE_LEVEL}`)) === 1,
+  )
 }
 
 /**
@@ -147,7 +162,7 @@ async function hasSensitiveGrant(userId: string, deviceId: string): Promise<bool
  */
 async function createSensitiveUser(userNamePrefix: string): Promise<SensitiveFixtureUser> {
   const root = await rootClient()
-  const roleId = await withPg(pg => findRoleIdByName(pg, 'admin'))
+  const roleId = await withPg((pg) => findRoleIdByName(pg, 'admin'))
 
   const user = await createLoginableUser(root, { userNamePrefix, roleId })
 
@@ -158,13 +173,21 @@ async function createSensitiveUser(userNamePrefix: string): Promise<SensitiveFix
   // 绑定 security 用途邮箱：check（发码）→ 读缓存 → bind（verified=true；setAsSecurity 建
   // purpose=security 的第二行）。这条路径与 `/me` 页「绑定」按钮完全一致。
   const email = uniqueEmail('e2e-sensitive')
-  await client.root<boolean>('POST', `${SystemEndpointRoutes.USER_IDENTITY_CHECK}/emailAddress/login`, { identifier: email })
+  await client.root<boolean>(
+    'POST',
+    `${SystemEndpointRoutes.USER_IDENTITY_CHECK}/emailAddress/login`,
+    { identifier: email },
+  )
   const code = await waitForVerifyCode(user.userId, email)
-  await client.root<boolean>('POST', `${SystemEndpointRoutes.USER_IDENTITY_BIND}/emailAddress/login`, {
-    identifier: email,
-    verifyCode: code,
-    setAsSecurity: true,
-  })
+  await client.root<boolean>(
+    'POST',
+    `${SystemEndpointRoutes.USER_IDENTITY_BIND}/emailAddress/login`,
+    {
+      identifier: email,
+      verifyCode: code,
+      setAsSecurity: true,
+    },
+  )
 
   const bound = await countSecurityIdentity(user.userId, 'emailAddress')
   if (bound !== 1) {
@@ -179,8 +202,10 @@ async function typeOtp(page: Page, code: string): Promise<void> {
   const inputs = page.locator(VERIFY_CODE_INPUTS)
   await expect(inputs, '验证码输入框应有 6 格').toHaveCount(6)
 
-  const current = await Promise.all(Array.from({ length: 6 }, (_, index) => inputs.nth(index).inputValue()))
-  if (current.some(value => value !== '')) {
+  const current = await Promise.all(
+    Array.from({ length: 6 }, (_, index) => inputs.nth(index).inputValue()),
+  )
+  if (current.some((value) => value !== '')) {
     // 上一轮（负对照）留下的数字必须先清掉，否则 onFinish 会被旧值提前触发
     for (let index = 0; index < 6; index += 1) {
       await inputs.nth(index).fill('')
@@ -215,7 +240,11 @@ test.describe('敏感操作二次验证（40119）', { tag: '@risk' }, () => {
 
     try {
       await page.goto('/auth')
-      await loginViaUI(page, { userName: user.userName, password: user.password, totpSecret: user.totpSecret })
+      await loginViaUI(page, {
+        userName: user.userName,
+        password: user.password,
+        totpSecret: user.totpSecret,
+      })
 
       const deviceId = await resolveDeviceId(page)
       trackDevice(deviceId)
@@ -231,8 +260,14 @@ test.describe('敏感操作二次验证（40119）', { tag: '@risk' }, () => {
 
         // ① 弹窗出现，且方式被 meta.availableMethods 收窄成 email
         //    （该用户 TOTP 已绑定 —— 若客户端没按服务端清单过滤，这里会多出一张 totp 卡）
-        await expect(page.locator(METHOD_EMAIL), '40119 应弹出全局二次验证（email 方式）').toBeVisible({ timeout: 20_000 })
-        await expect(page.locator(METHOD_TOTP), 'TOTP 不在服务端给出的可用方式里，不该出现在弹窗').toHaveCount(0)
+        await expect(
+          page.locator(METHOD_EMAIL),
+          '40119 应弹出全局二次验证（email 方式）',
+        ).toBeVisible({ timeout: 20_000 })
+        await expect(
+          page.locator(METHOD_TOTP),
+          'TOTP 不在服务端给出的可用方式里，不该出现在弹窗',
+        ).toHaveCount(0)
 
         // ② 选 email：组件这一侧主动 send-code（40119 没有调用方，弹窗就是入口）
         await page.locator(METHOD_EMAIL).click()
@@ -243,17 +278,23 @@ test.describe('敏感操作二次验证（40119）', { tag: '@risk' }, () => {
         await typeOtp(page, code)
 
         // ④ 弹窗关闭 + 原 DELETE 被自动重放
-        await expect(page.locator(METHOD_EMAIL), '验证成功后弹窗应关闭').toBeHidden({ timeout: 20_000 })
+        await expect(page.locator(METHOD_EMAIL), '验证成功后弹窗应关闭').toBeHidden({
+          timeout: 20_000,
+        })
         await waitForEnvelope(
           envelopes.entries,
-          entry => entry.url.endsWith(UNBIND_EMAIL_SECURITY) && entry.code === WalnutAdminConstAppResponseCode.SUCCESS,
+          (entry) =>
+            entry.url.endsWith(UNBIND_EMAIL_SECURITY) &&
+            entry.code === WalnutAdminConstAppResponseCode.SUCCESS,
           20_000,
         )
 
         // ⑤ 恰好两次 unbind：40119（被拦）→ 20000（重放成功）。多于两次 = 重入 / 无限弹窗。
-        const unbindCalls = envelopes.entries.filter(entry => entry.url.endsWith(UNBIND_EMAIL_SECURITY))
+        const unbindCalls = envelopes.entries.filter((entry) =>
+          entry.url.endsWith(UNBIND_EMAIL_SECURITY),
+        )
         expect(
-          unbindCalls.map(entry => entry.code),
+          unbindCalls.map((entry) => entry.code),
           'unbind 应恰好两次：先 40119 再 20000（验证后只重放一次）',
         ).toEqual([
           WalnutAdminConstAppResponseCode.UNAUTHORIZED_SENSITIVE_VERIFICATION_REQUIRED,
@@ -261,13 +302,21 @@ test.describe('敏感操作二次验证（40119）', { tag: '@risk' }, () => {
         ])
 
         // ⑥ 授权键落在本设备 + 本 level 上（服务端行为，不是前端伪造的放行）
-        expect(await hasSensitiveGrant(user.userId, deviceId), '验证通过后应有 sensitive_op 授权键').toBe(true)
+        expect(
+          await hasSensitiveGrant(user.userId, deviceId),
+          '验证通过后应有 sensitive_op 授权键',
+        ).toBe(true)
 
         // ⑦ UI 状态跟着变：邮箱行回到「未绑定」（操作菜单消失）
-        await expect(page.locator('[data-testid="me-security-email-action"]')).toHaveCount(0, { timeout: 20_000 })
+        await expect(page.locator('[data-testid="me-security-email-action"]')).toHaveCount(0, {
+          timeout: 20_000,
+        })
 
         // ⑧ PG：security 用途行被删、login 用途行不动（业务腿真的执行了）
-        expect(await countSecurityIdentity(user.userId, 'emailAddress'), 'security 身份行应已删除').toBe(0)
+        expect(
+          await countSecurityIdentity(user.userId, 'emailAddress'),
+          'security 身份行应已删除',
+        ).toBe(0)
         const loginRows = await withPg(async (pg) => {
           const { rows } = await pg.query<{ c: number }>(
             'SELECT count(*)::int AS c FROM sys_user_identity WHERE user_id = $1 AND type = $2 AND purpose = $3',
@@ -276,12 +325,10 @@ test.describe('敏感操作二次验证（40119）', { tag: '@risk' }, () => {
           return rows[0]?.c ?? 0
         })
         expect(loginRows, 'login 用途的邮箱身份不该被这条旅程动到').toBe(1)
-      }
-      finally {
+      } finally {
         envelopes.stop()
       }
-    }
-    finally {
+    } finally {
       await context.close()
       await deleteVerifyCode(user.userId, user.email)
       await deleteLoginableUser(user)
@@ -298,7 +345,11 @@ test.describe('敏感操作二次验证（40119）', { tag: '@risk' }, () => {
 
     try {
       await page.goto('/auth')
-      await loginViaUI(page, { userName: user.userName, password: user.password, totpSecret: user.totpSecret })
+      await loginViaUI(page, {
+        userName: user.userName,
+        password: user.password,
+        totpSecret: user.totpSecret,
+      })
 
       const deviceId = await resolveDeviceId(page)
       trackDevice(deviceId)
@@ -322,35 +373,49 @@ test.describe('敏感操作二次验证（40119）', { tag: '@risk' }, () => {
 
         // ① 弹窗不关：错误提示由拦截器 toast，弹窗留在验证码步
         //    （方法卡是 v-show 隐藏而不是卸载 —— 判据用「不可见」，不是「不在 DOM」）
-        await expect(page.locator(VERIFY_CODE_BOX), '错码不应关闭弹窗').toBeVisible({ timeout: 10_000 })
-        await expect(page.locator(METHOD_EMAIL), '错码后仍应停在验证码步，不该回到方式选择').toBeHidden()
+        await expect(page.locator(VERIFY_CODE_BOX), '错码不应关闭弹窗').toBeVisible({
+          timeout: 10_000,
+        })
+        await expect(
+          page.locator(METHOD_EMAIL),
+          '错码后仍应停在验证码步，不该回到方式选择',
+        ).toBeHidden()
 
         // ② 原请求不放行：unbind 只有一次 40119，没有 20000
-        const unbindCalls = envelopes.entries.filter(entry => entry.url.endsWith(UNBIND_EMAIL_SECURITY))
+        const unbindCalls = envelopes.entries.filter((entry) =>
+          entry.url.endsWith(UNBIND_EMAIL_SECURITY),
+        )
         expect(
-          unbindCalls.map(entry => entry.code),
+          unbindCalls.map((entry) => entry.code),
           '错码时原解绑请求应一直挂着（只有 40119，没有重放）',
         ).toEqual([WalnutAdminConstAppResponseCode.UNAUTHORIZED_SENSITIVE_VERIFICATION_REQUIRED])
 
         // ③ 业务状态没被动过：身份行还在、没有授权键
-        expect(await countSecurityIdentity(user.userId, 'emailAddress'), '错码不应删掉身份行').toBe(1)
+        expect(await countSecurityIdentity(user.userId, 'emailAddress'), '错码不应删掉身份行').toBe(
+          1,
+        )
         expect(await hasSensitiveGrant(user.userId, deviceId), '错码不应写授权键').toBe(false)
 
         // ④ 恢复：改对码 → 弹窗关闭 → 挂着的原请求被重放并成功
         await typeOtp(page, code)
-        await expect(page.locator(VERIFY_CODE_BOX), '正确验证码应关闭弹窗').toBeHidden({ timeout: 20_000 })
+        await expect(page.locator(VERIFY_CODE_BOX), '正确验证码应关闭弹窗').toBeHidden({
+          timeout: 20_000,
+        })
         await waitForEnvelope(
           envelopes.entries,
-          entry => entry.url.endsWith(UNBIND_EMAIL_SECURITY) && entry.code === WalnutAdminConstAppResponseCode.SUCCESS,
+          (entry) =>
+            entry.url.endsWith(UNBIND_EMAIL_SECURITY) &&
+            entry.code === WalnutAdminConstAppResponseCode.SUCCESS,
           20_000,
         )
-        expect(await countSecurityIdentity(user.userId, 'emailAddress'), '验证通过后身份行应删除').toBe(0)
-      }
-      finally {
+        expect(
+          await countSecurityIdentity(user.userId, 'emailAddress'),
+          '验证通过后身份行应删除',
+        ).toBe(0)
+      } finally {
         envelopes.stop()
       }
-    }
-    finally {
+    } finally {
       await context.close()
       await deleteVerifyCode(user.userId, user.email)
       await deleteLoginableUser(user)

@@ -22,16 +22,15 @@ const appStoreSettingDev = useAppStoreSettingDev()
 const userStorePreference = useAppStoreUserPreference()
 const appStoreAdapter = useAppStoreAdapter()
 
-const { scrollRef, isOverflow, onScrollToCurrentTab, onUpdateOverflow }
-  = useTabs()
+const { scrollRef, isOverflow, onScrollToCurrentTab, onUpdateOverflow } = useTabs()
 
 const getShowUtils = computed(
   () =>
-    !appStoreAdapter.isMobile
-    && appStoreSettingDev.tabs.showUtils
-    && (appStoreSettingDev.tabs.utilsMode === AppConstTabUtilsShowMode.ALWAYS
-      || (appStoreSettingDev.tabs.utilsMode === AppConstTabUtilsShowMode.OVERFLOW
-        && isOverflow.value)),
+    !appStoreAdapter.isMobile &&
+    appStoreSettingDev.tabs.showUtils &&
+    (appStoreSettingDev.tabs.utilsMode === AppConstTabUtilsShowMode.ALWAYS ||
+      (appStoreSettingDev.tabs.utilsMode === AppConstTabUtilsShowMode.OVERFLOW &&
+        isOverflow.value)),
 )
 
 const getTabsWidth = computed(() =>
@@ -40,23 +39,14 @@ const getTabsWidth = computed(() =>
     : `calc(100vw - ${appStoreSettingDev.getMenuWidth}rem - ${getShowUtils.value ? '120px' : ''})`,
 )
 
-const {
-  devToolShow,
-  currentMouseTab,
-  currentMouseTabIndex,
-  onOpenDevTool,
-  onOpenFile,
-} = useTabsDevTools()
+const { devToolShow, currentMouseTab, currentMouseTabIndex, onOpenDevTool, onOpenFile } =
+  useTabsDevTools()
 
 const { onTabClick, onTabRemove } = useTabsActions(onUpdateOverflow)
 
-const { x, y, ctxMenuShow, onOpenCtxMenu, onCloseCtxMenu }
-  = useTabsContextMenu()
+const { x, y, ctxMenuShow, onOpenCtxMenu, onCloseCtxMenu } = useTabsContextMenu()
 
-const { leftUtils, rightUtils } = useTabsUtils(
-  scrollRef,
-  onScrollToCurrentTab,
-)
+const { leftUtils, rightUtils } = useTabsUtils(scrollRef, onScrollToCurrentTab)
 
 // tab persistent
 useTabsPersistent()
@@ -96,7 +86,11 @@ setTabsContext({
       <div class="h-full hstack justify-between">
         <!-- left utils -->
         <WTransition appear transition-name="fade-left">
-          <TabsUtils v-if="getShowUtils" class="hstack flex-none justify-start" :lists="leftUtils" />
+          <TabsUtils
+            v-if="getShowUtils"
+            class="hstack flex-none justify-start"
+            :lists="leftUtils"
+          />
         </WTransition>
 
         <!-- main tab content -->

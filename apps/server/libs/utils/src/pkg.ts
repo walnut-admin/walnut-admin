@@ -9,8 +9,7 @@ export function getPackageJsonData(): Recordable {
     const packageJsonContent = fs.readFileSync(packageJsonPath, 'utf8')
     const packageJsonObject = JSON.parse(packageJsonContent) as Recordable
     return packageJsonObject
-  }
-  catch (error) {
+  } catch (error) {
     // F-16：此处**保留** console —— 本函数在模块求值期被调用（`libs/config` 的
     // middleware.config.ts、`libs/cookie` 的 cookie.service.ts 都在模块顶层调
     // `getPackageJsonData()`），早于 `app.useLogger()` 装自定义 Logger 的时机；那时 Nest

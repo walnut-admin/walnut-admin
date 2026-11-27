@@ -12,10 +12,6 @@ defineProps<{
 <template>
   <template v-for="(seg, i) in segments" :key="i">
     <div v-if="seg.type === 'text'" v-html="seg.html" />
-    <CodeBlock
-      v-else
-      :language="seg.language"
-      :code="seg.code"
-    />
+    <CodeBlock v-else :language="seg.language" :code="seg.code" />
   </template>
 </template>

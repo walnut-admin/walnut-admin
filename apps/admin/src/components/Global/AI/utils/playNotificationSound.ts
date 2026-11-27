@@ -3,8 +3,7 @@ import { NOTIFICATION_SOUND_URL } from '../config/constants'
 let audio: HTMLAudioElement | null = null
 
 function getAudio(): HTMLAudioElement | null {
-  if (!NOTIFICATION_SOUND_URL)
-    return null
+  if (!NOTIFICATION_SOUND_URL) return null
 
   if (!audio) {
     audio = new Audio(NOTIFICATION_SOUND_URL)
@@ -15,8 +14,7 @@ function getAudio(): HTMLAudioElement | null {
 
 export function playNotificationSound(): void {
   const el = getAudio()
-  if (!el)
-    return
+  if (!el) return
 
   el.currentTime = 0
   el.play().catch(() => {

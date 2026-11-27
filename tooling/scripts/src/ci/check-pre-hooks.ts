@@ -33,12 +33,12 @@ export interface Finding {
 }
 
 /** 「消费者」的文案（从数据派生，避免文案与名单脱节） */
-const CONSUMER_NAMES = PRE_HOOK_CONSUMERS.map(c => c.bin).join(' / ')
+const CONSUMER_NAMES = PRE_HOOK_CONSUMERS.map((c) => c.bin).join(' / ')
 
 /** 例外子命令的文案（同样从数据派生） */
-const EXEMPT_NAMES = PRE_HOOK_CONSUMERS
-  .flatMap(c => (c.exemptSubcommands ?? []).map(sub => `\`${c.bin} ${sub}\``))
-  .join(' / ')
+const EXEMPT_NAMES = PRE_HOOK_CONSUMERS.flatMap((c) =>
+  (c.exemptSubcommands ?? []).map((sub) => `\`${c.bin} ${sub}\``),
+).join(' / ')
 
 /** 这个包有没有「必须先跑」的生成物（判据 = 有没有 `build/generate/` 目录） */
 const GENERATOR_DIR = 'build/generate'
@@ -80,29 +80,24 @@ export function findingsForPackage(
   consumers: readonly PreHookConsumer[] = PRE_HOOK_CONSUMERS,
 ): Finding[] {
   // ① 没有生成物的包不管 —— 它跑消费者也读不到什么"还没生成"的东西
-  if (!facts.hasGenerators)
-    return []
+  if (!facts.hasGenerators) return []
 
   // 查表：bin ⇒ 该消费者（连带它的例外子命令与理由）
-  const consumerByBin = new Map(consumers.map(c => [c.bin, c]))
+  const consumerByBin = new Map(consumers.map((c) => [c.bin, c]))
 
   const findings: Finding[] = []
   for (const [name, command] of Object.entries(facts.scripts)) {
     // `pre*` / `post*` 自己不是入口（只有入口才需要钩子）
-    if (isLifecycleHook(name, facts.scripts))
-      continue
+    if (isLifecycleHook(name, facts.scripts)) continue
 
     const tokens = execTokens(command)
     const bin = tokens[0]
-    if (bin === undefined)
-      continue
+    if (bin === undefined) continue
     const consumer = consumerByBin.get(bin)
-    if (consumer === undefined)
-      continue
+    if (consumer === undefined) continue
     // ③ 例外子命令伺服的是已构建产物（`vite preview` 这类；名单在数据里）
     const subcommand = tokens[1]
-    if (subcommand !== undefined && consumer.exemptSubcommands?.includes(subcommand))
-      continue
+    if (subcommand !== undefined && consumer.exemptSubcommands?.includes(subcommand)) continue
 
     const hook = facts.scripts[`pre${name}`]
     if (hook === undefined) {
@@ -129,12 +124,14 @@ export function collectFindings(cwd = REPO_ROOT): Finding[] {
   const findings: Finding[] = []
   for (const pkg of workspacePackages()) {
     const dir = path.join(cwd, pkg.dir)
-    findings.push(...findingsForPackage({
-      label: pkg.manifest.name ?? pkg.dir,
-      scripts: pkg.manifest.scripts ?? {},
-      hasGenerators: existsSync(path.join(dir, GENERATOR_DIR)),
-      fileExists: rel => existsSync(path.join(dir, rel)),
-    }))
+    findings.push(
+      ...findingsForPackage({
+        label: pkg.manifest.name ?? pkg.dir,
+        scripts: pkg.manifest.scripts ?? {},
+        hasGenerators: existsSync(path.join(dir, GENERATOR_DIR)),
+        fileExists: (rel) => existsSync(path.join(dir, rel)),
+      }),
+    )
   }
   return findings
 }
@@ -144,7 +141,9 @@ export function main(): void {
 
   if (findings.length === 0) {
     line('ok', `脚本前置钩子：有生成物的包，跑 ${CONSUMER_NAMES} 的脚本都接了生成步骤`)
-    out(`  （判据：包内有 \`build/generate/\` ⇒ 它的 ${CONSUMER_NAMES} 脚本必须有 \`pre<script>\`${EXEMPT_NAMES === '' ? '' : `；${EXEMPT_NAMES} 除外`}）`)
+    out(
+      `  （判据：包内有 \`build/generate/\` ⇒ 它的 ${CONSUMER_NAMES} 脚本必须有 \`pre<script>\`${EXEMPT_NAMES === '' ? '' : `；${EXEMPT_NAMES} 除外`}）`,
+    )
     return
   }
 
@@ -152,6 +151,8 @@ export function main(): void {
   for (const f of findings) err(`  [${f.rule}] ${f.detail}`)
   err('\n判据见 tooling/scripts/src/ci/check-pre-hooks.ts；')
   err('消费者名单（唯一真源，新增消费者只改它）见 tooling/scripts/src/ci/pre-hook-consumers.ts；')
-  err('这次事故的来龙去脉见 apps/docs/src/zh-CN/content/monorepo/architecture-todo.md 的 2026-09-24 执行记录')
+  err(
+    '这次事故的来龙去脉见 apps/docs/src/zh-CN/content/monorepo/architecture-todo.md 的 2026-09-24 执行记录',
+  )
   throw new ViolationError(`脚本前置钩子有 ${findings.length} 处问题（明细见上）`)
 }

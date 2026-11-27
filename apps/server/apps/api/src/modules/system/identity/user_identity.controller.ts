@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Request } from '@nestjs/common'
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Put,
+  Request,
+} from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 
@@ -45,7 +56,10 @@ export class SysUserIdentityController {
     // F-03（2026-10-30）：行实体无 @Expose，直返曾被全局 ClassSerializer（excludeExtraneousValues）
     // 在出站剥成 `[{}]`。plainToInstance 挂专用 list DTO 的 Expose 元数据（AppMonitorUserController.list
     // 同款手法），行 = RealPickType 安全字段子集 —— value（AES 密文）/ valueHash（HMAC 查找键）不进 wire。
-    return plainToInstance(SysUserIdentityListResponseDTO, await this.userIdentityService.list({ ...dto, userId: user.userId }))
+    return plainToInstance(
+      SysUserIdentityListResponseDTO,
+      await this.userIdentityService.list({ ...dto, userId: user.userId }),
+    )
   }
 
   @Get('status/:purpose')
@@ -61,7 +75,9 @@ export class SysUserIdentityController {
     @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose))
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
   ) {
-    return new SysUserIdentityStatusResponseDTO(await this.userIdentityService.getStatus(user.userId, purpose, ctx.em))
+    return new SysUserIdentityStatusResponseDTO(
+      await this.userIdentityService.getStatus(user.userId, purpose, ctx.em),
+    )
   }
 
   @Post('check/:type/:purpose')
@@ -73,8 +89,10 @@ export class SysUserIdentityController {
   async check(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @Request() req: IWalnutAdminExpressRequest,
-    @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType)) type: IWalnutAdminConstSysUserIdentityType,
-    @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
+    @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType))
+    type: IWalnutAdminConstSysUserIdentityType,
+    @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose))
+    purpose: IWalnutAdminConstSysUserIdentityPurpose,
     @Body() dto: SysUserIdentityCheckRequestDTO,
   ) {
     await this.userIdentityService.check(user.userId, type, purpose, dto, req.language)
@@ -91,8 +109,10 @@ export class SysUserIdentityController {
   async bind(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutTxSession() ctx: WalnutTxContext,
-    @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType)) type: IWalnutAdminConstSysUserIdentityType,
-    @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
+    @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType))
+    type: IWalnutAdminConstSysUserIdentityType,
+    @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose))
+    purpose: IWalnutAdminConstSysUserIdentityPurpose,
     @Body() dto: SysUserIdentityBindRequestDTO,
   ) {
     await this.userIdentityService.bind(user.userId, type, purpose, dto, ctx.em)
@@ -117,8 +137,10 @@ export class SysUserIdentityController {
   async unbind(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutTxSession() ctx: WalnutTxContext,
-    @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType)) type: IWalnutAdminConstSysUserIdentityType,
-    @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
+    @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType))
+    type: IWalnutAdminConstSysUserIdentityType,
+    @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose))
+    purpose: IWalnutAdminConstSysUserIdentityPurpose,
   ) {
     await this.userIdentityService.unbind(user.userId, type, purpose, ctx.em)
     return true
@@ -141,8 +163,10 @@ export class SysUserIdentityController {
   async update(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutTxSession() ctx: WalnutTxContext,
-    @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType)) type: IWalnutAdminConstSysUserIdentityType,
-    @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
+    @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType))
+    type: IWalnutAdminConstSysUserIdentityType,
+    @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose))
+    purpose: IWalnutAdminConstSysUserIdentityPurpose,
     @Body() dto: SysUserIdentityUpdateDTO,
   ) {
     await this.userIdentityService.update(user.userId, type, purpose, dto, ctx.em)
@@ -159,8 +183,10 @@ export class SysUserIdentityController {
   async sendCode(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @Request() req: IWalnutAdminExpressRequest,
-    @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType)) type: IWalnutAdminConstSysUserIdentityType,
-    @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
+    @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType))
+    type: IWalnutAdminConstSysUserIdentityType,
+    @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose))
+    purpose: IWalnutAdminConstSysUserIdentityPurpose,
   ) {
     await this.userIdentityService.sendCode(user.userId, type, purpose, req.language)
     return true
@@ -176,8 +202,10 @@ export class SysUserIdentityController {
   async verify(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutTxSession() ctx: WalnutTxContext,
-    @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType)) type: IWalnutAdminConstSysUserIdentityType,
-    @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
+    @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType))
+    type: IWalnutAdminConstSysUserIdentityType,
+    @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose))
+    purpose: IWalnutAdminConstSysUserIdentityPurpose,
     @Body() dto: SysUserIdentityVerifyRequestDTO,
   ) {
     await this.userIdentityService.verify(user.userId, type, purpose, dto, ctx.em)
@@ -199,8 +227,10 @@ export class SysUserIdentityController {
   async updateStatus(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutTxSession() ctx: WalnutTxContext,
-    @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType)) type: IWalnutAdminConstSysUserIdentityType,
-    @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
+    @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType))
+    type: IWalnutAdminConstSysUserIdentityType,
+    @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose))
+    purpose: IWalnutAdminConstSysUserIdentityPurpose,
     @Body() dto: SysUserIdentityStatusRequestDTO,
   ) {
     await this.userIdentityService.updateStatus(user.userId, type, purpose, dto, ctx.em)

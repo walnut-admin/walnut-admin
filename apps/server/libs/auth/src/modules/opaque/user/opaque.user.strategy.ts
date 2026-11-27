@@ -13,9 +13,7 @@ export class AuthOpaqueUserStrategy extends PassportStrategy(
 ) {
   private readonly logger = new Logger(AuthOpaqueUserStrategy.name)
 
-  constructor(
-    private readonly authOpaqueUserService: AuthOpaqueUserService,
-  ) {
+  constructor(private readonly authOpaqueUserService: AuthOpaqueUserService) {
     super({
       usernameField: 'userName',
       passwordField: 'finish',
@@ -23,11 +21,7 @@ export class AuthOpaqueUserStrategy extends PassportStrategy(
     })
   }
 
-  async validate(
-    request: IWalnutAdminExpressRequest,
-    userName: string,
-    finish: string,
-  ) {
+  async validate(request: IWalnutAdminExpressRequest, userName: string, finish: string) {
     this.logger.log(`validate: ${userName}, ${finish}`)
 
     request.identifier = userName

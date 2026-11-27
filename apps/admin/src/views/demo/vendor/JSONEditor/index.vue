@@ -16,9 +16,7 @@ const jsonValue = ref({
   <WDemoCard title="JSON Editor Demo">
     <n-list>
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Basic
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Basic </WTitle>
 
         <WJSON :value="jsonValue" class="mb-2" />
 
@@ -26,9 +24,7 @@ const jsonValue = ref({
       </n-list-item>
 
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Readonly
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Readonly </WTitle>
 
         <WJSON :value="jsonValue" class="mb-2" />
 
@@ -36,9 +32,7 @@ const jsonValue = ref({
       </n-list-item>
 
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Button
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Button </WTitle>
 
         <WJSON :value="jsonValue" class="mb-2" />
 

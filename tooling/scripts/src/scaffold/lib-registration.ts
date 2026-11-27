@@ -59,10 +59,10 @@ export interface ScaffoldFile {
 
 /** 可自动登记的层。键就是 `--layer` 的取值 */
 export const SCAFFOLD_LAYERS = {
-  'infra': { list: 'INFRA_LIBS', literal: null },
+  infra: { list: 'INFRA_LIBS', literal: null },
   'tech-base': { list: 'TECH_BASE_LIBS', literal: null },
   'tech-assemble': { list: 'TECH_ASSEMBLE_LIBS', literal: null },
-  'guards': { list: 'TOP_LIBS', literal: 'guards' },
+  guards: { list: 'TOP_LIBS', literal: 'guards' },
   'app-domain': { list: 'TOP_LIBS', literal: 'app-domain' },
 } as const
 
@@ -77,7 +77,9 @@ const NAME_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/
 
 export function assertLibName(name: string): void {
   if (!NAME_PATTERN.test(name))
-    throw new Error(`lib 名 ${name} 不是小写 kebab-case（例：scope-resolver）。drift 守卫按 [\\w-]+ 解析别名，其它字符会被静默忽略`)
+    throw new Error(
+      `lib 名 ${name} 不是小写 kebab-case（例：scope-resolver）。drift 守卫按 [\\w-]+ 解析别名，其它字符会被静默忽略`,
+    )
 }
 
 /** 从 openAt 处的 `[` / `{` 找到配对的闭合符号下标（跳过字符串字面量） */
@@ -89,20 +91,17 @@ function closeBracketAfter(text: string, openAt: number): number {
   for (let i = openAt; i < text.length; i++) {
     const char = text[i]
     if (quote !== null) {
-      if (char === '\\')
-        i++
-      else if (char === quote)
-        quote = null
+      if (char === '\\') i++
+      else if (char === quote) quote = null
       continue
     }
-    if (char === '"' || char === '\'') {
+    if (char === '"' || char === "'") {
       quote = char
       continue
     }
     if (char === open) {
       depth++
-    }
-    else if (char === close && --depth === 0) {
+    } else if (char === close && --depth === 0) {
       return i
     }
   }
@@ -113,8 +112,7 @@ function closeBracketAfter(text: string, openAt: number): number {
 function indentAt(text: string, index: number): string {
   const lineStart = text.lastIndexOf('\n', index - 1) + 1
   let end = lineStart
-  while (text[end] === ' ' || text[end] === '\t')
-    end++
+  while (text[end] === ' ' || text[end] === '\t') end++
   return text.slice(lineStart, end)
 }
 
@@ -134,11 +132,15 @@ function lastIndexOfFrom(text: string, needle: string, from?: number): number {
  * 逗号由锚点现状决定：锚点后面已经有逗号 ⇒ 新条目不是最后一个 ⇒ 新条目补尾逗号；
  * 没有逗号 ⇒ 锚点是最后一个 ⇒ 给锚点补逗号、新条目不补。
  */
-function insertJsonEntries(text: string, anchorEnd: number, entries: readonly string[], eol: string): string {
+function insertJsonEntries(
+  text: string,
+  anchorEnd: number,
+  entries: readonly string[],
+  eol: string,
+): string {
   const rest = text.slice(anchorEnd)
   let spaces = 0
-  while (rest[spaces] === ' ' || rest[spaces] === '\t')
-    spaces++
+  while (rest[spaces] === ' ' || rest[spaces] === '\t') spaces++
   const hasComma = rest[spaces] === ','
   const block = entries.join(`,${eol}`) + (hasComma ? ',' : '')
   if (hasComma) {
@@ -155,12 +157,13 @@ function detectEol(text: string): string {
 /** ① apps/server/tsconfig.json 的 compilerOptions.paths（两个键：根 + 子路径） */
 export function insertTsconfigPaths(text: string, name: string, eol = '\n'): string {
   const alias = `"` + `@walnut-server/${name}"`
-  if (text.includes(alias))
-    return text
+  if (text.includes(alias)) return text
 
   const anchorKey = lastIndexOfFrom(text, '/*": [')
   if (anchorKey < 0)
-    throw new Error('tsconfig.json 里找不到任何 @walnut-server/<lib>/* 别名锚点（找不到锚点就不能安全插入）')
+    throw new Error(
+      'tsconfig.json 里找不到任何 @walnut-server/<lib>/* 别名锚点（找不到锚点就不能安全插入）',
+    )
 
   const keyAt = text.lastIndexOf('"@walnut-server/', anchorKey)
   const openAt = indexOfNth(text, '[', keyAt)
@@ -168,42 +171,48 @@ export function insertTsconfigPaths(text: string, name: string, eol = '\n'): str
   const indent = indentAt(text, keyAt)
   const inner = `${indent}  `
 
-  return insertJsonEntries(text, closeAt + 1, [
-    `${indent}"@walnut-server/${name}": [${eol}${inner}"./libs/${name}/src"${eol}${indent}]`,
-    `${indent}"@walnut-server/${name}/*": [${eol}${inner}"./libs/${name}/src/*"${eol}${indent}]`,
-  ], eol)
+  return insertJsonEntries(
+    text,
+    closeAt + 1,
+    [
+      `${indent}"@walnut-server/${name}": [${eol}${inner}"./libs/${name}/src"${eol}${indent}]`,
+      `${indent}"@walnut-server/${name}/*": [${eol}${inner}"./libs/${name}/src/*"${eol}${indent}]`,
+    ],
+    eol,
+  )
 }
 
 /** ④ infra/swc/*.swcrc 的 jsc.paths（单行条目，两个键） */
 export function insertSwcPaths(text: string, name: string, eol = '\n'): string {
   const alias = `"` + `@walnut-server/${name}"`
-  if (text.includes(alias))
-    return text
+  if (text.includes(alias)) return text
 
   const anchorKey = lastIndexOfFrom(text, '/*": [')
-  if (anchorKey < 0)
-    throw new Error('swcrc 里找不到任何 @walnut-server/<lib>/* 别名锚点')
+  if (anchorKey < 0) throw new Error('swcrc 里找不到任何 @walnut-server/<lib>/* 别名锚点')
 
   const keyAt = text.lastIndexOf('"@walnut-server/', anchorKey)
   const openAt = indexOfNth(text, '[', keyAt)
   const closeAt = closeBracketAfter(text, openAt)
   const indent = indentAt(text, keyAt)
 
-  return insertJsonEntries(text, closeAt + 1, [
-    `${indent}"@walnut-server/${name}": ["libs/${name}/src"]`,
-    `${indent}"@walnut-server/${name}/*": ["libs/${name}/src/*"]`,
-  ], eol)
+  return insertJsonEntries(
+    text,
+    closeAt + 1,
+    [
+      `${indent}"@walnut-server/${name}": ["libs/${name}/src"]`,
+      `${indent}"@walnut-server/${name}/*": ["libs/${name}/src/*"]`,
+    ],
+    eol,
+  )
 }
 
 /** ② infra/nest/*.json 的 filenames（锚点只在 filenames 数组内 —— projects 里也有同形的 libs/<x>/src） */
 export function insertNestFilenames(text: string, name: string, eol = '\n'): string {
   const entry = `"libs/${name}/src"`
-  if (text.includes(`${entry},`) || text.includes(`${entry}\n`))
-    return text
+  if (text.includes(`${entry},`) || text.includes(`${entry}\n`)) return text
 
   const arrayAt = indexOfNth(text, '"filenames": [', 0)
-  if (arrayAt < 0)
-    throw new Error('nest json 里找不到 "filenames": [')
+  if (arrayAt < 0) throw new Error('nest json 里找不到 "filenames": [')
   const openAt = indexOfNth(text, '[', arrayAt)
   const closeAt = closeBracketAfter(text, openAt)
 
@@ -219,12 +228,10 @@ export function insertNestFilenames(text: string, name: string, eol = '\n'): str
 /** ③ infra/nest/*.json 的 projects（8 行 library 块，插在最后一个 library 项目之后） */
 export function insertNestProject(text: string, name: string, eol = '\n'): string {
   const tsConfigPath = `"libs/${name}/tsconfig.lib.json"`
-  if (text.includes(tsConfigPath))
-    return text
+  if (text.includes(tsConfigPath)) return text
 
   const projectsAt = indexOfNth(text, '"projects": {', 0)
-  if (projectsAt < 0)
-    throw new Error('nest json 里找不到 "projects": {')
+  if (projectsAt < 0) throw new Error('nest json 里找不到 "projects": {')
 
   const typeAt = lastIndexOfFrom(text, '"type": "library"')
   if (typeAt < projectsAt)
@@ -237,8 +244,7 @@ export function insertNestProject(text: string, name: string, eol = '\n'): strin
     const char = text[i]
     if (char === '}') {
       depth++
-    }
-    else if (char === '{') {
+    } else if (char === '{') {
       if (depth === 0) {
         objectOpen = i
         break
@@ -246,8 +252,7 @@ export function insertNestProject(text: string, name: string, eol = '\n'): strin
       depth--
     }
   }
-  if (objectOpen < 0)
-    throw new Error('找不到 library 项目对象的起始花括号')
+  if (objectOpen < 0) throw new Error('找不到 library 项目对象的起始花括号')
 
   const objectClose = closeBracketAfter(text, objectOpen)
   const indent = indentAt(text, objectOpen)
@@ -272,12 +277,10 @@ export function insertNestProject(text: string, name: string, eol = '\n'): strin
 /** ⑤ apps/{api,cli,worker}/tsconfig.app.json 的 include */
 export function insertAppInclude(text: string, name: string, eol = '\n'): string {
   const entry = `"../../libs/${name}/src/**/*"`
-  if (text.includes(entry))
-    return text
+  if (text.includes(entry)) return text
 
   const includeAt = indexOfNth(text, '"include": [', 0)
-  if (includeAt < 0)
-    throw new Error('tsconfig.app.json 里找不到 "include": [')
+  if (includeAt < 0) throw new Error('tsconfig.app.json 里找不到 "include": [')
   const openAt = indexOfNth(text, '[', includeAt)
   const closeAt = closeBracketAfter(text, openAt)
 
@@ -295,15 +298,12 @@ export function insertAppInclude(text: string, name: string, eol = '\n'): string
 export function insertLayerList(text: string, listName: string, name: string): string {
   const head = `const ${listName} = [`
   const at = indexOfNth(text, head, 0)
-  if (at < 0)
-    throw new Error(`eslint.config.ts 里找不到 ${listName} 的单行字面量数组`)
+  if (at < 0) throw new Error(`eslint.config.ts 里找不到 ${listName} 的单行字面量数组`)
   const bodyStart = at + head.length
   const bodyEnd = indexOfNth(text, ']', bodyStart)
-  if (bodyEnd < 0)
-    throw new Error(`${listName} 的数组没有闭合方括号`)
+  if (bodyEnd < 0) throw new Error(`${listName} 的数组没有闭合方括号`)
   const body = text.slice(bodyStart, bodyEnd)
-  if (body.includes(`'${name}'`))
-    return text
+  if (body.includes(`'${name}'`)) return text
   const separator = body.trimEnd() === '' ? '' : ', '
   return `${text.slice(0, bodyStart) + body + separator}'${name}'${text.slice(bodyEnd)}`
 }
@@ -312,13 +312,11 @@ export function insertLayerList(text: string, listName: string, name: string): s
 export function insertLayerLiteral(text: string, layer: string, name: string): string {
   const head = `layer('${layer}', [`
   const at = indexOfNth(text, head, 0)
-  if (at < 0)
-    throw new Error(`eslint.config.ts 里找不到 ${head}]) 的调用`)
+  if (at < 0) throw new Error(`eslint.config.ts 里找不到 ${head}]) 的调用`)
   const bodyStart = at + head.length
   const bodyEnd = indexOfNth(text, ']', bodyStart)
   const body = text.slice(bodyStart, bodyEnd)
-  if (body.includes(`'${name}'`))
-    return text
+  if (body.includes(`'${name}'`)) return text
   return `${text.slice(0, bodyStart) + body}, ` + `'${name}'${text.slice(bodyEnd)}`
 }
 
@@ -326,15 +324,12 @@ export function insertLayerLiteral(text: string, layer: string, name: string): s
 export function insertMatrixRow(text: string, layer: string, name: string): string {
   const head = `{ name: '${layer}', libs: [`
   const at = indexOfNth(text, head, 0)
-  if (at < 0)
-    throw new Error(`drift spec 的 LAYER_MATRIX 里找不到层 ${layer}`)
+  if (at < 0) throw new Error(`drift spec 的 LAYER_MATRIX 里找不到层 ${layer}`)
   const bodyStart = at + head.length
   const bodyEnd = indexOfNth(text, '] }', bodyStart)
-  if (bodyEnd < 0)
-    throw new Error(`LAYER_MATRIX 里层 ${layer} 的 libs 数组没有以 ] } 收尾`)
+  if (bodyEnd < 0) throw new Error(`LAYER_MATRIX 里层 ${layer} 的 libs 数组没有以 ] } 收尾`)
   const body = text.slice(bodyStart, bodyEnd)
-  if (body.includes(`'${name}'`))
-    return text
+  if (body.includes(`'${name}'`)) return text
   return `${text.slice(0, bodyStart) + body}, ` + `'${name}'${text.slice(bodyEnd)}`
 }
 
@@ -400,15 +395,23 @@ export function planScaffold(root: string, name: string, layer: ScaffoldLayer): 
 
   const spec = SCAFFOLD_LAYERS[layer]
   const files: ScaffoldFile[] = [
-    map(SERVER_TSCONFIG, text => insertTsconfigPaths(text, name, detectEol(text))),
-    ...NEST_CONFIGS.map(relative => map(relative, text => insertNestProject(insertNestFilenames(text, name, detectEol(text)), name, detectEol(text)))),
-    ...SWCRC_CONFIGS.map(relative => map(relative, text => insertSwcPaths(text, name, detectEol(text)))),
-    ...APP_TSCONFIGS.map(relative => map(relative, text => insertAppInclude(text, name, detectEol(text)))),
+    map(SERVER_TSCONFIG, (text) => insertTsconfigPaths(text, name, detectEol(text))),
+    ...NEST_CONFIGS.map((relative) =>
+      map(relative, (text) =>
+        insertNestProject(insertNestFilenames(text, name, detectEol(text)), name, detectEol(text)),
+      ),
+    ),
+    ...SWCRC_CONFIGS.map((relative) =>
+      map(relative, (text) => insertSwcPaths(text, name, detectEol(text))),
+    ),
+    ...APP_TSCONFIGS.map((relative) =>
+      map(relative, (text) => insertAppInclude(text, name, detectEol(text))),
+    ),
     map(SERVER_ESLINT, (text) => {
       const withList = insertLayerList(text, spec.list, name)
       return spec.literal === null ? withList : insertLayerLiteral(withList, spec.literal, name)
     }),
-    map(DRIFT_SPEC, text => insertMatrixRow(text, layer, name)),
+    map(DRIFT_SPEC, (text) => insertMatrixRow(text, layer, name)),
   ]
 
   const tsconfigLib = `apps/server/libs/${name}/tsconfig.lib.json`
@@ -429,7 +432,7 @@ export function planScaffold(root: string, name: string, layer: ScaffoldLayer): 
 
 /** 把待写清单落盘，返回真正发生变化的文件（幂等：第二次调用返回空数组） */
 export function applyScaffold(root: string, files: readonly ScaffoldFile[]): ScaffoldFile[] {
-  const changed = files.filter(file => file.before !== file.after)
+  const changed = files.filter((file) => file.before !== file.after)
   for (const file of changed) {
     const absolute = path.join(root, file.path)
     mkdirSync(path.dirname(absolute), { recursive: true })

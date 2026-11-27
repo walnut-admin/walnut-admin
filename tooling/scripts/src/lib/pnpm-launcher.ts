@@ -27,14 +27,11 @@ const WIN_EXECUTABLE = /\.(?:exe|com)$/i
 /** 这个路径能不能被 `spawn(bin, args)` 直接起（argv 原样、不经 shell） */
 function isRunnable(path: string): boolean {
   try {
-    if (!statSync(path).isFile())
-      return false
-  }
-  catch {
+    if (!statSync(path).isFile()) return false
+  } catch {
     return false
   }
-  if (JS_ENTRY.test(path))
-    return false
+  if (JS_ENTRY.test(path)) return false
   return process.platform !== 'win32' || WIN_EXECUTABLE.test(path)
 }
 
@@ -45,16 +42,17 @@ function isRunnable(path: string): boolean {
 function pnpmCandidates(): string[] {
   const found: string[] = []
   const fromEnv = process.env.npm_execpath
-  if (fromEnv)
-    found.push(fromEnv)
-  const dirs = [dirname(process.execPath), ...(process.env.PATH ?? '').split(delimiter).filter(Boolean)]
+  if (fromEnv) found.push(fromEnv)
+  const dirs = [
+    dirname(process.execPath),
+    ...(process.env.PATH ?? '').split(delimiter).filter(Boolean),
+  ]
   for (const dir of dirs) {
     if (process.platform === 'win32') {
       // `pnpm.cmd` 与 node.exe 同目录时，真 exe 在其 node_modules 下；两种布局都试
       found.push(join(dir, 'node_modules', 'pnpm', 'pnpm.exe'))
       found.push(join(dir, 'pnpm.exe'))
-    }
-    else {
+    } else {
       found.push(join(dir, 'pnpm'))
     }
   }
@@ -65,14 +63,13 @@ function pnpmCandidates(): string[] {
 export function getPnpmBin(): string {
   const candidates = pnpmCandidates()
   const found = candidates.find(isRunnable)
-  if (found)
-    return resolve(found)
+  if (found) return resolve(found)
   throw new PreconditionError(
-    '找不到 pnpm 的可执行文件（拒绝退回 `shell: true`：cmd.exe 会展开参数里的 `%VAR%`，'
-    + '凭据 / 任意环境变量都可能因此进子进程命令行）。\n'
-    + `   已找过：\n${candidates.map(c => `     · ${c}`).join('\n')}\n`
-    + '   修法：用 pnpm 启动本脚本（会带上 `npm_execpath`），或把全局 pnpm 装回 node 安装目录'
-    + '（Windows：`npm i -g pnpm` 后确认 `node_modules/pnpm/pnpm.exe` 存在），'
-    + '或用 `corepack enable pnpm` 让 `node` 旁边重新出现 pnpm。',
+    '找不到 pnpm 的可执行文件（拒绝退回 `shell: true`：cmd.exe 会展开参数里的 `%VAR%`，' +
+      '凭据 / 任意环境变量都可能因此进子进程命令行）。\n' +
+      `   已找过：\n${candidates.map((c) => `     · ${c}`).join('\n')}\n` +
+      '   修法：用 pnpm 启动本脚本（会带上 `npm_execpath`），或把全局 pnpm 装回 node 安装目录' +
+      '（Windows：`npm i -g pnpm` 后确认 `node_modules/pnpm/pnpm.exe` 存在），' +
+      '或用 `corepack enable pnpm` 让 `node` 旁边重新出现 pnpm。',
   )
 }

@@ -23,10 +23,8 @@ const getSize = computed(() => {
   const raw = props.width ?? props.height ?? 24
 
   //  transform string to number
-  const px
-    = typeof raw === 'number'
-      ? raw
-      : Number.parseFloat(String(raw).replace(/[^0-9.]/g, '')) || 24
+  const px =
+    typeof raw === 'number' ? raw : Number.parseFloat(String(raw).replace(/[^0-9.]/g, '')) || 24
 
   // transform to rem（core logic: divide by current font size）
   return `${px / userStorePreference.getFontSize}rem`
@@ -58,8 +56,7 @@ watch(
 )
 
 onUnmounted(() => {
-  if (loader.value)
-    loader.value()
+  if (loader.value) loader.value()
 })
 </script>
 

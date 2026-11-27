@@ -5,9 +5,7 @@ import { Expose } from 'class-transformer'
 import { WalnutAdminDecoratorTransformerString as WADTS } from '../transformer/base/string.transformer'
 import { WalnutAdminDecoratorValidatorString as WADVS } from '../validator/base/string.validator'
 
-export function WalnutAdminDecoratorFieldString(
-  options: IWADStrOpt,
-): PropertyDecorator {
+export function WalnutAdminDecoratorFieldString(options: IWADStrOpt): PropertyDecorator {
   const decorators = [
     // used for list request payload sort field key
     Expose(),

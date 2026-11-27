@@ -29,8 +29,7 @@ export function timeAgo(timestamp: number): string {
 }
 
 export function formatDate(isoStr: string): string {
-  if (!isoStr || isoStr === '-')
-    return '-'
+  if (!isoStr || isoStr === '-') return '-'
   try {
     const d = new Date(isoStr.replace(/\./g, '-'))
     const yyyy = d.getFullYear()
@@ -39,8 +38,7 @@ export function formatDate(isoStr: string): string {
     const hh = String(d.getHours()).padStart(2, '0')
     const min = String(d.getMinutes()).padStart(2, '0')
     return `${yyyy}-${mm}-${dd} ${hh}:${min}`
-  }
-  catch {
+  } catch {
     return isoStr
   }
 }
@@ -56,9 +54,9 @@ export function getStatusClass(code: number): string {
   return map[code] || 'status-default'
 }
 
-export type MarkdownSegment
-  = | { type: 'text', html: string }
-    | { type: 'code', language?: string, code: string }
+export type MarkdownSegment =
+  | { type: 'text'; html: string }
+  | { type: 'code'; language?: string; code: string }
 
 const formatCache = new LRUMap<string, string>(FORMAT_CACHE_MAX)
 const segmentCache = new LRUMap<string, MarkdownSegment[]>(FORMAT_CACHE_MAX)
@@ -80,8 +78,7 @@ function getMdWithHighlight(): MarkdownIt {
         if (lang && hljs?.getLanguage(lang)) {
           try {
             return `<pre><code class="hljs language-${lang}">${hljs.highlight(str, { language: lang }).value}</code></pre>`
-          }
-          catch {
+          } catch {
             return `<pre><code class="hljs">${escapeHtml(str)}</code></pre>`
           }
         }
@@ -117,8 +114,7 @@ function normalizeTableRows(lines: string[]): string[] {
 }
 
 function preprocessMarkdown(content: string): string {
-  if (/^<(?:h[1-6]|p|table|ul|ol|div)\b/.test(content))
-    return content
+  if (/^<(?:h[1-6]|p|table|ul|ol|div)\b/.test(content)) return content
   return normalizeTableRows(content.split('\n')).join('\n')
 }
 
@@ -130,8 +126,7 @@ export function splitMarkdown(
   const effectiveKey = skipHighlight && cacheKey ? `${cacheKey}:nohl` : cacheKey
   if (effectiveKey) {
     const cached = segmentCache.get(effectiveKey)
-    if (cached)
-      return cached
+    if (cached) return cached
   }
 
   const text = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
@@ -148,8 +143,7 @@ export function splitMarkdown(
       const preprocessed = preprocessMarkdown(before)
       try {
         segments.push({ type: 'text', html: parser.render(preprocessed).trim() })
-      }
-      catch {
+      } catch {
         segments.push({ type: 'text', html: escapeHtml(before).replace(/\n/g, '<br>') })
       }
     }
@@ -166,14 +160,12 @@ export function splitMarkdown(
     const preprocessed = preprocessMarkdown(after)
     try {
       segments.push({ type: 'text', html: parser.render(preprocessed).trim() })
-    }
-    catch {
+    } catch {
       segments.push({ type: 'text', html: escapeHtml(after).replace(/\n/g, '<br>') })
     }
   }
 
-  if (effectiveKey)
-    segmentCache.set(effectiveKey, segments)
+  if (effectiveKey) segmentCache.set(effectiveKey, segments)
 
   return segments
 }

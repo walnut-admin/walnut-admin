@@ -21,7 +21,7 @@ interface DecoratorLike {
   expression: {
     type: string
     name?: string
-    callee?: { type?: string, name?: string }
+    callee?: { type?: string; name?: string }
   }
   range: [number, number]
   loc: { start: { line: number } }
@@ -77,8 +77,7 @@ export function resolveLibRoot(cwd: string, filename: string): string | null {
 
   const rest = absolute.startsWith(`${libsRoot}/`) ? absolute.slice(libsRoot.length + 1) : ''
   const libName = rest.split('/')[0]
-  if (!libName)
-    return null
+  if (!libName) return null
 
   return `${libsRoot}/${libName}`
 }
@@ -155,11 +154,7 @@ const DEFAULT_PARAM_ORDER = [
 ]
 
 /** 类装饰器顺序 */
-const DEFAULT_CLASS_ORDER = [
-  'Controller',
-  'ApiTags',
-  'UseGuards',
-]
+const DEFAULT_CLASS_ORDER = ['Controller', 'ApiTags', 'UseGuards']
 
 const plugin: { rules: Record<string, Rule.RuleModule> } = {
   rules: {
@@ -170,14 +165,16 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
         docs: {
           description: 'Enforce consistent ordering of NestJS decorators',
         },
-        schema: [{
-          type: 'object',
-          properties: {
-            methodOrder: { type: 'array', items: { type: 'string' } },
-            paramOrder: { type: 'array', items: { type: 'string' } },
-            classOrder: { type: 'array', items: { type: 'string' } },
+        schema: [
+          {
+            type: 'object',
+            properties: {
+              methodOrder: { type: 'array', items: { type: 'string' } },
+              paramOrder: { type: 'array', items: { type: 'string' } },
+              classOrder: { type: 'array', items: { type: 'string' } },
+            },
           },
-        }],
+        ],
       },
 
       create(context) {
@@ -187,23 +184,21 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
         const classOrder = options.classOrder ?? DEFAULT_CLASS_ORDER
 
         function getPriority(name: string, orderArray: string[]): number {
-          const index = orderArray.findIndex(prefix => name.startsWith(prefix))
+          const index = orderArray.findIndex((prefix) => name.startsWith(prefix))
           return index === -1 ? orderArray.length : index
         }
 
         function extractName(decorator: DecoratorLike): string {
           if (decorator.expression.type === 'CallExpression')
             return decorator.expression.callee?.name ?? ''
-          if (decorator.expression.type === 'Identifier')
-            return decorator.expression.name ?? ''
+          if (decorator.expression.type === 'Identifier') return decorator.expression.name ?? ''
           return ''
         }
 
         /** 该节点所在行的缩进（`fix` 里拼多行文本时要用） */
         function getIndent(node: DecoratedLike): string {
           const startLine = node.loc.start.line
-          if (startLine === 1)
-            return ''
+          if (startLine === 1) return ''
 
           const sourceCode = context.sourceCode
           const lineStart = sourceCode.getIndexFromLoc({ line: startLine, column: 0 })
@@ -212,7 +207,10 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
           return /^\s*/.exec(line)?.[0] ?? ''
         }
 
-        function sortByPriority<T extends { name: string, idx: number }>(items: T[], orderArray: string[]): T[] {
+        function sortByPriority<T extends { name: string; idx: number }>(
+          items: T[],
+          orderArray: string[],
+        ): T[] {
           return [...items].sort((a, b) => {
             const priorityA = getPriority(a.name, orderArray)
             const priorityB = getPriority(b.name, orderArray)
@@ -220,10 +218,13 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
           })
         }
 
-        function handleClassOrMethodDecorators(node: DecoratedLike, orderArray: string[], nodeType: string): void {
+        function handleClassOrMethodDecorators(
+          node: DecoratedLike,
+          orderArray: string[],
+          nodeType: string,
+        ): void {
           const decorators = node.decorators
-          if (!decorators || decorators.length <= 1)
-            return
+          if (!decorators || decorators.length <= 1) return
 
           const entries = decorators.map((decorator, idx) => ({
             node: decorator,
@@ -233,8 +234,7 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
 
           const sorted = sortByPriority(entries, orderArray)
           const needsFix = entries.some((entry, index) => entry.name !== sorted[index]!.name)
-          if (!needsFix)
-            return
+          if (!needsFix) return
 
           context.report({
             // ESTree 的节点类型里没有 decorators / value 这些 TS-ESLint 扩展字段，
@@ -247,7 +247,7 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
               const last = decorators[decorators.length - 1]!
               const indent = getIndent(first)
 
-              const texts = sorted.map(entry => sourceCode.getText(entry.node as never))
+              const texts = sorted.map((entry) => sourceCode.getText(entry.node as never))
               const newText = texts.join(`\n${indent}`)
 
               return fixer.replaceTextRange([first.range[0], last.range[1]], newText)
@@ -268,12 +268,12 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
 
             // 2. 处理参数排序
             const params = method.value?.params
-            if (!params || params.length <= 1)
-              return
+            if (!params || params.length <= 1) return
 
             const entries = params.map((param, idx) => {
               // 处理解构参数
-              const actualParam: ParameterLike = param.type === 'AssignmentPattern' && param.left ? param.left : param
+              const actualParam: ParameterLike =
+                param.type === 'AssignmentPattern' && param.left ? param.left : param
               const decorators = actualParam.decorators ?? []
 
               // 获取参数的主要装饰器名称（第一个装饰器）
@@ -294,15 +294,15 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
 
             // 按装饰器优先级排序
             const sorted = [...entries].sort((a, b) => {
-              if (a.priority !== b.priority)
-                return a.priority - b.priority
+              if (a.priority !== b.priority) return a.priority - b.priority
               return a.idx - b.idx
             })
 
             // 检查是否需要重排
-            const needsFix = entries.some((entry, index) => entry.mainDecoratorName !== sorted[index]!.mainDecoratorName)
-            if (!needsFix)
-              return
+            const needsFix = entries.some(
+              (entry, index) => entry.mainDecoratorName !== sorted[index]!.mainDecoratorName,
+            )
+            if (!needsFix) return
 
             context.report({
               node: method.value as never,
@@ -316,7 +316,7 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
                 const paramIndent = getIndent(firstParam.node)
 
                 // 获取每个参数的完整文本（包括装饰器）
-                const paramTexts = sorted.map(entry =>
+                const paramTexts = sorted.map((entry) =>
                   sourceCode.text.substring(entry.fullRange[0], entry.fullRange[1]).trim(),
                 )
 
@@ -351,32 +351,30 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
       meta: {
         type: 'problem',
         docs: {
-          description: 'Disallow relative imports / re-exports that escape the current internal lib (libs/<name>)',
+          description:
+            'Disallow relative imports / re-exports that escape the current internal lib (libs/<name>)',
         },
         schema: [],
         messages: {
-          crossLib: '相对路径已逃出当前 lib：{{source}} 解析到 {{target}}。跨 lib 依赖请用 @walnut-server/* 别名，让分层门禁可见。',
+          crossLib:
+            '相对路径已逃出当前 lib：{{source}} 解析到 {{target}}。跨 lib 依赖请用 @walnut-server/* 别名，让分层门禁可见。',
         },
       },
 
       create(context) {
         const libRoot = resolveLibRoot(context.cwd, context.filename)
-        if (libRoot === null)
-          return {}
+        if (libRoot === null) return {}
 
         const fileDir = dirname(resolve(context.cwd, toPosixPath(context.filename)))
 
         /** source 是相对路径且解析后逃出 lib 根时返回该边（否则 null） */
-        function findEscapedSource(node: SourceLike): { source: string, target: string } | null {
+        function findEscapedSource(node: SourceLike): { source: string; target: string } | null {
           const source = node.source?.value
-          if (typeof source !== 'string')
-            return null
-          if (!source.startsWith('./') && !source.startsWith('../'))
-            return null
+          if (typeof source !== 'string') return null
+          if (!source.startsWith('./') && !source.startsWith('../')) return null
 
           const target = toPosixPath(resolve(fileDir, source))
-          if (target === libRoot || target.startsWith(`${libRoot}/`))
-            return null
+          if (target === libRoot || target.startsWith(`${libRoot}/`)) return null
 
           return { source, target: `./${relative(context.cwd, target).replace(/\\/g, '/')}` }
         }
@@ -384,8 +382,7 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
         /** ImportDeclaration / ExportNamedDeclaration / ExportAllDeclaration 共用（无 source 的 export 跳过） */
         function checkSource(node: SourceLike): void {
           const escaped = findEscapedSource(node)
-          if (escaped === null)
-            return
+          if (escaped === null) return
 
           context.report({
             // ESTree 的节点类型没有本规则需要的 TS-ESLint 扩展，且这里只是把真实节点交给报告器定位

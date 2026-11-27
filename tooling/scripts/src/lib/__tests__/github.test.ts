@@ -19,33 +19,72 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  if (originalApiUrl === undefined)
-    delete process.env.GITHUB_API_URL
-  else
-    process.env.GITHUB_API_URL = originalApiUrl
+  if (originalApiUrl === undefined) delete process.env.GITHUB_API_URL
+  else process.env.GITHUB_API_URL = originalApiUrl
 })
 
 describe('parseGithubRemote', () => {
   it('https 形态（带 / 不带 .git、带结尾斜杠）', () => {
-    expect(parseGithubRemote('https://github.com/o/r.git')).toEqual({ host: 'github.com', owner: 'o', repo: 'r' })
-    expect(parseGithubRemote('https://github.com/o/r')).toEqual({ host: 'github.com', owner: 'o', repo: 'r' })
-    expect(parseGithubRemote('https://github.com/o/r/')).toEqual({ host: 'github.com', owner: 'o', repo: 'r' })
+    expect(parseGithubRemote('https://github.com/o/r.git')).toEqual({
+      host: 'github.com',
+      owner: 'o',
+      repo: 'r',
+    })
+    expect(parseGithubRemote('https://github.com/o/r')).toEqual({
+      host: 'github.com',
+      owner: 'o',
+      repo: 'r',
+    })
+    expect(parseGithubRemote('https://github.com/o/r/')).toEqual({
+      host: 'github.com',
+      owner: 'o',
+      repo: 'r',
+    })
   })
 
   it('scp 形态（git@host:owner/repo.git）', () => {
-    expect(parseGithubRemote('git@github.com:o/r.git')).toEqual({ host: 'github.com', owner: 'o', repo: 'r' })
-    expect(parseGithubRemote('git@github.com:o/r')).toEqual({ host: 'github.com', owner: 'o', repo: 'r' })
-    expect(parseGithubRemote('ssh://git@github.com/o/r.git')).toEqual({ host: 'github.com', owner: 'o', repo: 'r' })
+    expect(parseGithubRemote('git@github.com:o/r.git')).toEqual({
+      host: 'github.com',
+      owner: 'o',
+      repo: 'r',
+    })
+    expect(parseGithubRemote('git@github.com:o/r')).toEqual({
+      host: 'github.com',
+      owner: 'o',
+      repo: 'r',
+    })
+    expect(parseGithubRemote('ssh://git@github.com/o/r.git')).toEqual({
+      host: 'github.com',
+      owner: 'o',
+      repo: 'r',
+    })
   })
 
   it('企业域名（host 原样保留，apiBase 据此换路径）', () => {
-    expect(parseGithubRemote('https://git.corp.example.com/team/repo.git')).toEqual({ host: 'git.corp.example.com', owner: 'team', repo: 'repo' })
-    expect(parseGithubRemote('git@git.corp.example.com:team/repo.git')).toEqual({ host: 'git.corp.example.com', owner: 'team', repo: 'repo' })
+    expect(parseGithubRemote('https://git.corp.example.com/team/repo.git')).toEqual({
+      host: 'git.corp.example.com',
+      owner: 'team',
+      repo: 'repo',
+    })
+    expect(parseGithubRemote('git@git.corp.example.com:team/repo.git')).toEqual({
+      host: 'git.corp.example.com',
+      owner: 'team',
+      repo: 'repo',
+    })
   })
 
   it('非 git / 不完整字符串 ⇒ null', () => {
-    for (const value of ['', 'not-a-remote', 'https://github.com/o', '/local/path/repo.git', 'file:///d/repo.git']) {
-      expect(parseGithubRemote(value), `${JSON.stringify(value)} 不应被认成 GitHub remote`).toBeNull()
+    for (const value of [
+      '',
+      'not-a-remote',
+      'https://github.com/o',
+      '/local/path/repo.git',
+      'file:///d/repo.git',
+    ]) {
+      expect(
+        parseGithubRemote(value),
+        `${JSON.stringify(value)} 不应被认成 GitHub remote`,
+      ).toBeNull()
     }
   })
 })
@@ -69,7 +108,9 @@ describe('apiBase / webReleaseUrl', () => {
   })
 
   it('企业域名 → <host>/api/v3', () => {
-    expect(apiBase({ ...REPO, host: 'git.corp.example.com' })).toBe('https://git.corp.example.com/api/v3')
+    expect(apiBase({ ...REPO, host: 'git.corp.example.com' })).toBe(
+      'https://git.corp.example.com/api/v3',
+    )
   })
 
   it('环境变量 GITHUB_API_URL 覆盖一切（去掉结尾斜杠；空白值不算覆盖）', () => {
@@ -83,25 +124,40 @@ describe('apiBase / webReleaseUrl', () => {
 
   it('网页链接编码 tag', () => {
     expect(webReleaseUrl(REPO, 'v1.2.3')).toBe('https://github.com/o/r/releases/tag/v1.2.3')
-    expect(webReleaseUrl(REPO, 'v1.2.3/weird')).toBe('https://github.com/o/r/releases/tag/v1.2.3%2Fweird')
+    expect(webReleaseUrl(REPO, 'v1.2.3/weird')).toBe(
+      'https://github.com/o/r/releases/tag/v1.2.3%2Fweird',
+    )
   })
 })
 
 describe('tokenFromEnv —— `GITHUB_TOKEN` > `GH_TOKEN` > 无', () => {
   it('环境变量里 GITHUB_TOKEN 优先，source 记作它', () => {
-    expect(tokenFromEnv({ GITHUB_TOKEN: 'ghp_primary', GH_TOKEN: 'ghp_fallback' }))
-      .toEqual({ token: 'ghp_primary', source: 'GITHUB_TOKEN' })
+    expect(tokenFromEnv({ GITHUB_TOKEN: 'ghp_primary', GH_TOKEN: 'ghp_fallback' })).toEqual({
+      token: 'ghp_primary',
+      source: 'GITHUB_TOKEN',
+    })
   })
 
   it('没有 GITHUB_TOKEN 时回退到 GH_TOKEN（gh CLI 的惯例名）', () => {
-    expect(tokenFromEnv({ GH_TOKEN: 'ghp_fallback' })).toEqual({ token: 'ghp_fallback', source: 'GH_TOKEN' })
+    expect(tokenFromEnv({ GH_TOKEN: 'ghp_fallback' })).toEqual({
+      token: 'ghp_fallback',
+      source: 'GH_TOKEN',
+    })
   })
 
   it('首尾空白被 trim；只有空白等于没给（不会退化成「带空值的 Bearer」）', () => {
-    expect(tokenFromEnv({ GITHUB_TOKEN: '  ghp_padded  ' })).toEqual({ token: 'ghp_padded', source: 'GITHUB_TOKEN' })
-    expect(tokenFromEnv({ GITHUB_TOKEN: '   ', GH_TOKEN: 'ghp_fallback' }))
-      .toEqual({ token: 'ghp_fallback', source: 'GH_TOKEN' })
-    expect(tokenFromEnv({ GITHUB_TOKEN: '   ', GH_TOKEN: '\t' })).toEqual({ token: null, source: null })
+    expect(tokenFromEnv({ GITHUB_TOKEN: '  ghp_padded  ' })).toEqual({
+      token: 'ghp_padded',
+      source: 'GITHUB_TOKEN',
+    })
+    expect(tokenFromEnv({ GITHUB_TOKEN: '   ', GH_TOKEN: 'ghp_fallback' })).toEqual({
+      token: 'ghp_fallback',
+      source: 'GH_TOKEN',
+    })
+    expect(tokenFromEnv({ GITHUB_TOKEN: '   ', GH_TOKEN: '\t' })).toEqual({
+      token: null,
+      source: null,
+    })
   })
 
   it('都没有 ⇒ { token: null, source: null }（不是错误，公开仓匿名可用）', () => {

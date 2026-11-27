@@ -11,8 +11,8 @@ export const useChatInput = createGlobalState(() => {
   const { currentId } = useConversationStore()
   const { isConversationLoading } = useStreamManager()
 
-  const canSend = computed(() =>
-    inputText.value.trim().length > 0 && !isConversationLoading(currentId.value),
+  const canSend = computed(
+    () => inputText.value.trim().length > 0 && !isConversationLoading(currentId.value),
   )
 
   return { inputText, inputRef, isFocused, canSend }

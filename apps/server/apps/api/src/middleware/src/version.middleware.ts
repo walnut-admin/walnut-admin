@@ -10,11 +10,7 @@ const pkg = getPackageJsonData()
 export class VersionMiddleware implements NestMiddleware {
   constructor(private readonly configService: ConfigService) {}
 
-  use(
-    req: IWalnutAdminExpressRequest,
-    res: IWalnutAdminExpressResponse,
-    next: NextFunction,
-  ) {
+  use(req: IWalnutAdminExpressRequest, res: IWalnutAdminExpressResponse, next: NextFunction) {
     const version = this.configService.get<string>('app.api.version')!
 
     req.headers[RequestHeaders.VERSION] = version

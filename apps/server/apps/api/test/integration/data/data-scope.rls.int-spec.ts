@@ -4,7 +4,11 @@ import type { DataSource, QueryRunner } from 'typeorm'
 import { randomUUID } from 'node:crypto'
 import { applyWalnutDataScopeRlsSettings, WALNUT_DATA_SCOPE_RLS_MODE } from '@walnut-server/db'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { createIntegrationApp, getWalnutPgAdminDataSource, getWalnutPgDataSource } from '../helpers/create-integration-app'
+import {
+  createIntegrationApp,
+  getWalnutPgAdminDataSource,
+  getWalnutPgDataSource,
+} from '../helpers/create-integration-app'
 
 /**
  * 数据权限三期专项 —— **绕过应用层的直连 SQL 也必须被 RLS 拦住**。
@@ -69,7 +73,11 @@ describe('DataScope RLS (PostgreSQL row level security)', () => {
   }
 
   /** 测试 fixture：管理连接写入（运维通道，绕 RLS） */
-  async function insertDemo(name: string, owner: string | null, deptId: string | null): Promise<string> {
+  async function insertDemo(
+    name: string,
+    owner: string | null,
+    deptId: string | null,
+  ): Promise<string> {
     const payload = demoPayload(name, owner, deptId)
     const rows: Array<{ id: string }> = await adminPgDataSource.query(
       `INSERT INTO app_demo
@@ -106,8 +114,7 @@ describe('DataScope RLS (PostgreSQL row level security)', () => {
     try {
       await applyWalnutDataScopeRlsSettings(qr.manager, settings)
       return await fn(qr)
-    }
-    finally {
+    } finally {
       await qr.rollbackTransaction().catch(() => undefined)
       await qr.release()
     }
@@ -145,8 +152,8 @@ describe('DataScope RLS (PostgreSQL row level security)', () => {
   })
 
   it('运行时连接是受限角色 walnut_app（非 superuser / 非 bypassrls / 非表 owner）', async () => {
-    const rows: Array<{ current_user: string, rolsuper: boolean, rolbypassrls: boolean }>
-      = await pgDataSource.query(
+    const rows: Array<{ current_user: string; rolsuper: boolean; rolbypassrls: boolean }> =
+      await pgDataSource.query(
         'SELECT current_user, rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user',
       )
 
@@ -159,16 +166,19 @@ describe('DataScope RLS (PostgreSQL row level security)', () => {
       [REGISTERED_TABLES],
     )
     expect(owners).toHaveLength(REGISTERED_TABLES.length)
-    expect(owners.every(owner => owner.tableowner !== 'walnut_app')).toBe(true)
+    expect(owners.every((owner) => owner.tableowner !== 'walnut_app')).toBe(true)
   })
 
   it('七张注册表都启用 ENABLE + FORCE RLS，且各有 PERMISSIVE 基线 + RESTRICTIVE 天花板', async () => {
-    const tables: Array<{ relname: string, relrowsecurity: boolean, relforcerowsecurity: boolean }>
-      = await pgDataSource.query(
-        `SELECT relname, relrowsecurity, relforcerowsecurity
+    const tables: Array<{
+      relname: string
+      relrowsecurity: boolean
+      relforcerowsecurity: boolean
+    }> = await pgDataSource.query(
+      `SELECT relname, relrowsecurity, relforcerowsecurity
          FROM pg_class WHERE relname = ANY($1::text[]) AND relkind = 'r'`,
-        [REGISTERED_TABLES],
-      )
+      [REGISTERED_TABLES],
+    )
 
     expect(tables).toHaveLength(REGISTERED_TABLES.length)
     for (const table of tables) {
@@ -176,52 +186,70 @@ describe('DataScope RLS (PostgreSQL row level security)', () => {
       expect(table.relforcerowsecurity, `${table.relname} relforcerowsecurity`).toBe(true)
     }
 
-    const policies: Array<{ tablename: string, policyname: string, permissive: string, roles: string[] }>
-      = await pgDataSource.query(
-        `SELECT tablename, policyname, permissive, roles
+    const policies: Array<{
+      tablename: string
+      policyname: string
+      permissive: string
+      roles: string[]
+    }> = await pgDataSource.query(
+      `SELECT tablename, policyname, permissive, roles
          FROM pg_policies WHERE tablename = ANY($1::text[])`,
-        [REGISTERED_TABLES],
-      )
+      [REGISTERED_TABLES],
+    )
 
     for (const tableName of REGISTERED_TABLES) {
-      const own = policies.filter(policy => policy.tablename === tableName)
+      const own = policies.filter((policy) => policy.tablename === tableName)
 
-      expect(own.map(policy => policy.policyname).sort()).toEqual(['p_data_scope_access', 'p_data_scope_ceiling'])
-      expect(own.find(policy => policy.policyname === 'p_data_scope_access')?.permissive).toBe('PERMISSIVE')
-      expect(own.find(policy => policy.policyname === 'p_data_scope_ceiling')?.permissive).toBe('RESTRICTIVE')
-      expect(own.every(policy => policy.roles.includes('walnut_app'))).toBe(true)
+      expect(own.map((policy) => policy.policyname).sort()).toEqual([
+        'p_data_scope_access',
+        'p_data_scope_ceiling',
+      ])
+      expect(own.find((policy) => policy.policyname === 'p_data_scope_access')?.permissive).toBe(
+        'PERMISSIVE',
+      )
+      expect(own.find((policy) => policy.policyname === 'p_data_scope_ceiling')?.permissive).toBe(
+        'RESTRICTIVE',
+      )
+      expect(own.every((policy) => policy.roles.includes('walnut_app'))).toBe(true)
     }
   })
 
   it('scoped：绕过应用层直连 SELECT 只能看到 部门天花板 ∪ 本人 的行', async () => {
-    const rows = await withRlsTx(scoped([deptA]), async qr =>
+    const rows = await withRlsTx(scoped([deptA]), async (qr) =>
       qr.manager.query<Array<{ demo_string: string }>>(
         'SELECT demo_string FROM app_demo WHERE demo_string LIKE $1 ORDER BY demo_string',
         [`${prefix}%`],
-      ))
+      ),
+    )
 
-    expect(rows.map(row => row.demo_string)).toEqual([
+    expect(rows.map((row) => row.demo_string)).toEqual([
       `${prefix}-dept-a`,
       `${prefix}-own-null-dept`,
     ])
   })
 
   it('scoped：天花板外的 INSERT 撞 WITH CHECK（应用层漏过滤也写不进去）', async () => {
-    await expect(withRlsTx(scoped([deptA]), async qr => qr.manager.query<unknown>(
-      `INSERT INTO app_demo
+    await expect(
+      withRlsTx(scoped([deptA]), async (qr) =>
+        qr.manager.query<unknown>(
+          `INSERT INTO app_demo
         (demo_string, demo_string_array, demo_number_array, demo_boolean_array,
          demo_date_array, demo_enum_array, demo_uuid_array, created_by, dept_id)
        VALUES ($1, ARRAY['x'], ARRAY[1], ARRAY[true], ARRAY[now()], ARRAY[1], ARRAY[gen_random_uuid()], $2, $3)`,
-      [`${prefix}-forbidden`, userB, deptB],
-    ))).rejects.toThrow(/row-level security/i)
+          [`${prefix}-forbidden`, userB, deptB],
+        ),
+      ),
+    ).rejects.toThrow(/row-level security/i)
   })
 
   it('scoped：天花板外的 UPDATE 命中 0 行（USING 收窄）', async () => {
     // TypeORM 1.x 的 pg 驱动对 UPDATE 返回 [rows, affectedCount]
-    const changed = await withRlsTx(scoped([deptA]), async qr => qr.manager.query<[Array<{ id: string }>, number]>(
-      'UPDATE app_demo SET demo_number = 42 WHERE demo_string = $1 RETURNING id',
-      [`${prefix}-dept-b`],
-    ))
+    const changed = await withRlsTx(scoped([deptA]), async (qr) =>
+      qr.manager.query<[Array<{ id: string }>, number]>(
+        'UPDATE app_demo SET demo_number = 42 WHERE demo_string = $1 RETURNING id',
+        [`${prefix}-dept-b`],
+      ),
+    )
 
     expect(changed[0]).toHaveLength(0)
     expect(changed[1]).toBe(0)
@@ -234,28 +262,35 @@ describe('DataScope RLS (PostgreSQL row level security)', () => {
       deptIds: [],
     }
 
-    const rows = await withRlsTx(settings, async qr => qr.manager.query<Array<{ demo_string: string }>>(
-      'SELECT demo_string FROM app_demo WHERE demo_string LIKE $1',
-      [`${prefix}%`],
-    ))
+    const rows = await withRlsTx(settings, async (qr) =>
+      qr.manager.query<Array<{ demo_string: string }>>(
+        'SELECT demo_string FROM app_demo WHERE demo_string LIKE $1',
+        [`${prefix}%`],
+      ),
+    )
     expect(rows).toHaveLength(0)
 
-    await expect(withRlsTx(settings, async qr => qr.manager.query<unknown>(
-      `INSERT INTO app_demo
+    await expect(
+      withRlsTx(settings, async (qr) =>
+        qr.manager.query<unknown>(
+          `INSERT INTO app_demo
         (demo_string, demo_string_array, demo_number_array, demo_boolean_array,
          demo_date_array, demo_enum_array, demo_uuid_array)
        VALUES ($1, ARRAY['x'], ARRAY[1], ARRAY[true], ARRAY[now()], ARRAY[1], ARRAY[gen_random_uuid()])`,
-      [`${prefix}-anonymous`],
-    ))).rejects.toThrow(/row-level security/i)
+          [`${prefix}-anonymous`],
+        ),
+      ),
+    ).rejects.toThrow(/row-level security/i)
   })
 
   it('all：root 档位看到全部行（含无主/NULL dept）', async () => {
     const rows: Array<{ demo_string: string }> = await withRlsTx(
       { mode: WALNUT_DATA_SCOPE_RLS_MODE.ALL, userId: userA, deptIds: [] },
-      async qr => qr.manager.query<Array<{ demo_string: string }>>(
-        'SELECT demo_string FROM app_demo WHERE demo_string LIKE $1',
-        [`${prefix}%`],
-      ),
+      async (qr) =>
+        qr.manager.query<Array<{ demo_string: string }>>(
+          'SELECT demo_string FROM app_demo WHERE demo_string LIKE $1',
+          [`${prefix}%`],
+        ),
     )
 
     expect(rows).toHaveLength(4)
@@ -282,31 +317,42 @@ describe('DataScope RLS (PostgreSQL row level security)', () => {
 
     try {
       // 把自家账号 dept 改到天花板外（deptB 不在 deptIds、也不等于账号当前部门）→ 拒绝
-      await expect(withRlsTx(settings, async qr => qr.manager.query<unknown>(
-        'UPDATE sys_user SET dept_id = $1 WHERE id = $2',
-        [deptB, ownUserId],
-      ))).rejects.toThrow(/row-level security/i)
+      await expect(
+        withRlsTx(settings, async (qr) =>
+          qr.manager.query<unknown>('UPDATE sys_user SET dept_id = $1 WHERE id = $2', [
+            deptB,
+            ownUserId,
+          ]),
+        ),
+      ).rejects.toThrow(/row-level security/i)
 
       // 部门不变的自助更新 → 放行
-      const changedUser = await withRlsTx(settings, async qr => qr.manager.query<[Array<{ id: string }>, number]>(
-        'UPDATE sys_user SET nick_name = $1 WHERE id = $2 RETURNING id',
-        ['self-nick', ownUserId],
-      ))
+      const changedUser = await withRlsTx(settings, async (qr) =>
+        qr.manager.query<[Array<{ id: string }>, number]>(
+          'UPDATE sys_user SET nick_name = $1 WHERE id = $2 RETURNING id',
+          ['self-nick', ownUserId],
+        ),
+      )
       expect(changedUser[1]).toBe(1)
 
       // 职工行同样：改 dept 到天花板外 → 拒绝；部门不变 → 放行
-      await expect(withRlsTx(settings, async qr => qr.manager.query<unknown>(
-        'UPDATE sys_employee SET dept_id = $1 WHERE id = $2',
-        [deptB, employeeId],
-      ))).rejects.toThrow(/row-level security/i)
+      await expect(
+        withRlsTx(settings, async (qr) =>
+          qr.manager.query<unknown>('UPDATE sys_employee SET dept_id = $1 WHERE id = $2', [
+            deptB,
+            employeeId,
+          ]),
+        ),
+      ).rejects.toThrow(/row-level security/i)
 
-      const changedEmployee = await withRlsTx(settings, async qr => qr.manager.query<[Array<{ id: string }>, number]>(
-        'UPDATE sys_employee SET employee_name = $1 WHERE id = $2 RETURNING id',
-        ['RLS Self Renamed', employeeId],
-      ))
+      const changedEmployee = await withRlsTx(settings, async (qr) =>
+        qr.manager.query<[Array<{ id: string }>, number]>(
+          'UPDATE sys_employee SET employee_name = $1 WHERE id = $2 RETURNING id',
+          ['RLS Self Renamed', employeeId],
+        ),
+      )
       expect(changedEmployee[1]).toBe(1)
-    }
-    finally {
+    } finally {
       await adminPgDataSource.query('DELETE FROM sys_employee WHERE id = $1', [employeeId])
       await adminPgDataSource.query('DELETE FROM sys_user WHERE id = $1', [ownUserId])
     }

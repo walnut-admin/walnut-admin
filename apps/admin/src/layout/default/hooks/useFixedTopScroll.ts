@@ -4,8 +4,12 @@ import { effectScope, onScopeDispose, ref, useTemplateRef, watch } from 'vue'
 
 export function useFixedTopScroll(
   refString: string,
-  { fixed: _fixed, scrollUpShow: _scrollUpShow, liveOnHover: _liveOnHover }: { fixed: Ref<boolean>, scrollUpShow: Ref<boolean>, liveOnHover: Ref<boolean> },
-  { top, y, directionTop }: { top: Ref<boolean>, y: Ref<number>, directionTop: Ref<boolean> },
+  {
+    fixed: _fixed,
+    scrollUpShow: _scrollUpShow,
+    liveOnHover: _liveOnHover,
+  }: { fixed: Ref<boolean>; scrollUpShow: Ref<boolean>; liveOnHover: Ref<boolean> },
+  { top, y, directionTop }: { top: Ref<boolean>; y: Ref<number>; directionTop: Ref<boolean> },
 ) {
   const targetShow = ref(true)
   const targetRef = useTemplateRef<HTMLElement>(refString)
@@ -93,7 +97,7 @@ export function useFixedTopScroll(
   function setupLiveOnHoverLogic() {
     let liveOnHoverScope: EffectScope | null
     let scrollScope: EffectScope | null
-    let intervalControls: { pause: () => void, resume: () => void } | null
+    let intervalControls: { pause: () => void; resume: () => void } | null
     let yWatchStop: (() => void) | null
     let mouseWatchStop: (() => void) | null
 
@@ -139,14 +143,13 @@ export function useFixedTopScroll(
             const { isOutside } = useMouseInElement(targetRef)
             mouseWatchStop = watch(
               () => isOutside.value,
-              outside => (outside ? intervalControls?.resume() : intervalControls?.pause()),
+              (outside) => (outside ? intervalControls?.resume() : intervalControls?.pause()),
               { immediate: true },
             )
 
             onScopeDispose(dispose)
           })
-        }
-        else {
+        } else {
           scrollScope = effectScope()
           scrollScope.run(() => {
             intervalControls = useIntervalFn(() => {

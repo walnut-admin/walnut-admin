@@ -1,10 +1,5 @@
 <script lang="ts" setup>
-import {
-  useDialog,
-  useLoadingBar,
-  useMessage,
-  useNotification,
-} from 'naive-ui'
+import { useDialog, useLoadingBar, useMessage, useNotification } from 'naive-ui'
 
 defineOptions({
   name: 'MsgProvider',

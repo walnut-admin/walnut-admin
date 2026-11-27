@@ -23,7 +23,13 @@ defineOptions({ name: 'ChatPanel' })
 useHighlightTheme()
 
 const baseZIndex = inject<number>('ai-z-index', 2000)
-const { transitioning: vtActive, isContentAside, panelInnerWidth, panelInnerHeight, floatingPosition } = usePanelState()
+const {
+  transitioning: vtActive,
+  isContentAside,
+  panelInnerWidth,
+  panelInnerHeight,
+  floatingPosition,
+} = usePanelState()
 
 const rootStyle = computed(() => {
   const vtName = { viewTransitionName: 'ai-panel' }
@@ -34,13 +40,8 @@ const rootStyle = computed(() => {
 })
 
 // ── AI state ──
-const {
-  messages,
-  hasMessages,
-} = useConversationStore()
-const {
-  isLoading,
-} = useStreamManager()
+const { messages, hasMessages } = useConversationStore()
+const { isLoading } = useStreamManager()
 
 // ── Business actions ──
 // Action: 监听消息 → 查 ACTION_HANDLER_MAP → 执行 → 清除 businessContent
@@ -49,7 +50,8 @@ useActionWatcher()
 useCardActions()
 
 // ── Virtual scroll ──
-const { virtualizer, scrollContainerRef, showScrollButton, scrollToBottom, measureAndCache } = useChatVirtualList()
+const { virtualizer, scrollContainerRef, showScrollButton, scrollToBottom, measureAndCache } =
+  useChatVirtualList()
 
 // ── Scroll triggers + sticky bar ──
 const { showStickyBar, activeStickyMessage, handleMessagesScroll } = useChatScroll()
@@ -74,7 +76,11 @@ const hover = useMessageHover()
 
       <!-- Messages -->
       <div class="relative min-h-0 flex-1">
-        <div ref="scrollContainerRef" class="messages-container h-full overflow-y-auto p-3" @scroll="handleMessagesScroll">
+        <div
+          ref="scrollContainerRef"
+          class="messages-container h-full overflow-y-auto p-3"
+          @scroll="handleMessagesScroll"
+        >
           <StickyUserBar :message="showStickyBar ? activeStickyMessage : null" />
 
           <Transition name="fade-up" appear>
@@ -99,14 +105,15 @@ const hover = useMessageHover()
                 @mouseenter="hover.onEnter(messages[vItem.index]!.id)"
                 @mouseleave="hover.onLeave()"
               >
-                <MessageItem
-                  :msg="messages[vItem.index]!"
-                />
+                <MessageItem :msg="messages[vItem.index]!" />
               </div>
             </template>
           </div>
 
-          <ScrollToBottom :visible="showScrollButton && hasMessages" @click="scrollToBottom(true)" />
+          <ScrollToBottom
+            :visible="showScrollButton && hasMessages"
+            @click="scrollToBottom(true)"
+          />
         </div>
       </div>
 
@@ -122,19 +129,27 @@ const hover = useMessageHover()
 .panel-inner {
   background: var(--card-color);
   border: 1px solid var(--divider-color);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
-  transition: width 0.3s ease, height 0.3s ease;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  transition:
+    width 0.3s ease,
+    height 0.3s ease;
 }
 .panel-inner.no-transition {
   transition: none !important;
 }
 
 .message {
-  &.user { flex-direction: row-reverse; }
+  &.user {
+    flex-direction: row-reverse;
+  }
 }
 
 .fade-up-enter-active {
-  transition: opacity 0.4s ease, transform 0.4s ease;
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease;
 }
 .fade-up-enter-from {
   opacity: 0;

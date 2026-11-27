@@ -101,9 +101,7 @@ const formData = ref<Recordable>({
           <WForm :model="configData" @hook="register" />
 
           <n-space vertical>
-            <WTitle prefix="bar" class="mb-2">
-              Image Upload
-            </WTitle>
+            <WTitle prefix="bar" class="mb-2"> Image Upload </WTitle>
 
             <WJSON :value="formData.fileList1" />
 
@@ -119,9 +117,7 @@ const formData = ref<Recordable>({
               :preview="configData.preview"
             />
 
-            <WTitle prefix="bar" class="mb-2">
-              Normal Upload
-            </WTitle>
+            <WTitle prefix="bar" class="mb-2"> Normal Upload </WTitle>
 
             <WJSON :value="formData.fileList2" />
 

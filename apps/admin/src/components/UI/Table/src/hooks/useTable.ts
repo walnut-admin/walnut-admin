@@ -3,7 +3,9 @@ import type { WTable } from '../types'
 import { isInSetup } from '@walnut/client/browser/shared'
 import { shallowRef, unref, watchEffect } from 'vue'
 
-export function useTable<T>(props: WTable.Hooks.UseTable.Props<T>): WTable.Hooks.UseTable.ReturnType<T> {
+export function useTable<T>(
+  props: WTable.Hooks.UseTable.Props<T>,
+): WTable.Hooks.UseTable.ReturnType<T> {
   isInSetup()
 
   const wTableRef = shallowRef<WTable.Inst.WTableInst<T>>()
@@ -20,10 +22,11 @@ export function useTable<T>(props: WTable.Hooks.UseTable.Props<T>): WTable.Hooks
     clearFilters: () => wTableRef.value!.clearFilters!(),
     clearSorter: () => wTableRef.value!.clearSorter!(),
     onApiList: async () => await wTableRef.value!.onApiList(),
-    onApiDelete: async id => await wTableRef.value!.onApiDelete(id),
+    onApiDelete: async (id) => await wTableRef.value!.onApiDelete(id),
     onApiDeleteMany: async () => await wTableRef.value!.onApiDeleteMany(),
     onGetApiListParams: () => wTableRef.value!.onGetApiListParams(),
-    onSetDefaultQueryFormData: (newQueryFormData: Partial<NullableRecord<T>>) => wTableRef.value!.onSetDefaultQueryFormData(newQueryFormData),
+    onSetDefaultQueryFormData: (newQueryFormData: Partial<NullableRecord<T>>) =>
+      wTableRef.value!.onSetDefaultQueryFormData(newQueryFormData),
   }
 
   return [register, methods]

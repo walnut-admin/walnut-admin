@@ -5,7 +5,12 @@ import { InjectDataSource } from '@nestjs/typeorm'
 
 import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 import { SysUserRoleEntity } from '@walnut-server/identity'
-import { applyPgListQuery, buildPgListQueryOptionsFromQb, WALNUT_PG_LIST_TOTAL_ALIAS, WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
+import {
+  applyPgListQuery,
+  buildPgListQueryOptionsFromQb,
+  WALNUT_PG_LIST_TOTAL_ALIAS,
+  WalnutAdminCommonPgBaseRepository,
+} from '@walnut-server/repository'
 import { SysRoleDeptEntity } from './entity/role-dept.entity'
 import { SysRoleMenuEntity } from './entity/role-menu.entity'
 import { SysRoleEntity } from './entity/role.entity'
@@ -41,9 +46,9 @@ export class SysRoleBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
   }
 
   public async create(
-    dto: Partial<SysRoleEntity> & { menus?: string[], deptIds?: string[] },
+    dto: Partial<SysRoleEntity> & { menus?: string[]; deptIds?: string[] },
     em?: EntityManager,
-  ): Promise<SysRoleEntity & { menus: string[], deptIds: string[] }> {
+  ): Promise<SysRoleEntity & { menus: string[]; deptIds: string[] }> {
     const { menus, deptIds, ...roleData } = dto
 
     const created = await super.create(roleData, em)
@@ -55,9 +60,9 @@ export class SysRoleBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
 
   public async update(
     id: string,
-    dto: Partial<SysRoleEntity> & { menus?: string[], deptIds?: string[] },
+    dto: Partial<SysRoleEntity> & { menus?: string[]; deptIds?: string[] },
     em?: EntityManager,
-  ): Promise<SysRoleEntity & { menus?: string[], deptIds?: string[] }> {
+  ): Promise<SysRoleEntity & { menus?: string[]; deptIds?: string[] }> {
     const { menus, deptIds, ...roleData } = dto
 
     const updated = await super.update(id, roleData, em)
@@ -83,9 +88,8 @@ export class SysRoleBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
     params: IWalnutAdminRequestList<T>,
     _customize?: (qb: SelectQueryBuilder<SysRoleEntity>) => void,
     em?: EntityManager,
-  ): Promise<{ data: ISysRoleListRow[], total: number }> {
-    const qb = this.getManager(em)
-      .createQueryBuilder(SysRoleEntity, 'entity')
+  ): Promise<{ data: ISysRoleListRow[]; total: number }> {
+    const qb = this.getManager(em).createQueryBuilder(SysRoleEntity, 'entity')
 
     applyPgListQuery(qb, 'entity', buildPgListQueryOptionsFromQb<T>(qb, params))
 
@@ -128,7 +132,7 @@ export class SysRoleBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
     await repository.delete({ roleId })
 
     if (menuIds.length > 0) {
-      await repository.insert(menuIds.map(menuId => ({ roleId, menuId })))
+      await repository.insert(menuIds.map((menuId) => ({ roleId, menuId })))
     }
   }
 
@@ -143,7 +147,7 @@ export class SysRoleBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
     await repository.delete({ roleId })
 
     if (deptIds.length > 0) {
-      await repository.insert(deptIds.map(deptId => ({ roleId, deptId })))
+      await repository.insert(deptIds.map((deptId) => ({ roleId, deptId })))
     }
   }
 }

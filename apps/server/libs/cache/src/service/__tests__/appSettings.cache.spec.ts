@@ -1,4 +1,8 @@
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType, WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+  WalnutAdminConstAppSettingKeys,
+} from '@walnut-server/const/app/cache'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AppTechCacheAppSettingsService } from '../appSettings.cache'
@@ -12,7 +16,9 @@ function createService(redisMap: Map<string, unknown>) {
   const setSpy = vi.fn(async (key: string, value: unknown) => {
     redisMap.set(key, value)
   })
-  const cacheService = { get: getSpy, set: setSpy } as unknown as ConstructorParameters<typeof AppTechCacheAppSettingsService>[0]
+  const cacheService = { get: getSpy, set: setSpy } as unknown as ConstructorParameters<
+    typeof AppTechCacheAppSettingsService
+  >[0]
 
   return { service: new AppTechCacheAppSettingsService(cacheService), getSpy }
 }
@@ -23,7 +29,9 @@ function seedKey(value: unknown) {
 
 describe('appSettings cache service：L3 进程内 memo', () => {
   it('getSetting：首次走 Redis GET + parse，二次命中 memo 不再打 Redis', async () => {
-    const redisMap = new Map([[WalnutAdminConstAppCacheKeys.APP_SETTING, seedKey({ authEnable: 1 })]])
+    const redisMap = new Map([
+      [WalnutAdminConstAppCacheKeys.APP_SETTING, seedKey({ authEnable: 1 })],
+    ])
     const { service, getSpy } = createService(redisMap)
 
     const first = await service.getAuthEmailConfig()
@@ -36,13 +44,17 @@ describe('appSettings cache service：L3 进程内 memo', () => {
   })
 
   it('setAppSettings 写后失效：同进程读立即见新值（不读旧 memo）', async () => {
-    const redisMap = new Map([[WalnutAdminConstAppCacheKeys.APP_SETTING, seedKey({ authEnable: 0 })]])
+    const redisMap = new Map([
+      [WalnutAdminConstAppCacheKeys.APP_SETTING, seedKey({ authEnable: 0 })],
+    ])
     const { service } = createService(redisMap)
 
     await expect(service.getAuthEmailConfig()).resolves.toMatchObject({ authEnable: 0 })
 
     // 写路径（extractAppSettingIntoCache 同款调用面）换上新值
-    await service.setAppSettings(seedKey({ authEnable: 1 }), { t: WalnutAdminConstAppCacheType.BUILT_IN })
+    await service.setAppSettings(seedKey({ authEnable: 1 }), {
+      t: WalnutAdminConstAppCacheType.BUILT_IN,
+    })
 
     await expect(service.getAuthEmailConfig()).resolves.toMatchObject({ authEnable: 1 })
   })
@@ -69,7 +81,12 @@ describe('appSettings cache service：L3 进程内 memo', () => {
   })
 
   it('getSetting：值缺失/坏 JSON → 默认值兜底，且不把失败结果写进 memo', async () => {
-    const redisMap = new Map([[WalnutAdminConstAppCacheKeys.APP_SETTING, { [WalnutAdminConstAppSettingKeys.APP_AUTH_MFA]: 'not-json' }]])
+    const redisMap = new Map([
+      [
+        WalnutAdminConstAppCacheKeys.APP_SETTING,
+        { [WalnutAdminConstAppSettingKeys.APP_AUTH_MFA]: 'not-json' },
+      ],
+    ])
     const { service } = createService(redisMap)
 
     const fallback = await service.getAuthMfaConfig()
@@ -77,7 +94,9 @@ describe('appSettings cache service：L3 进程内 memo', () => {
 
     // 走真实写路径（setAppSettings 会清 memo）修复数据后，同 key 重读不再落默认值
     await service.setAppSettings(
-      { [WalnutAdminConstAppSettingKeys.APP_AUTH_MFA]: JSON.stringify({ methodsRequiredCount: 2 }) },
+      {
+        [WalnutAdminConstAppSettingKeys.APP_AUTH_MFA]: JSON.stringify({ methodsRequiredCount: 2 }),
+      },
       { t: WalnutAdminConstAppCacheType.BUILT_IN },
     )
     await expect(service.getAuthMfaConfig()).resolves.toEqual({ methodsRequiredCount: 2 })

@@ -37,7 +37,9 @@ export function useTableAPIListParams<T>() {
     },
   })
 
-  const apiListFilters = computed<BaseListParams<T>>(() => toWalnutListParams<T>(apiListParams.value))
+  const apiListFilters = computed<BaseListParams<T>>(() =>
+    toWalnutListParams<T>(apiListParams.value),
+  )
 
   return { apiListParams, apiListFilters, resetParams, commitParams }
 }

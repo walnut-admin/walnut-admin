@@ -25,14 +25,20 @@ function touch(root: string, rel: string): void {
 }
 
 afterEach(() => {
-  for (const dir of made.splice(0))
-    fs.rmSync(dir, { recursive: true, force: true })
+  for (const dir of made.splice(0)) fs.rmSync(dir, { recursive: true, force: true })
 })
 
 describe('listCleanAllTargets', () => {
   it('覆盖 apps/*、packages/<组>/*、tooling/* 三个分组，顺序与 workspace 声明一致，外加镜像 staging 与仓库根', () => {
     const root = makeRoot()
-    for (const rel of ['apps/admin/a.ts', 'apps/server/a.ts', 'packages/platform-any/contract/a.ts', 'packages/platform-web/client/a.ts', 'tooling/scripts/a.ts', 'tooling/release/a.ts'])
+    for (const rel of [
+      'apps/admin/a.ts',
+      'apps/server/a.ts',
+      'packages/platform-any/contract/a.ts',
+      'packages/platform-web/client/a.ts',
+      'tooling/scripts/a.ts',
+      'tooling/release/a.ts',
+    ])
       touch(root, rel)
 
     expect(listCleanAllTargets(root)).toEqual([
@@ -98,7 +104,9 @@ describe('cleanAll', () => {
       'node_modules',
     ])
     expect(fs.existsSync(path.join(root, 'apps/admin/node_modules'))).toBe(false)
-    expect(fs.existsSync(path.join(root, 'packages/platform-any/contract/node_modules'))).toBe(false)
+    expect(fs.existsSync(path.join(root, 'packages/platform-any/contract/node_modules'))).toBe(
+      false,
+    )
     expect(fs.existsSync(path.join(root, 'build/node_modules'))).toBe(false)
     expect(fs.existsSync(path.join(root, 'node_modules'))).toBe(false)
     // 源码与包目录本身都还在
@@ -130,7 +138,9 @@ describe('cleanAll', () => {
     })
 
     expect(result.removed).toEqual(['apps/admin/node_modules', 'node_modules'])
-    expect(result.failed).toEqual([{ dir: 'apps/server/node_modules', error: 'EBUSY: resource busy or locked' }])
+    expect(result.failed).toEqual([
+      { dir: 'apps/server/node_modules', error: 'EBUSY: resource busy or locked' },
+    ])
     expect(fs.existsSync(path.join(root, 'apps/server/node_modules/dep/index.js'))).toBe(true)
   })
 })

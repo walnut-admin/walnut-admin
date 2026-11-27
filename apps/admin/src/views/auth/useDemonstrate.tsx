@@ -26,16 +26,10 @@ export function useDemonstrate() {
       return (
         <n-space vertical size="small">
           <div>
-            {t('app.base.account')}
-            :
-            {' '}
-            {formData.account}
+            {t('app.base.account')}: {formData.account}
           </div>
           <div>
-            {(t('app.base.password'))}
-            :
-            {' '}
-            {formData.password}
+            {t('app.base.password')}: {formData.password}
           </div>
           <n-button size="small" type="info" onClick={onClick}>
             {t('app.base.fillForm')}

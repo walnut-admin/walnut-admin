@@ -4,7 +4,17 @@ import { APP_GUARD, APP_INTERCEPTOR, DiscoveryModule } from '@nestjs/core'
 import { JwtAccessGuard } from '@walnut-server/auth'
 import { WalnutConfigModule } from '@walnut-server/config'
 import { WalnutModule } from '@walnut-server/db'
-import { ALSRequestInterceptor, WalnutAdminGuardDevice, WalnutAdminGuardIP, WalnutAdminGuardLock, WalnutAdminGuardMFA, WalnutAdminGuardRisk, WalnutAdminGuardSecurity, WalnutAdminGuardSign, WalnutAdminInterceptorResponseSuccess } from '@walnut-server/guards'
+import {
+  ALSRequestInterceptor,
+  WalnutAdminGuardDevice,
+  WalnutAdminGuardIP,
+  WalnutAdminGuardLock,
+  WalnutAdminGuardMFA,
+  WalnutAdminGuardRisk,
+  WalnutAdminGuardSecurity,
+  WalnutAdminGuardSign,
+  WalnutAdminInterceptorResponseSuccess,
+} from '@walnut-server/guards'
 // CAP guard 的**类**只能从子路径取：barrel 只导出装饰器面，目的是把 cap.service（new Cap()
 // 的求值期副作用）挡在 worker 的 import 闭包之外。顺序与注册位置一字未动（拍板 D1）。
 import { WalnutAdminGuardCap } from '@walnut-server/guards/guards/cap.guard'

@@ -6,6 +6,6 @@ export type DeepKeyOf<T> = T extends object
         ? UnwrapRef<T[K]> extends object
           ? `${K}` | `${K}.${DeepKeyOf<UnwrapRef<T[K]>> & string}`
           : `${K}`
-        : never;
+        : never
     }[keyof T]
   : never

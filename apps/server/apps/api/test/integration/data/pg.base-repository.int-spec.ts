@@ -30,9 +30,7 @@ import { INTEGRATION_DATABASE_NAME } from '../helpers/integration.const'
  */
 @Injectable()
 class AppDemoPgRepository extends WalnutAdminCommonPgBaseRepository<AppDemoEntity> {
-  constructor(
-    @InjectDataSource(WalnutPGConnectionName) dataSource: DataSource,
-  ) {
+  constructor(@InjectDataSource(WalnutPGConnectionName) dataSource: DataSource) {
     super(AppDemoEntity, WalnutModelName.APP_DEMO, dataSource)
   }
 }
@@ -51,11 +49,12 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
     currentUserId: string,
     descriptor: IWalnutAdminDataScopeDescriptor,
     fn: () => Promise<T>,
-  ): Promise<T> => als.run(async () => {
-    als.set('userId', currentUserId)
-    als.set('dataScope', descriptor)
-    return fn()
-  })
+  ): Promise<T> =>
+    als.run(async () => {
+      als.set('userId', currentUserId)
+      als.set('dataScope', descriptor)
+      return fn()
+    })
 
   /** 直接调仓库的用例统一走系统通道（否则已注册实体 fail-closed） */
   const itSystem = (name: string, fn: () => Promise<void>) => it(name, async () => asSystem(fn))
@@ -82,7 +81,10 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
   async function createOwned(ownerId: string, demoString: string): Promise<AppDemoEntity> {
     const created = await asSystem(async () => repo.create(uniqueDemoPayload(demoString)))
     // 系统通道 create 不填 owner（没有用户）；测试直接改列造归属
-    await pgDataSource.query('UPDATE app_demo SET created_by = $1 WHERE id = $2', [ownerId, created.id])
+    await pgDataSource.query('UPDATE app_demo SET created_by = $1 WHERE id = $2', [
+      ownerId,
+      created.id,
+    ])
     return created
   }
 
@@ -120,9 +122,7 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
   })
 
   itSystem('readById 不存在的 uuid → 抛 DataNotFound(404)', async () => {
-    await expect(repo.readById(randomUUID()))
-      .rejects
-      .toThrow(WalnutAdminExceptionDataNotFound)
+    await expect(repo.readById(randomUUID())).rejects.toThrow(WalnutAdminExceptionDataNotFound)
   })
 
   itSystem('update：字段修改并持久化', async () => {
@@ -136,27 +136,32 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
     expect(read.demoNumber).toBe(42)
   })
 
-  itSystem('deleteSoftById：原行消失 + sys_deleted 快照（jsonb 对象 / deletedAt / 模型名）', async () => {
-    const payload = uniqueDemoPayload()
-    const created = await repo.create(payload)
+  itSystem(
+    'deleteSoftById：原行消失 + sys_deleted 快照（jsonb 对象 / deletedAt / 模型名）',
+    async () => {
+      const payload = uniqueDemoPayload()
+      const created = await repo.create(payload)
 
-    const returned = await repo.deleteSoftById(created.id, userId)
+      const returned = await repo.deleteSoftById(created.id, userId)
 
-    expect(returned.id).toBe(created.id)
-    // 原集合：行消失
-    expect(await pgDataSource.manager.count(AppDemoEntity, { where: { id: created.id } })).toBe(0)
+      expect(returned.id).toBe(created.id)
+      // 原集合：行消失
+      expect(await pgDataSource.manager.count(AppDemoEntity, { where: { id: created.id } })).toBe(0)
 
-    // sys_deleted：一条快照（SysDeletedEntity 已由 deleted.repo.module 注册）
-    const snapshot = await pgDataSource.manager.findOne(SysDeletedEntity, { where: { deletedId: created.id } })
-    expect(snapshot).not.toBeNull()
-    expect(snapshot!.modelName).toBe(WalnutModelName.APP_DEMO)
-    expect(snapshot!.collectionName).toBe('app_demo')
-    expect(snapshot!.deletedId).toBe(created.id)
-    expect(snapshot!.deletedBy).toBe(userId)
-    expect(snapshot!.deletedAt).toBeInstanceOf(Date)
-    // content 是 jsonb 直存对象，不再 stringify
-    expect((snapshot!.content).demoString).toBe(payload.demoString)
-  })
+      // sys_deleted：一条快照（SysDeletedEntity 已由 deleted.repo.module 注册）
+      const snapshot = await pgDataSource.manager.findOne(SysDeletedEntity, {
+        where: { deletedId: created.id },
+      })
+      expect(snapshot).not.toBeNull()
+      expect(snapshot!.modelName).toBe(WalnutModelName.APP_DEMO)
+      expect(snapshot!.collectionName).toBe('app_demo')
+      expect(snapshot!.deletedId).toBe(created.id)
+      expect(snapshot!.deletedBy).toBe(userId)
+      expect(snapshot!.deletedAt).toBeInstanceOf(Date)
+      // content 是 jsonb 直存对象，不再 stringify
+      expect(snapshot!.content.demoString).toBe(payload.demoString)
+    },
+  )
 
   itSystem('deleteRealById：真删且不产生快照', async () => {
     const created = await repo.create(uniqueDemoPayload())
@@ -168,83 +173,101 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
     expect(await pgDataSource.manager.count(SysDeletedEntity)).toBe(snapshotsBefore)
   })
 
-  itSystem('list：分页、ILIKE 模糊过滤、total（COUNT(*) OVER() 单趟）、排序与通配符字面量', async () => {
-    const group = randomUUID().slice(0, 8)
-    const created = []
-    const names = [`int-pg-list-${group}-alpha`, `int-pg-list-${group}-beta`, `int-pg-list-${group}-gamma`]
-    for (const name of names) {
-      created.push(await repo.create(uniqueDemoPayload(name)))
-    }
+  itSystem(
+    'list：分页、ILIKE 模糊过滤、total（COUNT(*) OVER() 单趟）、排序与通配符字面量',
+    async () => {
+      const group = randomUUID().slice(0, 8)
+      const created = []
+      const names = [
+        `int-pg-list-${group}-alpha`,
+        `int-pg-list-${group}-beta`,
+        `int-pg-list-${group}-gamma`,
+      ]
+      for (const name of names) {
+        created.push(await repo.create(uniqueDemoPayload(name)))
+      }
 
-    // ILIKE 模糊：命中该组全部 3 条；页大小 2 → total 3 / 第二页剩 1
-    const page1 = await repo.list({
-      filters: [{ field: 'demoString', op: 'like', value: group }],
-      page: { page: 1, pageSize: 2 },
-    } as never)
-    expect(page1.total).toBe(3)
-    expect(page1.data).toHaveLength(2)
+      // ILIKE 模糊：命中该组全部 3 条；页大小 2 → total 3 / 第二页剩 1
+      const page1 = await repo.list({
+        filters: [{ field: 'demoString', op: 'like', value: group }],
+        page: { page: 1, pageSize: 2 },
+      } as never)
+      expect(page1.total).toBe(3)
+      expect(page1.data).toHaveLength(2)
 
-    const page2 = await repo.list({
-      filters: [{ field: 'demoString', op: 'like', value: group }],
-      page: { page: 2, pageSize: 2 },
-    } as never)
-    expect(page2.total).toBe(3)
-    expect(page2.data).toHaveLength(1)
+      const page2 = await repo.list({
+        filters: [{ field: 'demoString', op: 'like', value: group }],
+        page: { page: 2, pageSize: 2 },
+      } as never)
+      expect(page2.total).toBe(3)
+      expect(page2.data).toHaveLength(1)
 
-    // 精确等值：uuid 直传
-    const byId = await repo.list({ filters: [{ field: 'id', op: 'eq', value: created[0].id }] } as never)
-    expect(byId.total).toBe(1)
-    expect(byId.data[0].id).toBe(created[0].id)
+      // 精确等值：uuid 直传
+      const byId = await repo.list({
+        filters: [{ field: 'id', op: 'eq', value: created[0].id }],
+      } as never)
+      expect(byId.total).toBe(1)
+      expect(byId.data[0].id).toBe(created[0].id)
 
-    // 模糊转义：ILIKE 通配符按字面量处理（PG 版收紧语义，组内无 `%alpha` 后缀）
-    const literal = await repo.list({ filters: [{ field: 'demoString', op: 'like', value: `${group}%alpha` }] } as never)
-    expect(literal.total).toBe(0)
+      // 模糊转义：ILIKE 通配符按字面量处理（PG 版收紧语义，组内无 `%alpha` 后缀）
+      const literal = await repo.list({
+        filters: [{ field: 'demoString', op: 'like', value: `${group}%alpha` }],
+      } as never)
+      expect(literal.total).toBe(0)
 
-    // 排序：demoNumber desc（显式 priority 缺省时按数组顺序）
-    await repo.update(created[0].id, { demoNumber: 1 })
-    await repo.update(created[1].id, { demoNumber: 3 })
-    await repo.update(created[2].id, { demoNumber: 2 })
-    const sorted = await repo.list({
-      filters: [{ field: 'demoString', op: 'like', value: group }],
-      sort: [{ field: 'demoNumber', order: 'descend' }],
-    } as never)
-    expect(sorted.data.map(i => i.demoNumber)).toEqual([3, 2, 1])
-  })
+      // 排序：demoNumber desc（显式 priority 缺省时按数组顺序）
+      await repo.update(created[0].id, { demoNumber: 1 })
+      await repo.update(created[1].id, { demoNumber: 3 })
+      await repo.update(created[2].id, { demoNumber: 2 })
+      const sorted = await repo.list({
+        filters: [{ field: 'demoString', op: 'like', value: group }],
+        sort: [{ field: 'demoNumber', order: 'descend' }],
+      } as never)
+      expect(sorted.data.map((i) => i.demoNumber)).toEqual([3, 2, 1])
+    },
+  )
 
   describe('数据权限（app_demo.created_by：SELF / ALL / 默认拒绝）', () => {
     const userA = randomUUID()
     const userB = randomUUID()
     const selfScope: IWalnutAdminDataScopeDescriptor = { mode: WalnutAdminConstDataScopeMode.SELF }
     const allScope: IWalnutAdminDataScopeDescriptor = { mode: WalnutAdminConstDataScopeMode.ALL }
-    const denyScope: IWalnutAdminDataScopeDescriptor = { mode: WalnutAdminConstDataScopeMode.CUSTOM, deptIds: [] }
+    const denyScope: IWalnutAdminDataScopeDescriptor = {
+      mode: WalnutAdminConstDataScopeMode.CUSTOM,
+      deptIds: [],
+    }
 
     it('SELF：list 只见本人行；read/update/updateByField/delete 越权 = 404', async () => {
       const group = randomUUID().slice(0, 8)
       const rowA = await createOwned(userA, `int-pg-scope-${group}-a`)
       const rowB = await createOwned(userB, `int-pg-scope-${group}-b`)
 
-      const listA = await asUser(userA, selfScope, async () => repo.list({
-        filters: [{ field: 'demoString', op: 'like', value: group }],
-      } as never))
+      const listA = await asUser(userA, selfScope, async () =>
+        repo.list({
+          filters: [{ field: 'demoString', op: 'like', value: group }],
+        } as never),
+      )
 
       expect(listA.total).toBe(1)
       expect(listA.data[0].id).toBe(rowA.id)
 
-      await expect(asUser(userA, selfScope, async () => repo.readById(rowB.id)))
-        .rejects
-        .toThrow(WalnutAdminExceptionDataNotFound)
+      await expect(asUser(userA, selfScope, async () => repo.readById(rowB.id))).rejects.toThrow(
+        WalnutAdminExceptionDataNotFound,
+      )
 
-      await expect(asUser(userA, selfScope, async () => repo.update(rowB.id, { demoNumber: 7 })))
-        .rejects
-        .toThrow(WalnutAdminExceptionDataNotFound)
+      await expect(
+        asUser(userA, selfScope, async () => repo.update(rowB.id, { demoNumber: 7 })),
+      ).rejects.toThrow(WalnutAdminExceptionDataNotFound)
 
-      await expect(asUser(userA, selfScope, async () => repo.updateByField({ id: rowB.id }, { demoNumber: 7 })))
-        .rejects
-        .toThrow(WalnutAdminExceptionDataNotFound)
+      await expect(
+        asUser(userA, selfScope, async () =>
+          repo.updateByField({ id: rowB.id }, { demoNumber: 7 }),
+        ),
+      ).rejects.toThrow(WalnutAdminExceptionDataNotFound)
 
-      await expect(asUser(userA, selfScope, async () => repo.deleteSoftById(rowB.id, userA)))
-        .rejects
-        .toThrow(WalnutAdminExceptionDataNotFound)
+      await expect(
+        asUser(userA, selfScope, async () => repo.deleteSoftById(rowB.id, userA)),
+      ).rejects.toThrow(WalnutAdminExceptionDataNotFound)
 
       // 越权行未被改动/删除
       const survivor = await asSystem(async () => repo.readById(rowB.id))
@@ -253,17 +276,21 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
       // 自己的行可见可改
       const own = await asUser(userA, selfScope, async () => repo.readById(rowA.id))
       expect(own.id).toBe(rowA.id)
-      const updated = await asUser(userA, selfScope, async () => repo.update(rowA.id, { demoNumber: 7 }))
+      const updated = await asUser(userA, selfScope, async () =>
+        repo.update(rowA.id, { demoNumber: 7 }),
+      )
       expect(updated.demoNumber).toBe(7)
     })
 
     it('create：显式传入 owner 列也会被当前用户覆盖（P2 纵深防御）', async () => {
       const group = randomUUID().slice(0, 8)
 
-      const created = await asUser(userA, selfScope, async () => repo.create({
-        ...uniqueDemoPayload(`int-pg-owner-${group}`),
-        createdBy: userB,
-      }))
+      const created = await asUser(userA, selfScope, async () =>
+        repo.create({
+          ...uniqueDemoPayload(`int-pg-owner-${group}`),
+          createdBy: userB,
+        }),
+      )
 
       expect(created.createdBy).toBe(userA)
 
@@ -277,19 +304,20 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
     it('update / updateByField：owner 列不接受赋值（P2 纵深防御）', async () => {
       const row = await createOwned(userA, `int-pg-owner-update-${randomUUID().slice(0, 8)}`)
 
-      const updated = await asUser(userA, selfScope, async () => repo.update(row.id, {
-        createdBy: userB,
-        demoNumber: 9,
-      }))
+      const updated = await asUser(userA, selfScope, async () =>
+        repo.update(row.id, {
+          createdBy: userB,
+          demoNumber: 9,
+        }),
+      )
       expect(updated.createdBy).toBe(userA)
 
-      const updatedByField = await asUser(userA, selfScope, async () => repo.updateByField(
-        { id: row.id },
-        { createdBy: userB, demoNumber: 10 },
-      ))
+      const updatedByField = await asUser(userA, selfScope, async () =>
+        repo.updateByField({ id: row.id }, { createdBy: userB, demoNumber: 10 }),
+      )
       expect(updatedByField.createdBy).toBe(userA)
 
-      const rows: Array<{ created_by: string, demo_number: number }> = await pgDataSource.query(
+      const rows: Array<{ created_by: string; demo_number: number }> = await pgDataSource.query(
         'SELECT created_by, demo_number FROM app_demo WHERE id = $1',
         [row.id],
       )
@@ -302,9 +330,11 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
       await createOwned(userA, `int-pg-scope-all-${group}-a`)
       await createOwned(userB, `int-pg-scope-all-${group}-b`)
 
-      const listAll = await asUser(userA, allScope, async () => repo.list({
-        filters: [{ field: 'demoString', op: 'like', value: group }],
-      } as never))
+      const listAll = await asUser(userA, allScope, async () =>
+        repo.list({
+          filters: [{ field: 'demoString', op: 'like', value: group }],
+        } as never),
+      )
 
       expect(listAll.total).toBe(2)
     })
@@ -312,17 +342,23 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
     it('默认拒绝（无角色 / 空清单）：list 0 行，readById 404', async () => {
       const row = await createOwned(userA, `int-pg-scope-deny-${randomUUID().slice(0, 8)}`)
 
-      const list = await asUser(userA, denyScope, async () => repo.list({ filters: [{ field: 'id', op: 'eq', value: row.id }] } as never))
+      const list = await asUser(userA, denyScope, async () =>
+        repo.list({ filters: [{ field: 'id', op: 'eq', value: row.id }] } as never),
+      )
       expect(list.total).toBe(0)
 
-      await expect(asUser(userA, denyScope, async () => repo.readById(row.id)))
-        .rejects
-        .toThrow(WalnutAdminExceptionDataNotFound)
+      await expect(asUser(userA, denyScope, async () => repo.readById(row.id))).rejects.toThrow(
+        WalnutAdminExceptionDataNotFound,
+      )
     })
 
     it('fail-closed：已注册实体在无 ALS 上下文时直接抛错（不默认 ALL）', async () => {
-      await expect(repo.list({} as never)).rejects.toThrow(WalnutAdminExceptionDataScopeContextMissing)
-      await expect(repo.create(uniqueDemoPayload())).rejects.toThrow(WalnutAdminExceptionDataScopeContextMissing)
+      await expect(repo.list({} as never)).rejects.toThrow(
+        WalnutAdminExceptionDataScopeContextMissing,
+      )
+      await expect(repo.create(uniqueDemoPayload())).rejects.toThrow(
+        WalnutAdminExceptionDataScopeContextMissing,
+      )
     })
   })
 })

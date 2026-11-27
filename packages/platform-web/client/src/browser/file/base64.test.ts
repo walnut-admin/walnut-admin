@@ -35,7 +35,9 @@ describe('imgUrlToBase64 的 crossOrigin', () => {
     }
 
     vi.stubGlobal('Image', FakeImage)
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ drawImage: () => {} } as never)
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      drawImage: () => {},
+    } as never)
     vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/png;base64,AA==')
 
     await imgUrlToBase64('https://example.com/a.png')

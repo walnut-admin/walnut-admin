@@ -12,7 +12,9 @@ import {
   parseQuarantine,
 } from './quarantine.ts'
 
-function entry(overrides: Partial<Record<'testName' | 'issue' | 'owner' | 'addedAt' | 'reviewAt', string>> = {}) {
+function entry(
+  overrides: Partial<Record<'testName' | 'issue' | 'owner' | 'addedAt' | 'reviewAt', string>> = {},
+) {
   return {
     testName: 'U8 40605 自愈',
     issue: '#123',
@@ -79,7 +81,9 @@ describe('buildQuarantineGrepInvert', () => {
 
 describe('escapeRegExp', () => {
   it('转义全部正则元字符', () => {
-    expect(escapeRegExp('a.b*c+d?e^f$g{h}i(j)k|l[m]n\\o')).toBe('a\\.b\\*c\\+d\\?e\\^f\\$g\\{h\\}i\\(j\\)k\\|l\\[m\\]n\\\\o')
+    expect(escapeRegExp('a.b*c+d?e^f$g{h}i(j)k|l[m]n\\o')).toBe(
+      'a\\.b\\*c\\+d\\?e\\^f\\$g\\{h\\}i\\(j\\)k\\|l\\[m\\]n\\\\o',
+    )
   })
 })
 
@@ -90,6 +94,6 @@ describe('overdueEntries', () => {
       entry({ testName: 'B', reviewAt: '2026-11-25' }),
       entry({ testName: 'C', reviewAt: '2026-11-26' }),
     ]
-    expect(overdueEntries(entries, '2026-11-25').map(item => item.testName)).toEqual(['A'])
+    expect(overdueEntries(entries, '2026-11-25').map((item) => item.testName)).toEqual(['A'])
   })
 })

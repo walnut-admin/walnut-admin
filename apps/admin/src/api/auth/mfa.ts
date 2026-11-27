@@ -1,4 +1,11 @@
-import type { AuthMfaAvailableMethod, AuthMfaTotpBind, AuthMfaTotpGenerate, AuthMfaWebauthnAuthenticateOptions, AuthMfaWebauthnRegisterOptions, AuthTokenPayload } from '@walnut/api-types'
+import type {
+  AuthMfaAvailableMethod,
+  AuthMfaTotpBind,
+  AuthMfaTotpGenerate,
+  AuthMfaWebauthnAuthenticateOptions,
+  AuthMfaWebauthnRegisterOptions,
+  AuthTokenPayload,
+} from '@walnut/api-types'
 import type { IRequestPayload } from '../request'
 import { AuthRoutes, SystemEndpointRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
@@ -78,7 +85,9 @@ export function authMfaTotpUpdateStatusAPI(status: boolean) {
 /**
  * @description get webauthn register options
  */
-export function authMfaWebauthnRegisterOptionsAPI(data: IRequestPayload.Auth.MFA.Webauthn.RegisterOptions) {
+export function authMfaWebauthnRegisterOptionsAPI(
+  data: IRequestPayload.Auth.MFA.Webauthn.RegisterOptions,
+) {
   return AppAxios.post<AuthMfaWebauthnRegisterOptions>({
     url: SystemEndpointRoutes.USER_MFA_WEBAUTHN_REGISTER_OPTIONS,
     data,
@@ -88,7 +97,9 @@ export function authMfaWebauthnRegisterOptionsAPI(data: IRequestPayload.Auth.MFA
 /**
  * @description verify webauthn register
  */
-export function authMfaWebauthnRegisterVerifyAPI(data: IRequestPayload.Auth.MFA.Webauthn.RegisterVerify) {
+export function authMfaWebauthnRegisterVerifyAPI(
+  data: IRequestPayload.Auth.MFA.Webauthn.RegisterVerify,
+) {
   return AppAxios.post<boolean>({
     url: SystemEndpointRoutes.USER_MFA_WEBAUTHN_REGISTER_VERIFY,
     data,
@@ -107,7 +118,9 @@ export function authMfaWebauthnAuthenticateOptionsAPI() {
 /**
  * @description verify webauthn authenticate
  */
-export function authMfaWebauthnAuthenticateVerifyAPI(data: IRequestPayload.Auth.MFA.Webauthn.AuthenticateVerify) {
+export function authMfaWebauthnAuthenticateVerifyAPI(
+  data: IRequestPayload.Auth.MFA.Webauthn.AuthenticateVerify,
+) {
   return AppAxios.post<AuthTokenPayload>({
     url: SystemEndpointRoutes.USER_MFA_WEBAUTHN_AUTHENTICATE_VERIFY,
     data,

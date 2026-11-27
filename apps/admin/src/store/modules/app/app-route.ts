@@ -11,7 +11,7 @@ import { store } from '../../pinia'
 const useAppStoreRouteInside = defineStore(StoreKeys.APP_ROUTE, {
   state: (): IStoreApp.Route => ({
     whiteListPath: [
-      ...mainoutRoutes.map(item => item.path),
+      ...mainoutRoutes.map((item) => item.path),
       layoutConst.redirect.path,
       layoutConst.notFound.path,
       layoutConst.serverError.path,
@@ -46,7 +46,7 @@ const useAppStoreRouteInside = defineStore(StoreKeys.APP_ROUTE, {
 
       if (hasRoute(route.name as string)) {
         removeRoute(route.name as string)
-        this.whiteListPath = this.whiteListPath.filter(item => item !== route.path)
+        this.whiteListPath = this.whiteListPath.filter((item) => item !== route.path)
       }
     },
   },
@@ -55,7 +55,6 @@ const useAppStoreRouteInside = defineStore(StoreKeys.APP_ROUTE, {
 const useAppStoreRouteOutside = () => useAppStoreRouteInside(store)
 
 export function useAppStoreRoute() {
-  if (getCurrentInstance())
-    return useAppStoreRouteInside()
+  if (getCurrentInstance()) return useAppStoreRouteInside()
   return useAppStoreRouteOutside()
 }

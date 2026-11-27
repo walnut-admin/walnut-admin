@@ -121,11 +121,11 @@ export class SysLangDTOSafe extends SysLangDTO {
 export class SysLangDTOListRequest extends CreateWalnutAdminRequestListDTO(
   RealPartialType(SysLangDTOSafe),
   { sortOnlyIn: ['order', 'status', 'createdAt', 'updatedAt'] },
-) { }
+) {}
 
 export class SysLangDTOListResponse extends CreateWalnutAdminResponseListDTO(
   RealPartialType(SysLangDTOSafe),
-) { }
+) {}
 
 /**
  * `GET /system/lang/list/public` 行形态 —— repo `findPublic()` 的三列 raw 投影
@@ -162,18 +162,18 @@ export class SysLangDTOCreateRequest extends RealPickType(SysLangDTOSafe, [
   'description',
   'order',
   'status',
-] as const) { }
-export class SysLangDTOCreateResponse extends SysLangDTOSafe { }
+] as const) {}
+export class SysLangDTOCreateResponse extends SysLangDTOSafe {}
 
 // read
-export class SysLangDTOReadResponse extends SysLangDTOSafe { }
+export class SysLangDTOReadResponse extends SysLangDTOSafe {}
 
 // update —— 真 PATCH 语义（preserveAbsent，2026-11 F2）：未提供的键保持 undefined
 export class SysLangDTOUpdateRequest extends RealPartialType(
   RealPickType(SysLangDTOSafe, ['lang', 'description', 'order', 'status'] as const),
   { preserveAbsent: true },
-) { }
-export class SysLangDTOUpdateResponse extends SysLangDTOSafe { }
+) {}
+export class SysLangDTOUpdateResponse extends SysLangDTOSafe {}
 
 // delete
-export class SysLangDTODeleteResponse extends SysLangDTOSafe { }
+export class SysLangDTODeleteResponse extends SysLangDTOSafe {}

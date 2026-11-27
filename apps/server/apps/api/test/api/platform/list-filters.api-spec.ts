@@ -29,7 +29,7 @@ interface IListEndpoint {
   name: string
   path: string
   /** A 用例的合法过滤项：只用**文本列**（like 对所有端点安全，未知字段按列白名单丢弃） */
-  validFilters: Array<{ field: string, op: string, value?: unknown }>
+  validFilters: Array<{ field: string; op: string; value?: unknown }>
   /**
    * C 用例：该端点的实体是否有 uuid 主键 `id` 且走 QueryBuilder 主线。
    * logger（日志文件列表）与 cache（Redis 内存列表）不走 SQL，没有列类型裁决面。
@@ -38,25 +38,120 @@ interface IListEndpoint {
 }
 
 const ENDPOINTS: IListEndpoint[] = [
-  { name: 'app/demo', path: '/app/demo/list', validFilters: [{ field: 'demoString', op: 'like', value: 'api' }], columnTypeRejection: true },
-  { name: 'app/logger', path: '/app/logger/list', validFilters: [{ field: 'fileName', op: 'like', value: 'log' }], columnTypeRejection: false },
-  { name: 'app/monitor/cache', path: '/app/monitor/cache/list', validFilters: [], columnTypeRejection: false },
-  { name: 'app/monitor/user', path: '/app/monitor/user/list', validFilters: [{ field: 'userName', op: 'like', value: 'a' }], columnTypeRejection: true },
-  { name: 'app/setting', path: '/app/setting/list', validFilters: [{ field: 'settingKey', op: 'like', value: 'app.' }], columnTypeRejection: true },
-  { name: 'system/user', path: '/system/user/list', validFilters: [{ field: 'userName', op: 'like', value: 'root' }], columnTypeRejection: true },
-  { name: 'system/role', path: '/system/role/list', validFilters: [{ field: 'roleName', op: 'like', value: 'root' }], columnTypeRejection: true },
-  { name: 'system/dept', path: '/system/dept/list', validFilters: [{ field: 'deptCode', op: 'like', value: 'A' }], columnTypeRejection: true },
-  { name: 'system/post', path: '/system/post/list', validFilters: [{ field: 'postCode', op: 'like', value: 'a' }], columnTypeRejection: true },
-  { name: 'system/dict/type', path: '/system/dict/type/list', validFilters: [{ field: 'type', op: 'like', value: 'sys' }], columnTypeRejection: true },
-  { name: 'system/dict/data', path: '/system/dict/data/list', validFilters: [{ field: 'label', op: 'like', value: 'dict' }], columnTypeRejection: true },
-  { name: 'system/employee', path: '/system/employee/list', validFilters: [{ field: 'employeeNo', op: 'like', value: 'e' }], columnTypeRejection: true },
-  { name: 'system/lang', path: '/system/lang/list', validFilters: [{ field: 'lang', op: 'like', value: 'en' }], columnTypeRejection: true },
-  { name: 'system/locale', path: '/system/locale/list', validFilters: [{ field: 'key', op: 'like', value: 'app' }], columnTypeRejection: true },
-  { name: 'system/menu', path: '/system/menu/list', validFilters: [{ field: 'name', op: 'like', value: 'a' }], columnTypeRejection: true },
-  { name: 'system/device', path: '/system/device/list', validFilters: [{ field: 'deviceName', op: 'like', value: 'api' }], columnTypeRejection: true },
-  { name: 'system/deleted', path: '/system/deleted/list', validFilters: [{ field: 'content', op: 'like', value: 'api' }], columnTypeRejection: true },
-  { name: 'system/log/auth', path: '/system/log/auth/list', validFilters: [{ field: 'deviceId', op: 'like', value: 'api' }], columnTypeRejection: true },
-  { name: 'system/log/operate', path: '/system/log/operate/list', validFilters: [{ field: 'deviceId', op: 'like', value: 'api' }], columnTypeRejection: true },
+  {
+    name: 'app/demo',
+    path: '/app/demo/list',
+    validFilters: [{ field: 'demoString', op: 'like', value: 'api' }],
+    columnTypeRejection: true,
+  },
+  {
+    name: 'app/logger',
+    path: '/app/logger/list',
+    validFilters: [{ field: 'fileName', op: 'like', value: 'log' }],
+    columnTypeRejection: false,
+  },
+  {
+    name: 'app/monitor/cache',
+    path: '/app/monitor/cache/list',
+    validFilters: [],
+    columnTypeRejection: false,
+  },
+  {
+    name: 'app/monitor/user',
+    path: '/app/monitor/user/list',
+    validFilters: [{ field: 'userName', op: 'like', value: 'a' }],
+    columnTypeRejection: true,
+  },
+  {
+    name: 'app/setting',
+    path: '/app/setting/list',
+    validFilters: [{ field: 'settingKey', op: 'like', value: 'app.' }],
+    columnTypeRejection: true,
+  },
+  {
+    name: 'system/user',
+    path: '/system/user/list',
+    validFilters: [{ field: 'userName', op: 'like', value: 'root' }],
+    columnTypeRejection: true,
+  },
+  {
+    name: 'system/role',
+    path: '/system/role/list',
+    validFilters: [{ field: 'roleName', op: 'like', value: 'root' }],
+    columnTypeRejection: true,
+  },
+  {
+    name: 'system/dept',
+    path: '/system/dept/list',
+    validFilters: [{ field: 'deptCode', op: 'like', value: 'A' }],
+    columnTypeRejection: true,
+  },
+  {
+    name: 'system/post',
+    path: '/system/post/list',
+    validFilters: [{ field: 'postCode', op: 'like', value: 'a' }],
+    columnTypeRejection: true,
+  },
+  {
+    name: 'system/dict/type',
+    path: '/system/dict/type/list',
+    validFilters: [{ field: 'type', op: 'like', value: 'sys' }],
+    columnTypeRejection: true,
+  },
+  {
+    name: 'system/dict/data',
+    path: '/system/dict/data/list',
+    validFilters: [{ field: 'label', op: 'like', value: 'dict' }],
+    columnTypeRejection: true,
+  },
+  {
+    name: 'system/employee',
+    path: '/system/employee/list',
+    validFilters: [{ field: 'employeeNo', op: 'like', value: 'e' }],
+    columnTypeRejection: true,
+  },
+  {
+    name: 'system/lang',
+    path: '/system/lang/list',
+    validFilters: [{ field: 'lang', op: 'like', value: 'en' }],
+    columnTypeRejection: true,
+  },
+  {
+    name: 'system/locale',
+    path: '/system/locale/list',
+    validFilters: [{ field: 'key', op: 'like', value: 'app' }],
+    columnTypeRejection: true,
+  },
+  {
+    name: 'system/menu',
+    path: '/system/menu/list',
+    validFilters: [{ field: 'name', op: 'like', value: 'a' }],
+    columnTypeRejection: true,
+  },
+  {
+    name: 'system/device',
+    path: '/system/device/list',
+    validFilters: [{ field: 'deviceName', op: 'like', value: 'api' }],
+    columnTypeRejection: true,
+  },
+  {
+    name: 'system/deleted',
+    path: '/system/deleted/list',
+    validFilters: [{ field: 'content', op: 'like', value: 'api' }],
+    columnTypeRejection: true,
+  },
+  {
+    name: 'system/log/auth',
+    path: '/system/log/auth/list',
+    validFilters: [{ field: 'deviceId', op: 'like', value: 'api' }],
+    columnTypeRejection: true,
+  },
+  {
+    name: 'system/log/operate',
+    path: '/system/log/operate/list',
+    validFilters: [{ field: 'deviceId', op: 'like', value: 'api' }],
+    columnTypeRejection: true,
+  },
 ]
 
 describe('批次 4-A：list 显式 filters wire（20 个端点 × 新旧映射）', () => {
@@ -108,7 +203,7 @@ describe('批次 4-A：list 显式 filters wire（20 个端点 × 新旧映射�
 
       expectOk(res, `list ${path} with filters`)
       // 恒有 data/total 两键（分页壳不因 wire 变化而变）
-      const data = bodyOf<{ data?: unknown[], total?: number }>(res).data
+      const data = bodyOf<{ data?: unknown[]; total?: number }>(res).data
       expect(Array.isArray(data.data)).toBe(true)
       expect(typeof data.total).toBe('number')
     })
@@ -123,11 +218,14 @@ describe('批次 4-A：list 显式 filters wire（20 个端点 × 新旧映射�
   })
 
   describe('C · 算子与列类型不匹配 ⇒ 40099（R1 矩阵 42883 格）', () => {
-    it.each(ENDPOINTS.filter(e => e.columnTypeRejection))('$name 拒绝 like 打 uuid 主键', async ({ path }) => {
-      const res = await statusOf(path, listBody([{ field: 'id', op: 'like', value: 'abc' }]))
+    it.each(ENDPOINTS.filter((e) => e.columnTypeRejection))(
+      '$name 拒绝 like 打 uuid 主键',
+      async ({ path }) => {
+        const res = await statusOf(path, listBody([{ field: 'id', op: 'like', value: 'abc' }]))
 
-      expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
-    })
+        expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+      },
+    )
   })
 
   describe('D · 旧 query 槽位 ⇒ 40099（破坏性变更必须响亮）', () => {
@@ -149,8 +247,9 @@ describe('批次 4-A：list 显式 filters wire（20 个端点 × 新旧映射�
       const withoutFilters = await statusOf('/system/user/list', { page: { page: 1, pageSize: 5 } })
       expectOk(withoutFilters, 'user list without filters')
 
-      expect(bodyOf<{ total: number }>(withEmpty).data.total)
-        .toBe(bodyOf<{ total: number }>(withoutFilters).data.total)
+      expect(bodyOf<{ total: number }>(withEmpty).data.total).toBe(
+        bodyOf<{ total: number }>(withoutFilters).data.total,
+      )
     })
   })
 
@@ -163,7 +262,7 @@ describe('批次 4-A：list 显式 filters wire（20 个端点 × 新旧映射�
         page: { page: 1, pageSize: 50 },
       })
       expectOk(oneShot, 'user list one shot')
-      const ids = bodyOf<{ data: Array<{ id: string }> }>(oneShot).data.data.map(i => i.id)
+      const ids = bodyOf<{ data: Array<{ id: string }> }>(oneShot).data.data.map((i) => i.id)
 
       const paged: string[] = []
       for (let page = 1; page <= Math.min(ids.length, 5); page++) {
@@ -173,7 +272,7 @@ describe('批次 4-A：list 显式 filters wire（20 个端点 × 新旧映射�
           page: { page, pageSize: 1 },
         })
         expectOk(res, `user list page ${page}`)
-        paged.push(...bodyOf<{ data: Array<{ id: string }> }>(res).data.data.map(i => i.id))
+        paged.push(...bodyOf<{ data: Array<{ id: string }> }>(res).data.data.map((i) => i.id))
       }
 
       // 逐页拼回的顺序必须与一次取全的前缀逐项相等（有全序才可能成立）
@@ -193,18 +292,18 @@ describe('批次 4-A：list 显式 filters wire（20 个端点 × 新旧映射�
       const res = await statusOf('/system/user/list', listBody(statusFilters('true')))
 
       expectOk(res, 'user list status like true')
-      const data = bodyOf<{ data: Array<{ status: boolean }>, total: number }>(res).data
+      const data = bodyOf<{ data: Array<{ status: boolean }>; total: number }>(res).data
       expect(data.total).toBeGreaterThan(0)
       expect(data.data.length).toBeGreaterThan(0)
-      expect(data.data.every(row => row.status === true)).toBe(true)
+      expect(data.data.every((row) => row.status === true)).toBe(true)
     })
 
     it('status like "false" ⇒ 20000（可能 0 行，但不许 40099/50000）', async () => {
       const res = await statusOf('/system/user/list', listBody(statusFilters('false')))
 
       expectOk(res, 'user list status like false')
-      const data = bodyOf<{ data: Array<{ status: boolean }>, total: number }>(res).data
-      expect(data.data.every(row => row.status === false)).toBe(true)
+      const data = bodyOf<{ data: Array<{ status: boolean }>; total: number }>(res).data
+      expect(data.data.every((row) => row.status === false)).toBe(true)
     })
 
     it('布尔列 + like 但值不是布尔字面量 ⇒ 仍然 40099（只放行字典那两颗值）', async () => {

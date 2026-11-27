@@ -1,11 +1,22 @@
 <script lang="ts" setup>
 import type { components } from '@walnut/api-types'
-import type { VerifyAuthMethod, VerifyAuthMethodType, VerifyAuthOptions, VerifyAuthSensitiveChallenge, VerifyAuthStep } from './types'
+import type {
+  VerifyAuthMethod,
+  VerifyAuthMethodType,
+  VerifyAuthOptions,
+  VerifyAuthSensitiveChallenge,
+  VerifyAuthStep,
+} from './types'
 import { WalnutAdminConstSysUserMfaType } from '@walnut/contract/mfa'
 import { computed, provide, ref, useTemplateRef, watch } from 'vue'
 import { authMfaTotpVerifyAPI } from '@/api/auth/mfa'
 import { verifySensitiveAPI } from '@/api/security/sensitive'
-import { bindUserIdentityAPI, checkUserIdentityAPI, sendCodeForVerifyAPI, verifyUserIdentityAPI } from '@/api/system/user_identity'
+import {
+  bindUserIdentityAPI,
+  checkUserIdentityAPI,
+  sendCodeForVerifyAPI,
+  verifyUserIdentityAPI,
+} from '@/api/system/user_identity'
 import { useAppI18n } from '@/locales/index'
 import { useStoreCompVerifyAuth } from '@/store/modules/component/comp-verify-auth'
 import IdentityInput from './components/IdentityInput.vue'
@@ -95,13 +106,11 @@ async function onMethodSelect(method: VerifyAuthMethod) {
         method.type === 'sms' ? 'phoneNumber' : 'emailAddress',
         localOptions.value.purpose,
       )
-    }
-    catch (e) {
+    } catch (e) {
       console.error(e)
       selectedMethod.value = undefined
       return
-    }
-    finally {
+    } finally {
       loading.value = false
     }
   }
@@ -114,8 +123,7 @@ async function onMethodSelect(method: VerifyAuthMethod) {
  * Handle verification code submit from VerifyCode component
  */
 async function onVerifyCode(code: string) {
-  if (!selectedMethod.value)
-    return
+  if (!selectedMethod.value) return
 
   const { mode, purpose, sensitive } = localOptions.value
   const method = selectedMethod.value
@@ -138,9 +146,12 @@ async function onVerifyCode(code: string) {
       })
 
       // 成功：关弹窗 + 结清（40119 接线据此重放原请求）
-      compStoreVerifyAuth.onVerifiedVerifyAuthModal({ verified: true, method: method.type, trusted: false })
-    }
-    else if (mode === 'bind' && (method.type === 'sms' || method.type === 'email')) {
+      compStoreVerifyAuth.onVerifiedVerifyAuthModal({
+        verified: true,
+        method: method.type,
+        trusted: false,
+      })
+    } else if (mode === 'bind' && (method.type === 'sms' || method.type === 'email')) {
       // Bind mode: bind then verify
       await bindUserIdentityAPI({
         type: method.type === 'sms' ? 'phoneNumber' : 'emailAddress',
@@ -149,34 +160,42 @@ async function onVerifyCode(code: string) {
         setAsSecurity: false,
         verifyCode: code,
       })
-      compStoreVerifyAuth.onVerifiedVerifyAuthModal({ verified: true, method: method.type, trusted: false })
-    }
-    else if (method.type === 'sms' || method.type === 'email') {
+      compStoreVerifyAuth.onVerifiedVerifyAuthModal({
+        verified: true,
+        method: method.type,
+        trusted: false,
+      })
+    } else if (method.type === 'sms' || method.type === 'email') {
       // Verify mode: just verify
       await verifyUserIdentityAPI({
         type: method.type === 'sms' ? 'phoneNumber' : 'emailAddress',
         purpose,
         verifyCode: code,
       })
-      compStoreVerifyAuth.onVerifiedVerifyAuthModal({ verified: true, method: method.type, trusted: false })
-    }
-    else if (method.type === mfaTotp) {
+      compStoreVerifyAuth.onVerifiedVerifyAuthModal({
+        verified: true,
+        method: method.type,
+        trusted: false,
+      })
+    } else if (method.type === mfaTotp) {
       await authMfaTotpVerifyAPI({
         code,
         trusted: false,
       })
-      compStoreVerifyAuth.onVerifiedVerifyAuthModal({ verified: true, method: method.type, trusted: false })
+      compStoreVerifyAuth.onVerifiedVerifyAuthModal({
+        verified: true,
+        method: method.type,
+        trusted: false,
+      })
     }
 
     // Close modal and reset
     resetState()
-  }
-  catch (_error) {
+  } catch (_error) {
     console.error(_error)
     // Error is handled by API interceptor
     // Stay on verify step for user to retry
-  }
-  finally {
+  } finally {
     loading.value = false
   }
 }
@@ -185,9 +204,10 @@ async function onVerifyCode(code: string) {
  * 组件方法 → 服务端 `WalnutAdminConstVerifyMethod`。
  * totp/webauthn 在服务端同属 `mfa`（webauthn 不在敏感验证的可用方式里，这里只做穷举收口）。
  */
-function toServerVerifyMethod(type: VerifyAuthMethodType): components['schemas']['SecuritySensitiveVerifyRequestDTO']['method'] {
-  if (type === 'sms' || type === 'email')
-    return type
+function toServerVerifyMethod(
+  type: VerifyAuthMethodType,
+): components['schemas']['SecuritySensitiveVerifyRequestDTO']['method'] {
+  if (type === 'sms' || type === 'email') return type
   return 'mfa'
 }
 
@@ -199,12 +219,10 @@ function onBack() {
     if (currentStep.value === 'input') {
       currentStep.value = 'select'
       selectedMethod.value = undefined
-    }
-    else {
+    } else {
       currentStep.value = 'input'
     }
-  }
-  else {
+  } else {
     // In verify mode, go back to selection
     currentStep.value = 'select'
     selectedMethod.value = undefined
@@ -223,14 +241,10 @@ function resetState() {
 // ============================================
 const getModalTitle = computed(() => {
   if (currentStep.value === 'select') {
-    return getIsBindMode.value
-      ? t('security.bind.title1')
-      : t('security.verify.title1')
-  }
-  else if (currentStep.value === 'input') {
+    return getIsBindMode.value ? t('security.bind.title1') : t('security.verify.title1')
+  } else if (currentStep.value === 'input') {
     return t(getIsSms.value ? 'security.phone.modalTitle' : 'security.email.modalTitle')
-  }
-  else if (currentStep.value === 'verify') {
+  } else if (currentStep.value === 'verify') {
     return t('security.title3')
   }
   return ''
@@ -253,8 +267,7 @@ function onUpdateShow(v: boolean) {
 async function onCheckInput() {
   if (currentStep.value === 'input' && identityInputRef.value) {
     const isValid = await identityInputRef.value.validate()
-    if (!isValid)
-      return
+    if (!isValid) return
     identityInputRef.value.restoreValidation()
     loading.value = true
     try {
@@ -264,8 +277,7 @@ async function onCheckInput() {
         identifier: identityInputRef.value.getIdentifier()!,
       })
       currentStep.value = 'verify'
-    }
-    finally {
+    } finally {
       loading.value = false
     }
   }
@@ -321,11 +333,7 @@ provide('selectedMethod', selectedMethod)
 
       <WTransition appear transition-name="slide-left" :duration="300">
         <!-- Step 2: Identity Input (Bind Mode Only) -->
-        <IdentityInput
-          v-show="currentStep === 'input'"
-          ref="identityInputRef"
-          key="input"
-        />
+        <IdentityInput v-show="currentStep === 'input'" ref="identityInputRef" key="input" />
       </WTransition>
 
       <WTransition appear transition-name="slide-left" :duration="300">
@@ -356,7 +364,13 @@ provide('selectedMethod', selectedMethod)
         </WButton>
 
         <!-- data-testid：40119 旅程的显式提交（6 位输满的 onFinish 已能自动提交，这里是兜底入口） -->
-        <WButton size="small" type="primary" :disabled="loading" data-testid="verify-auth-submit" @click="onVerifySubmit">
+        <WButton
+          size="small"
+          type="primary"
+          :disabled="loading"
+          data-testid="verify-auth-submit"
+          @click="onVerifySubmit"
+        >
           {{ t('app.base.verify') }}
         </WButton>
       </div>

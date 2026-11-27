@@ -7,9 +7,7 @@ import { WalnutPGModule } from './pg.module'
  * （Mongo 的 `MongooseModule.forRootAsync` 与 `WalnutDBConfigService` 已随摘除下线。）
  */
 @Module({
-  imports: [
-    WalnutPGModule,
-  ],
+  imports: [WalnutPGModule],
   providers: [],
   exports: [],
 })

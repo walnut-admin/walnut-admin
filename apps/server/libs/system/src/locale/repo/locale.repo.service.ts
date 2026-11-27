@@ -102,7 +102,7 @@ export class SysLocaleRepoService {
     params: Partial<IListRequestParams<T>>,
     options: ISysLocaleAggregateListOptions,
     em?: EntityManager,
-  ): Promise<{ data: ISysLocaleListGroupRow[], total: number }> {
+  ): Promise<{ data: ISysLocaleListGroupRow[]; total: number }> {
     // 批次 1 · P0：算子/值解释走 pg-column-op 的单一真源（本文件不再自己按 op 猜类型）。
     // 解析器来自 locale 实体元数据 —— 非实体列 / 类型解释不了的值在这里已被丢弃 + warn。
     const metadata = this.dataSource.getMetadata(SysLocaleEntity)
@@ -148,7 +148,7 @@ export class SysLocaleRepoService {
       }
 
       if (op === 'in') {
-        const list = (value as unknown[]).map(item => bind(item)).join(', ')
+        const list = (value as unknown[]).map((item) => bind(item)).join(', ')
         where.push(`${column} IN (${list})`)
         return
       }
@@ -180,7 +180,10 @@ export class SysLocaleRepoService {
     // 排序：locale 的 `process` 是**聚合投影出来的别名**（非实体列），
     // 所以这里不走 buildPgListQueryOptions 的列白名单，而按 `SORT_ALIAS_MAP` 自家收敛；
     // 方向归一与 builder 共用 `normalizeSortOrder`（`"ASC"` 大写不再被静默当 DESC）。
-    const orderParts = [...((params as { sort?: Array<{ field: string, order?: unknown, priority?: number }> }).sort ?? [])]
+    const orderParts = [
+      ...((params as { sort?: Array<{ field: string; order?: unknown; priority?: number }> })
+        .sort ?? []),
+    ]
       .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))
       .map((item) => {
         const direction = normalizeSortOrder(item.order)

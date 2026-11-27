@@ -1,9 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import {
-  ThrottlerModuleOptions,
-  ThrottlerOptionsFactory,
-} from '@nestjs/throttler'
+import { ThrottlerModuleOptions, ThrottlerOptionsFactory } from '@nestjs/throttler'
 
 /**
  * 限流配置（@nestjs/throttler）。

@@ -11,6 +11,5 @@ declare global {
     meta?: Recordable
     _devMsg?: string
   }
-
 }
-export { }
+export {}

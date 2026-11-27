@@ -66,12 +66,20 @@ describe('mailer service：验证码任务失败留痕（F-29）', () => {
     service.onModuleInit()
     expect(listeners.has('failed')).toBe(true)
 
-    listeners.get('failed')!({
-      id: '42',
-      name: WalnutAdminConstAppProcess.EMAIL_VERIFY,
-      attemptsMade: 3,
-      data: { toEmail: 'alice@example.com', verifyCode: 654321, expireSeconds: 300, lang: 'zh_CN' },
-    }, new Error('SMTP connection refused'))
+    listeners.get('failed')!(
+      {
+        id: '42',
+        name: WalnutAdminConstAppProcess.EMAIL_VERIFY,
+        attemptsMade: 3,
+        data: {
+          toEmail: 'alice@example.com',
+          verifyCode: 654321,
+          expireSeconds: 300,
+          lang: 'zh_CN',
+        },
+      },
+      new Error('SMTP connection refused'),
+    )
 
     expect(errorSpy).toHaveBeenCalledTimes(1)
     const line = errorSpy.mock.calls[0][0] as string

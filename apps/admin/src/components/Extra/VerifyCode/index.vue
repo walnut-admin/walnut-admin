@@ -20,8 +20,7 @@ const value = defineModel<string>('value')
 watch(
   () => OTPValue.value,
   (v) => {
-    if (!v || !v.length)
-      return
+    if (!v || !v.length) return
     value.value = v.join('')
   },
 )

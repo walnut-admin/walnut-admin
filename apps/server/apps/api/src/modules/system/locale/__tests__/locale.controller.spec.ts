@@ -1,5 +1,11 @@
 import type { INestApplication } from '@nestjs/common'
-import type { OpenAPIObject, ParameterObject, RequestBodyObject, ResponseObject, SchemaObject } from '@nestjs/swagger'
+import type {
+  OpenAPIObject,
+  ParameterObject,
+  RequestBodyObject,
+  ResponseObject,
+  SchemaObject,
+} from '@nestjs/swagger'
 import { DiscoveryModule } from '@nestjs/core'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { Test } from '@nestjs/testing'
@@ -95,8 +101,9 @@ describe('system/locale swagger 声明（F-19 / F-20）', () => {
   })
 
   it('message 的 locale 是必填路径枚举（此前参数完全缺失）', () => {
-    const parameters = (document.paths['/system/locale/message/{locale}']?.get?.parameters ?? []) as ParameterObject[]
-    const locale = parameters.find(parameter => parameter.name === 'locale')
+    const parameters = (document.paths['/system/locale/message/{locale}']?.get?.parameters ??
+      []) as ParameterObject[]
+    const locale = parameters.find((parameter) => parameter.name === 'locale')
 
     expect(locale, 'path parameter locale').toBeDefined()
     expect(locale!.in).toBe('path')
@@ -105,8 +112,9 @@ describe('system/locale swagger 声明（F-19 / F-20）', () => {
   })
 
   it('message 的 cache 是可选 query（DefaultValuePipe(1) ≠ 必填）', () => {
-    const parameters = (document.paths['/system/locale/message/{locale}']?.get?.parameters ?? []) as ParameterObject[]
-    const cacheParameters = parameters.filter(parameter => parameter.name === 'cache')
+    const parameters = (document.paths['/system/locale/message/{locale}']?.get?.parameters ??
+      []) as ParameterObject[]
+    const cacheParameters = parameters.filter((parameter) => parameter.name === 'cache')
 
     // 手写 @ApiQuery 与自动推断的 cache 必须合并成一条，不能出现重复参数
     expect(cacheParameters).toHaveLength(1)
@@ -116,7 +124,10 @@ describe('system/locale swagger 声明（F-19 / F-20）', () => {
   })
 
   it('message 的 200 是项目壳 + 「消息 key → 译文」映射', () => {
-    const responses = document.paths['/system/locale/message/{locale}'].get!.responses as Record<string, ResponseObject>
+    const responses = document.paths['/system/locale/message/{locale}'].get!.responses as Record<
+      string,
+      ResponseObject
+    >
     const schema = responses['200'].content?.['application/json']?.schema as SchemaObject
 
     expect(schema).toBeDefined()

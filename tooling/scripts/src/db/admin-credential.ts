@@ -112,7 +112,7 @@ export const OPAQUE_SERVER_IDENTIFIER = 'walnut-admin'
  * 登录侧（`server.startLogin` / `client.finishLogin`）就必须提供**完全相同**的一份，
  * 否则 `client.finishLogin` 直接返回 undefined（口令是对的也登不进去）。
  */
-export function buildOpaqueIdentifiers(userName: string): { client: string, server: string } {
+export function buildOpaqueIdentifiers(userName: string): { client: string; server: string } {
   return { client: userName, server: OPAQUE_SERVER_IDENTIFIER }
 }
 
@@ -154,7 +154,11 @@ export function buildPasswordIdentity(
   now = new Date(),
 ): PasswordIdentity {
   const { clientRegistrationState, registrationRequest } = client.startRegistration({ password })
-  const { registrationResponse } = server.createRegistrationResponse({ serverSetup, userIdentifier: userName, registrationRequest })
+  const { registrationResponse } = server.createRegistrationResponse({
+    serverSetup,
+    userIdentifier: userName,
+    registrationRequest,
+  })
   // identifiers 必须与 UI 登录（`user-auth.ts` 的 AuthWithOpaque）逐字一致，否则 --admin 造出的
   // 口令登不进 UI（2026-11-24 复核发现：注册时不带 identifiers、登录时带，client.finishLogin
   // 会直接返回 undefined）。注意这只修**新生成**的凭证：已经存在的旧凭证行仍绑着旧口径，
@@ -191,7 +195,12 @@ export interface LoginProof {
 }
 
 /** 用给定的口令与已入库的注册记录跑一遍完整登录握手 —— 验证这份凭证在**本环境**可用 */
-export function verifyPasswordIdentity(userName: string, password: string, registrationRecord: string, serverSetup: string): LoginProof {
+export function verifyPasswordIdentity(
+  userName: string,
+  password: string,
+  registrationRecord: string,
+  serverSetup: string,
+): LoginProof {
   try {
     // 与线上登录同一条链路：客户端起手 → 服务端起手 → 客户端收尾 → 服务端收尾（拿到会话密钥）。
     // identifiers 与注册时同源：注册提供了什么，登录就必须原样提供（见 buildOpaqueIdentifiers）。
@@ -204,13 +213,23 @@ export function verifyPasswordIdentity(userName: string, password: string, regis
       startLoginRequest,
       identifiers,
     })
-    const clientFinish = client.finishLogin({ clientLoginState, loginResponse, password, identifiers })
+    const clientFinish = client.finishLogin({
+      clientLoginState,
+      loginResponse,
+      password,
+      identifiers,
+    })
     if (clientFinish === undefined)
       return { ok: false, reason: '客户端收尾返回 undefined（口令或注册记录不匹配）' }
-    const serverFinish = server.finishLogin({ serverLoginState, finishLoginRequest: clientFinish.finishLoginRequest })
-    return { ok: serverFinish.sessionKey.length > 0, sessionKeyLength: serverFinish.sessionKey.length }
-  }
-  catch (error) {
+    const serverFinish = server.finishLogin({
+      serverLoginState,
+      finishLoginRequest: clientFinish.finishLoginRequest,
+    })
+    return {
+      ok: serverFinish.sessionKey.length > 0,
+      sessionKeyLength: serverFinish.sessionKey.length,
+    }
+  } catch (error) {
     return { ok: false, reason: error instanceof Error ? error.message : String(error) }
   }
 }

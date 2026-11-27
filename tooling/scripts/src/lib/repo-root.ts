@@ -20,8 +20,7 @@ const ANCHORS = ['pnpm-workspace.yaml', '.git'] as const
 function findRepoRoot(startDir: string): string {
   let dir = resolve(startDir)
   for (;;) {
-    if (ANCHORS.every(anchor => existsSync(join(dir, anchor))))
-      return dir
+    if (ANCHORS.every((anchor) => existsSync(join(dir, anchor)))) return dir
     const parent = dirname(dir)
     if (parent === dir)
       throw new PreconditionError(`找不到仓库根：从 ${startDir} 向上未发现 ${ANCHORS.join(' + ')}`)

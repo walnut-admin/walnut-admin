@@ -1,8 +1,4 @@
-import {
-  Body,
-  Controller,
-
-} from '@nestjs/common'
+import { Body, Controller } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
@@ -65,20 +61,16 @@ const {
 @Controller(SystemRoutes.USER)
 @ApiTags('system/user')
 export class SysUserController {
-  constructor(
-    private readonly userCrudService: SysUserCrudService,
-  ) { }
+  constructor(private readonly userCrudService: SysUserCrudService) {}
 
-  @WalnutAdminDecoratorHasPermission(
-    Permissions.CREATE,
-  )
+  @WalnutAdminDecoratorHasPermission(Permissions.CREATE)
   @WalnutAdminDecoratorCreate()
   @WalnutTx()
-  async create(
-    @WalnutTxSession() ctx: WalnutTxContext,
-    @Body() payload: SysUserDTOCreateRequest,
-  ) {
-    return plainToInstance(SysUserDTOCreateResponse, await this.userCrudService.create(payload, ctx.em))
+  async create(@WalnutTxSession() ctx: WalnutTxContext, @Body() payload: SysUserDTOCreateRequest) {
+    return plainToInstance(
+      SysUserDTOCreateResponse,
+      await this.userCrudService.create(payload, ctx.em),
+    )
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
@@ -87,9 +79,7 @@ export class SysUserController {
     return plainToInstance(SysUserDTOReadResponse, await this.userCrudService.read(id))
   }
 
-  @WalnutAdminDecoratorHasPermission(
-    Permissions.UPDATE,
-  )
+  @WalnutAdminDecoratorHasPermission(Permissions.UPDATE)
   @WalnutAdminDecoratorUpdate()
   @WalnutTx()
   async update(
@@ -97,12 +87,13 @@ export class SysUserController {
     @Body() payload: SysUserDTOUpdateRequest,
     @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return plainToInstance(SysUserDTOUpdateResponse, await this.userCrudService.update(id, payload, ctx.em))
+    return plainToInstance(
+      SysUserDTOUpdateResponse,
+      await this.userCrudService.update(id, payload, ctx.em),
+    )
   }
 
-  @WalnutAdminDecoratorHasPermission(
-    Permissions.DELETE,
-  )
+  @WalnutAdminDecoratorHasPermission(Permissions.DELETE)
   @WalnutAdminDecoratorDelete()
   @WalnutTx()
   async delete(

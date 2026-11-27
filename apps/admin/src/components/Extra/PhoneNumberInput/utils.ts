@@ -1,6 +1,4 @@
-import type {
-  Examples,
-} from 'libphonenumber-js'
+import type { Examples } from 'libphonenumber-js'
 import { ref } from 'vue'
 
 export const phoneNumberExample = ref<Examples>()

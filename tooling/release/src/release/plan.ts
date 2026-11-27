@@ -8,13 +8,13 @@
  * 事实由调用方从 git / 工作区 / ledger / 远端取；本模块只回答「下一步该做什么」与「为什么」。
  */
 
-export type ReleaseStep
-  = | 'generate-intents'
-    | 'confirm-bump'
-    | 'consume-intents'
-    | 'confirm-summary'
-    | 'commit-tag-push'
-    | 'done'
+export type ReleaseStep =
+  | 'generate-intents'
+  | 'confirm-bump'
+  | 'consume-intents'
+  | 'confirm-summary'
+  | 'commit-tag-push'
+  | 'done'
 
 export interface ReleaseFacts {
   /** 待消费意图数（**以 ledger 为准**：文件被 pnpm 删掉/保留都不影响这个数） */
@@ -81,32 +81,54 @@ export function planRelease(facts: ReleaseFacts): ReleasePlan {
   // ① 已 bump：工作区版本已经离开上一个 tag —— 不能再 bump 一次，只能往前走到提交/打标/推送。
   if (isBumped(facts)) {
     if (facts.bumpUncommitted)
-      return at('confirm-summary', `工作区版本已是 v${facts.currentVersion}（HEAD 上还是 v${facts.baseVersion}）但还没提交 —— 从总览确认续跑`)
-    return at('commit-tag-push', `工作区版本已从 v${facts.baseVersion} 变成 v${facts.currentVersion}，只剩提交/打标/推送`)
+      return at(
+        'confirm-summary',
+        `工作区版本已是 v${facts.currentVersion}（HEAD 上还是 v${facts.baseVersion}）但还没提交 —— 从总览确认续跑`,
+      )
+    return at(
+      'commit-tag-push',
+      `工作区版本已从 v${facts.baseVersion} 变成 v${facts.currentVersion}，只剩提交/打标/推送`,
+    )
   }
 
   // ② 上次已确认 bump、还没消费：意图仍在、版本未变，用记忆省掉重答一次（不改变任何写盘事实）。
   if (facts.stateStep === 'consume-intents' && facts.pendingIntents > 0)
-    return at('consume-intents', `上次已确认 bump 但还没消费（${facts.pendingIntents} 个意图仍在）—— 从消费这一步续跑`)
+    return at(
+      'consume-intents',
+      `上次已确认 bump 但还没消费（${facts.pendingIntents} 个意图仍在）—— 从消费这一步续跑`,
+    )
 
   // ③ 有未消费意图：先确认 bump 再消费。
   if (facts.pendingIntents > 0)
-    return at('confirm-bump', `有 ${facts.pendingIntents} 个待消费变更意图（上次运行生成后中断，或本次刚生成）`)
+    return at(
+      'confirm-bump',
+      `有 ${facts.pendingIntents} 个待消费变更意图（上次运行生成后中断，或本次刚生成）`,
+    )
 
   if (facts.localTagExists && !facts.remoteTagExists)
     return at('commit-tag-push', `本地已有标签 ${tag} 但远端没有 —— 补推`)
 
   // 只有「未推送的提交正是本次 release 提交」才算发版待办：否则那只是普通未推送代码，
   // 交给 git push 就好，发版流程不该顺手把它推上去（更不该为旧版本补建任何东西）。
-  if (facts.localTagExists && facts.remoteTagExists && !facts.branchPushed && facts.releaseCommit === tag)
-    return at('commit-tag-push', `标签 ${tag} 已发布，但 release 提交所在的 ${tag} 还没推到分支 —— 补推分支`)
+  if (
+    facts.localTagExists &&
+    facts.remoteTagExists &&
+    !facts.branchPushed &&
+    facts.releaseCommit === tag
+  )
+    return at(
+      'commit-tag-push',
+      `标签 ${tag} 已发布，但 release 提交所在的 ${tag} 还没推到分支 —— 补推分支`,
+    )
 
   // 顺序要紧：**有新提交就向前走**（用户显然在准备下一个版本）。
   if (facts.remoteTagExists && facts.commitsSinceTag > 0)
-    return at('generate-intents', `上个 tag v${facts.baseVersion} 以来有 ${facts.commitsSinceTag} 个新提交 —— 生成意图发新版本`)
+    return at(
+      'generate-intents',
+      `上个 tag v${facts.baseVersion} 以来有 ${facts.commitsSinceTag} 个新提交 —— 生成意图发新版本`,
+    )
 
-  if (facts.remoteTagExists)
-    return at('done', `标签 ${tag} 已在远端、且没有新提交 —— 没有要做的`)
+  if (facts.remoteTagExists) return at('done', `标签 ${tag} 已在远端、且没有新提交 —— 没有要做的`)
 
   return at('generate-intents', '无待消费意图且版本未变 —— 从上次 tag 以来的 commit 生成意图')
 }
@@ -117,7 +139,7 @@ const STEP_TEXT: Record<ReleaseStep, string> = {
   'consume-intents': '消费意图：pnpm version -r（改版本 + 写 ledger）',
   'confirm-summary': '输出本次变更总览并等你确认',
   'commit-tag-push': '提交版本变更 → 跑门禁 → 打 tag → 推分支与 tag',
-  'done': '已完成',
+  done: '已完成',
 }
 
 /** 一步的人话说明（`--status` / 中断提示用） */
@@ -155,9 +177,8 @@ export function formatStepHeader(step: ReleaseStep): string {
 /** 从 CHANGELOG.md 里取某个版本的段落（`## 1.9.0` 起，到下一个 `## ` 或文件末尾） */
 export function extractChangelogSection(markdown: string, version: string): string | null {
   const lines = markdown.split('\n')
-  const start = lines.findIndex(line => line.trim() === `## ${version}`)
-  if (start < 0)
-    return null
+  const start = lines.findIndex((line) => line.trim() === `## ${version}`)
+  if (start < 0) return null
   const rest = lines.slice(start)
   const next = rest.findIndex((line, index) => index > 0 && /^##\s/.test(line))
   const section = (next < 0 ? rest : rest.slice(0, next)).join('\n').trim()
@@ -169,7 +190,7 @@ export interface ReleaseNoteInput {
   /** 整仓本次发版的 git-cliff 渲染结果（首选：覆盖全部包） */
   cliffNotes?: string | null
   /** 意图摘要（cliff 渲不出来时兜底） */
-  summaries: { packages: string[], summary: string }[]
+  summaries: { packages: string[]; summary: string }[]
 }
 
 /**
@@ -177,8 +198,7 @@ export interface ReleaseNoteInput {
  * 「日志说用 cliff、正文其实是摘要」这种最难查的形态。
  */
 export function releaseNoteSource(input: ReleaseNoteInput): 'cliff' | 'intents' | 'placeholder' {
-  if (input.cliffNotes)
-    return 'cliff'
+  if (input.cliffNotes) return 'cliff'
   return input.summaries.length > 0 ? 'intents' : 'placeholder'
 }
 
@@ -194,7 +214,10 @@ export function buildReleaseNotes(input: ReleaseNoteInput): string {
     return `${input.cliffNotes}\n\n---\n由 \`pnpm release\` 生成（v${input.version}）。`
   if (input.summaries.length > 0) {
     const bullets = input.summaries
-      .map(item => `- ${item.summary}${item.packages.length > 0 ? `（${item.packages.join(', ')}）` : ''}`)
+      .map(
+        (item) =>
+          `- ${item.summary}${item.packages.length > 0 ? `（${item.packages.join(', ')}）` : ''}`,
+      )
       .join('\n')
     return `## v${input.version}\n\n${bullets}\n\n---\n由 \`pnpm release\` 生成（cliff 渲染不可用，退回意图摘要）。`
   }

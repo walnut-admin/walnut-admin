@@ -34,7 +34,13 @@ const dropdownOptions = computed<DropdownOption[]>(() => {
     {
       label: status.value.totp.status ? t('dict.status.false') : t('dict.status.true'),
       key: 0,
-      icon: () => <WIcon icon={status.value.totp.status ? 'mdi:toggle-switch-off-outline' : 'mdi:toggle-switch-outline'}></WIcon>,
+      icon: () => (
+        <WIcon
+          icon={
+            status.value.totp.status ? 'mdi:toggle-switch-off-outline' : 'mdi:toggle-switch-outline'
+          }
+        ></WIcon>
+      ),
     },
     {
       label: t('app.base.showQrcode'),
@@ -66,15 +72,13 @@ async function onDropdownSelect(key: number) {
         await authMfaTotpUpdateStatusAPI(!status.value.totp.status)
         useAppMsgSuccess()
         await onInit()
-      }
-      finally {
+      } finally {
         loading.value = false
       }
     }
   }
 
-  if ([1, 2, 3].includes(key))
-    useAppMsgWarning(t('app.base.wip'))
+  if ([1, 2, 3].includes(key)) useAppMsgWarning(t('app.base.wip'))
 }
 
 function onOpenWebauthnModal() {
@@ -133,7 +137,11 @@ onBeforeMount(onInit)
       </template>
       <n-thing
         :title="$t('mfa.webauthn')"
-        :description="status.webauthn.verified ? $t('app.security.webauthn.desc') : $t('app.security.webauthn.desc.unset')"
+        :description="
+          status.webauthn.verified
+            ? $t('app.security.webauthn.desc')
+            : $t('app.security.webauthn.desc.unset')
+        "
         description-class="text-sm text-gray-400"
       />
     </n-list-item>

@@ -40,11 +40,10 @@ export interface SignRawParts {
  * @description 拆分 `url` 为 path + query 原文（不做解码/重新编码）。
  * 无 `?` 时 `query` 为 `undefined`；以 `?` 结尾时 `query` 为 `''`（保留尾随问号语义）。
  */
-export function splitPathAndQuery(url: string): { path: string, query?: string } {
+export function splitPathAndQuery(url: string): { path: string; query?: string } {
   const index = url.indexOf('?')
 
-  if (index === -1)
-    return { path: url }
+  if (index === -1) return { path: url }
 
   return { path: url.slice(0, index), query: url.slice(index + 1) }
 }
@@ -52,7 +51,11 @@ export function splitPathAndQuery(url: string): { path: string, query?: string }
 /**
  * @description 剥离 `/{apiPrefix}/v{apiVersion}` 前缀（与 service 端旧实现同正则）。
  */
-export function stripApiPrefix(path: string, apiPrefix: string, apiVersion: string | number): string {
+export function stripApiPrefix(
+  path: string,
+  apiPrefix: string,
+  apiVersion: string | number,
+): string {
   return path.replace(new RegExp(`^/${apiPrefix}/v${apiVersion}`), '') || '/'
 }
 
@@ -66,7 +69,7 @@ export function buildSignRaw(parts: SignRawParts): string {
   const flattenObj = objectToPaths(body ?? {})
   const sortedParams = Object.keys(flattenObj)
     .sort()
-    .map(k => `${k}=${flattenObj[k]}`)
+    .map((k) => `${k}=${flattenObj[k]}`)
     .join('&')
 
   // 2. 规范化路由路径（query 原文直接拼接；空路径回落 `/`）

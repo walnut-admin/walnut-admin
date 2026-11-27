@@ -20,13 +20,15 @@ import {
 const INDEX = `${ADR_DIR}/index.md`
 
 /** 一篇形态完全合规的 ADR；各用例只改自己关心的那一处 */
-function adr(options: {
-  number?: string
-  title?: string
-  date?: string
-  status?: string
-  extra?: string
-} = {}): string {
+function adr(
+  options: {
+    number?: string
+    title?: string
+    date?: string
+    status?: string
+    extra?: string
+  } = {},
+): string {
   const number = options.number ?? '0001'
   return [
     `# ADR-${number}: ${options.title ?? 'Something'}  `,
@@ -54,19 +56,19 @@ function adr(options: {
   ].join('\n')
 }
 
-function indexText(rows: Array<{ number: string, target: string, status: string }>): string {
+function indexText(rows: Array<{ number: string; target: string; status: string }>): string {
   return [
     '# 架构决策记录 (ADR)',
     '',
     '| ADR | 决策 | 状态 |',
     '|-----|------|------|',
-    ...rows.map(r => `| [${r.number}](./${r.target}) | 某决策 | ${r.status} |`),
+    ...rows.map((r) => `| [${r.number}](./${r.target}) | 某决策 | ${r.status} |`),
     '',
   ].join('\n')
 }
 
 /** 单篇 ADR 的最小输入；index 行的状态**默认跟着文件里的 Status 走**（否则会误报「两处不一致」） */
-function one(text: string, options: { number?: string, file?: string, index?: string } = {}) {
+function one(text: string, options: { number?: string; file?: string; index?: string } = {}) {
   const number = options.number ?? '0001'
   const file = options.file ?? `${ADR_DIR}/${number}-something.md`
   const target = `${number}-something.md`
@@ -75,12 +77,12 @@ function one(text: string, options: { number?: string, file?: string, index?: st
   return collectFindings({
     files: [file, INDEX],
     indexText: index,
-    readText: f => (f === INDEX ? index : text),
+    readText: (f) => (f === INDEX ? index : text),
   })
 }
 
 function problems(text: string): string[] {
-  return one(text).map(f => f.problem)
+  return one(text).map((f) => f.problem)
 }
 
 describe('headingsOf —— 只看二级标题', () => {
@@ -125,7 +127,9 @@ describe('collectFindings —— 绿路径', () => {
       [files[1]!]: adr({ number: '0002', title: 'B', status: 'Rejected' }),
       [INDEX]: indexText(rows),
     }
-    expect(collectFindings({ files, indexText: texts[INDEX]!, readText: f => texts[f]! })).toEqual([])
+    expect(
+      collectFindings({ files, indexText: texts[INDEX]!, readText: (f) => texts[f]! }),
+    ).toEqual([])
   })
 
   it('`Decision 1` / `Decision 2` 这种带序号的 Decision 也算数', () => {
@@ -157,7 +161,7 @@ describe('collectFindings —— 绿路径', () => {
 describe('collectFindings —— 号段与标题', () => {
   it('文件名不是 NNNN-kebab 形态时报错', () => {
     const got = one(adr(), { file: `${ADR_DIR}/nope.md` })
-    expect(got.some(f => f.problem.includes('NNNN-<kebab-slug>'))).toBe(true)
+    expect(got.some((f) => f.problem.includes('NNNN-<kebab-slug>'))).toBe(true)
   })
 
   it('缺号时报「编号不连续」', () => {
@@ -165,41 +169,44 @@ describe('collectFindings —— 号段与标题', () => {
     const got = collectFindings({
       files,
       indexText: indexText([]),
-      readText: f => (f === INDEX ? indexText([]) : adr({ number: f.includes('0003') ? '0003' : '0001' })),
+      readText: (f) =>
+        f === INDEX ? indexText([]) : adr({ number: f.includes('0003') ? '0003' : '0001' }),
     })
-    expect(got.some(f => f.problem.includes('编号不连续'))).toBe(true)
+    expect(got.some((f) => f.problem.includes('编号不连续'))).toBe(true)
   })
 
   it('标题编号与文件名不一致时报错', () => {
     const got = problems(adr({ title: 'X' }).replace('# ADR-0001:', '# ADR-0009:'))
-    expect(got.some(p => p.includes('与文件名 0001 不一致'))).toBe(true)
+    expect(got.some((p) => p.includes('与文件名 0001 不一致'))).toBe(true)
   })
 
   it('标题形态不对时报错', () => {
-    expect(problems(adr().replace(/^# ADR-0001:.*$/m, '# 某个 ADR')))
-      .toContain('首部标题不是 `# ADR-NNNN: <title>` 形态')
+    expect(problems(adr().replace(/^# ADR-0001:.*$/m, '# 某个 ADR'))).toContain(
+      '首部标题不是 `# ADR-NNNN: <title>` 形态',
+    )
   })
 })
 
 describe('collectFindings —— 状态枚举', () => {
   it('缺 Status 行时报错', () => {
-    expect(problems(adr().replace(/^\*\*Status:\*\*.*$/m, '')))
-      .toContain('缺 `**Status:**` 行')
+    expect(problems(adr().replace(/^\*\*Status:\*\*.*$/m, ''))).toContain('缺 `**Status:**` 行')
   })
 
   it('`Implemented` 被拒 —— 它记的是「代码写完没有」，不是「决策算不算数」', () => {
     const got = problems(adr({ status: 'Implemented (Phase 4 completed 2026-07-29)' }))
-    expect(got.some(p => p.includes('取值不在枚举内'))).toBe(true)
+    expect(got.some((p) => p.includes('取值不在枚举内'))).toBe(true)
   })
 
   it('`In Progress` 被拒', () => {
-    expect(problems(adr({ status: 'In Progress — Phase 1 + 2 完成' }))
-      .some(p => p.includes('取值不在枚举内'))).toBe(true)
+    expect(
+      problems(adr({ status: 'In Progress — Phase 1 + 2 完成' })).some((p) =>
+        p.includes('取值不在枚举内'),
+      ),
+    ).toBe(true)
   })
 
   it('四个枚举值 + Superseded by 都放行', () => {
-    for (const status of ADR_STATUSES)
-      expect(problems(adr({ status })), status).toEqual([])
+    for (const status of ADR_STATUSES) expect(problems(adr({ status })), status).toEqual([])
 
     // Superseded 需要目标存在：造两篇，0002 被 0001 取代
     const files = [`${ADR_DIR}/0001-a.md`, `${ADR_DIR}/0002-b.md`, INDEX]
@@ -212,41 +219,58 @@ describe('collectFindings —— 状态枚举', () => {
       [files[1]!]: adr({ number: '0002', title: 'B', status: 'Superseded by ADR-0001' }),
       [INDEX]: indexText(rows),
     }
-    expect(collectFindings({ files, indexText: texts[INDEX]!, readText: f => texts[f]! })).toEqual([])
+    expect(
+      collectFindings({ files, indexText: texts[INDEX]!, readText: (f) => texts[f]! }),
+    ).toEqual([])
   })
 
   it('superseded 指向不存在的 ADR 时报错', () => {
-    expect(problems(adr({ status: 'Superseded by ADR-0042' }))
-      .some(p => p.includes('指向的 ADR 不存在'))).toBe(true)
+    expect(
+      problems(adr({ status: 'Superseded by ADR-0042' })).some((p) =>
+        p.includes('指向的 ADR 不存在'),
+      ),
+    ).toBe(true)
   })
 
   it('superseded 的目标不是四位编号时报错', () => {
-    expect(problems(adr({ status: 'Superseded by ADR-42' }))
-      .some(p => p.includes('不是四位编号'))).toBe(true)
+    expect(
+      problems(adr({ status: 'Superseded by ADR-42' })).some((p) => p.includes('不是四位编号')),
+    ).toBe(true)
   })
 
   it('日期形态不对时报错', () => {
-    expect(problems(adr({ date: '2026/01/01' })))
-      .toContain('`**Date:**` 不是 YYYY-MM-DD 形态（现值 2026/01/01）')
+    expect(problems(adr({ date: '2026/01/01' }))).toContain(
+      '`**Date:**` 不是 YYYY-MM-DD 形态（现值 2026/01/01）',
+    )
   })
 })
 
 describe('collectFindings —— 四个必需小节', () => {
   it('缺 Context / Decision / Consequences 各自报一条', () => {
-    expect(problems(adr().replace('## Context\n\n背景。\n\n', ''))).toContain('缺 `## Context` 小节')
-    expect(problems(adr().replace('## Decision\n\n决定。\n\n', ''))).toContain('缺 `## Decision` 小节')
+    expect(problems(adr().replace('## Context\n\n背景。\n\n', ''))).toContain(
+      '缺 `## Context` 小节',
+    )
+    expect(problems(adr().replace('## Decision\n\n决定。\n\n', ''))).toContain(
+      '缺 `## Decision` 小节',
+    )
     // 模板末尾只有一个换行，所以这里按「从 Consequences 到文件结尾」整段删
-    expect(problems(adr().replace(/## Consequences[\s\S]*$/, ''))).toContain('缺 `## Consequences` 小节')
+    expect(problems(adr().replace(/## Consequences[\s\S]*$/, ''))).toContain(
+      '缺 `## Consequences` 小节',
+    )
   })
 
   it('缺 Alternatives 时报错', () => {
-    expect(problems(adr().replace('## Alternatives considered\n\n- **备选** —— 没选它的理由。\n\n', '')))
-      .toContain('缺 `## Alternatives considered` 小节')
+    expect(
+      problems(adr().replace('## Alternatives considered\n\n- **备选** —— 没选它的理由。\n\n', '')),
+    ).toContain('缺 `## Alternatives considered` 小节')
   })
 
   it('alternatives 出现两次时报错（只允许一个家）', () => {
-    const text = adr().replace('## Consequences', '## Alternatives considered\n\n- **又一个** —— 理由。\n\n## Consequences')
-    expect(problems(text).some(p => p.includes('出现了 2 次'))).toBe(true)
+    const text = adr().replace(
+      '## Consequences',
+      '## Alternatives considered\n\n- **又一个** —— 理由。\n\n## Consequences',
+    )
+    expect(problems(text).some((p) => p.includes('出现了 2 次'))).toBe(true)
   })
 
   it('alternatives 排在第一个 Decision 之前时报错', () => {
@@ -272,36 +296,45 @@ describe('collectFindings —— 四个必需小节', () => {
   })
 
   it('有序列表 / `*` 列表也算列表项', () => {
-    expect(problems(adr().replace('- **备选** —— 没选它的理由。', '* **备选** —— 理由。'))).toEqual([])
+    expect(problems(adr().replace('- **备选** —— 没选它的理由。', '* **备选** —— 理由。'))).toEqual(
+      [],
+    )
   })
 })
 
 describe('collectFindings —— 与 index.md 双向对齐', () => {
   it('aDR 没登记进表格时报错', () => {
     const got = one(adr(), { index: indexText([]) })
-    expect(got.some(f => f.file === INDEX && f.problem.includes('没有登记进表格'))).toBe(true)
+    expect(got.some((f) => f.file === INDEX && f.problem.includes('没有登记进表格'))).toBe(true)
   })
 
   it('表格里的编号没有对应文件时报错', () => {
     const got = one(adr(), {
-      index: indexText([{ number: '0001', target: '0001-something.md', status: 'Accepted' }, { number: '0009', target: '0009-ghost.md', status: 'Accepted' }]),
+      index: indexText([
+        { number: '0001', target: '0001-something.md', status: 'Accepted' },
+        { number: '0009', target: '0009-ghost.md', status: 'Accepted' },
+      ]),
     })
-    expect(got.some(f => f.problem.includes('表格里的 0009 没有对应文件'))).toBe(true)
+    expect(got.some((f) => f.problem.includes('表格里的 0009 没有对应文件'))).toBe(true)
   })
 
   it('链接指向不存在的文件时报错', () => {
-    const got = one(adr(), { index: indexText([{ number: '0001', target: '0001-typo.md', status: 'Accepted' }]) })
-    expect(got.some(f => f.problem.includes('该文件不存在'))).toBe(true)
+    const got = one(adr(), {
+      index: indexText([{ number: '0001', target: '0001-typo.md', status: 'Accepted' }]),
+    })
+    expect(got.some((f) => f.problem.includes('该文件不存在'))).toBe(true)
   })
 
   it('状态列与文件里的 Status 必须逐字一致', () => {
-    const got = one(adr(), { index: indexText([{ number: '0001', target: '0001-something.md', status: '✅ 已实现' }]) })
-    expect(got.some(f => f.problem.includes('两处必须逐字一致'))).toBe(true)
+    const got = one(adr(), {
+      index: indexText([{ number: '0001', target: '0001-something.md', status: '✅ 已实现' }]),
+    })
+    expect(got.some((f) => f.problem.includes('两处必须逐字一致'))).toBe(true)
   })
 
   it('index 表格一行都解析不到时报错（而不是静默通过）', () => {
     const got = one(adr(), { index: '# 架构决策记录\n\n（表格没了）\n' })
-    expect(got.some(f => f.problem.includes('一行都没解析到'))).toBe(true)
+    expect(got.some((f) => f.problem.includes('一行都没解析到'))).toBe(true)
   })
 })
 
@@ -314,10 +347,15 @@ describe('collectFindings —— 空扫描面', () => {
 
   it('index.md 与 zod-evaluation.md 不作为 ADR 参与判据', () => {
     const files = [`${ADR_DIR}/0001-a.md`, `${ADR_DIR}/zod-evaluation.md`, INDEX]
-    expect(collectFindings({
-      files,
-      indexText: indexText([{ number: '0001', target: '0001-a.md', status: 'Accepted' }]),
-      readText: f => (f.endsWith('index.md') ? indexText([{ number: '0001', target: '0001-a.md', status: 'Accepted' }]) : adr()),
-    })).toEqual([])
+    expect(
+      collectFindings({
+        files,
+        indexText: indexText([{ number: '0001', target: '0001-a.md', status: 'Accepted' }]),
+        readText: (f) =>
+          f.endsWith('index.md')
+            ? indexText([{ number: '0001', target: '0001-a.md', status: 'Accepted' }])
+            : adr(),
+      }),
+    ).toEqual([])
   })
 })

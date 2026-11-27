@@ -7,9 +7,7 @@ export const WalnutAdminConstAppEnv = {
   PROD: 'production',
 } as const
 
-export type IWalnutAdminConstAppEnv = ValueOf<
-  typeof WalnutAdminConstAppEnv
->
+export type IWalnutAdminConstAppEnv = ValueOf<typeof WalnutAdminConstAppEnv>
 
 // ── 运行环境判定（纯 process.env 读）─────────────────────────────────────────────
 // 为什么放在 const 而不是 config（W3 分层守卫补盲批，2026-11-01）：

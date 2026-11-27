@@ -41,24 +41,34 @@ describe('profile 表（设计稿 P1-6 的表格逐项对照）', () => {
     ['network', 'walnut_e2e_network', 3103, 3013, 4183, 3, 2026112404],
     ['pages', 'walnut_e2e_pages', 3104, 3014, 4184, 4, 2026112405],
     ['journey', 'walnut_e2e_journey', 3105, 3015, 4185, 5, 2026112406],
-  ] as const)('%s 的库 / 端口 / 槽位 / 锁 key', (name, database, backendPort, socketPort, webPort, ipSlot, lockKey) => {
-    expect(STACK_PROFILES[name]).toMatchObject({
-      name,
-      database,
-      backendPort,
-      socketPort,
-      webPort,
-      ipSlot,
-      artifactDir: `.e2e/${name}`,
-      authDir: `.auth/${name}`,
-      lockKey,
-    })
-  })
+  ] as const)(
+    '%s 的库 / 端口 / 槽位 / 锁 key',
+    (name, database, backendPort, socketPort, webPort, ipSlot, lockKey) => {
+      expect(STACK_PROFILES[name]).toMatchObject({
+        name,
+        database,
+        backendPort,
+        socketPort,
+        webPort,
+        ipSlot,
+        artifactDir: `.e2e/${name}`,
+        authDir: `.auth/${name}`,
+        lockKey,
+      })
+    },
+  )
 
   it('端口 / 库名在所有 profile 里唯一', () => {
-    const profiles = STACK_PROFILE_NAMES.map(name => STACK_PROFILES[name])
-    for (const field of ['database', 'backendPort', 'socketPort', 'webPort', 'ipSlot', 'lockKey'] as const) {
-      const values = profiles.map(profile => profile[field])
+    const profiles = STACK_PROFILE_NAMES.map((name) => STACK_PROFILES[name])
+    for (const field of [
+      'database',
+      'backendPort',
+      'socketPort',
+      'webPort',
+      'ipSlot',
+      'lockKey',
+    ] as const) {
+      const values = profiles.map((profile) => profile[field])
       expect(new Set(values).size, `${field} 在 profile 间重复`).toBe(values.length)
     }
   })
@@ -71,7 +81,13 @@ describe('profile 表（设计稿 P1-6 的表格逐项对照）', () => {
   })
 
   it('命名 profile 的基线目录就是 clean.ts 要递归保留的那五个', () => {
-    expect(namedProfileArtifactDirs()).toEqual(['.e2e/smoke', '.e2e/risk', '.e2e/network', '.e2e/pages', '.e2e/journey'])
+    expect(namedProfileArtifactDirs()).toEqual([
+      '.e2e/smoke',
+      '.e2e/risk',
+      '.e2e/network',
+      '.e2e/pages',
+      '.e2e/journey',
+    ])
   })
 })
 
@@ -107,7 +123,13 @@ describe('库名形态 E2E_DATABASE_PATTERN', () => {
   })
 
   it('拒绝 dev 库与注入形态', () => {
-    for (const database of ['walnut_pg', 'walnut_e2e_', 'walnut_e2e_Foo', 'walnut_e2e-1', 'x;DROP DATABASE walnut_pg']) {
+    for (const database of [
+      'walnut_pg',
+      'walnut_e2e_',
+      'walnut_e2e_Foo',
+      'walnut_e2e-1',
+      'x;DROP DATABASE walnut_pg',
+    ]) {
       expect(E2E_DATABASE_PATTERN.test(database), database).toBe(false)
     }
   })
@@ -142,7 +164,7 @@ describe('localIpFor', () => {
     })
     for (let i = 0; i < sets.length; i++) {
       for (let j = i + 1; j < sets.length; j++) {
-        const overlap = [...sets[i]!.ips].filter(ip => sets[j]!.ips.has(ip))
+        const overlap = [...sets[i]!.ips].filter((ip) => sets[j]!.ips.has(ip))
         expect(overlap, `${sets[i]!.name} 与 ${sets[j]!.name} 的 IP 段重叠`).toEqual([])
       }
     }
@@ -158,28 +180,51 @@ describe('localIpFor', () => {
 
 describe('resolveProfileTestArgs', () => {
   it('default 原样返回（本地可以跑任意 project / 全量）', () => {
-    expect(resolveProfileTestArgs(STACK_PROFILES.default, ['--project=smoke'])).toEqual(['--project=smoke'])
+    expect(resolveProfileTestArgs(STACK_PROFILES.default, ['--project=smoke'])).toEqual([
+      '--project=smoke',
+    ])
     expect(resolveProfileTestArgs(STACK_PROFILES.default, [])).toEqual([])
   })
 
   it('命名 profile 没给 --project ⇒ 补同名 project', () => {
-    expect(resolveProfileTestArgs(STACK_PROFILES.smoke, ['--grep', '@smoke'])).toEqual(['--grep', '@smoke', '--project=smoke'])
+    expect(resolveProfileTestArgs(STACK_PROFILES.smoke, ['--grep', '@smoke'])).toEqual([
+      '--grep',
+      '@smoke',
+      '--project=smoke',
+    ])
   })
 
   it('命名 profile 给了同名 project ⇒ 原样返回（两种写法都认）', () => {
-    expect(resolveProfileTestArgs(STACK_PROFILES.risk, ['--project=risk'])).toEqual(['--project=risk'])
-    expect(resolveProfileTestArgs(STACK_PROFILES.risk, ['--project', 'risk'])).toEqual(['--project', 'risk'])
+    expect(resolveProfileTestArgs(STACK_PROFILES.risk, ['--project=risk'])).toEqual([
+      '--project=risk',
+    ])
+    expect(resolveProfileTestArgs(STACK_PROFILES.risk, ['--project', 'risk'])).toEqual([
+      '--project',
+      'risk',
+    ])
   })
 
   it('命名 profile 跑了别的 project ⇒ 前置错误（不让用例跑在别的库上）', () => {
-    expect(() => resolveProfileTestArgs(STACK_PROFILES.smoke, ['--project=risk'])).toThrow(/只能跑 --project=smoke/)
-    expect(() => resolveProfileTestArgs(STACK_PROFILES.network, ['--project=network', '--project=risk'])).toThrow(/--project=risk/)
-    expect(() => resolveProfileTestArgs(STACK_PROFILES.pages, ['--project=journey'])).toThrow(/只能跑 --project=pages/)
-    expect(() => resolveProfileTestArgs(STACK_PROFILES.journey, ['--project=pages'])).toThrow(/只能跑 --project=journey/)
+    expect(() => resolveProfileTestArgs(STACK_PROFILES.smoke, ['--project=risk'])).toThrow(
+      /只能跑 --project=smoke/,
+    )
+    expect(() =>
+      resolveProfileTestArgs(STACK_PROFILES.network, ['--project=network', '--project=risk']),
+    ).toThrow(/--project=risk/)
+    expect(() => resolveProfileTestArgs(STACK_PROFILES.pages, ['--project=journey'])).toThrow(
+      /只能跑 --project=pages/,
+    )
+    expect(() => resolveProfileTestArgs(STACK_PROFILES.journey, ['--project=pages'])).toThrow(
+      /只能跑 --project=journey/,
+    )
   })
 
   it('扩面 profile 默认补自己的同名 project（CI 的 --project=<p> 与 profile 1:1）', () => {
     expect(resolveProfileTestArgs(STACK_PROFILES.pages, [])).toEqual(['--project=pages'])
-    expect(resolveProfileTestArgs(STACK_PROFILES.journey, ['--grep', '@journey'])).toEqual(['--grep', '@journey', '--project=journey'])
+    expect(resolveProfileTestArgs(STACK_PROFILES.journey, ['--grep', '@journey'])).toEqual([
+      '--grep',
+      '@journey',
+      '--project=journey',
+    ])
   })
 })

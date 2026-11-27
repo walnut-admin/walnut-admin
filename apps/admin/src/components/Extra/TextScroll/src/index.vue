@@ -17,9 +17,9 @@ const slots = useSlots()
 
 const slotsText = getDefaultSlotText(slots)
 
-const getTexts = computed(() => slotsText
-  ? Array.from<string>({ length: 4 }).fill(slotsText)
-  : props.texts)
+const getTexts = computed(() =>
+  slotsText ? Array.from<string>({ length: 4 }).fill(slotsText) : props.texts,
+)
 </script>
 
 <template>

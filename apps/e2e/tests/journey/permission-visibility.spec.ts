@@ -1,9 +1,25 @@
 import { deleteLoginableUser, loginAs } from '../../lib/account-fixtures.ts'
 import { openDevice, resolveDeviceId, trackDevice } from '../../lib/device-fixtures.ts'
-import { deleteRoleById, findElementMenuIdByPermission, findMenuIdByName, findMenuIdByPath, withPg } from '../../lib/pg.ts'
-import { AuthRoutes, SystemRoutes, WalnutAdminConstAppResponseCode } from '../../lib/protocol/contract.ts'
+import {
+  deleteRoleById,
+  findElementMenuIdByPermission,
+  findMenuIdByName,
+  findMenuIdByPath,
+  withPg,
+} from '../../lib/pg.ts'
+import {
+  AuthRoutes,
+  SystemRoutes,
+  WalnutAdminConstAppResponseCode,
+} from '../../lib/protocol/contract.ts'
 import { rootClient } from '../../lib/protocol/root-client.ts'
-import { captureEnvelopes, expectSidebarRendered, loginViaUI, navigateToRoute, waitForEnvelope } from '../../lib/ui.ts'
+import {
+  captureEnvelopes,
+  expectSidebarRendered,
+  loginViaUI,
+  navigateToRoute,
+  waitForEnvelope,
+} from '../../lib/ui.ts'
 import { expect, test } from '../fixtures.ts'
 import { createJourneyUser } from './journey-support.ts'
 
@@ -58,14 +74,20 @@ interface PermissionsPayload {
 }
 
 /** 用该用户自己的凭据开一台协议客户端读 `/auth/permissions`（独立于浏览器设备） */
-async function permissionsAs(user: { userName: string, password: string }, totpSecret: string): Promise<PermissionsPayload> {
+async function permissionsAs(
+  user: { userName: string; password: string },
+  totpSecret: string,
+): Promise<PermissionsPayload> {
   const client = await loginAs(user)
   await client.verifyTotpForDevice(totpSecret)
   return await client.root<PermissionsPayload>('GET', AuthRoutes.PERMISSIONS)
 }
 
 test.describe('权限可见性 journey', { tag: '@journey' }, () => {
-  test('J7 菜单给 / element 不给：表格空 + 按钮隐藏 + list 门禁；对照 root 全量可见', async ({ browser, authedPage }) => {
+  test('J7 菜单给 / element 不给：表格空 + 按钮隐藏 + list 门禁；对照 root 全量可见', async ({
+    browser,
+    authedPage,
+  }) => {
     const root = await rootClient()
     const roleName = `e2e-visibility-${Date.now()}`
     let roleId = ''
@@ -88,20 +110,40 @@ test.describe('权限可见性 journey', { tag: '@journey' }, () => {
       })
       roleId = role.id
 
-      const { user, totpSecret } = await createJourneyUser(root, 'e2e-visibility', { roleId, bindTotp: true })
+      const { user, totpSecret } = await createJourneyUser(root, 'e2e-visibility', {
+        roleId,
+        bindTotp: true,
+      })
 
       try {
         // 2. 协议侧：菜单在（路由树有 User）、user 权限串不在
         const ownPermissions = await permissionsAs(user, totpSecret!)
-        expect(ownPermissions.permissionStrings, 'dept:list 是页面依赖的辅助权限，应在').toContain('system:dept:list')
-        const ownUserPermissions = ownPermissions.permissionStrings.filter(item => item.startsWith('system:user:'))
-        expect(ownUserPermissions, `非 root 角色不应有任何 system:user:* 权限串（实际 ${ownUserPermissions.join(', ')}）`).toEqual([])
-        expect(collectRouteNames(ownPermissions.permissionRouteTree), '菜单已授权，路由树里应有 User').toContain('User')
+        expect(ownPermissions.permissionStrings, 'dept:list 是页面依赖的辅助权限，应在').toContain(
+          'system:dept:list',
+        )
+        const ownUserPermissions = ownPermissions.permissionStrings.filter((item) =>
+          item.startsWith('system:user:'),
+        )
+        expect(
+          ownUserPermissions,
+          `非 root 角色不应有任何 system:user:* 权限串（实际 ${ownUserPermissions.join(', ')}）`,
+        ).toEqual([])
+        expect(
+          collectRouteNames(ownPermissions.permissionRouteTree),
+          '菜单已授权，路由树里应有 User',
+        ).toContain('User')
 
         // root 对照：权限串全量（root 短路取全部菜单）
         const rootPermissions = await root.root<PermissionsPayload>('GET', AuthRoutes.PERMISSIONS)
-        for (const permission of ['system:user:list', 'system:user:create', 'system:user:read', 'system:user:delete']) {
-          expect(rootPermissions.permissionStrings, `root 权限串应含 ${permission}`).toContain(permission)
+        for (const permission of [
+          'system:user:list',
+          'system:user:create',
+          'system:user:read',
+          'system:user:delete',
+        ]) {
+          expect(rootPermissions.permissionStrings, `root 权限串应含 ${permission}`).toContain(
+            permission,
+          )
         }
         expect(collectRouteNames(rootPermissions.permissionRouteTree)).toContain('User')
 
@@ -111,24 +153,43 @@ test.describe('权限可见性 journey', { tag: '@journey' }, () => {
         const captured = captureEnvelopes(page)
 
         try {
-          await loginViaUI(page, { userName: user.userName, password: user.password, totpSecret: totpSecret! })
+          await loginViaUI(page, {
+            userName: user.userName,
+            password: user.password,
+            totpSecret: totpSecret!,
+          })
           session.deviceId = await resolveDeviceId(page)
           trackDevice(session.deviceId)
 
-          await expect(page.getByTestId('user-list-table'), '菜单已授权，表格应挂载').toBeVisible({ timeout: 30_000 })
+          await expect(page.getByTestId('user-list-table'), '菜单已授权，表格应挂载').toBeVisible({
+            timeout: 30_000,
+          })
 
           // 手动触发一次 list（点击查询）：门禁应当拦在发请求之前，并弹无权限通知
           await page.getByTestId('table-query-search').click()
-          await expect(page.getByText(NO_AUTHORITY_TEXT).first(), '没有 list 权限时应提示无权限（而不是静默空表）').toBeVisible({ timeout: 15_000 })
+          await expect(
+            page.getByText(NO_AUTHORITY_TEXT).first(),
+            '没有 list 权限时应提示无权限（而不是静默空表）',
+          ).toBeVisible({ timeout: 15_000 })
 
-          const listEntry = captured.entries.find(entry => entry.url.includes(`${SystemRoutes.USER}/list`))
-          expect(listEntry, `没有 system:user:list 时不该发出 list 请求（实际 ${listEntry?.url ?? '未发出'}）`).toBeUndefined()
+          const listEntry = captured.entries.find((entry) =>
+            entry.url.includes(`${SystemRoutes.USER}/list`),
+          )
+          expect(
+            listEntry,
+            `没有 system:user:list 时不该发出 list 请求（实际 ${listEntry?.url ?? '未发出'}）`,
+          ).toBeUndefined()
 
           // 表头 create（auths.create 未授予）与行内按钮都不渲染
-          await expect(page.getByTestId('user-create-btn'), '无 create 权限时表头按钮不应渲染').toHaveCount(0)
-          await expect(page.locator('tbody tr').filter({ hasText: 'admin' }), '无 list 权限时表格不应有数据行').toHaveCount(0)
-        }
-        finally {
+          await expect(
+            page.getByTestId('user-create-btn'),
+            '无 create 权限时表头按钮不应渲染',
+          ).toHaveCount(0)
+          await expect(
+            page.locator('tbody tr').filter({ hasText: 'admin' }),
+            '无 list 权限时表格不应有数据行',
+          ).toHaveCount(0)
+        } finally {
           captured.stop()
           await session.context.close()
         }
@@ -142,25 +203,30 @@ test.describe('权限可见性 journey', { tag: '@journey' }, () => {
           await navigateToRoute(authedPage, '/system/user', 'User')
           await waitForEnvelope(
             rootCaptured.entries,
-            entry => entry.url.includes(`${SystemRoutes.USER}/list`) && entry.code === WalnutAdminConstAppResponseCode.SUCCESS,
+            (entry) =>
+              entry.url.includes(`${SystemRoutes.USER}/list`) &&
+              entry.code === WalnutAdminConstAppResponseCode.SUCCESS,
             20_000,
             fromIndex,
           )
           await expect(authedPage.getByTestId('user-list-table')).toBeVisible({ timeout: 20_000 })
-          await expect(authedPage.getByTestId('user-create-btn'), 'root 的 create 按钮应可见').toBeVisible({ timeout: 15_000 })
-          await expect(authedPage.getByTestId('user-edit-btn').first(), 'root 的行内 read 按钮应可见').toBeVisible({ timeout: 20_000 })
-        }
-        finally {
+          await expect(
+            authedPage.getByTestId('user-create-btn'),
+            'root 的 create 按钮应可见',
+          ).toBeVisible({ timeout: 15_000 })
+          await expect(
+            authedPage.getByTestId('user-edit-btn').first(),
+            'root 的行内 read 按钮应可见',
+          ).toBeVisible({ timeout: 20_000 })
+        } finally {
           rootCaptured.stop()
         }
-      }
-      finally {
+      } finally {
         await deleteLoginableUser(user)
       }
-    }
-    finally {
+    } finally {
       if (roleId !== '') {
-        await withPg(pg => deleteRoleById(pg, roleId)).catch(() => {})
+        await withPg((pg) => deleteRoleById(pg, roleId)).catch(() => {})
       }
     }
   })
@@ -179,7 +245,9 @@ test.describe('权限可见性 journey', { tag: '@journey' }, () => {
    * 这条 fixme 是缺陷的可执行复现 —— 前端给 `useDeptTree` 补 catch / 按权限跳过请求后，
    * 删掉 `.fixme` 即可转为正常回归（判据改为「页面可用且表格空 + 按钮隐藏」）。
    */
-  test.fixme('J7b 菜单给、依赖权限不给：dept/tree 40105 未接线 → 全屏致命遮罩（已知缺陷）', async ({ browser }) => {
+  test.fixme('J7b 菜单给、依赖权限不给：dept/tree 40105 未接线 → 全屏致命遮罩（已知缺陷）', async ({
+    browser,
+  }) => {
     const root = await rootClient()
     const roleName = `e2e-visibility-nodep-${Date.now()}`
     let roleId = ''
@@ -200,25 +268,31 @@ test.describe('权限可见性 journey', { tag: '@journey' }, () => {
       })
       roleId = role.id
 
-      const { user, totpSecret } = await createJourneyUser(root, 'e2e-visibility-nodep', { roleId, bindTotp: true })
+      const { user, totpSecret } = await createJourneyUser(root, 'e2e-visibility-nodep', {
+        roleId,
+        bindTotp: true,
+      })
       try {
         const session = await openDevice(browser, '/auth')
         try {
-          await loginViaUI(session.page, { userName: user.userName, password: user.password, totpSecret: totpSecret! })
+          await loginViaUI(session.page, {
+            userName: user.userName,
+            password: user.password,
+            totpSecret: totpSecret!,
+          })
           // 当前行为：fatal 遮罩出现（缺陷）；修复后这里应改成「没有遮罩 + 表格空」
-          await expect(session.page.getByText('页面遇到无法恢复的错误')).toBeVisible({ timeout: 30_000 })
-        }
-        finally {
+          await expect(session.page.getByText('页面遇到无法恢复的错误')).toBeVisible({
+            timeout: 30_000,
+          })
+        } finally {
           await session.context.close()
         }
-      }
-      finally {
+      } finally {
         await deleteLoginableUser(user)
       }
-    }
-    finally {
+    } finally {
       if (roleId !== '') {
-        await withPg(pg => deleteRoleById(pg, roleId)).catch(() => {})
+        await withPg((pg) => deleteRoleById(pg, roleId)).catch(() => {})
       }
     }
   })

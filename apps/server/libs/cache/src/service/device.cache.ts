@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+} from '@walnut-server/const/app/cache'
 import { WalnutAdminConstDeviceCookieRenewInterval } from '@walnut-server/const/app/cookie'
 import { AppTechCacheService } from '../cache.service'
 
@@ -26,11 +29,10 @@ interface IDeviceCacheSource {
 export class AppTechCacheDeviceService {
   private readonly logger = new Logger(AppTechCacheDeviceService.name)
 
-  constructor(
-    private readonly cacheService: AppTechCacheService,
-  ) { }
+  constructor(private readonly cacheService: AppTechCacheService) {}
 
-  private readonly getSysDeviceCacheKey = (deviceId: string) => `${WalnutAdminConstAppCacheKeys.SYS_DEVICE}:${deviceId}`
+  private readonly getSysDeviceCacheKey = (deviceId: string) =>
+    `${WalnutAdminConstAppCacheKeys.SYS_DEVICE}:${deviceId}`
 
   /**
    * @description set system device cache

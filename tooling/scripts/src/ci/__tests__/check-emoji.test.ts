@@ -13,20 +13,25 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { EMOJI_CHAR, findEmoji, stripEmoji } from '../../lib/emoji.ts'
 import { REPO_ROOT } from '../../lib/repo-root.ts'
-import { checkFile, collectFindings, isComment, isStrictDoc, listCandidateFiles, syntaxOf } from '../check-emoji.ts'
+import {
+  checkFile,
+  collectFindings,
+  isComment,
+  isStrictDoc,
+  listCandidateFiles,
+  syntaxOf,
+} from '../check-emoji.ts'
 
 const roots: string[] = []
 afterEach(() => {
-  for (const root of roots.splice(0))
-    rmSync(root, { recursive: true, force: true })
+  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
 /** 造一个临时"仓库根"并写入指定文件 */
 function makeRepo(files: Record<string, string>): string {
   const root = mkdtempSync(join(tmpdir(), 'walnut-emoji-'))
   roots.push(root)
-  for (const [name, content] of Object.entries(files))
-    writeFileSync(join(root, name), content)
+  for (const [name, content] of Object.entries(files)) writeFileSync(join(root, name), content)
   return root
 }
 
@@ -52,7 +57,7 @@ describe('注释语法分派', () => {
     expect(isComment('key: value # 行尾', 'hash')).toBe(false) // 只认整行注释，宁可漏报不误报
     expect(isComment('// 注释', 'slash')).toBe(true)
     expect(isComment(' * 块注释续行', 'slash')).toBe(true)
-    expect(isComment('const ok = \'✅\'', 'slash')).toBe(false)
+    expect(isComment("const ok = '✅'", 'slash')).toBe(false)
   })
 
   it('常驻上下文文档走严格档（复用文档预算那份名单，不写第二份）', () => {
@@ -109,8 +114,8 @@ describe('checkFile —— 反例（两类文件各一条）', () => {
   it('常驻文档里非注释位置的 emoji 也报（严格档）', () => {
     const root = makeRepo({ 'AGENTS.md': '# 标题 ✅\n\n正文里的 ⚠️ 也报\n' })
     const findings = checkFile(root, 'AGENTS.md', false)
-    expect(findings.map(f => f.line)).toEqual([1, 3])
-    expect(findings.every(f => f.strict)).toBe(true)
+    expect(findings.map((f) => f.line)).toEqual([1, 3])
+    expect(findings.every((f) => f.strict)).toBe(true)
   })
 
   it('--fix 就地剔除，且只动命中的文件', () => {

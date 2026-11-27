@@ -121,7 +121,9 @@ export class AliyunSmsService {
     const outId = dto.bizId ?? this.generateBizId()
 
     this.logger.log(`Preparing to send SMS verification code to: ${phoneNumber}`)
-    this.logger.debug(`SMS params - templateCode: ${templateCodeValue}, signName: ${signName}, validTime: ${validTime}min, codeLength: ${codeLength}, codeType: ${codeType}, OutId: ${outId}`)
+    this.logger.debug(
+      `SMS params - templateCode: ${templateCodeValue}, signName: ${signName}, validTime: ${validTime}min, codeLength: ${codeLength}, codeType: ${codeType}, OutId: ${outId}`,
+    )
 
     const templateParam = JSON.stringify({
       code: '##code##',
@@ -147,24 +149,29 @@ export class AliyunSmsService {
       const body = response.body as SendSmsResponseBody
       const responseCode = body.code
 
-      this.logger.debug(`Aliyun SMS API response - code: ${responseCode}, message: ${body.message ?? 'N/A'}, BizId: ${body.model?.bizId ?? 'N/A'}`)
+      this.logger.debug(
+        `Aliyun SMS API response - code: ${responseCode}, message: ${body.message ?? 'N/A'}, BizId: ${body.model?.bizId ?? 'N/A'}`,
+      )
 
       if (responseCode !== 'OK') {
-        this.logger.error(`Aliyun SMS API returned error - code: ${responseCode}, message: ${body.message ?? 'Unknown error'}`)
+        this.logger.error(
+          `Aliyun SMS API returned error - code: ${responseCode}, message: ${body.message ?? 'Unknown error'}`,
+        )
         throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.auth.sendVerifyCodeError' })
       }
 
       const resultBizId = body.model?.bizId
       const outId = body.model?.outId
 
-      this.logger.log(`SMS sent successfully to ${phoneNumber}, BizId: ${resultBizId}, OutId: ${outId}`)
+      this.logger.log(
+        `SMS sent successfully to ${phoneNumber}, BizId: ${resultBizId}, OutId: ${outId}`,
+      )
 
       return {
         success: true,
         BizId: resultBizId,
       }
-    }
-    catch (error: unknown) {
+    } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error))
       this.logger.error(`Failed to send SMS to ${phoneNumber}: ${err.message}`, err.stack)
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.auth.sendVerifyCodeError' })
@@ -184,7 +191,9 @@ export class AliyunSmsService {
     const { phoneNumber, code, bizId } = dto
 
     this.logger.log(`Preparing to verify SMS code for phone: ${phoneNumber}`)
-    this.logger.debug(`Verify params - phoneNumber: ${phoneNumber}, code: ${code.substring(0, 1)}****, OutId: ${bizId ?? 'N/A'}`)
+    this.logger.debug(
+      `Verify params - phoneNumber: ${phoneNumber}, code: ${code.substring(0, 1)}****, OutId: ${bizId ?? 'N/A'}`,
+    )
 
     const verifyReq = new $Dypnsapi20170525.CheckSmsVerifyCodeRequest({
       phoneNumber,
@@ -201,7 +210,9 @@ export class AliyunSmsService {
       const responseCode = body.code
       const resultVerifyResult = body.model?.verifyResult
 
-      this.logger.debug(`Aliyun verify API response - code: ${responseCode}, VerifyResult: ${resultVerifyResult ?? 'N/A'}`)
+      this.logger.debug(
+        `Aliyun verify API response - code: ${responseCode}, VerifyResult: ${resultVerifyResult ?? 'N/A'}`,
+      )
 
       if (responseCode !== 'OK') {
         this.logger.warn(`Aliyun verify API returned non-OK code: ${responseCode}`)
@@ -215,13 +226,13 @@ export class AliyunSmsService {
       if (resultVerifyResult === 'PASS') {
         this.logger.log(`SMS code verification PASSED for phone: ${phoneNumber}`)
         return { success: true, VerifyResult: resultVerifyResult }
-      }
-      else {
-        this.logger.warn(`SMS code verification FAILED for phone: ${phoneNumber}, VerifyResult: ${resultVerifyResult}`)
+      } else {
+        this.logger.warn(
+          `SMS code verification FAILED for phone: ${phoneNumber}, VerifyResult: ${resultVerifyResult}`,
+        )
         return { success: false, VerifyResult: resultVerifyResult }
       }
-    }
-    catch (error: unknown) {
+    } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error))
       this.logger.error(`Failed to verify SMS code for ${phoneNumber}: ${err.message}`, err.stack)
       return { success: false, VerifyResult: 'FAIL' }

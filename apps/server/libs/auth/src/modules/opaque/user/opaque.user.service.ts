@@ -20,8 +20,7 @@ export class AuthOpaqueUserService {
     private readonly sysUserSharedService: SysUserSharedService,
     private readonly opaqueCoreService: AuthOpaqueCoreService,
     private readonly userRepo: SysUserRepositoryService,
-  ) {
-  }
+  ) {}
 
   /**
    * Validate OPAQUE user credentials (Step 2 of 2)
@@ -29,7 +28,10 @@ export class AuthOpaqueUserService {
    */
   async validateOpaqueUser(userName: string, finishLoginRequest: string, deviceId: string) {
     // Retrieve cached server login state from step 1
-    const serverLoginState = await this.opaqueCacheService.getOpaqueServerStateCache(userName, deviceId)
+    const serverLoginState = await this.opaqueCacheService.getOpaqueServerStateCache(
+      userName,
+      deviceId,
+    )
     if (isNil(serverLoginState)) {
       throw new WalnutAdminExceptionInvalidCredential()
     }
@@ -56,12 +58,10 @@ export class AuthOpaqueUserService {
 
       // Return user's access token payload
       return await this.sysUserSharedService.getAccessTokenPayloadWhenUserExisted(user, deviceId)
-    }
-    catch (error: any) {
+    } catch (error: any) {
       this.logger.error(`OPAQUE login finish failed, userName: ${userName}, error: ${error}`)
       throw new WalnutAdminExceptionInvalidCredential()
-    }
-    finally {
+    } finally {
       // Clean up server login state regardless of success or failure
       await this.opaqueCacheService.delOpaqueServerStateCache(userName, deviceId)
     }

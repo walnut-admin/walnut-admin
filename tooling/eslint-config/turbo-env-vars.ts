@@ -61,7 +61,10 @@ const TEST_FILE_GLOBS = [
 export function turboEnvVarsConfig() {
   // 返回**可变元组**：`as const` 会得到 `readonly [...]`，而 flat config 的 `RuleEntry` 要求可变元组
   // —— 实测会报 TS2345（`readonly` is not assignable to the mutable type）。
-  const rule = (allow: string[]): ['error', { allowList: string[] }] => ['error', { allowList: allow }]
+  const rule = (allow: string[]): ['error', { allowList: string[] }] => [
+    'error',
+    { allowList: allow },
+  ]
   return [
     {
       name: 'walnut/turbo-env-vars',
@@ -77,7 +80,11 @@ export function turboEnvVarsConfig() {
       files: TEST_FILE_GLOBS,
       plugins: { turbo },
       rules: {
-        'turbo/no-undeclared-env-vars': rule([...RUNTIME_INJECTED, ...FRAMEWORK_BUILTINS, ...TEST_FIXTURES]),
+        'turbo/no-undeclared-env-vars': rule([
+          ...RUNTIME_INJECTED,
+          ...FRAMEWORK_BUILTINS,
+          ...TEST_FIXTURES,
+        ]),
       },
     },
   ]

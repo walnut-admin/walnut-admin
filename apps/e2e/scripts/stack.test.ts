@@ -83,7 +83,14 @@ describe('statusExitCode', () => {
 describe('composeArgv', () => {
   it('docker-cli：argv 直传，路径保持绝对 Windows / POSIX 形态', () => {
     const target = stackTargetOf('generic', 'docker-cli')
-    expect(composeArgv(target, ['up', '-d'])).toEqual(['docker', 'compose', '-f', target.composeFile, 'up', '-d'])
+    expect(composeArgv(target, ['up', '-d'])).toEqual([
+      'docker',
+      'compose',
+      '-f',
+      target.composeFile,
+      'up',
+      '-d',
+    ])
   })
 
   it('wsl-bash：经 `wsl -e bash -c`，compose 路径换成 /mnt/… 并用单引号包住', () => {
@@ -94,7 +101,7 @@ describe('composeArgv', () => {
     expect(script).toMatch(/^docker compose -f '.+' down$/)
     expect(script).not.toContain('\\')
     if (target.composeFile.includes(':')) {
-      expect(script).toContain('\'/mnt/')
+      expect(script).toContain("'/mnt/")
     }
   })
 })

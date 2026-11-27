@@ -1,7 +1,4 @@
-import type {
-  ValidationArguments,
-  ValidationOptions,
-} from 'class-validator'
+import type { ValidationArguments, ValidationOptions } from 'class-validator'
 import { applyDecorators } from '@nestjs/common'
 import {
   IsIn,
@@ -33,17 +30,17 @@ export function WalnutAdminDecoratorValidatorNumber(
   isArray?: boolean,
   arrayOptions?: IWalnutAdminDecoratorArrayOptions,
 ): PropertyDecorator {
-  const { positive, negative, max, min, int, onlyIn, precision, optional }
-    = Object.assign(defaultOptions(), options)
+  const { positive, negative, max, min, int, onlyIn, precision, optional } = Object.assign(
+    defaultOptions(),
+    options,
+  )
 
   // optional：缺省即放行（IsOptional 会短路本字段其余校验）；
   // swagger 侧由 field/number.decorator.ts 同源翻成 required: false —— 见 number.d.ts 的注释
-  let decorators = optional === true
-    ? [IsOptional()]
-    : [
-        IsNumber({}, { each: isArray }),
-        IsNotEmpty({ each: isArray }),
-      ]
+  let decorators =
+    optional === true
+      ? [IsOptional()]
+      : [IsNumber({}, { each: isArray }), IsNotEmpty({ each: isArray })]
 
   if (isArray) {
     decorators = WalnutAdminDecoratorValidatorArray(decorators, arrayOptions)
@@ -88,10 +85,7 @@ export function WalnutAdminDecoratorValidatorNumber(
   return applyDecorators(...decorators)
 }
 
-export function IsPrecisionRight(
-  precision: number,
-  validationOptions?: ValidationOptions,
-) {
+export function IsPrecisionRight(precision: number, validationOptions?: ValidationOptions) {
   return function (object: object, propertyName: string) {
     registerDecorator({
       name: IsPrecisionRight.name,
@@ -103,8 +97,7 @@ export function IsPrecisionRight(
           try {
             const decimal = String(String(value).split('.')[1])
             return decimal.length === precision
-          }
-          catch {
+          } catch {
             return false
           }
         },

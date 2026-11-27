@@ -34,21 +34,25 @@ import { PREPUSH_GATES } from '../prepush.ts'
 function findRoot(start: string): string {
   let dir = path.resolve(start)
   for (;;) {
-    if (path.basename(dir) === 'walnut-admin' && path.basename(path.dirname(dir)) === 'walnut-admin')
+    if (
+      path.basename(dir) === 'walnut-admin' &&
+      path.basename(path.dirname(dir)) === 'walnut-admin'
+    )
       return dir
     const up = path.dirname(dir)
-    if (up === dir)
-      throw new Error(`从 ${start} 向上找不到仓库根`)
+    if (up === dir) throw new Error(`从 ${start} 向上找不到仓库根`)
     dir = up
   }
 }
 const ROOT = findRoot(process.cwd())
 const read = (rel: string) => readFileSync(path.join(ROOT, rel), 'utf8')
 
-const rootScripts = new Set(Object.keys((JSON.parse(read('package.json')) as { scripts: Record<string, string> }).scripts))
+const rootScripts = new Set(
+  Object.keys((JSON.parse(read('package.json')) as { scripts: Record<string, string> }).scripts),
+)
 
 /** 命令表 id（入口形态里 `pnpm walnut <id>` 的 id 就在这一集里） */
-const commandIds = new Set(COMMANDS.map(command => command.id))
+const commandIds = new Set(COMMANDS.map((command) => command.id))
 
 /** 合法的**可执行名字**：保留的根脚本、命令表 id、pnpm 子命令（后者单独判定） */
 const legalNames = new Set<string>([...rootScripts, ...commandIds])
@@ -89,23 +93,23 @@ const PNPM_SUBCOMMANDS = new Set([
 ])
 
 const WORKFLOW_DIR = '.github/workflows'
-const workflows = readdirSync(path.join(ROOT, WORKFLOW_DIR)).filter(f => f.endsWith('.yml'))
+const workflows = readdirSync(path.join(ROOT, WORKFLOW_DIR)).filter((f) => f.endsWith('.yml'))
 
 /** workflow 里所有 `run:` 的正文，带 `文件:行号` 便于报错定位 */
-function runCommands(): { file: string, line: number, cmd: string }[] {
-  const out: { file: string, line: number, cmd: string }[] = []
+function runCommands(): { file: string; line: number; cmd: string }[] {
+  const out: { file: string; line: number; cmd: string }[] = []
   for (const f of workflows) {
-    read(path.join(WORKFLOW_DIR, f)).split('\n').forEach((l, i) => {
-      // 手写而不是正则：`^\s*(?:-\s*)?run:\s*(.*)$` 会被
-      // `regexp/no-super-linear-backtracking` 判为可多项式回溯（本仓已有先例）
-      const trimmed = l.trimStart()
-      const body = trimmed.startsWith('- ') ? trimmed.slice(2).trimStart() : trimmed
-      if (!body.startsWith('run:'))
-        return
-      const cmd = body.slice('run:'.length).trim()
-      if (cmd !== '')
-        out.push({ file: f, line: i + 1, cmd })
-    })
+    read(path.join(WORKFLOW_DIR, f))
+      .split('\n')
+      .forEach((l, i) => {
+        // 手写而不是正则：`^\s*(?:-\s*)?run:\s*(.*)$` 会被
+        // `regexp/no-super-linear-backtracking` 判为可多项式回溯（本仓已有先例）
+        const trimmed = l.trimStart()
+        const body = trimmed.startsWith('- ') ? trimmed.slice(2).trimStart() : trimmed
+        if (!body.startsWith('run:')) return
+        const cmd = body.slice('run:'.length).trim()
+        if (cmd !== '') out.push({ file: f, line: i + 1, cmd })
+      })
   }
   return out
 }
@@ -129,16 +133,16 @@ function pnpmRefs(cmd: string): PnpmRef[] {
   const found: PnpmRef[] = []
   for (const m of cmd.matchAll(/\bpnpm(?:\.cmd)?\s+(?:-[\w-]+\s+)*([\w:.-]+)/g)) {
     const name = m[1]
-    if (name === undefined || name.startsWith('-'))
-      continue
+    if (name === undefined || name.startsWith('-')) continue
     if (name === 'walnut') {
       const rest = cmd.slice((m.index ?? 0) + m[0].length)
       const id = /^\s+([\w:.-]+)/.exec(rest)?.[1]
-      found.push(id === undefined ? { kind: 'entry', name, missingId: true } : { kind: 'entry', name: id })
+      found.push(
+        id === undefined ? { kind: 'entry', name, missingId: true } : { kind: 'entry', name: id },
+      )
       continue
     }
-    if (PNPM_SUBCOMMANDS.has(name))
-      continue
+    if (PNPM_SUBCOMMANDS.has(name)) continue
     found.push({ kind: 'script', name })
   }
   return found
@@ -147,10 +151,12 @@ function pnpmRefs(cmd: string): PnpmRef[] {
 /** 发版电池里的 argv 首项（`RELEASE_BATTERY` 是 release 包内的常量，按文本读） */
 function batteryArgvHeads(): string[] {
   const src = read(path.join('tooling/release/src/release/steps.ts'))
-  return [...src.matchAll(/argv: \[([^\]]+)\]/g)].map(m => m[1].replace(/['\s]/g, '').split(',')[0]!)
+  return [...src.matchAll(/argv: \[([^\]]+)\]/g)].map(
+    (m) => m[1].replace(/['\s]/g, '').split(',')[0]!,
+  )
 }
 
-const ciText = workflows.map(f => read(path.join(WORKFLOW_DIR, f))).join('\n')
+const ciText = workflows.map((f) => read(path.join(WORKFLOW_DIR, f))).join('\n')
 const batteryText = read(path.join('tooling/release/src/release/steps.ts'))
 
 describe('workflow 的 run: 不得引用不存在的可执行名字', () => {
@@ -162,28 +168,28 @@ describe('workflow 的 run: 不得引用不存在的可执行名字', () => {
           bad.push(`${file}:${line} 的 \`pnpm walnut\` 后面没跟命令表 id`)
           continue
         }
-        const ok = ref.kind === 'entry'
-          ? commandIds.has(ref.name)
-          : legalNames.has(ref.name)
+        const ok = ref.kind === 'entry' ? commandIds.has(ref.name) : legalNames.has(ref.name)
         if (!ok)
-          bad.push(`${file}:${line} 引用了不存在的${ref.kind === 'entry' ? '命令表 id' : '根脚本 / 命令表 id'} \`${ref.name}\``)
+          bad.push(
+            `${file}:${line} 引用了不存在的${ref.kind === 'entry' ? '命令表 id' : '根脚本 / 命令表 id'} \`${ref.name}\``,
+          )
       }
     }
     expect(bad).toEqual([])
   })
 
   it('确实扫到了东西（空扫描面 = 断言失效，不是「全都对」）', () => {
-    const refs = runCommands().flatMap(c => pnpmRefs(c.cmd))
+    const refs = runCommands().flatMap((c) => pnpmRefs(c.cmd))
     // 这条防的是「正则写错 ⇒ 一个都没匹配到 ⇒ 上一条永远绿」
     expect(refs.length).toBeGreaterThan(8)
-    expect(refs.filter(ref => ref.kind === 'entry').length).toBeGreaterThan(5)
+    expect(refs.filter((ref) => ref.kind === 'entry').length).toBeGreaterThan(5)
     expect(workflows.length).toBeGreaterThanOrEqual(4)
   })
 
   it('负对照：拼错的名字不会被判成合法', () => {
     const refs = pnpmRefs('run: pnpm definite:nope && pnpm walnut definite-nope')
-    expect(refs.map(ref => ref.kind)).toEqual(['script', 'entry'])
-    expect(refs.every(ref => !legalNames.has(ref.name))).toBe(true)
+    expect(refs.map((ref) => ref.kind)).toEqual(['script', 'entry'])
+    expect(refs.every((ref) => !legalNames.has(ref.name))).toBe(true)
     expect(pnpmRefs('run: pnpm walnut')[0]?.missingId).toBe(true)
   })
 })
@@ -201,14 +207,19 @@ const CI_EXEMPT: Record<string, string> = {
   // 时跑全量；无 secret 的分支跑的是**段②**（`openapi:check:schema`，只读 openapi.json、
   // 不引导 AppModule），那是另一条命令，所以这条豁免仍然成立：
   // 全量段的触发面由本地 prepush 与发版电池（steps.ts 的 openapi 段）承担，两边都要连库、都能连。
-  openapi: '全量段要 PG/Redis（CI 只在有 ENV_KEYS 时跑）；无 secret 分支跑段② openapi:check:schema，不引用 openapi:check',
+  openapi:
+    '全量段要 PG/Redis（CI 只在有 ENV_KEYS 时跑）；无 secret 分支跑段② openapi:check:schema，不引用 openapi:check',
 }
 
 const BATTERY_EXEMPT: Record<string, string> = {}
 
 /** 某段门禁在 CI 文本里有没有触发面：`pnpm <name>`、`pnpm run <name>` 或 `pnpm walnut <name>` */
 function coveredInCi(name: string): boolean {
-  return ciText.includes(`pnpm ${name}`) || ciText.includes(`pnpm run ${name}`) || ciText.includes(`pnpm walnut ${name}`)
+  return (
+    ciText.includes(`pnpm ${name}`) ||
+    ciText.includes(`pnpm run ${name}`) ||
+    ciText.includes(`pnpm walnut ${name}`)
+  )
 }
 
 describe('每一段 prepush 门禁都必须有 CI 与发版电池的触发面', () => {
@@ -217,8 +228,7 @@ describe('每一段 prepush 门禁都必须有 CI 与发版电池的触发面', 
     for (const g of PREPUSH_GATES) {
       // argv 形如 ['exec','turbo','run','lint:root']、['lint:adr'] 或保留的根脚本名
       const script = g.argv[0] === 'exec' ? g.argv[3] : g.argv[0]
-      if (script === undefined || g.id in CI_EXEMPT)
-        continue
+      if (script === undefined || g.id in CI_EXEMPT) continue
       if (!coveredInCi(script))
         missing.push(`${g.id}（可执行名字 \`${script}\`）不在任何 workflow 里 —— 它现在只有本地守`)
     }
@@ -233,8 +243,7 @@ describe('每一段 prepush 门禁都必须有 CI 与发版电池的触发面', 
     const missing: string[] = []
     for (const g of PREPUSH_GATES) {
       const script = g.argv[0] === 'exec' ? g.argv[3] : g.argv[0]
-      if (script === undefined || g.id in BATTERY_EXEMPT)
-        continue
+      if (script === undefined || g.id in BATTERY_EXEMPT) continue
       if (!batteryText.includes(`'${script}'`))
         missing.push(`${g.id}（可执行名字 \`${script}\`）不在发版电池里`)
     }
@@ -242,7 +251,7 @@ describe('每一段 prepush 门禁都必须有 CI 与发版电池的触发面', 
   })
 
   it('豁免清单没有腐化：键必须是真实门禁 id，理由不许敷衍', () => {
-    const ids = new Set(PREPUSH_GATES.map(g => g.id))
+    const ids = new Set(PREPUSH_GATES.map((g) => g.id))
     for (const [k, why] of Object.entries({ ...CI_EXEMPT, ...BATTERY_EXEMPT })) {
       expect(ids.has(k), `豁免表里的 \`${k}\` 不是真实门禁 id（门禁已删或改名？）`).toBe(true)
       expect(why.length, `豁免 \`${k}\` 的理由太短，等于没写`).toBeGreaterThan(15)
@@ -260,7 +269,7 @@ describe('每一段 prepush 门禁都必须有 CI 与发版电池的触发面', 
 
 describe('发版电池的引用也必须是真名字', () => {
   it('每条 argv 的首项能落到保留的根脚本 / 命令表 id / pnpm 子命令', () => {
-    const bad = batteryArgvHeads().filter(h => !legalNames.has(h) && !PNPM_SUBCOMMANDS.has(h))
+    const bad = batteryArgvHeads().filter((h) => !legalNames.has(h) && !PNPM_SUBCOMMANDS.has(h))
     expect(bad).toEqual([])
   })
 
@@ -288,7 +297,7 @@ describe('发版电池的引用也必须是真名字', () => {
 describe('bin ↔ 引用面的二段跳', () => {
   const BIN_PACKAGES = ['tooling/scripts', 'tooling/release']
 
-  const declaredBins = new Map<string, { dir: string, target: string }>()
+  const declaredBins = new Map<string, { dir: string; target: string }>()
   for (const dir of BIN_PACKAGES) {
     const pkg = JSON.parse(read(path.join(dir, 'package.json'))) as { bin?: Record<string, string> }
     for (const [name, target] of Object.entries(pkg.bin ?? {}))
@@ -297,15 +306,15 @@ describe('bin ↔ 引用面的二段跳', () => {
 
   /** 引用面里的 `walnut-*`：根脚本值 + 命令表 argv 元素 */
   const referenced = new Set<string>()
-  for (const cmd of Object.values(JSON.parse(read('package.json')).scripts as Record<string, string>)) {
+  for (const cmd of Object.values(
+    JSON.parse(read('package.json')).scripts as Record<string, string>,
+  )) {
     for (const m of cmd.matchAll(/\b(walnut-[\w-]+)/g)) referenced.add(m[1]!)
   }
   for (const command of COMMANDS) {
-    if (!('argv' in command))
-      continue
+    if (!('argv' in command)) continue
     for (const token of command.argv) {
-      if (token.startsWith('walnut-'))
-        referenced.add(token)
+      if (token.startsWith('walnut-')) referenced.add(token)
     }
   }
 
@@ -317,12 +326,12 @@ describe('bin ↔ 引用面的二段跳', () => {
   })
 
   it('引用面里的每个 bin 都已声明（否则是拼错的 bin 名）', () => {
-    const dangling = [...referenced].filter(r => !declaredBins.has(r))
+    const dangling = [...referenced].filter((r) => !declaredBins.has(r))
     expect(dangling).toEqual([])
   })
 
   it('没有孤儿 bin（声明了但根脚本与命令表都没引用 = 死代码）', () => {
-    const orphans = [...declaredBins.keys()].filter(b => !referenced.has(b))
+    const orphans = [...declaredBins.keys()].filter((b) => !referenced.has(b))
     expect(orphans).toEqual([])
   })
 
@@ -375,7 +384,7 @@ describe('可执行名字的形态（P1-18）', () => {
   }
 
   it('名字形态：小写 kebab + `:` 分段（保留的根脚本与命令表 id 都查）', () => {
-    const bad = [...new Set([...rootScripts, ...commandIds])].filter(n => !NAME_SHAPE.test(n))
+    const bad = [...new Set([...rootScripts, ...commandIds])].filter((n) => !NAME_SHAPE.test(n))
     expect(bad, `这些名字不符合形态：${bad.join(', ')}`).toEqual([])
   })
 
@@ -383,8 +392,7 @@ describe('可执行名字的形态（P1-18）', () => {
     const bad: string[] = []
     for (const [name, cmd] of Object.entries(scripts)) {
       for (const { token, why } of CONNECTORS) {
-        if (cmd.includes(token))
-          bad.push(`\`${name}\` 的值里有 ${token}（${why}）：${cmd}`)
+        if (cmd.includes(token)) bad.push(`\`${name}\` 的值里有 ${token}（${why}）：${cmd}`)
       }
     }
     expect(bad).toEqual([])
@@ -393,8 +401,7 @@ describe('可执行名字的形态（P1-18）', () => {
   it('命令表的 argv 元素里也不许出现连接子（runArgs 是 shell: false，连接子会被原样交给工具）', () => {
     const bad: string[] = []
     for (const command of COMMANDS) {
-      if (!('argv' in command))
-        continue
+      if (!('argv' in command)) continue
       for (const token of command.argv) {
         for (const { token: connector, why } of CONNECTORS) {
           if (token.includes(connector))
@@ -408,11 +415,12 @@ describe('可执行名字的形态（P1-18）', () => {
   it('`lint*` 命令必须落到 eslint / turbo / `walnut-*` bin 三种形态之一（门禁面不许自由发挥）', () => {
     const bad: string[] = []
     for (const id of commandIds) {
-      if (!id.startsWith('lint'))
-        continue
+      if (!id.startsWith('lint')) continue
       const resolved = resolveCommandArgv([id])
       if (!lintShapeOk(resolved))
-        bad.push(`\`${id}\` 解析为 \`${resolved.join(' ')}\` —— 既不是 exec walnut-* / eslint / turbo`)
+        bad.push(
+          `\`${id}\` 解析为 \`${resolved.join(' ')}\` —— 既不是 exec walnut-* / eslint / turbo`,
+        )
     }
     expect(bad).toEqual([])
   })
@@ -422,14 +430,20 @@ describe('可执行名字的形态（P1-18）', () => {
     expect(COMMANDS.length).toBeGreaterThan(30)
     // 根脚本只剩保留的那几条 —— 下限要跟着结构走，别写「恰好 N 条」（那是会腐烂的计数）
     expect(Object.keys(scripts).length).toBeGreaterThan(5)
-    expect([...commandIds].filter(n => n.startsWith('lint')).length).toBeGreaterThan(5)
+    expect([...commandIds].filter((n) => n.startsWith('lint')).length).toBeGreaterThan(5)
   })
 
   it('负对照：形态正则、连接子与 lint 形态判定本身是有效的', () => {
     // 正则不靠"当前恰好没有坏名字"来成立 —— 拿几个**故意坏**的名字验一遍
     for (const bad of ['Lint', 'lint::root', 'lint:Root', '-lint', 'lint:', 'lint_thing'])
       expect(NAME_SHAPE.test(bad), `\`${bad}\` 不该通过形态检查`).toBe(false)
-    for (const good of ['lint', 'lint:root', 'lint:root:fix', 'check:deps:update', 'inspect:node-modules'])
+    for (const good of [
+      'lint',
+      'lint:root',
+      'lint:root:fix',
+      'check:deps:update',
+      'inspect:node-modules',
+    ])
       expect(NAME_SHAPE.test(good), `\`${good}\` 应该通过形态检查`).toBe(true)
     // 连接子判定：拿本仓历史上那个真实的坏形态验
     expect('a && b'.includes('&&')).toBe(true)

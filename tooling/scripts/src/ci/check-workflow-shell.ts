@@ -55,8 +55,7 @@ export function neutralizeExpressions(script: string): string {
 
 /** 递归收集一个 YAML 节点里的 shell 块（`run:` 与 `with.script:`） */
 function walk(node: unknown, path: string, into: ShellBlock[]): void {
-  if (node === null || typeof node !== 'object')
-    return
+  if (node === null || typeof node !== 'object') return
   if (Array.isArray(node)) {
     node.forEach((item, index) => walk(item, `${path}[${index}]`, into))
     return
@@ -80,7 +79,10 @@ export function collectShellBlocks(text: string, file = 'workflow.yml'): ShellBl
   const into: ShellBlock[] = []
   walk(doc, file, into)
   // YAML 块标量已把公共缩进剥掉；这里只去掉首尾空白行，保留内部结构
-  return into.map(block => ({ where: block.where, script: block.script.replace(/^\n+|\s+$/g, '') }))
+  return into.map((block) => ({
+    where: block.where,
+    script: block.script.replace(/^\n+|\s+$/g, ''),
+  }))
 }
 
 /** 找一个可用的 bash；`exists` 可注入（平台判定用例外，见仓库里那几条教训） */
@@ -90,13 +92,11 @@ export function findBash(
   exists: (path: string) => boolean = existsSync,
 ): string | null {
   const candidates: string[] = []
-  if (env.BASH_PATH !== undefined && env.BASH_PATH !== '')
-    candidates.push(env.BASH_PATH)
+  if (env.BASH_PATH !== undefined && env.BASH_PATH !== '') candidates.push(env.BASH_PATH)
   if (platform === 'win32')
     candidates.push('C:/Program Files/Git/bin/bash.exe', 'C:/Program Files/Git/usr/bin/bash.exe')
-  else
-    candidates.push('/bin/bash', '/usr/bin/bash', '/usr/local/bin/bash')
-  return candidates.find(candidate => exists(candidate)) ?? null
+  else candidates.push('/bin/bash', '/usr/bin/bash', '/usr/local/bin/bash')
+  return candidates.find((candidate) => exists(candidate)) ?? null
 }
 
 /** 语法检查一段 shell：返回 bash 的报错文本（`null` = 通过） */
@@ -108,13 +108,11 @@ export function checkWithBash(bash: string, script: string): string | null {
     try {
       execFileSync(bash, ['-n', file], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
       return null
-    }
-    catch (error) {
+    } catch (error) {
       const stderr = (error as { stderr?: string }).stderr ?? String(error)
       return stderr.trim()
     }
-  }
-  finally {
+  } finally {
     rmSync(dir, { recursive: true, force: true })
   }
 }
@@ -122,12 +120,11 @@ export function checkWithBash(bash: string, script: string): string | null {
 /** 列工作流文件（相对仓库根，稳定序） */
 export function listWorkflows(root: string = REPO_ROOT): string[] {
   const dir = join(root, WORKFLOW_DIR)
-  if (!existsSync(dir))
-    return []
+  if (!existsSync(dir)) return []
   return readdirSync(dir)
-    .filter(name => name.endsWith('.yml') || name.endsWith('.yaml'))
+    .filter((name) => name.endsWith('.yml') || name.endsWith('.yaml'))
     .sort()
-    .map(name => `${WORKFLOW_DIR}/${name}`)
+    .map((name) => `${WORKFLOW_DIR}/${name}`)
 }
 
 /** 门禁主体 */
@@ -135,14 +132,13 @@ export async function main(): Promise<void> {
   const bash = findBash()
   if (bash === null) {
     throw new SkippedError(
-      '没找到 bash：workflow 的 shell 块本机**未验证**（跳过不等于通过）。'
-      + '设 BASH_PATH 指向 bash 即可启用；CI 的 ubuntu runner 自带 /bin/bash。',
+      '没找到 bash：workflow 的 shell 块本机**未验证**（跳过不等于通过）。' +
+        '设 BASH_PATH 指向 bash 即可启用；CI 的 ubuntu runner 自带 /bin/bash。',
     )
   }
 
   const files = listWorkflows()
-  if (files.length === 0)
-    throw new PreconditionError(`没有找到工作流文件（${WORKFLOW_DIR}/*.yml）`)
+  if (files.length === 0) throw new PreconditionError(`没有找到工作流文件（${WORKFLOW_DIR}/*.yml）`)
 
   const failures: string[] = []
   let checked = 0
@@ -152,12 +148,19 @@ export async function main(): Promise<void> {
       checked += 1
       const error = checkWithBash(bash, block.script)
       if (error !== null)
-        failures.push(`${block.where}\n${error.split('\n').map(l => `    ${l}`).join('\n')}`)
+        failures.push(
+          `${block.where}\n${error
+            .split('\n')
+            .map((l) => `    ${l}`)
+            .join('\n')}`,
+        )
     }
   }
 
   if (failures.length > 0)
-    throw new ViolationError(`workflow 里有 ${failures.length} 段 shell 语法错（bash -n 判定）：\n\n${failures.join('\n\n')}`)
+    throw new ViolationError(
+      `workflow 里有 ${failures.length} 段 shell 语法错（bash -n 判定）：\n\n${failures.join('\n\n')}`,
+    )
 
   out(`workflow shell 语法：${files.length} 个文件、${checked} 段 shell 块，bash -n 全部通过`)
 }

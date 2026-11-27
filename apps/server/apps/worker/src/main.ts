@@ -31,7 +31,9 @@ async function bootstrap(): Promise<void> {
   const registry = app.get(SchedulerRegistry)
   const cronJobs = [...registry.getCronJobs().keys()]
 
-  logger.log(`worker process started (no HTTP listener); cron jobs: ${cronJobs.length}${cronJobs.length > 0 ? ` [${cronJobs.join(', ')}]` : ''}`)
+  logger.log(
+    `worker process started (no HTTP listener); cron jobs: ${cronJobs.length}${cronJobs.length > 0 ? ` [${cronJobs.join(', ')}]` : ''}`,
+  )
   logger.log('worker consumes Bull queues and runs cron while the api process serves HTTP')
 }
 

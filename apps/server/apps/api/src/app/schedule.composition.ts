@@ -41,9 +41,9 @@ export function warnIfWorkerStandalone(logger: Logger = new Logger('AppScheduleM
     return
   }
   logger.warn(
-    '[WorkerStandalone] cron and bootstrap tasks are delegated to the worker process; '
-    + 'if the worker is not running there will be no cron ticks, and settings/locale caches '
-    + '(shared Redis) will not be warmed — api falls back to default settings until the worker starts',
+    '[WorkerStandalone] cron and bootstrap tasks are delegated to the worker process; ' +
+      'if the worker is not running there will be no cron ticks, and settings/locale caches ' +
+      '(shared Redis) will not be warmed — api falls back to default settings until the worker starts',
   )
 }
 

@@ -1,22 +1,32 @@
-import {
-  Body,
-  Controller,
-  HttpCode,
-  HttpStatus,
-  Post,
-  Request,
-  UseGuards,
-} from '@nestjs/common'
+import { Body, Controller, HttpCode, HttpStatus, Post, Request, UseGuards } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { AuthCookieService, AuthSuccessDTO, OtpIdentityTypeMap, OtpSendDTO, OtpService, OtpSettingService, OtpVerifyDTO, WalnutAdminGuardJwtFree } from '@walnut-server/auth'
+import {
+  AuthCookieService,
+  AuthSuccessDTO,
+  OtpIdentityTypeMap,
+  OtpSendDTO,
+  OtpService,
+  OtpSettingService,
+  OtpVerifyDTO,
+  WalnutAdminGuardJwtFree,
+} from '@walnut-server/auth'
 
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { WalnutAdminDecoratorAuthLog, WalnutAdminDecoratorDataScopeSystemChannel, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@walnut-server/guards'
+import {
+  WalnutAdminDecoratorAuthLog,
+  WalnutAdminDecoratorDataScopeSystemChannel,
+  WalnutAdminDecoratorDeviceId,
+  WalnutAdminDecoratorUser,
+} from '@walnut-server/guards'
 import { SysUserIdentitySharedService } from '@walnut-server/identity'
 import { AuthRoutes } from '@walnut/contract'
-import { OtpDecoratorFunctionalGuard, OtpDecoratorSendFunctionalGuard, OtpDecoratorThrottle } from './guard/otp.decorator'
+import {
+  OtpDecoratorFunctionalGuard,
+  OtpDecoratorSendFunctionalGuard,
+  OtpDecoratorThrottle,
+} from './guard/otp.decorator'
 import { OtpGuard } from './otp.guard'
 
 @Controller(AuthRoutes.OTP)
@@ -40,10 +50,7 @@ export class OtpController {
   })
   @OtpDecoratorSendFunctionalGuard()
   @OtpDecoratorThrottle(OtpSettingService)
-  async sendOtp(
-    @Request() req: IWalnutAdminExpressRequest,
-    @Body() payload: OtpSendDTO,
-  ) {
+  async sendOtp(@Request() req: IWalnutAdminExpressRequest, @Body() payload: OtpSendDTO) {
     return this.otpService.sendVerifyCode(payload.type, payload.identifier, req.language)
   }
 

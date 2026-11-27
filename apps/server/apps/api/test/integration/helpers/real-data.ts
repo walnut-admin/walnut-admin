@@ -106,9 +106,10 @@ async function dumpTable(source: DataSource, table: DumpTable, file: string): Pr
 
   try {
     for (;;) {
-      const where = last === null
-        ? ''
-        : ` WHERE (${pk}) > (${table.pk.map((_, index) => `$${index + 1}`).join(', ')})`
+      const where =
+        last === null
+          ? ''
+          : ` WHERE (${pk}) > (${table.pk.map((_, index) => `$${index + 1}`).join(', ')})`
       const params = last === null ? [PAGE_SIZE] : [...last, PAGE_SIZE]
       const rows: Record<string, unknown>[] = await source.query(
         `SELECT * FROM ${quoteIdent(table.name)}${where} ORDER BY ${orderBy} LIMIT $${params.length}`,
@@ -123,13 +124,12 @@ async function dumpTable(source: DataSource, table: DumpTable, file: string): Pr
         count++
       }
       const lastRow = rows[rows.length - 1]
-      last = table.pk.map(column => lastRow[column])
+      last = table.pk.map((column) => lastRow[column])
       if (rows.length < PAGE_SIZE) {
         break
       }
     }
-  }
-  finally {
+  } finally {
     await writer.close()
   }
 
@@ -141,7 +141,7 @@ class BufferedLineWriter {
   private buffer: string[] = []
   private bufferedChars = 0
 
-  constructor(private readonly stream: WriteStream) { }
+  constructor(private readonly stream: WriteStream) {}
 
   async write(line: string): Promise<void> {
     this.buffer.push(line)
@@ -159,7 +159,9 @@ class BufferedLineWriter {
     this.buffer = []
     this.bufferedChars = 0
     await new Promise<void>((resolve, reject) => {
-      this.stream.write(chunk, error => (error === null || error === undefined ? resolve() : reject(error)))
+      this.stream.write(chunk, (error) =>
+        error === null || error === undefined ? resolve() : reject(error),
+      )
     })
   }
 
@@ -180,15 +182,19 @@ async function readTableMeta(source: DataSource): Promise<DumpTable[]> {
       ORDER BY table_name`,
   )
 
-  const columnRows: Array<{ table_name: string, column_name: string, data_type: string, udt_name: string }>
-    = await source.query(
-      `SELECT table_name, column_name, data_type, udt_name
+  const columnRows: Array<{
+    table_name: string
+    column_name: string
+    data_type: string
+    udt_name: string
+  }> = await source.query(
+    `SELECT table_name, column_name, data_type, udt_name
          FROM information_schema.columns
         WHERE table_schema = 'public'
         ORDER BY table_name, ordinal_position`,
-    )
+  )
 
-  const pkRows: Array<{ table_name: string, column_name: string }> = await source.query(
+  const pkRows: Array<{ table_name: string; column_name: string }> = await source.query(
     `SELECT c.relname AS table_name, a.attname AS column_name
        FROM pg_index i
        JOIN pg_class c ON c.oid = i.indrelid
@@ -217,7 +223,9 @@ async function readTableMeta(source: DataSource): Promise<DumpTable[]> {
     const columns = columnsByTable.get(name)
     const pk = pkByTable.get(name)
     if (columns === undefined || pk === undefined || pk.length === 0) {
-      throw new Error(`[integration][real] 表 ${name} 缺少列元数据或主键 —— 无法按 keyset 分页 dump`)
+      throw new Error(
+        `[integration][real] 表 ${name} 缺少列元数据或主键 —— 无法按 keyset 分页 dump`,
+      )
     }
     return { name, columns, pk, rowCount: 0 }
   })
@@ -241,10 +249,13 @@ async function dumpSource(options: RealDataOptions, dumpDir: string): Promise<Du
       generatedAt: new Date().toISOString(),
       tables,
     }
-    fs.writeFileSync(path.join(dumpDir, METADATA_FILE), `${JSON.stringify(metadata, null, 2)}\n`, 'utf8')
+    fs.writeFileSync(
+      path.join(dumpDir, METADATA_FILE),
+      `${JSON.stringify(metadata, null, 2)}\n`,
+      'utf8',
+    )
     return metadata
-  }
-  finally {
+  } finally {
     await source.destroy()
   }
 }
@@ -266,7 +277,7 @@ async function restoreTable(
   table: DumpTable,
   file: string,
 ): Promise<number> {
-  const columnList = table.columns.map(column => quoteIdent(column.name)).join(', ')
+  const columnList = table.columns.map((column) => quoteIdent(column.name)).join(', ')
   const batchSize = Math.max(1, Math.min(PAGE_SIZE, Math.floor(MAX_PARAMS / table.columns.length)))
   let batch: unknown[][] = []
   let inserted = 0
@@ -292,21 +303,23 @@ async function restoreTable(
     batch = []
   }
 
-  const input = createInterface({ input: createReadStream(file, { encoding: 'utf8' }), crlfDelay: Infinity })
+  const input = createInterface({
+    input: createReadStream(file, { encoding: 'utf8' }),
+    crlfDelay: Infinity,
+  })
   try {
     for await (const line of input) {
       if (line === '') {
         continue
       }
       const parsed = JSON.parse(line) as Record<string, unknown>
-      batch.push(table.columns.map(column => parsed[column.name]))
+      batch.push(table.columns.map((column) => parsed[column.name]))
       if (batch.length >= batchSize) {
         await flush()
       }
     }
     await flush()
-  }
-  finally {
+  } finally {
     input.close()
   }
 
@@ -330,7 +343,7 @@ async function restoreIntoIntegration(
     // FK 触发器关闭后再灌：dump 的字典序不保证父表先于子表（含 junction 表）
     await runner.query(`SET session_replication_role = 'replica'`)
 
-    const tableList = metadata.tables.map(table => quoteIdent(table.name)).join(', ')
+    const tableList = metadata.tables.map((table) => quoteIdent(table.name)).join(', ')
     if (tableList !== '') {
       await runner.query(`TRUNCATE TABLE ${tableList} RESTART IDENTITY CASCADE`)
     }
@@ -345,12 +358,10 @@ async function restoreIntoIntegration(
       }
       total += inserted
     }
-  }
-  finally {
+  } finally {
     try {
       await runner.query(`SET session_replication_role = 'origin'`)
-    }
-    catch {
+    } catch {
       // 连接即将释放，还原失败不掩盖真实的恢复错误
     }
     await runner.release()
@@ -361,7 +372,9 @@ async function restoreIntoIntegration(
 }
 
 /** 全量 dump + restore（调用方：integration/helpers/global-setup.ts） */
-export async function loadRealDataIntoIntegration(options: RealDataOptions): Promise<RealDataResult> {
+export async function loadRealDataIntoIntegration(
+  options: RealDataOptions,
+): Promise<RealDataResult> {
   const dumpDir = path.join(options.repoRoot, DUMP_DIR_RELATIVE)
   fs.rmSync(dumpDir, { recursive: true, force: true })
   fs.mkdirSync(dumpDir, { recursive: true })
@@ -371,16 +384,16 @@ export async function loadRealDataIntoIntegration(options: RealDataOptions): Pro
   const dumpMs = Date.now() - dumpStartedAt
   const dumpedRows = metadata.tables.reduce((sum, table) => sum + table.rowCount, 0)
   console.log(
-    `[integration][real] dump 完成 ${dumpMs}ms：${metadata.tables.length} 张表 / ${dumpedRows} 行`
-    + `（源库 ${options.sourceDatabase} -> ${dumpDir}）`,
+    `[integration][real] dump 完成 ${dumpMs}ms：${metadata.tables.length} 张表 / ${dumpedRows} 行` +
+      `（源库 ${options.sourceDatabase} -> ${dumpDir}）`,
   )
 
   const restoreStartedAt = Date.now()
   const restoredRows = await restoreIntoIntegration(options, metadata, dumpDir)
   const restoreMs = Date.now() - restoreStartedAt
   console.log(
-    `[integration][real] restore 完成 ${restoreMs}ms：${metadata.tables.length} 张表 / ${restoredRows} 行`
-    + `（应用连接仍以 walnut_app 走 RLS）`,
+    `[integration][real] restore 完成 ${restoreMs}ms：${metadata.tables.length} 张表 / ${restoredRows} 行` +
+      `（应用连接仍以 walnut_app 走 RLS）`,
   )
 
   return {

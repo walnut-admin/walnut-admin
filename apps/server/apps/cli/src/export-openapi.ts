@@ -69,8 +69,7 @@ async function exportOpenAPI(): Promise<OpenAPIObject> {
 
     // 与 main.ts 同一个组装点（options 唯一来源 + bearer 批量注入），导出物与在线文档同源
     return createSwaggerDocument(app)
-  }
-  finally {
+  } finally {
     // 连接（PG / Redis / bull）随 app 生命周期关闭，进程才能干净退出
     await app.close()
   }
@@ -83,7 +82,9 @@ async function main(): Promise<void> {
   fs.writeFileSync(OUTPUT_PATH, `${JSON.stringify(document, null, 2)}\n`, 'utf-8')
 
   const schemaCount = Object.keys(document.components?.schemas ?? {}).length
-  console.log(`[export-openapi] written ${OUTPUT_PATH} (openapi ${document.openapi}, ${schemaCount} schemas)`)
+  console.log(
+    `[export-openapi] written ${OUTPUT_PATH} (openapi ${document.openapi}, ${schemaCount} schemas)`,
+  )
 }
 
 void main()

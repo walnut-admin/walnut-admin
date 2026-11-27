@@ -15,7 +15,7 @@ const props = withDefaults(defineProps<ICompUIModalProps>(), {
   defaultButton: true,
   segmented: true,
 })
-const emits = defineEmits<{ yes: [], no: [], fullscreen: [boolean] }>()
+const emits = defineEmits<{ yes: []; no: []; fullscreen: [boolean] }>()
 
 const attrs = useAttrs()
 
@@ -51,17 +51,13 @@ function onYes() {
 async function onUpdateShow(v: boolean) {
   if (props.beforeClose) {
     const res = await props.beforeClose()
-    if (!res)
-      return
+    if (!res) return
 
     show.value = v
-    if (!v)
-      onNo()
-  }
-  else {
+    if (!v) onNo()
+  } else {
     show.value = v
-    if (!v)
-      onNo()
+    if (!v) onNo()
   }
 }
 </script>
@@ -77,9 +73,9 @@ async function onUpdateShow(v: boolean) {
     :segmented="
       segmented
         ? {
-          content: 'soft',
-          footer: 'soft',
-        }
+            content: 'soft',
+            footer: 'soft',
+          }
         : {}
     "
     @update:show="onUpdateShow"
@@ -108,17 +104,16 @@ async function onUpdateShow(v: boolean) {
 
     <template #action>
       <n-space v-if="defaultButton" size="small" class="float-right">
-        <n-button v-if="attrs.closable" size="small" :disabled="loading" @click="onUpdateShow(false)">
+        <n-button
+          v-if="attrs.closable"
+          size="small"
+          :disabled="loading"
+          @click="onUpdateShow(false)"
+        >
           {{ $t('app.base.no') }}
         </n-button>
 
-        <n-button
-          size="small"
-          type="primary"
-          :disabled="loading"
-          :loading="loading"
-          @click="onYes"
-        >
+        <n-button size="small" type="primary" :disabled="loading" :loading="loading" @click="onYes">
           {{ $t('app.base.yes') }}
         </n-button>
       </n-space>

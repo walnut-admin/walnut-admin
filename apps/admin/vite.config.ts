@@ -22,7 +22,11 @@ function pathResolve(dir: string) {
 function WalnutAdminComponentResolver(): ComponentResolver {
   // 扫描 admin 内部组件
   const allComponents = globSync('src/components/**/**/index.ts', { dot: true })
-  const componentMap = Object.fromEntries(allComponents.filter(i => !i.includes('utils')).map(i => [i.split('/').slice(-2, -1)[0], i.replace('src', '@')]))
+  const componentMap = Object.fromEntries(
+    allComponents
+      .filter((i) => !i.includes('utils'))
+      .map((i) => [i.split('/').slice(-2, -1)[0], i.replace('src', '@')]),
+  )
 
   return {
     type: 'component',
@@ -52,7 +56,7 @@ const pluginOptions: ViteConfigPluginsOptions = {
   pkg: packageInfo,
 
   // cropperjs 与 cap.js 的组件是浏览器里的原生自定义元素，Vue 模板编译器不该把它们当组件解析
-  isCustomElement: tag => tag.startsWith('cropper-') || tag === 'cap-widget',
+  isCustomElement: (tag) => tag.startsWith('cropper-') || tag === 'cap-widget',
 
   // 组件自动注册（unplugin-vue-components）：目录、dts 路径与 resolver 都是 app 的约定
   componentsDirs: ['@/components'],
@@ -96,8 +100,8 @@ export default ({ mode }: ConfigEnv): UserConfig => {
 
     define: {
       // https://vue-i18n.intlify.dev/guide/advanced/optimization#feature-build-flags
-      '__VUE_I18N_FULL_INSTALL__': false,
-      '__VUE_I18N_LEGACY_API__': false,
+      __VUE_I18N_FULL_INSTALL__: false,
+      __VUE_I18N_LEGACY_API__: false,
       // https://github.com/fi3ework/vite-plugin-checker/issues/569
       // https://github.com/vuejs/core/issues/13202#issuecomment-2804421417
       'process.env.NODE_ENV': JSON.stringify('production'),
@@ -144,7 +148,7 @@ export default ({ mode }: ConfigEnv): UserConfig => {
 
     optimizeDeps: {
       // workspace 包有 source 条件直接消费源码，不应预构建
-      include: Object.keys(dependencies).filter(i => !i.startsWith('@walnut/')),
+      include: Object.keys(dependencies).filter((i) => !i.startsWith('@walnut/')),
     },
 
     build: {
@@ -170,10 +174,11 @@ export default ({ mode }: ConfigEnv): UserConfig => {
           format: 'es',
           // https://github.com/vitejs/vite-plugin-vue/issues/19#issuecomment-3087602546
           chunkFileNames: (assetInfo: { name: string }) => {
-            const name = assetInfo.name.endsWith('.vue_vue_type_style_index_0_lang')
-              || assetInfo.name.endsWith('.vue_vue_type_script_setup_true_lang')
-              ? assetInfo.name.split('.')[0]
-              : assetInfo.name
+            const name =
+              assetInfo.name.endsWith('.vue_vue_type_style_index_0_lang') ||
+              assetInfo.name.endsWith('.vue_vue_type_script_setup_true_lang')
+                ? assetInfo.name.split('.')[0]
+                : assetInfo.name
             return `static/js/${name}-[hash].js`
           },
           entryFileNames: 'static/js/[name]-[hash].js',

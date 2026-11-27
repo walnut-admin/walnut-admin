@@ -49,15 +49,18 @@ export interface Finding {
 
 export interface CatalogLockstep {
   declared: Map<string, string>
-  locked: Map<string, { specifier?: string, version?: string }>
+  locked: Map<string, { specifier?: string; version?: string }>
 }
 
 /** 取一个顶层键的正文行（到下一个顶层键为止），返回 `[起始行号(1-based), 行数组]` */
-export function topLevelSection(text: string, key: string, which: 'first' | 'last' = 'first'): { startLine: number, lines: string[] } | null {
+export function topLevelSection(
+  text: string,
+  key: string,
+  which: 'first' | 'last' = 'first',
+): { startLine: number; lines: string[] } | null {
   const lines = text.split('\n')
-  const hits = lines.map((l, i) => (l.startsWith(`${key}:`) ? i : -1)).filter(i => i >= 0)
-  if (hits.length === 0)
-    return null
+  const hits = lines.map((l, i) => (l.startsWith(`${key}:`) ? i : -1)).filter((i) => i >= 0)
+  if (hits.length === 0) return null
   const start = which === 'last' ? hits[hits.length - 1]! : hits[0]!
   let end = lines.length
   for (let i = start + 1; i < lines.length; i++) {
@@ -78,20 +81,16 @@ const unquote = (s: string) => s.replace(/^['"]|['"]$/g, '')
  * `regexp/no-super-linear-backtracking` 判为可多项式回溯（本仓已有先例）。
  * 返回 `null` 表示这一行不是「两个空格缩进的键值对」。
  */
-function splitIndentedKV(line: string, indent: number): { key: string, value: string } | null {
-  if (line.length <= indent)
-    return null
+function splitIndentedKV(line: string, indent: number): { key: string; value: string } | null {
+  if (line.length <= indent) return null
   const pad = ' '.repeat(indent)
-  if (!line.startsWith(pad))
-    return null
+  if (!line.startsWith(pad)) return null
   const body = line.slice(indent)
   const head = body[0]!
-  if (head === ' ' || head === '#' || head === '-')
-    return null
+  if (head === ' ' || head === '#' || head === '-') return null
   // 键到第一个冒号为止（值里也可能有冒号，所以只切第一个）
   const colon = body.indexOf(':')
-  if (colon <= 0)
-    return null
+  if (colon <= 0) return null
   return { key: body.slice(0, colon), value: body.slice(colon + 1).trim() }
 }
 
@@ -99,25 +98,24 @@ function splitIndentedKV(line: string, indent: number): { key: string, value: st
 export function parseDeclaredCatalog(workspaceYaml: string): Map<string, string> {
   const sec = topLevelSection(workspaceYaml, 'catalog')
   const out = new Map<string, string>()
-  if (!sec)
-    return out
+  if (!sec) return out
   for (const l of sec.lines) {
     const kv = splitIndentedKV(l, 2)
     // 名字必须**剥引号**：catalog 里 `'@scope/name': 1.0.0` 是常见写法。
     // 不剥会与锁文件那侧（已剥）对不上 —— 实测 243 条里会误报 97 条。
-    if (kv && kv.value !== '')
-      out.set(unquote(kv.key), kv.value)
+    if (kv && kv.value !== '') out.set(unquote(kv.key), kv.value)
   }
   return out
 }
 
 /** 锁文件**第二段**的 `catalogs.default.<包名>.{specifier,version}` */
-export function parseLockedCatalog(lockfile: string): Map<string, { specifier?: string, version?: string }> {
+export function parseLockedCatalog(
+  lockfile: string,
+): Map<string, { specifier?: string; version?: string }> {
   // 取**最后**一次出现的 `catalogs:` —— 两段式锁文件里只有第二段是真的
   const sec = topLevelSection(lockfile, 'catalogs', 'last')
-  const out = new Map<string, { specifier?: string, version?: string }>()
-  if (!sec)
-    return out
+  const out = new Map<string, { specifier?: string; version?: string }>()
+  if (!sec) return out
   let cur: string | null = null
   for (const l of sec.lines) {
     // `  default:`（本仓只有默认 catalog；named catalog 出现时这里会重置，属可接受的漏报）
@@ -150,21 +148,40 @@ export function compareCatalogs(workspaceYaml: string, lockfile: string): Findin
 
   // 前置条件：解析不出来说明格式变了，**不能当成「都对」**（那正是假绿的形态）
   if (declared.size === 0)
-    return [{ rule: 'precondition', detail: 'pnpm-workspace.yaml 里解析不出任何 catalog 条目（格式变了？）' }]
+    return [
+      {
+        rule: 'precondition',
+        detail: 'pnpm-workspace.yaml 里解析不出任何 catalog 条目（格式变了？）',
+      },
+    ]
   if (locked.size === 0)
-    return [{ rule: 'precondition', detail: 'pnpm-lock.yaml 的第二段里解析不出 catalogs 条目（锁文件格式变了？）' }]
+    return [
+      {
+        rule: 'precondition',
+        detail: 'pnpm-lock.yaml 的第二段里解析不出 catalogs 条目（锁文件格式变了？）',
+      },
+    ]
 
   const findings: Finding[] = []
   for (const [name, v] of declared) {
     const lk = locked.get(name)
     if (!lk) {
-      findings.push({ rule: 'catalog-lockstep', detail: `catalog 声明了 \`${name}\`（${v}）但锁文件里没有` })
+      findings.push({
+        rule: 'catalog-lockstep',
+        detail: `catalog 声明了 \`${name}\`（${v}）但锁文件里没有`,
+      })
       continue
     }
     if (lk.specifier !== v)
-      findings.push({ rule: 'catalog-lockstep', detail: `\`${name}\`：catalog 声明 ${v}，锁文件记的 specifier 是 ${lk.specifier}` })
+      findings.push({
+        rule: 'catalog-lockstep',
+        detail: `\`${name}\`：catalog 声明 ${v}，锁文件记的 specifier 是 ${lk.specifier}`,
+      })
     if (isExactVersion(v) && lk.version !== v)
-      findings.push({ rule: 'catalog-lockstep', detail: `\`${name}\`：catalog 声明 ${v}，锁文件解析出 ${lk.version}` })
+      findings.push({
+        rule: 'catalog-lockstep',
+        detail: `\`${name}\`：catalog 声明 ${v}，锁文件解析出 ${lk.version}`,
+      })
   }
   for (const name of locked.keys()) {
     if (!declared.has(name))
@@ -176,9 +193,12 @@ export function compareCatalogs(workspaceYaml: string, lockfile: string): Findin
 /** 读 `HEAD` 里的一个文件（即将被 CI 检出的那一份） */
 export function readHeadBlob(relPath: string, cwd = REPO_ROOT): string | null {
   try {
-    return execFileSync('git', ['show', `HEAD:${relPath}`], { cwd, maxBuffer: 1 << 28, encoding: 'utf8' })
-  }
-  catch {
+    return execFileSync('git', ['show', `HEAD:${relPath}`], {
+      cwd,
+      maxBuffer: 1 << 28,
+      encoding: 'utf8',
+    })
+  } catch {
     return null
   }
 }
@@ -192,28 +212,32 @@ export function collectFindings(cwd = REPO_ROOT): Finding[] {
   const lock = readHeadBlob('pnpm-lock.yaml', cwd)
 
   if (ws === null || lock === null) {
-    return [{
-      rule: 'precondition',
-      detail: `读不到 HEAD 里的 ${ws === null ? 'pnpm-workspace.yaml' : 'pnpm-lock.yaml'} —— 需要一个至少有一次提交的 git 仓库（这是「检出即 CI 会炸」的判据来源）`,
-    }]
+    return [
+      {
+        rule: 'precondition',
+        detail: `读不到 HEAD 里的 ${ws === null ? 'pnpm-workspace.yaml' : 'pnpm-lock.yaml'} —— 需要一个至少有一次提交的 git 仓库（这是「检出即 CI 会炸」的判据来源）`,
+      },
+    ]
   }
   return compareCatalogs(ws, lock)
 }
 
 export function main(): void {
   const findings = collectFindings()
-  const precondition = findings.filter(f => f.rule === 'precondition')
+  const precondition = findings.filter((f) => f.rule === 'precondition')
 
   if (precondition.length > 0) {
-    throw new PreconditionError(`${precondition.map(f => `  ${f.detail}`).join('\n')}`)
+    throw new PreconditionError(`${precondition.map((f) => `  ${f.detail}`).join('\n')}`)
   }
   if (findings.length === 0) {
     line('ok', 'catalog ↔ 锁文件（HEAD 里那一对）：全部锁步')
     return
   }
-  lineErr('violation', `HEAD 里的 catalog 与锁文件有 ${findings.length} 处不一致 —— CI 会在 \`pnpm install --frozen-lockfile\` 阶段失败（它的报错不会说清是哪一条）：\n`)
-  for (const f of findings)
-    err(`  [${f.rule}] ${f.detail}`)
+  lineErr(
+    'violation',
+    `HEAD 里的 catalog 与锁文件有 ${findings.length} 处不一致 —— CI 会在 \`pnpm install --frozen-lockfile\` 阶段失败（它的报错不会说清是哪一条）：\n`,
+  )
+  for (const f of findings) err(`  [${f.rule}] ${f.detail}`)
   err('\n修法：在工作区跑一次 `pnpm install`，把 `pnpm-lock.yaml` 一起提交。')
   throw new ViolationError(`catalog 与锁文件有 ${findings.length} 处不一致（明细见上）`)
 }

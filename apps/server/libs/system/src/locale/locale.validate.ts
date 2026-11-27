@@ -19,8 +19,7 @@ export class LocaleLangIdValidate implements ValidatorConstraintInterface {
       WalnutAdminConstAppCacheKeys.SYS_LANG_ID_LIST,
     )
 
-    if (!langIds || langIds.length === 0)
-      return true
+    if (!langIds || langIds.length === 0) return true
 
     return langIds.includes(langId)
   }

@@ -41,7 +41,7 @@ interface CapGuardMocks {
   markChallengeHandled: ReturnType<typeof vi.fn>
 }
 
-function createGuard(): { guard: WalnutAdminGuardCap, mocks: CapGuardMocks } {
+function createGuard(): { guard: WalnutAdminGuardCap; mocks: CapGuardMocks } {
   const mocks: CapGuardMocks = {
     getCapTokenCache: vi.fn(async () => null),
     setCapTokenCache: vi.fn(async () => undefined),
@@ -86,7 +86,10 @@ function createContext(shouldChallenge: boolean, capToken: unknown): ExecutionCo
 const WELL_FORMED_TOKEN = 'deadbeefcafe1234:cafebabedead5678'
 
 async function caught(promise: Promise<unknown>): Promise<unknown> {
-  return promise.then(() => null, (error: unknown) => error)
+  return promise.then(
+    () => null,
+    (error: unknown) => error,
+  )
 }
 
 // 模块级 mock 的调用历史会跨用例累积（validateTokenMock 是单例）——
@@ -119,13 +122,13 @@ describe('cap guard：畸形 cookie 不再 500（review CAP-4）', () => {
   it('cookie 缺失（undefined）⇒ 40116 / 40117（既有语义不变）', async () => {
     const { guard } = createGuard()
 
-    await expect(guard.canActivate(createContext(true, undefined)))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionCapInteractionRequired)
+    await expect(guard.canActivate(createContext(true, undefined))).rejects.toBeInstanceOf(
+      WalnutAdminExceptionCapInteractionRequired,
+    )
 
-    await expect(guard.canActivate(createContext(false, undefined)))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionCapRefreshRequired)
+    await expect(guard.canActivate(createContext(false, undefined))).rejects.toBeInstanceOf(
+      WalnutAdminExceptionCapRefreshRequired,
+    )
   })
 
   it('空串 cookie 按缺失处理（不会拿空串去算指纹）', async () => {
@@ -179,9 +182,9 @@ describe('cap guard：真验失败 / 设施故障仍是可自愈的 40116 / 4011
     validateTokenMock.mockResolvedValue({ success: false })
     const { guard } = createGuard()
 
-    await expect(guard.canActivate(createContext(false, WELL_FORMED_TOKEN)))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionCapRefreshRequired)
+    await expect(guard.canActivate(createContext(false, WELL_FORMED_TOKEN))).rejects.toBeInstanceOf(
+      WalnutAdminExceptionCapRefreshRequired,
+    )
   })
 
   it('validateToken 抛异常（.data 存储坏 / 只读 FS）⇒ 40116，不是 40111（不冤枉用户）', async () => {
@@ -242,9 +245,9 @@ describe('cap guard：Risk 没留下 decision 时按端点分级（批次 8 / B2
     const { guard } = createGuard()
     const { context } = contextWithoutRisk('POST', '/w/v1/auth/otp/verify')
 
-    await expect(guard.canActivate(context))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionRiskUnavailable)
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(
+      WalnutAdminExceptionRiskUnavailable,
+    )
     // 旧实现 return true ⇒ 无人机验证也能过（负对照）
     expect(validateTokenMock).not.toHaveBeenCalled()
   })

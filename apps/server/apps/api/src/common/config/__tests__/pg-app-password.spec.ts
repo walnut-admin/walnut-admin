@@ -28,15 +28,15 @@ import { describe, expect, it } from 'vitest'
 
 describe('assertWalnutPgAppBootstrapPassword（L5 生产防呆）', () => {
   it('development + 引导密码 → 放行（本地/集成库引导是设计内用法）', () => {
-    expect(() => assertWalnutPgAppBootstrapPassword('development', WALNUT_PG_APP_BOOTSTRAP_PASSWORD))
-      .not
-      .toThrow()
+    expect(() =>
+      assertWalnutPgAppBootstrapPassword('development', WALNUT_PG_APP_BOOTSTRAP_PASSWORD),
+    ).not.toThrow()
   })
 
   it('未设置 NODE_ENV（本地裸 node）→ 放行', () => {
-    expect(() => assertWalnutPgAppBootstrapPassword(undefined, WALNUT_PG_APP_BOOTSTRAP_PASSWORD))
-      .not
-      .toThrow()
+    expect(() =>
+      assertWalnutPgAppBootstrapPassword(undefined, WALNUT_PG_APP_BOOTSTRAP_PASSWORD),
+    ).not.toThrow()
   })
 
   it('stage + 引导密码 → 启动即失败，报错说明原因与处置', () => {
@@ -50,29 +50,34 @@ describe('assertWalnutPgAppBootstrapPassword（L5 生产防呆）', () => {
   })
 
   it('production + 引导密码 → 启动即失败', () => {
-    expect(() => assertWalnutPgAppBootstrapPassword('production', WALNUT_PG_APP_BOOTSTRAP_PASSWORD))
-      .toThrow(/NODE_ENV=production/)
+    expect(() =>
+      assertWalnutPgAppBootstrapPassword('production', WALNUT_PG_APP_BOOTSTRAP_PASSWORD),
+    ).toThrow(/NODE_ENV=production/)
   })
 
   it('大写环境名（Production）同样拒绝（环境名比较前统一转小写）', () => {
-    expect(() => assertWalnutPgAppBootstrapPassword('Production', WALNUT_PG_APP_BOOTSTRAP_PASSWORD))
-      .toThrow(/开发引导密码/)
-    expect(() => assertWalnutPgAppBootstrapPassword('STAGE', WALNUT_PG_APP_BOOTSTRAP_PASSWORD))
-      .toThrow(/开发引导密码/)
+    expect(() =>
+      assertWalnutPgAppBootstrapPassword('Production', WALNUT_PG_APP_BOOTSTRAP_PASSWORD),
+    ).toThrow(/开发引导密码/)
+    expect(() =>
+      assertWalnutPgAppBootstrapPassword('STAGE', WALNUT_PG_APP_BOOTSTRAP_PASSWORD),
+    ).toThrow(/开发引导密码/)
   })
 
   it('production + 强密码 → 放行', () => {
-    expect(() => assertWalnutPgAppBootstrapPassword('production', 'a-strong-production-password'))
-      .not
-      .toThrow()
+    expect(() =>
+      assertWalnutPgAppBootstrapPassword('production', 'a-strong-production-password'),
+    ).not.toThrow()
   })
 
   it('调用点接线：validateConfig 在 stage + 引导密码时先于类校验抛错（F2 校验层）', () => {
-    expect(() => validateConfig({
-      NODE_ENV: 'stage',
-      DATABASE_PG_APP_USER: 'walnut_app',
-      DATABASE_PG_APP_PASS: WALNUT_PG_APP_BOOTSTRAP_PASSWORD,
-    })).toThrow(/开发引导密码/)
+    expect(() =>
+      validateConfig({
+        NODE_ENV: 'stage',
+        DATABASE_PG_APP_USER: 'walnut_app',
+        DATABASE_PG_APP_PASS: WALNUT_PG_APP_BOOTSTRAP_PASSWORD,
+      }),
+    ).toThrow(/开发引导密码/)
   })
 })
 
@@ -107,17 +112,22 @@ function extractMigrationBootstrapPassword(source: string): string | null {
 }
 
 describe('引导密码单一事实源（迁移文本 ↔ config 常量）', () => {
-  const ACTION_HINT = '改引导密码必须同时改 libs/config/src/utils/pg-app-password.ts 与迁移内的 BOOTSTRAP_PASSWORD'
+  const ACTION_HINT =
+    '改引导密码必须同时改 libs/config/src/utils/pg-app-password.ts 与迁移内的 BOOTSTRAP_PASSWORD'
 
   it('迁移文件定位正确（路径解析失效时本守卫必须是红的，而不是空断言通过）', () => {
-    expect(existsSync(MIGRATION_PATH), `未找到 ${MIGRATION_PATH}（本 spec 的仓库根定位失效）`).toBe(true)
+    expect(existsSync(MIGRATION_PATH), `未找到 ${MIGRATION_PATH}（本 spec 的仓库根定位失效）`).toBe(
+      true,
+    )
   })
 
   it('迁移内 BOOTSTRAP_PASSWORD ≡ WALNUT_PG_APP_BOOTSTRAP_PASSWORD', () => {
     const source = readFileSync(MIGRATION_PATH, 'utf8')
 
-    expect(extractMigrationBootstrapPassword(source), `未从迁移解析到 BOOTSTRAP_PASSWORD。${ACTION_HINT}`)
-      .toBe(WALNUT_PG_APP_BOOTSTRAP_PASSWORD)
+    expect(
+      extractMigrationBootstrapPassword(source),
+      `未从迁移解析到 BOOTSTRAP_PASSWORD。${ACTION_HINT}`,
+    ).toBe(WALNUT_PG_APP_BOOTSTRAP_PASSWORD)
     // 任务口径的文本级断言：迁移文件文本包含配置侧常量的字面量
     expect(source).toContain(`'${WALNUT_PG_APP_BOOTSTRAP_PASSWORD}'`)
   })
@@ -126,13 +136,17 @@ describe('引导密码单一事实源（迁移文本 ↔ config 常量）', () =
     const source = readFileSync(MIGRATION_PATH, 'utf8')
 
     // 迁移里的真实形态：`CREATE ROLE ${ROLE} LOGIN PASSWORD '${BOOTSTRAP_PASSWORD}'`
-    expect(source, `CREATE ROLE 未使用 BOOTSTRAP_PASSWORD。${ACTION_HINT}`)
-      .toContain(`PASSWORD '\${BOOTSTRAP_PASSWORD}'`)
+    expect(source, `CREATE ROLE 未使用 BOOTSTRAP_PASSWORD。${ACTION_HINT}`).toContain(
+      `PASSWORD '\${BOOTSTRAP_PASSWORD}'`,
+    )
   })
 
   it('对账守卫自测：篡改迁移文本后解析结果变化（不是空断言）', () => {
     const source = readFileSync(MIGRATION_PATH, 'utf8')
-    const tampered = source.replace(/const BOOTSTRAP_PASSWORD = '[^']*'/, 'const BOOTSTRAP_PASSWORD = \'drifted\'')
+    const tampered = source.replace(
+      /const BOOTSTRAP_PASSWORD = '[^']*'/,
+      "const BOOTSTRAP_PASSWORD = 'drifted'",
+    )
 
     expect(extractMigrationBootstrapPassword(source)).not.toBe('drifted')
     expect(extractMigrationBootstrapPassword(tampered)).toBe('drifted')

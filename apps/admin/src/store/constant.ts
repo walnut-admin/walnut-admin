@@ -37,7 +37,7 @@ export const StoreKeys = {
  * @description route name list that should not appear in tabs
  */
 export const tabBlackListName: string[] = [
-  ...mainoutRoutes.map(item => item.name as string),
+  ...mainoutRoutes.map((item) => item.name as string),
   layoutConst.notFound.name,
   layoutConst.serverError.name,
   layoutConst.redirect.name,

@@ -1,4 +1,7 @@
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+} from '@walnut-server/const/app/cache'
 import { WalnutAdminExceptionRsaPubKeyNotFound } from '@walnut-server/exceptions/business/rsa'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract'
 import { describe, expect, it, vi } from 'vitest'
@@ -21,7 +24,7 @@ import { AppTechCacheRsaService } from '../cache.rsa'
 interface ISetCall {
   key: string
   value: unknown
-  options: { t: string, ttl: number }
+  options: { t: string; ttl: number }
 }
 
 function createService(redisMap: Map<string, unknown>) {
@@ -33,7 +36,9 @@ function createService(redisMap: Map<string, unknown>) {
     setCalls.push({ key, value, options })
     redisMap.set(key, value)
   })
-  const cacheService = { get: getSpy, set: setSpy } as unknown as ConstructorParameters<typeof AppTechCacheRsaService>[0]
+  const cacheService = { get: getSpy, set: setSpy } as unknown as ConstructorParameters<
+    typeof AppTechCacheRsaService
+  >[0]
 
   return { service: new AppTechCacheRsaService(cacheService), getSpy, setSpy, setCalls }
 }
@@ -58,11 +63,14 @@ describe('rsa pub key cache：P0 回归（await 与 40012）', () => {
     )
 
     expect(thrown).toBeInstanceOf(WalnutAdminExceptionRsaPubKeyNotFound)
-    expect(errCodeOf(thrown)).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_RSA_PUB_KEY_NOT_FOUND)
+    expect(errCodeOf(thrown)).toBe(
+      WalnutAdminConstAppResponseCode.BAD_REQUEST_RSA_PUB_KEY_NOT_FOUND,
+    )
   })
 
   it('缓存命中 ⇒ 原样返回 PEM 字符串（不是 Promise 包装）', async () => {
-    const pem = '-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAK0=\n-----END PUBLIC KEY-----'
+    const pem =
+      '-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAK0=\n-----END PUBLIC KEY-----'
     const { service, getSpy } = createService(new Map([[cacheKeyOf('device-hit'), pem]]))
 
     const got = await service.getRsaPubKeyCache('device-hit')
@@ -99,7 +107,8 @@ describe('rsa pub key cache：P0 回归（await 与 40012）', () => {
   })
 
   it('探测版：缓存命中 ⇒ 原样返回，与 get 版同值', async () => {
-    const pem = '-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAK0=\n-----END PUBLIC KEY-----'
+    const pem =
+      '-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAK0=\n-----END PUBLIC KEY-----'
     const { service } = createService(new Map([[cacheKeyOf('device-hit'), pem]]))
 
     await expect(service.findRsaPubKeyCache('device-hit')).resolves.toBe(pem)

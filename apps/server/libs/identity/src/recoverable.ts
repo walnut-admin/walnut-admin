@@ -1,6 +1,9 @@
 import type { Provider } from '@nestjs/common'
 import { WalnutModelName } from '@walnut-server/db'
-import { createWalnutAdminSnapshotRecoverer, WalnutAdminRecoverableRegistry } from '@walnut-server/repository'
+import {
+  createWalnutAdminSnapshotRecoverer,
+  WalnutAdminRecoverableRegistry,
+} from '@walnut-server/repository'
 import { SysUserEntity } from './user/entity/user.entity'
 import { createWalnutUserSnapshotRecoverer } from './user/user.recoverer'
 import { SysUserDeviceEntity } from './user_device/entity/user-device.entity'

@@ -13,8 +13,7 @@ function parseResponseCode(data: any): number | null {
   try {
     const parsed = typeof data === 'string' ? JSON.parse(data) : data
     return parsed?.code ?? null
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -41,8 +40,7 @@ export function createCacheAdapter(cacheTTLSeconds: number) {
                 cacheAdapterCache.delete(index)
 
               return response
-            }
-            catch (reason) {
+            } catch (reason) {
               cacheAdapterCache.delete(index)
               throw reason
             }

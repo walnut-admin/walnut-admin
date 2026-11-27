@@ -13,17 +13,17 @@ defineProps<{
 </script>
 
 <template>
-  <BusinessRenderer v-if="msg.businessContent" :business-content="msg.businessContent" :message-id="msg.id" />
+  <BusinessRenderer
+    v-if="msg.businessContent"
+    :business-content="msg.businessContent"
+    :message-id="msg.id"
+  />
   <template v-else-if="msg.interrupted && msg.role === 'assistant'">
-    <InterruptedSection
-      :msg="msg"
-    />
+    <InterruptedSection :msg="msg" />
     <MessageToolbox :msg="msg" />
   </template>
   <template v-else>
-    <ThinkingSection
-      :msg="msg"
-    />
+    <ThinkingSection :msg="msg" />
     <MessageBody :msg="msg" />
     <MessageToolbox :msg="msg" />
   </template>

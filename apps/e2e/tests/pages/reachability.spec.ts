@@ -27,8 +27,18 @@
  * app 域 / demo 抽样。一条用例串多页，逐页 `test.step`，失败消息点名页面与缺失的响应。
  */
 import type { Page } from '@playwright/test'
-import { AppRoutes, SystemEndpointRoutes, SystemRoutes, WalnutAdminConstAppResponseCode } from '../../lib/protocol/contract.ts'
-import { captureEnvelopes, expectSidebarRendered, navigateToRoute, waitForEnvelope } from '../../lib/ui.ts'
+import {
+  AppRoutes,
+  SystemEndpointRoutes,
+  SystemRoutes,
+  WalnutAdminConstAppResponseCode,
+} from '../../lib/protocol/contract.ts'
+import {
+  captureEnvelopes,
+  expectSidebarRendered,
+  navigateToRoute,
+  waitForEnvelope,
+} from '../../lib/ui.ts'
 import { expect, test } from '../fixtures.ts'
 
 const SUCCESS = WalnutAdminConstAppResponseCode.SUCCESS
@@ -58,7 +68,11 @@ type PageCapture = ReturnType<typeof captureEnvelopes>
  * `captured` 是整条用例共用的采集对象，`fromIndex` 只匹配本次导航之后到达的响应 ——
  * 同一 URL 的旧响应（例如启动时的同源请求）不会被误当成本页的证据。
  */
-async function visitPage(page: Page, captured: PageCapture, definition: PageDefinition): Promise<void> {
+async function visitPage(
+  page: Page,
+  captured: PageCapture,
+  definition: PageDefinition,
+): Promise<void> {
   await test.step(definition.path, async () => {
     const fromIndex = captured.entries.length
 
@@ -67,14 +81,14 @@ async function visitPage(page: Page, captured: PageCapture, definition: PageDefi
     // 组件挂载：空组件路由（菜单 component 解析成 undefined）没有元素子节点。
     await expect(
       page.locator(`#${definition.routeName}-content > *`).first(),
-      `${definition.path} 的内容容器 #${definition.routeName}-content 没有挂载任何组件`
-      + '（菜单 component 指向的 .vue 不存在？）',
+      `${definition.path} 的内容容器 #${definition.routeName}-content 没有挂载任何组件` +
+        '（菜单 component 指向的 .vue 不存在？）',
     ).toBeVisible({ timeout: ROUTE_TIMEOUT_MS })
 
     for (const suffix of definition.envelopes ?? []) {
       await waitForEnvelope(
         captured.entries,
-        entry => entry.url.endsWith(suffix) && entry.code === SUCCESS,
+        (entry) => entry.url.endsWith(suffix) && entry.code === SUCCESS,
         ENVELOPE_TIMEOUT_MS,
         fromIndex,
       )
@@ -88,7 +102,9 @@ async function visitPage(page: Page, captured: PageCapture, definition: PageDefi
     }
 
     // 首屏请求期间若权限守卫把页面踢走，URL 断言在这里收口（不只看刚导航完的一瞬）
-    expect(new URL(page.url()).pathname, `${definition.path} 在首屏请求期间被重定向`).toBe(definition.path)
+    expect(new URL(page.url()).pathname, `${definition.path} 在首屏请求期间被重定向`).toBe(
+      definition.path,
+    )
   })
 }
 
@@ -101,15 +117,20 @@ async function openAuthedPage(page: Page): Promise<PageCapture> {
 }
 
 test.describe('全站页面可达链', { tag: '@pages' }, () => {
-  test('静态入口：/home → /dashboard → /about（about 首屏 /deps 20000）', async ({ authedPage }) => {
+  test('静态入口：/home → /dashboard → /about（about 首屏 /deps 20000）', async ({
+    authedPage,
+  }) => {
     const captured = await openAuthedPage(authedPage)
 
     try {
       await visitPage(authedPage, captured, { path: '/home', routeName: 'Homepage' })
       await visitPage(authedPage, captured, { path: '/dashboard', routeName: 'Dashboard' })
-      await visitPage(authedPage, captured, { path: '/about', routeName: 'About', envelopes: [AppRoutes.DEPS] })
-    }
-    finally {
+      await visitPage(authedPage, captured, {
+        path: '/about',
+        routeName: 'About',
+        envelopes: [AppRoutes.DEPS],
+      })
+    } finally {
       captured.stop()
     }
   })
@@ -135,13 +156,14 @@ test.describe('全站页面可达链', { tag: '@pages' }, () => {
         routeName: 'Menu',
         envelopes: [SystemEndpointRoutes.MENU_TREE],
       })
-    }
-    finally {
+    } finally {
       captured.stop()
     }
   })
 
-  test('system 字典与国际化：/system/dict → /system/lang → /system/locale', async ({ authedPage }) => {
+  test('system 字典与国际化：/system/dict → /system/lang → /system/locale', async ({
+    authedPage,
+  }) => {
     const captured = await openAuthedPage(authedPage)
 
     try {
@@ -160,13 +182,14 @@ test.describe('全站页面可达链', { tag: '@pages' }, () => {
         routeName: 'Locale',
         envelopes: [`${SystemRoutes.LOCALE}/list`],
       })
-    }
-    finally {
+    } finally {
       captured.stop()
     }
   })
 
-  test('system 设备与审计：/system/device → /system/deleted → /system/log/auth → /system/log/operate', async ({ authedPage }) => {
+  test('system 设备与审计：/system/device → /system/deleted → /system/log/auth → /system/log/operate', async ({
+    authedPage,
+  }) => {
     const captured = await openAuthedPage(authedPage)
 
     try {
@@ -191,13 +214,14 @@ test.describe('全站页面可达链', { tag: '@pages' }, () => {
         routeName: 'LogOperate',
         envelopes: [`${SystemRoutes.LOG_OPERATE}/list`],
       })
-    }
-    finally {
+    } finally {
       captured.stop()
     }
   })
 
-  test('app 域：/app/setting → /app/logger → /app/monitor/cache → /app/monitor/user → /app/monitor/server', async ({ authedPage }) => {
+  test('app 域：/app/setting → /app/logger → /app/monitor/cache → /app/monitor/user → /app/monitor/server', async ({
+    authedPage,
+  }) => {
     const captured = await openAuthedPage(authedPage)
 
     try {
@@ -236,8 +260,7 @@ test.describe('全站页面可达链', { tag: '@pages' }, () => {
           AppRoutes.MONITOR_SERVER_NETWORK,
         ],
       })
-    }
-    finally {
+    } finally {
       captured.stop()
     }
   })
@@ -246,15 +269,19 @@ test.describe('全站页面可达链', { tag: '@pages' }, () => {
    * demo 抽样（3 页，来自三个不同的 demo 组）：不重复 demo 的组件 showcase，
    * 只证明「菜单 → 组件 → 挂载」这条解析链对演示页同样成立。
    */
-  test('demo 抽样：/demo/table/hook → /demo/form → /demo/vendor/echarts', async ({ authedPage }) => {
+  test('demo 抽样：/demo/table/hook → /demo/form → /demo/vendor/echarts', async ({
+    authedPage,
+  }) => {
     const captured = await openAuthedPage(authedPage)
 
     try {
       await visitPage(authedPage, captured, { path: '/demo/table/hook', routeName: 'UseTableDemo' })
       await visitPage(authedPage, captured, { path: '/demo/form', routeName: 'DemoForm' })
-      await visitPage(authedPage, captured, { path: '/demo/vendor/echarts', routeName: 'EChartsDemo' })
-    }
-    finally {
+      await visitPage(authedPage, captured, {
+        path: '/demo/vendor/echarts',
+        routeName: 'EChartsDemo',
+      })
+    } finally {
       captured.stop()
     }
   })
@@ -272,7 +299,9 @@ test.describe('全站页面可达链', { tag: '@pages' }, () => {
    * 或修正 seed 后，删掉 `.fixme` 就是一条正常回归。通用判据（内容容器有元素子节点）与
    * 上面 18 页完全一致。
    */
-  test.fixme('demo/table/base：菜单指向不存在的组件（已知 seed 漂移，待定语义）', async ({ authedPage }) => {
+  test.fixme('demo/table/base：菜单指向不存在的组件（已知 seed 漂移，待定语义）', async ({
+    authedPage,
+  }) => {
     const captured = captureEnvelopes(authedPage)
     await authedPage.goto('/')
     await expectSidebarRendered(authedPage)

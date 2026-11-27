@@ -12,4 +12,4 @@ import { SysUserOAuthRepositoryService } from './user_oauth.repo.service'
   providers: [SysUserOAuthRepositoryService],
   exports: [SysUserOAuthRepositoryService],
 })
-export class SysUserOAuthRepositoryModule { }
+export class SysUserOAuthRepositoryModule {}

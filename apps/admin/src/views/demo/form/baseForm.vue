@@ -73,7 +73,9 @@ const schemas: WForm.Schema.Item<typeof formData.value>[] = [
       path: 'formRender',
     },
     componentProp: {
-      render: ({ formData: _formData }) => (<n-input vModel={[_formData.formRender, 'value']}></n-input>),
+      render: ({ formData: _formData }) => (
+        <n-input vModel={[_formData.formRender, 'value']}></n-input>
+      ),
     },
   },
 
@@ -125,10 +127,8 @@ const schemas: WForm.Schema.Item<typeof formData.value>[] = [
           textProp: 'Validate',
           onClick: async () => {
             const valid = await formRef.value?.validate()
-            if (valid)
-              msg.success('Success')
-            else
-              msg.error('Error')
+            if (valid) msg.success('Success')
+            else msg.error('Error')
           },
         },
         {
@@ -489,15 +489,11 @@ const schemas: WForm.Schema.Item<typeof formData.value>[] = [
   //     path: 'formTinymce',
   //   },
   // },
-
 ]
 </script>
 
 <template>
-  <WDemoCard
-    title="Base Form"
-    description="Display all support types in schemas."
-  >
+  <WDemoCard title="Base Form" description="Display all support types in schemas.">
     <div class="sticky top-24 z-50 h-full">
       <div class="bg-bodyColor p-4">
         <WJSON :value="formData" height="300px" />

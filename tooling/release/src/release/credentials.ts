@@ -24,7 +24,6 @@ export interface ResolvedToken {
 }
 
 export function resolveToken(args: ReleaseArgs): ResolvedToken {
-  if (args.token)
-    return { token: args.token, source: '--token' }
+  if (args.token) return { token: args.token, source: '--token' }
   return tokenFromEnv()
 }

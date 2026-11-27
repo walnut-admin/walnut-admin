@@ -35,16 +35,22 @@ import { AppErrorService } from './error.service'
     SharedMaskModule,
   ],
   controllers: [AppErrorController],
-  providers: [AppErrorBasicRepository, AppErrorService, AppErrorProcessor,
+  providers: [
+    AppErrorBasicRepository,
+    AppErrorService,
+    AppErrorProcessor,
     // 异常过滤器的错误入库端口绑定（libs 解耦批 1 的依赖反转：filter 在 lib 里，
     // 错误入库实现自批 9 起也在本 lib，仍经 WALNUT_ADMIN_ERROR_REPORTER 端口连接）
     {
       provide: WALNUT_ADMIN_ERROR_REPORTER,
       useExisting: AppErrorService,
-    }, {
+    },
+    {
       provide: APP_FILTER,
       useClass: WalnutAdminFilterExceptionAll,
-    }, appErrorRecoverableProvider],
+    },
+    appErrorRecoverableProvider,
+  ],
   exports: [AppErrorService],
 })
 export class AppErrorModule {}

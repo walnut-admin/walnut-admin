@@ -39,8 +39,14 @@ const form = reactive<{
 const lockPwdSet = computed(() => appStoreLock.getLockPwdSet)
 
 // E2E 稳定选择器要落在真实 `<input>` 上；`InputHTMLAttributes` 没有 data-* 索引签名，窄 cast
-const lockPwdSetInputProps = { 'data-testid': 'lock-pwd-set', 'autocomplete': 'new-password' } as unknown as InputHTMLAttributes
-const lockPwdConfirmInputProps = { 'data-testid': 'lock-pwd-set-confirm', 'autocomplete': 'new-password' } as unknown as InputHTMLAttributes
+const lockPwdSetInputProps = {
+  'data-testid': 'lock-pwd-set',
+  autocomplete: 'new-password',
+} as unknown as InputHTMLAttributes
+const lockPwdConfirmInputProps = {
+  'data-testid': 'lock-pwd-set-confirm',
+  autocomplete: 'new-password',
+} as unknown as InputHTMLAttributes
 
 function onInit() {
   form.lockMode = appStoreLock.getLockMode
@@ -69,8 +75,7 @@ function validate(): string | null {
     if (form.lockPwd !== form.lockPwdConfirm) {
       return t('app.security.lock.pwdNotMatch')
     }
-  }
-  else if (form.lockMode === AppConstLockMode.SECURITY && !lockPwdSet.value) {
+  } else if (form.lockMode === AppConstLockMode.SECURITY && !lockPwdSet.value) {
     // 服务端同样会 40000（pwdRequired），前端先挡一道，省一次往返
     return t('app.security.lock.invalidPwd')
   }
@@ -106,8 +111,7 @@ async function onSave() {
     onInit()
 
     useAppMsgSuccess()
-  }
-  finally {
+  } finally {
     saving.value = false
   }
 }
@@ -180,7 +184,9 @@ onBeforeMount(onInit)
             v-model:value="form.lockPwd"
             type="password"
             show-password-on="click"
-            :placeholder="lockPwdSet ? $t('app.security.lock.pwd.keep') : $t('app.security.lock.pwd')"
+            :placeholder="
+              lockPwdSet ? $t('app.security.lock.pwd.keep') : $t('app.security.lock.pwd')
+            "
             :input-props="lockPwdSetInputProps"
           />
           <n-input
@@ -190,7 +196,9 @@ onBeforeMount(onInit)
             :placeholder="$t('app.base.pass.new.confirm')"
             :input-props="lockPwdConfirmInputProps"
           />
-          <span v-if="lockPwdSet" class="text-sm text-gray-400">{{ $t('app.security.lock.pwd.keep') }}</span>
+          <span v-if="lockPwdSet" class="text-sm text-gray-400">{{
+            $t('app.security.lock.pwd.keep')
+          }}</span>
         </div>
       </n-form-item>
 

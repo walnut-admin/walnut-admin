@@ -13,6 +13,5 @@ export { useBuildEnv } from './use-build-env.ts'
  * 消费方拿到的键就是这两份 schema 校验过的键，未声明的键在 `strictImportMetaEnv` 下会报错。
  */
 export type ViteImportMetaEnv = ImportMetaEnvAugmented<
-  typeof import('./env.development.ts').default
-  & typeof import('./env.stage.ts').default
+  typeof import('./env.development.ts').default & typeof import('./env.stage.ts').default
 >

@@ -36,7 +36,11 @@ export class AuthGoogleService {
   ): Promise<IWalnutAdminTokenUser> {
     // TODO
     // auto signup for new user and get tokens
-    const tokenPayload = await this.sysUserSharedService.getAccessTokenPayloadAfterAutomaticSignUpForNonExistUser({ }, deviceId)
+    const tokenPayload =
+      await this.sysUserSharedService.getAccessTokenPayloadAfterAutomaticSignUpForNonExistUser(
+        {},
+        deviceId,
+      )
 
     // emit send welcome email event for new user
     fireAndForget(
@@ -67,7 +71,11 @@ export class AuthGoogleService {
   }
 
   // B7b 签名适配：refresh 写腿迁 PG —— dbSession → em
-  async authWithGoogleFedCM(payload: IWalnutAdminAccessTokenPayload, deviceId: string, em?: EntityManager) {
+  async authWithGoogleFedCM(
+    payload: IWalnutAdminAccessTokenPayload,
+    deviceId: string,
+    em?: EntityManager,
+  ) {
     // generate tokens
     return this.authSharedService.generateAuthTokens(payload, deviceId, em)
   }

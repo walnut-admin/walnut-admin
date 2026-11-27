@@ -181,11 +181,7 @@
     // 门禁 `walnut-check-turbo-cache` 的第 8 条不变量会把「命令表的 glob」与「task inputs」对起来。
     "//#lint:root": {
       "outputs": [],
-      "inputs": [
-        "$TURBO_ROOT$/*.ts",
-        "$TURBO_ROOT$/*.json",
-        "$TURBO_ROOT$/*.yaml"
-      ]
+      "inputs": ["$TURBO_ROOT$/*.ts", "$TURBO_ROOT$/*.json", "$TURBO_ROOT$/*.yaml"]
     },
     // 传递节点（**没有对应脚本**，只是个图节点）。存在的唯一理由：
     // `dependsOn: ["^build"]` 只能把「上游的 build 产物」串进哈希，而本仓的共享包
@@ -279,38 +275,24 @@
     },
     "lint": {
       "dependsOn": [],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "!**/dist/**",
-        "!**/*.md"
-      ],
+      "inputs": ["$TURBO_DEFAULT$", "!**/dist/**", "!**/*.md"],
       "cache": true
     },
     "lint:fix": {
       "dependsOn": [],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "!**/dist/**",
-        "!**/*.md"
-      ],
+      "inputs": ["$TURBO_DEFAULT$", "!**/dist/**", "!**/*.md"],
       "cache": false
     },
     "types:check": {
       // 挂 `transit` 而不是 `^build`：本仓共享包不构建，类型是从**源码**读的。
       // 详见 `transit` 任务上方的实测记录。
       "dependsOn": ["transit"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "!**/*.md"
-      ],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
       "cache": true
     },
     "test": {
       "dependsOn": ["^build"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "!**/*.md"
-      ],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
       // 正常 `vitest run`（不带 --coverage）不产出任何文件 —— 声明 `coverage/**` 会让每个
       // 有 test 脚本的包都刷一条 "no output files found for task"。要恢复覆盖率产物缓存，
       // 就在 run 脚本里加 --coverage，并把这里改回 ["coverage/**"]。

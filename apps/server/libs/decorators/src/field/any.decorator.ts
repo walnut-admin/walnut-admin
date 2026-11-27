@@ -28,9 +28,7 @@ const ANY_VALUE_SWAGGER_ONEOF = [
   { type: 'object' as const, additionalProperties: true },
 ]
 
-export function WalnutAdminDecoratorFieldAny(
-  options?: IWADAnyOpt,
-): PropertyDecorator {
+export function WalnutAdminDecoratorFieldAny(options?: IWADAnyOpt): PropertyDecorator {
   return applyDecorators(
     ApiProperty({
       ...options?.swaggerOptions,

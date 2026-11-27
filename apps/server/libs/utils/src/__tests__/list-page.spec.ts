@@ -14,18 +14,42 @@ import {
 describe('normalizeListPage', () => {
   it('缺省：page=1 / pageSize=10，且不算 adjusted', () => {
     const r = normalizeListPage(undefined)
-    expect(r).toMatchObject({ page: WALNUT_LIST_PAGE_DEFAULT, pageSize: WALNUT_LIST_PAGE_SIZE_DEFAULT, skip: 0, limit: 10, adjusted: false })
+    expect(r).toMatchObject({
+      page: WALNUT_LIST_PAGE_DEFAULT,
+      pageSize: WALNUT_LIST_PAGE_SIZE_DEFAULT,
+      skip: 0,
+      limit: 10,
+      adjusted: false,
+    })
     expect(normalizeListPage({}).adjusted).toBe(false)
     expect(normalizeListPage(null).adjusted).toBe(false)
   })
 
   it('正常入参原样透传', () => {
-    expect(normalizeListPage({ page: 2, pageSize: 20 })).toMatchObject({ page: 2, pageSize: 20, skip: 20, limit: 20, adjusted: false })
+    expect(normalizeListPage({ page: 2, pageSize: 20 })).toMatchObject({
+      page: 2,
+      pageSize: 20,
+      skip: 20,
+      limit: 20,
+      adjusted: false,
+    })
   })
 
   it('半传：缺的字段补默认值（不算 adjusted）', () => {
-    expect(normalizeListPage({ pageSize: 20 })).toMatchObject({ page: 1, pageSize: 20, skip: 0, limit: 20, adjusted: false })
-    expect(normalizeListPage({ page: 3 })).toMatchObject({ page: 3, pageSize: 10, skip: 20, limit: 10, adjusted: false })
+    expect(normalizeListPage({ pageSize: 20 })).toMatchObject({
+      page: 1,
+      pageSize: 20,
+      skip: 0,
+      limit: 20,
+      adjusted: false,
+    })
+    expect(normalizeListPage({ page: 3 })).toMatchObject({
+      page: 3,
+      pageSize: 10,
+      skip: 20,
+      limit: 10,
+      adjusted: false,
+    })
   })
 
   it('page 非数字 → 回落 1（旧实现会让 TypeORM 抛 offset 非数字）', () => {
@@ -41,7 +65,9 @@ describe('normalizeListPage', () => {
   })
 
   it('pageSize < 1 → 回落 10（旧实现会 2201W / LIMIT 0 静默空页）', () => {
-    expect(normalizeListPage({ page: 1, pageSize: -5 }).pageSize).toBe(WALNUT_LIST_PAGE_SIZE_DEFAULT)
+    expect(normalizeListPage({ page: 1, pageSize: -5 }).pageSize).toBe(
+      WALNUT_LIST_PAGE_SIZE_DEFAULT,
+    )
     expect(normalizeListPage({ page: 1, pageSize: 0 }).pageSize).toBe(WALNUT_LIST_PAGE_SIZE_DEFAULT)
   })
 
@@ -50,15 +76,35 @@ describe('normalizeListPage', () => {
   })
 
   it('小数截断为整数', () => {
-    expect(normalizeListPage({ page: 2.7, pageSize: 10.9 })).toMatchObject({ page: 2, pageSize: 10, adjusted: true })
+    expect(normalizeListPage({ page: 2.7, pageSize: 10.9 })).toMatchObject({
+      page: 2,
+      pageSize: 10,
+      adjusted: true,
+    })
   })
 
   it('数字字符串可接受（DTO transform 后常见形态）', () => {
-    expect(normalizeListPage({ page: '2', pageSize: '20' })).toMatchObject({ page: 2, pageSize: 20, adjusted: false })
+    expect(normalizeListPage({ page: '2', pageSize: '20' })).toMatchObject({
+      page: 2,
+      pageSize: 20,
+      adjusted: false,
+    })
   })
 
   it('永不抛：各种脏输入', () => {
-    const dirty = [undefined, null, {}, [], { page: {} }, { page: [] }, { pageSize: {} }, 'x', 3, { page: Number.NaN }, { page: Infinity }]
+    const dirty = [
+      undefined,
+      null,
+      {},
+      [],
+      { page: {} },
+      { page: [] },
+      { pageSize: {} },
+      'x',
+      3,
+      { page: Number.NaN },
+      { page: Infinity },
+    ]
     for (const input of dirty) {
       expect(() => normalizeListPage(input)).not.toThrow()
       const r = normalizeListPage(input)

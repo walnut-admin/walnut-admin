@@ -44,7 +44,10 @@ describe('nextVersion —— 判别式（不认识的输入返回 null，绝不�
 
 describe('parseIntent —— 格式容忍', () => {
   it('双引号包名（pnpm change 的产物形态）', () => {
-    const intent = parseIntent('auto-1a82770.md', '---\n"@walnut/admin": minor\n"@walnut/utils": patch\n---\n\n1a82770 ::: feat ::: admin: x\n')
+    const intent = parseIntent(
+      'auto-1a82770.md',
+      '---\n"@walnut/admin": minor\n"@walnut/utils": patch\n---\n\n1a82770 ::: feat ::: admin: x\n',
+    )
     expect(intent).toEqual({
       file: 'auto-1a82770.md',
       packages: ['@walnut/admin', '@walnut/utils'],
@@ -73,29 +76,37 @@ describe('parseIntent —— 格式容忍', () => {
   })
 
   it('多包取最高档，包名保持出现顺序且去重', () => {
-    const intent = parseIntent('a.md', [
-      '---',
-      '"@walnut/admin": patch',
-      '"@walnut/utils": minor',
-      '"@walnut/admin": patch',
-      '"@walnut/http": patch',
-      '---',
-      '',
-      '1a82770 ::: feat ::: x',
-    ].join('\n'))
+    const intent = parseIntent(
+      'a.md',
+      [
+        '---',
+        '"@walnut/admin": patch',
+        '"@walnut/utils": minor',
+        '"@walnut/admin": patch',
+        '"@walnut/http": patch',
+        '---',
+        '',
+        '1a82770 ::: feat ::: x',
+      ].join('\n'),
+    )
     expect(intent?.bump).toBe('minor')
     expect(intent?.packages).toEqual(['@walnut/admin', '@walnut/utils', '@walnut/http'])
   })
 
   it('none 不参与取最大：有别的档位时以那个为准', () => {
-    const intent = parseIntent('a.md', '---\n"@walnut/admin": none\n"@walnut/utils": patch\n---\n\nbody\n')
+    const intent = parseIntent(
+      'a.md',
+      '---\n"@walnut/admin": none\n"@walnut/utils": patch\n---\n\nbody\n',
+    )
     expect(intent?.bump).toBe('patch')
     expect(intent?.packages).toEqual(['@walnut/admin', '@walnut/utils'])
   })
 
   it('只有 none 条目 ⇒ 返回 null（maxBump 保持 null，不是「none 意图」）', () => {
     expect(parseIntent('a.md', '---\n"@walnut/admin": none\n---\n\nbody\n')).toBeNull()
-    expect(parseIntent('a.md', '---\n"@walnut/admin": none\n"@walnut/utils": none\n---\n\nbody\n')).toBeNull()
+    expect(
+      parseIntent('a.md', '---\n"@walnut/admin": none\n"@walnut/utils": none\n---\n\nbody\n'),
+    ).toBeNull()
   })
 
   it('没有 frontmatter / 没有包名 / 没有 bump 行 ⇒ null', () => {
@@ -105,7 +116,9 @@ describe('parseIntent —— 格式容忍', () => {
   })
 
   it('摘要取 `---` 之后的正文并 trim；没有正文时是空串', () => {
-    expect(parseIntent('a.md', '---\n"@walnut/admin": patch\n---\n\n\n  正文  \n\n')?.summary).toBe('正文')
+    expect(parseIntent('a.md', '---\n"@walnut/admin": patch\n---\n\n\n  正文  \n\n')?.summary).toBe(
+      '正文',
+    )
     expect(parseIntent('a.md', '---\n"@walnut/admin": patch\n---')?.summary).toBe('')
     expect(parseIntent('a.md', '---\n"@walnut/admin": patch\n---\n\n')?.summary).toBe('')
   })

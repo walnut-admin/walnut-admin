@@ -10,7 +10,10 @@ import { Reflector } from '@nestjs/core'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 
 import { getWalnutAdminCookie } from '@walnut-server/cookie'
-import { WalnutAdminExceptionAccessTokenExpired, WalnutAdminExceptionSensitiveVerificationFailed } from '@walnut-server/exceptions/business/auth'
+import {
+  WalnutAdminExceptionAccessTokenExpired,
+  WalnutAdminExceptionSensitiveVerificationFailed,
+} from '@walnut-server/exceptions/business/auth'
 import { getOperationStrategy } from '@walnut-server/security/sensitive/sensitive.config'
 import { SecuritySensitiveService } from '@walnut-server/security/sensitive/sensitive.service'
 import { IWalnutAdminGuardRequireSensitiveOptions } from '@walnut-server/security/sensitive/sensitive.type'
@@ -42,10 +45,7 @@ export class WalnutAdminGuardSensitive implements CanActivate {
     const user = request.user
 
     // Get deviceId from cookie
-    const deviceId = getWalnutAdminCookie(
-      request,
-      WalnutAdminConstCookieKeys.DEVICE_ID,
-    )
+    const deviceId = getWalnutAdminCookie(request, WalnutAdminConstCookieKeys.DEVICE_ID)
 
     // Get decorator options
     const options = this.reflector.get<IWalnutAdminGuardRequireSensitiveOptions>(

@@ -36,20 +36,16 @@ export function useTabsPersistent() {
           )
 
           tryOnMounted(() => {
-            if (_storaged_tabs.value?.length)
-              appStoreTab.tabs = _storaged_tabs.value
+            if (_storaged_tabs.value?.length) appStoreTab.tabs = _storaged_tabs.value
           })
 
           onScopeDispose(() => {
-            const key = Object.keys(localStorage).find(i =>
-              i.includes(AppConstPersistKey.TABS),
-            )
+            const key = Object.keys(localStorage).find((i) => i.includes(AppConstPersistKey.TABS))
 
             key && localStorage.removeItem(key)
           })
         })
-      }
-      else {
+      } else {
         scope?.stop()
       }
     },

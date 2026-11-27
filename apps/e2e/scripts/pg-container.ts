@@ -66,7 +66,10 @@ export function resolvePgContainer(): string {
     return explicit
   }
 
-  if (process.env.CI === 'true' && resolvePgExecMode(process.platform, process.env.E2E_PG_EXEC_MODE) === 'docker-cli') {
+  if (
+    process.env.CI === 'true' &&
+    resolvePgExecMode(process.platform, process.env.E2E_PG_EXEC_MODE) === 'docker-cli'
+  ) {
     const found = firstContainerByImage(CI_PG_IMAGE)
     if (found !== null) {
       assertContainerName(found)
@@ -90,7 +93,10 @@ function firstContainerByImage(image: string): string | null {
   if (result.error !== undefined || result.status !== 0) {
     return null
   }
-  const first = (result.stdout ?? '').split(/\r?\n/).map(line => line.trim()).find(line => line !== '')
+  const first = (result.stdout ?? '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => line !== '')
   return first ?? null
 }
 
@@ -110,8 +116,8 @@ export function resolvePgExecMode(platform: NodeJS.Platform, override?: string):
   }
   if (value !== '' && value !== 'auto') {
     throw new E2ePreconditionError(
-      `E2E_PG_EXEC_MODE=${override} 不认识（只接受 auto / wsl / docker）：`
-      + 'wsl = 经 `wsl -e bash -c "docker exec …"`，docker = 直接调 docker CLI',
+      `E2E_PG_EXEC_MODE=${override} 不认识（只接受 auto / wsl / docker）：` +
+        'wsl = 经 `wsl -e bash -c "docker exec …"`，docker = 直接调 docker CLI',
     )
   }
   return platform === 'win32' ? 'wsl-bash' : 'docker-cli'
@@ -126,8 +132,8 @@ function currentExecMode(): PgExecMode {
 export function assertContainerName(container: string): void {
   if (!CONTAINER_NAME_PATTERN.test(container)) {
     throw new E2ePreconditionError(
-      `E2E_PG_CONTAINER=${JSON.stringify(container)} 不是合法的容器名（只允许字母 / 数字 / _ . -，且以字母数字开头）。`
-      + ` 默认是 ${DEFAULT_PG_CONTAINER}；通用 compose 是 e2e-postgres。`,
+      `E2E_PG_CONTAINER=${JSON.stringify(container)} 不是合法的容器名（只允许字母 / 数字 / _ . -，且以字母数字开头）。` +
+        ` 默认是 ${DEFAULT_PG_CONTAINER}；通用 compose 是 e2e-postgres。`,
     )
   }
 }
@@ -164,10 +170,10 @@ function runWslBash(script: string, options: { input?: Buffer } = {}): void {
 
   if (result.error !== undefined) {
     throw new E2ePreconditionError(
-      `WSL 命令没跑起来：${result.error.message}\n`
-      + `  本机的数据栈按 WSL 形态实现（容器 ${DEFAULT_PG_CONTAINER}，可用 E2E_PG_CONTAINER 覆盖；见 apps/e2e/README.md「WSL 常驻栈」）；`
-      + 'Docker 跑在 Windows 侧（Docker Desktop）时用 E2E_PG_EXEC_MODE=docker，'
-      + 'Docker 跑在原生 Linux 时直接运行（无需 WSL）；也可用 E2E_SKIP_BASELINE=1 退回全量 prepare。',
+      `WSL 命令没跑起来：${result.error.message}\n` +
+        `  本机的数据栈按 WSL 形态实现（容器 ${DEFAULT_PG_CONTAINER}，可用 E2E_PG_CONTAINER 覆盖；见 apps/e2e/README.md「WSL 常驻栈」）；` +
+        'Docker 跑在 Windows 侧（Docker Desktop）时用 E2E_PG_EXEC_MODE=docker，' +
+        'Docker 跑在原生 Linux 时直接运行（无需 WSL）；也可用 E2E_SKIP_BASELINE=1 退回全量 prepare。',
     )
   }
   if (result.status !== 0) {
@@ -188,10 +194,10 @@ function runDocker(args: readonly string[], options: { input?: Buffer } = {}): {
 
   if (result.error !== undefined) {
     throw new E2ePreconditionError(
-      `docker 命令没跑起来：${result.error.message}\n`
-      + '  Docker 跑在 Windows（Docker Desktop）时确认 docker CLI 在 PATH 上；'
-      + '跑在 WSL 里时用 E2E_PG_EXEC_MODE=wsl（默认按平台判断，win32 走 WSL）；'
-      + '也可用 E2E_SKIP_BASELINE=1 退回全量 prepare。',
+      `docker 命令没跑起来：${result.error.message}\n` +
+        '  Docker 跑在 Windows（Docker Desktop）时确认 docker CLI 在 PATH 上；' +
+        '跑在 WSL 里时用 E2E_PG_EXEC_MODE=wsl（默认按平台判断，win32 走 WSL）；' +
+        '也可用 E2E_SKIP_BASELINE=1 退回全量 prepare。',
     )
   }
   if (result.status !== 0) {
@@ -216,22 +222,25 @@ export function runPgDumpToFile(container: string, outputFile: string): void {
     )
     return
   }
-  const { stdout } = runDocker([
-    'exec',
-    container,
-    'pg_dump',
-    '-U',
-    E2E_PG_USER,
-    '-Fc',
-    E2E_PG_DB,
-  ])
+  const { stdout } = runDocker(['exec', container, 'pg_dump', '-U', E2E_PG_USER, '-Fc', E2E_PG_DB])
   writeFileSync(outputFile, stdout)
 }
 
 /** 把 dump 文件喂给容器里的 `pg_restore`（`--clean --if-exists`；见 baseline 的调用说明） */
 export function runPgRestoreFromFile(container: string, dump: Buffer): void {
   assertContainerName(container)
-  const args = ['exec', '-i', container, 'pg_restore', '-U', E2E_PG_USER, '-d', E2E_PG_DB, '--clean', '--if-exists']
+  const args = [
+    'exec',
+    '-i',
+    container,
+    'pg_restore',
+    '-U',
+    E2E_PG_USER,
+    '-d',
+    E2E_PG_DB,
+    '--clean',
+    '--if-exists',
+  ]
   if (currentExecMode() === 'wsl-bash') {
     runWslBash(`docker ${args.join(' ')}`, { input: dump })
     return
@@ -252,17 +261,22 @@ export interface PgContainerInspection {
 export function inspectContainer(container: string): PgContainerInspection {
   assertContainerName(container)
   const mode = currentExecMode()
-  const result = mode === 'wsl-bash'
-    ? spawnSync('wsl', ['-e', 'bash', '-c', `docker inspect --format '{{.State.Status}}' ${container}`], {
-        encoding: 'utf8',
-        windowsHide: true,
-        timeout: INSPECT_TIMEOUT_MS,
-      })
-    : spawnSync('docker', ['inspect', '--format', '{{.State.Status}}', container], {
-        encoding: 'utf8',
-        windowsHide: true,
-        timeout: INSPECT_TIMEOUT_MS,
-      })
+  const result =
+    mode === 'wsl-bash'
+      ? spawnSync(
+          'wsl',
+          ['-e', 'bash', '-c', `docker inspect --format '{{.State.Status}}' ${container}`],
+          {
+            encoding: 'utf8',
+            windowsHide: true,
+            timeout: INSPECT_TIMEOUT_MS,
+          },
+        )
+      : spawnSync('docker', ['inspect', '--format', '{{.State.Status}}', container], {
+          encoding: 'utf8',
+          windowsHide: true,
+          timeout: INSPECT_TIMEOUT_MS,
+        })
 
   if (result.error !== undefined) {
     return { ok: false, detail: `无法执行 docker inspect：${result.error.message}` }
@@ -276,7 +290,10 @@ export function inspectContainer(container: string): PgContainerInspection {
 
   const status = (result.stdout ?? '').trim()
   if (status !== 'running') {
-    return { ok: false, detail: `容器 ${container} 存在但状态是 ${status === '' ? '未知' : status}（期望 running）` }
+    return {
+      ok: false,
+      detail: `容器 ${container} 存在但状态是 ${status === '' ? '未知' : status}（期望 running）`,
+    }
   }
   return { ok: true, detail: `容器 ${container} running` }
 }

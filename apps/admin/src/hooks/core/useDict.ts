@@ -24,7 +24,7 @@ export function getDictDataFromMap(type: string) {
 }
 
 export function getDictTarget(type: string, value: BaseDataType) {
-  return getDictDataFromMap(type)?.find(i => i.value === value)
+  return getDictDataFromMap(type)?.find((i) => i.value === value)
 }
 
 // init dict, no return value, just set dict data into dict map
@@ -36,7 +36,7 @@ export async function initDict(types: string[]) {
     return
   }
 
-  const nonExistedDictTypes = types.filter(type => !AppStoreMapDict.value.has(type))
+  const nonExistedDictTypes = types.filter((type) => !AppStoreMapDict.value.has(type))
   if (!nonExistedDictTypes.length) {
     return
   }
@@ -44,12 +44,25 @@ export async function initDict(types: string[]) {
   console.log('[initDict] Un-hit dict', nonExistedDictTypes)
 
   const res = await getDictByTypeAPI(nonExistedDictTypes)
-  nonExistedDictTypes.map(type => setDictIntoMap(type, res.find(i => i.type === type)!))
+  nonExistedDictTypes.map((type) =>
+    setDictIntoMap(
+      type,
+      res.find((i) => i.type === type)!,
+    ),
+  )
 }
 
 // typescript overload
-export function useDict(types: string): { loading: Ref<boolean>, execDict: () => Promise<SystemDictTypeWithDictData>, dictData: ComputedRef<SystemDictTypeWithDictData> }
-export function useDict(types: string[]): { loading: Ref<boolean>, execDict: () => Promise<SystemDictTypeWithDictData[]>, dictData: ComputedRef<SystemDictTypeWithDictData[]> }
+export function useDict(types: string): {
+  loading: Ref<boolean>
+  execDict: () => Promise<SystemDictTypeWithDictData>
+  dictData: ComputedRef<SystemDictTypeWithDictData>
+}
+export function useDict(types: string[]): {
+  loading: Ref<boolean>
+  execDict: () => Promise<SystemDictTypeWithDictData[]>
+  dictData: ComputedRef<SystemDictTypeWithDictData[]>
+}
 export function useDict(types: string | string[]): void
 export function useDict(types: string | string[]) {
   if (!types || types.length === 0) {
@@ -60,22 +73,20 @@ export function useDict(types: string | string[]) {
 
   const isStringType = typeof types === 'string'
 
-  const getDictDataFromTypes = (types: string[]) => types.map(type => getDictFromMap(type))
+  const getDictDataFromTypes = (types: string[]) => types.map((type) => getDictFromMap(type))
 
   const loading = ref(false)
   const dictData = computed(() => {
     if (isStringType) {
       return getDictFromMap(types)
-    }
-    else {
+    } else {
       return getDictDataFromTypes(types)
     }
   })
 
   const execDict = async () => {
     if (isStringType) {
-      if (AppStoreMapDict.value.has(types))
-        return getDictFromMap(types)
+      if (AppStoreMapDict.value.has(types)) return getDictFromMap(types)
     }
 
     loading.value = true
@@ -84,18 +95,21 @@ export function useDict(types: string | string[]) {
         const res = await getDictByTypeAPI(types)
         setDictIntoMap(types, res[0])
         return res
-      }
-      else {
-        const nonExistedDictTypes = types.filter(type => !AppStoreMapDict.value.has(type))
+      } else {
+        const nonExistedDictTypes = types.filter((type) => !AppStoreMapDict.value.has(type))
         if (!nonExistedDictTypes.length) {
           return getDictDataFromTypes(types)
         }
         const res = await getDictByTypeAPI(nonExistedDictTypes)
-        nonExistedDictTypes.map(type => setDictIntoMap(type, res.find(i => i.type === type)!))
+        nonExistedDictTypes.map((type) =>
+          setDictIntoMap(
+            type,
+            res.find((i) => i.type === type)!,
+          ),
+        )
         return getDictDataFromTypes(types)
       }
-    }
-    finally {
+    } finally {
       loading.value = false
     }
   }

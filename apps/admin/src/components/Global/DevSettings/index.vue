@@ -84,11 +84,7 @@ function onReset() {
             :disabled="copied"
             @click="copy()"
           >
-            {{
-              copied
-                ? $t('app.settings.copy.helpMsg')
-                : $t('app.settings.copy')
-            }}
+            {{ copied ? $t('app.settings.copy.helpMsg') : $t('app.settings.copy') }}
           </n-button>
 
           <n-button type="error" class="mt-2 w-full" @click="onReset">

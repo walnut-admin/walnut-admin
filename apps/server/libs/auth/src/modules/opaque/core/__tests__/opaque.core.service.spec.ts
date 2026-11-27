@@ -35,7 +35,9 @@ const warnSpy = vi.spyOn(Logger.prototype, 'warn')
 
 /** 造一份**真实**的 registration record（等价于用户注册时落库的那一条） */
 function createRegistrationRecord(password: string) {
-  const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({ password })
+  const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({
+    password,
+  })
   const { registrationResponse } = opaque.server.createRegistrationResponse({
     serverSetup,
     userIdentifier: USER_NAME,
@@ -63,7 +65,7 @@ beforeEach(() => {
 const EM = { marker: 'entity-manager' } as unknown as EntityManager
 
 interface IServiceOptions {
-  user: { id: string, userName: string } | null
+  user: { id: string; userName: string } | null
   identity: string | null
   /** ConfigService 可见的 NODE_ENV（方案 a：meta hint 只在 development / stage 出现） */
   nodeEnv?: string
@@ -133,9 +135,11 @@ function createService(options: IServiceOptions) {
     })
   }
   // 读腿返回**密文**（① 之后库里的真实形态）
-  const getValueByUserIdTypeAndPurpose = vi.fn(async (userId: string, type: string, purpose: string) => {
-    return rows.get(rowKey(userId, type, purpose))?.value ?? null
-  })
+  const getValueByUserIdTypeAndPurpose = vi.fn(
+    async (userId: string, type: string, purpose: string) => {
+      return rows.get(rowKey(userId, type, purpose))?.value ?? null
+    },
+  )
   const upsertIdentity = vi.fn(async (payload: IIdentityRow) => {
     const key = rowKey(payload.userId, payload.type, payload.purpose)
     const next = { ...rows.get(key), ...payload }
@@ -182,7 +186,12 @@ function startLoginRequest() {
 
 describe('opaque.core.startLogin：用户枚举等时化（F-45）', () => {
   it('存在的用户：返回 loginResponse，identity 按真实 userId 读一次，Redis 写一次', async () => {
-    const { service, findUserByUserName, getValueByUserIdTypeAndPurpose, setOpaqueServerStateCache } = createService({
+    const {
+      service,
+      findUserByUserName,
+      getValueByUserIdTypeAndPurpose,
+      setOpaqueServerStateCache,
+    } = createService({
       user: { id: USER_ID, userName: USER_NAME },
       identity: registrationRecord,
     })
@@ -192,27 +201,43 @@ describe('opaque.core.startLogin：用户枚举等时化（F-45）', () => {
     expect(typeof response).toBe('string')
     expect(response.length).toBeGreaterThan(0)
     expect(findUserByUserName).toHaveBeenCalledExactlyOnceWith(USER_NAME, EM)
-    expect(getValueByUserIdTypeAndPurpose).toHaveBeenCalledExactlyOnceWith(USER_ID, 'password', 'login', EM)
+    expect(getValueByUserIdTypeAndPurpose).toHaveBeenCalledExactlyOnceWith(
+      USER_ID,
+      'password',
+      'login',
+      EM,
+    )
     expect(setOpaqueServerStateCache).toHaveBeenCalledOnce()
   })
 
   it('不存在的用户：DB 读次数与 Redis 写次数与存在路径**相同**，随后统一 40103', async () => {
-    const { service, findUserByUserName, getValueByUserIdTypeAndPurpose, setOpaqueServerStateCache } = createService({
+    const {
+      service,
+      findUserByUserName,
+      getValueByUserIdTypeAndPurpose,
+      setOpaqueServerStateCache,
+    } = createService({
       user: null,
       identity: null,
     })
 
-    await expect(service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
+    await expect(
+      service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM),
+    ).rejects.toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
 
     // 等量 DB 读：user 1 次 + identity 1 次（假读腿查 nil uuid）
     expect(findUserByUserName).toHaveBeenCalledExactlyOnceWith(USER_NAME, EM)
-    expect(getValueByUserIdTypeAndPurpose).toHaveBeenCalledExactlyOnceWith(NIL_USER_ID, 'password', 'login', EM)
+    expect(getValueByUserIdTypeAndPurpose).toHaveBeenCalledExactlyOnceWith(
+      NIL_USER_ID,
+      'password',
+      'login',
+      EM,
+    )
 
     // 等量 Redis 写：假路径**也**写了一次 SERVER_STATE，且写的是真计算出来的 state
     expect(setOpaqueServerStateCache).toHaveBeenCalledOnce()
-    const [writtenUserName, writtenDeviceId, writtenState] = setOpaqueServerStateCache.mock.calls[0] as unknown as [string, string, string]
+    const [writtenUserName, writtenDeviceId, writtenState] = setOpaqueServerStateCache.mock
+      .calls[0] as unknown as [string, string, string]
     expect(writtenUserName).toBe(USER_NAME)
     expect(writtenDeviceId).toBe(DEVICE_ID)
     expect(typeof writtenState).toBe('string')
@@ -225,11 +250,16 @@ describe('opaque.core.startLogin：用户枚举等时化（F-45）', () => {
       identity: null,
     })
 
-    await expect(service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
+    await expect(
+      service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM),
+    ).rejects.toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
 
-    expect(getValueByUserIdTypeAndPurpose).toHaveBeenCalledExactlyOnceWith(USER_ID, 'password', 'login', EM)
+    expect(getValueByUserIdTypeAndPurpose).toHaveBeenCalledExactlyOnceWith(
+      USER_ID,
+      'password',
+      'login',
+      EM,
+    )
     expect(setOpaqueServerStateCache).toHaveBeenCalledOnce()
   })
 
@@ -241,15 +271,19 @@ describe('opaque.core.startLogin：用户枚举等时化（F-45）', () => {
     ] as const
 
     for (const scenario of scenarios) {
-      const { service, setOpaqueServerStateCache } = createService({ user: scenario.user, identity: scenario.identity })
+      const { service, setOpaqueServerStateCache } = createService({
+        user: scenario.user,
+        identity: scenario.identity,
+      })
 
       if (scenario.throws) {
-        await expect(service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM)).rejects.toBeInstanceOf(
-          WalnutAdminExceptionInvalidCredential,
-        )
-      }
-      else {
-        await expect(service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM)).resolves.toEqual(expect.any(String))
+        await expect(
+          service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM),
+        ).rejects.toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
+      } else {
+        await expect(
+          service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM),
+        ).resolves.toEqual(expect.any(String))
       }
 
       expect(setOpaqueServerStateCache).toHaveBeenCalledTimes(1)
@@ -259,9 +293,9 @@ describe('opaque.core.startLogin：用户枚举等时化（F-45）', () => {
   it('startLoginRequest 是垃圾（客户端没按协议发）：仍然只抛 40103，不会把库错误冒出去', async () => {
     const { service, setOpaqueServerStateCache } = createService({ user: null, identity: null })
 
-    await expect(service.startLogin(USER_NAME, 'not-a-valid-start-login-request', DEVICE_ID, EM))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
+    await expect(
+      service.startLogin(USER_NAME, 'not-a-valid-start-login-request', DEVICE_ID, EM),
+    ).rejects.toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
 
     // 计算阶段就炸了 ⇒ 没有写缓存（与「存在用户 + 坏请求」的失败形态一致）
     expect(setOpaqueServerStateCache).not.toHaveBeenCalled()
@@ -280,7 +314,10 @@ describe('opaque.core.startLogin：用户枚举等时化（F-45）', () => {
  */
 describe('opaque.core：password 身份加密落库与读回（①）', () => {
   it('finishRegister：value/valueHash 分别过 encryptValue / generateValueHash，maskedValue 仍是 ********', async () => {
-    const { service, upsertIdentity, identityCrypto } = createService({ user: { id: USER_ID, userName: USER_NAME }, identity: null })
+    const { service, upsertIdentity, identityCrypto } = createService({
+      user: { id: USER_ID, userName: USER_NAME },
+      identity: null,
+    })
 
     await expect(service.finishRegister(USER_ID, registrationRecord, EM)).resolves.toBe(true)
 
@@ -375,9 +412,14 @@ describe('opaque.core：password 身份加密落库与读回（①）', () => {
   })
 
   it('startLogin 读回密文并解密：OPAQUE 握手能跑通（喂进 opaque 的必须是原文）', async () => {
-    const { service, identityCrypto } = createService({ user: { id: USER_ID, userName: USER_NAME }, identity: registrationRecord })
+    const { service, identityCrypto } = createService({
+      user: { id: USER_ID, userName: USER_NAME },
+      identity: registrationRecord,
+    })
 
-    await expect(service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM)).resolves.toEqual(expect.any(String))
+    await expect(
+      service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM),
+    ).resolves.toEqual(expect.any(String))
     expect(identityCrypto.decryptValue).toHaveBeenCalledOnce()
   })
 
@@ -389,9 +431,9 @@ describe('opaque.core：password 身份加密落库与读回（①）', () => {
     // 把读腿换回 ① 之前的明文形态
     getValueByUserIdTypeAndPurpose.mockResolvedValueOnce(registrationRecord)
 
-    await expect(service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
+    await expect(
+      service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM),
+    ).rejects.toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
     // 方案 a：解密失败也走完 fake 等量计算 + 一次 SERVER_STATE 写（F-45 的结构等价）
     expect(setOpaqueServerStateCache).toHaveBeenCalledOnce()
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('reason: credential-format-stale'))
@@ -414,7 +456,11 @@ describe('opaque.core.startLogin：凭证陈旧的可诊断化（方案 a）', (
 
   /** 造一个「value 是旧明文（非 enc: 信封）」的服务：读腿 mock 成 registrationRecord 原文 */
   function createStaleFormatService(nodeEnv: string) {
-    const ctx = createService({ user: { id: USER_ID, userName: USER_NAME }, identity: registrationRecord, nodeEnv })
+    const ctx = createService({
+      user: { id: USER_ID, userName: USER_NAME },
+      identity: registrationRecord,
+      nodeEnv,
+    })
     ctx.getValueByUserIdTypeAndPurpose.mockResolvedValueOnce(registrationRecord)
     return ctx
   }
@@ -422,7 +468,9 @@ describe('opaque.core.startLogin：凭证陈旧的可诊断化（方案 a）', (
   it('解密失败（格式陈旧）：fake 计算 + 一次 SERVER_STATE 写，warn 带 reason/修复命令，dev 附 hint', async () => {
     const ctx = createStaleFormatService('development')
 
-    const caught = await ctx.service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM).catch((e: unknown) => e)
+    const caught = await ctx.service
+      .startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM)
+      .catch((e: unknown) => e)
 
     expect(caught).toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
     expect(ctx.setOpaqueServerStateCache).toHaveBeenCalledOnce()
@@ -436,7 +484,9 @@ describe('opaque.core.startLogin：凭证陈旧的可诊断化（方案 a）', (
   it('解密失败：production 响应没有 meta（生产零变化），日志仍然给出修复命令', async () => {
     const ctx = createStaleFormatService('production')
 
-    const caught = await ctx.service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM).catch((e: unknown) => e)
+    const caught = await ctx.service
+      .startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM)
+      .catch((e: unknown) => e)
 
     expect(caught).toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
     expect(metaOf(caught)).toBeUndefined()
@@ -445,9 +495,15 @@ describe('opaque.core.startLogin：凭证陈旧的可诊断化（方案 a）', (
   })
 
   it('记录不存在（用户存在但没有 password 身份行）：fake 计算 + 一次写，reason=credential-missing', async () => {
-    const ctx = createService({ user: { id: USER_ID, userName: USER_NAME }, identity: null, nodeEnv: 'development' })
+    const ctx = createService({
+      user: { id: USER_ID, userName: USER_NAME },
+      identity: null,
+      nodeEnv: 'development',
+    })
 
-    const caught = await ctx.service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM).catch((e: unknown) => e)
+    const caught = await ctx.service
+      .startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM)
+      .catch((e: unknown) => e)
 
     expect(caught).toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
     expect(ctx.setOpaqueServerStateCache).toHaveBeenCalledOnce()
@@ -458,7 +514,9 @@ describe('opaque.core.startLogin：凭证陈旧的可诊断化（方案 a）', (
   it('用户不存在：不附 hint（开发环境也不把枚举面变成可行动信息）', async () => {
     const ctx = createService({ user: null, identity: null, nodeEnv: 'development' })
 
-    const caught = await ctx.service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM).catch((e: unknown) => e)
+    const caught = await ctx.service
+      .startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM)
+      .catch((e: unknown) => e)
 
     expect(caught).toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
     expect(ctx.setOpaqueServerStateCache).toHaveBeenCalledOnce()
@@ -474,10 +532,14 @@ describe('opaque.core.startLogin：凭证陈旧的可诊断化（方案 a）', (
       nodeEnv: 'development',
     })
 
-    const caught = await ctx.service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM).catch((e: unknown) => e)
+    const caught = await ctx.service
+      .startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM)
+      .catch((e: unknown) => e)
 
     expect(caught).toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('reason: credential-opaque-incompatible'))
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('reason: credential-opaque-incompatible'),
+    )
     expect(metaOf(caught)).toMatchObject({ reason: 'credential-opaque-incompatible' })
   })
 
@@ -496,17 +558,22 @@ describe('opaque.core.startLogin：凭证陈旧的可诊断化（方案 a）', (
     ]
 
     for (const scenario of scenarios) {
-      const ctx = createService({ user: { id: USER_ID, userName: USER_NAME }, identity: scenario.identity, nodeEnv: 'development' })
+      const ctx = createService({
+        user: { id: USER_ID, userName: USER_NAME },
+        identity: scenario.identity,
+        nodeEnv: 'development',
+      })
       if (scenario.plaintext)
         ctx.getValueByUserIdTypeAndPurpose.mockResolvedValueOnce(registrationRecord)
 
       if (scenario.throws) {
-        await expect(ctx.service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM))
-          .rejects
-          .toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
-      }
-      else {
-        await expect(ctx.service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM)).resolves.toEqual(expect.any(String))
+        await expect(
+          ctx.service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM),
+        ).rejects.toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
+      } else {
+        await expect(
+          ctx.service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM),
+        ).resolves.toEqual(expect.any(String))
       }
 
       expect(ctx.setOpaqueServerStateCache).toHaveBeenCalledTimes(1)

@@ -32,9 +32,12 @@ export async function pickCommandIds(
 ): Promise<readonly string[] | null> {
   const { groupMultiselect, isCancel } = await import('@clack/prompts')
 
-  const options: Record<string, { value: string, label: string }[]> = {}
+  const options: Record<string, { value: string; label: string }[]> = {}
   for (const group of groups)
-    options[group.group] = group.options.map(option => ({ value: option.value, label: option.label }))
+    options[group.group] = group.options.map((option) => ({
+      value: option.value,
+      label: option.label,
+    }))
 
   const picked = await groupMultiselect({
     message: '选要跑的命令（空格勾选，回车执行）',
@@ -45,7 +48,6 @@ export async function pickCommandIds(
     selectableGroups: false,
   })
 
-  if (isCancel(picked))
-    return null
+  if (isCancel(picked)) return null
   return picked
 }

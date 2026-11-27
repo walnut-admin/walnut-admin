@@ -15,7 +15,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { PreconditionError } from '@walnut/scripts/lib/errors'
 import { commitFiles, commitsSince } from '@walnut/scripts/lib/git'
-import { attributeCommit, auditFixedGroup, buildAttributionContext, describeAttributionSkip, workspacePackages } from './attribution.ts'
+import {
+  attributeCommit,
+  auditFixedGroup,
+  buildAttributionContext,
+  describeAttributionSkip,
+  workspacePackages,
+} from './attribution.ts'
 import { bumpLabel, overrideIntentBump, resolveAutoBump } from './bump.ts'
 import { buildIntentSummary, getBump, hashesInIntentBodies, parseCommit } from './commit-intent.ts'
 import { bumpPriority, isBump, nextVersion } from './intents.ts'
@@ -43,14 +49,24 @@ export interface GenerateOutcome {
 function auditWorkspaces(ui: ReleaseUi): void {
   const audit = auditFixedGroup()
   if (audit.duplicated.length > 0)
-    ui.die(1, `pnpm-workspace.yaml 的 versioning.fixed 里有重复包名：${audit.duplicated.join(', ')}`)
+    ui.die(
+      1,
+      `pnpm-workspace.yaml 的 versioning.fixed 里有重复包名：${audit.duplicated.join(', ')}`,
+    )
   if (audit.missing.length > 0 || audit.unknown.length > 0) {
     const lines: string[] = []
     if (audit.missing.length > 0)
-      lines.push(`   有版本号但不在 fixed 组里（漏登记，会安静地脱离锁步）：${audit.missing.join(', ')}`)
+      lines.push(
+        `   有版本号但不在 fixed 组里（漏登记，会安静地脱离锁步）：${audit.missing.join(', ')}`,
+      )
     if (audit.unknown.length > 0)
-      lines.push(`   在 fixed 组里但工作区不存在（改了包名/删了包没同步）：${audit.unknown.join(', ')}`)
-    ui.die(1, `versioning.fixed 与实际 workspace 不一致：\n${lines.join('\n')}\n   修 pnpm-workspace.yaml 的 versioning.fixed 后重跑。`)
+      lines.push(
+        `   在 fixed 组里但工作区不存在（改了包名/删了包没同步）：${audit.unknown.join(', ')}`,
+      )
+    ui.die(
+      1,
+      `versioning.fixed 与实际 workspace 不一致：\n${lines.join('\n')}\n   修 pnpm-workspace.yaml 的 versioning.fixed 后重跑。`,
+    )
   }
 }
 
@@ -60,8 +76,7 @@ function existingIntentBodies(): string[] {
   for (const file of intentFilesOnDisk()) {
     try {
       bodies.push(fs.readFileSync(path.join(CHANGESET_DIR, file), 'utf8'))
-    }
-    catch {
+    } catch {
       continue
     }
   }
@@ -75,15 +90,20 @@ export interface GenerateInput {
   baseTag: string | null
 }
 
-export async function generateIntents(ui: ReleaseUi, input: GenerateInput): Promise<GenerateOutcome> {
+export async function generateIntents(
+  ui: ReleaseUi,
+  input: GenerateInput,
+): Promise<GenerateOutcome> {
   auditWorkspaces(ui)
 
   const packages = workspacePackages()
   const context = buildAttributionContext(packages)
   const commits = commitsSince(input.baseTag)
-  ui.log(input.baseTag
-    ? `扫描 ${input.baseTag}..HEAD 的 ${commits.length} 个提交`
-    : `没有历史 tag —— 扫描全部 ${commits.length} 个提交（首次发版）`)
+  ui.log(
+    input.baseTag
+      ? `扫描 ${input.baseTag}..HEAD 的 ${commits.length} 个提交`
+      : `没有历史 tag —— 扫描全部 ${commits.length} 个提交（首次发版）`,
+  )
 
   const alreadyWritten = hashesInIntentBodies(existingIntentBodies())
   const filteredReasons = new Map<string, number>()
@@ -142,9 +162,9 @@ export async function generateIntents(ui: ReleaseUi, input: GenerateInput): Prom
     const result = ui.execPnpmSync(['change', '--bump', diffBump, '--summary', summary, ...targets])
     if (result.code !== 0) {
       throw new PreconditionError(
-        `pnpm change 失败（exit ${result.code}）—— 意图未写入。\n`
-        + `   命令：pnpm change --bump ${diffBump} --summary <正文> ${targets.join(' ')}\n`
-        + `   ${(result.stderr || result.stdout).trim().split('\n').slice(-5).join('\n   ')}`,
+        `pnpm change 失败（exit ${result.code}）—— 意图未写入。\n` +
+          `   命令：pnpm change --bump ${diffBump} --summary <正文> ${targets.join(' ')}\n` +
+          `   ${(result.stderr || result.stdout).trim().split('\n').slice(-5).join('\n   ')}`,
       )
     }
 
@@ -152,8 +172,8 @@ export async function generateIntents(ui: ReleaseUi, input: GenerateInput): Prom
     // 把「尝试写入」误报成「已生成」会让后续的 ledger 对账全错。
     if (!intentFileContainsHash(parsed.hash)) {
       throw new PreconditionError(
-        `pnpm change 报成功，但盘上找不到含 ${parsed.hash} 的意图文件 —— 拒绝继续（不能让「尝试写入」被当成「已生成」）。`
-        + '常见原因：corepack 首次运行提示、pnpm 版本不符。先单独跑一次 `pnpm change --help` 确认可用。',
+        `pnpm change 报成功，但盘上找不到含 ${parsed.hash} 的意图文件 —— 拒绝继续（不能让「尝试写入」被当成「已生成」）。` +
+          '常见原因：corepack 首次运行提示、pnpm 版本不符。先单独跑一次 `pnpm change --help` 确认可用。',
       )
     }
 
@@ -172,7 +192,9 @@ export async function generateIntents(ui: ReleaseUi, input: GenerateInput): Prom
    */
   const wouldBump = higherBump(resolveAutoBump(readIntents()), highestOf(bumpsSeen))
 
-  ui.log(`生成 ${generated} 个意图，跳过 ${skippedExisting} 个（已存在），过滤 ${filtered} 个（噪声/无归属/不触发发版）`)
+  ui.log(
+    `生成 ${generated} 个意图，跳过 ${skippedExisting} 个（已存在），过滤 ${filtered} 个（噪声/无归属/不触发发版）`,
+  )
   for (const [reason, count] of [...filteredReasons.entries()].sort((a, b) => b[1] - a[1]))
     ui.log(`   · 过滤 ${count} 个：${reason}`)
 
@@ -183,8 +205,7 @@ export async function generateIntents(ui: ReleaseUi, input: GenerateInput): Prom
 function highestOf(bumps: Bump[]): Bump {
   let best: Bump = 'none'
   for (const bump of bumps) {
-    if (bumpPriority(bump) > bumpPriority(best))
-      best = bump
+    if (bumpPriority(bump) > bumpPriority(best)) best = bump
   }
   return best
 }
@@ -198,10 +219,8 @@ function higherBump(a: Bump, b: Bump): Bump {
 function intentFileContainsHash(hash: string): boolean {
   for (const file of intentFilesOnDisk()) {
     try {
-      if (fs.readFileSync(path.join(CHANGESET_DIR, file), 'utf8').includes(hash))
-        return true
-    }
-    catch {
+      if (fs.readFileSync(path.join(CHANGESET_DIR, file), 'utf8').includes(hash)) return true
+    } catch {
       continue
     }
   }
@@ -212,8 +231,11 @@ function intentFileContainsHash(hash: string): boolean {
 export function nextVersionOrDie(ui: ReleaseUi, version: string, bump: Bump): string {
   const next = nextVersion(version, bump)
   if (next === null) {
-    ui.die(2, `算不出 v${version} 在 ${bump} 档下的下一个版本号 —— 它可能带了 prerelease / build 元数据。`
-    + '本仓不用 lane，出现这种版本号说明有人手工改过 manifest，请先对齐版本号再发版。')
+    ui.die(
+      2,
+      `算不出 v${version} 在 ${bump} 档下的下一个版本号 —— 它可能带了 prerelease / build 元数据。` +
+        '本仓不用 lane，出现这种版本号说明有人手工改过 manifest，请先对齐版本号再发版。',
+    )
   }
   return next
 }
@@ -246,15 +268,16 @@ export async function resolveBump(
   ui.log(`待发布的意图 ${entries.length} 个：`)
   for (const entry of entries) {
     const line = entry.summary.split('\n')[0] ?? ''
-    ui.log(`    ${emoji(entry.bump)} [${entry.bump}] ${line.length > 84 ? `${line.slice(0, 84)}…` : line}`)
+    ui.log(
+      `    ${emoji(entry.bump)} [${entry.bump}] ${line.length > 84 ? `${line.slice(0, 84)}…` : line}`,
+    )
   }
 
   const expected = autoBump === 'none' ? oldVersion : (nextVersion(oldVersion, autoBump) ?? '?')
   ui.log(`检测到版本升级：${bumpLabel(autoBump)}  (v${oldVersion} -> v${expected})`)
 
   if (args.bump) {
-    if (args.bump !== autoBump)
-      ui.log(`--bump 覆盖自动检测档位：${autoBump} → ${args.bump}`)
+    if (args.bump !== autoBump) ui.log(`--bump 覆盖自动检测档位：${autoBump} → ${args.bump}`)
     applyBumpOverride(ui, entries, args.bump, dryRun)
     return args.bump
   }
@@ -265,11 +288,18 @@ export async function resolveBump(
   }
 
   if (!ui.isInteractive()) {
-    ui.die(2, '非交互环境必须显式给 --bump major|minor|patch（本次尚未改动任何文件）。'
-    + '只想看计划用 --plan；想零写盘演练用 --dry-run。')
+    ui.die(
+      2,
+      '非交互环境必须显式给 --bump major|minor|patch（本次尚未改动任何文件）。' +
+        '只想看计划用 --plan；想零写盘演练用 --dry-run。',
+    )
   }
 
-  const answer = (await ui.ask(`  确认版本升级类型? [回车=${autoBump} / 输入 major|minor|patch 覆盖]: `)).trim().toLowerCase()
+  const answer = (
+    await ui.ask(`  确认版本升级类型? [回车=${autoBump} / 输入 major|minor|patch 覆盖]: `)
+  )
+    .trim()
+    .toLowerCase()
   if (answer === '') {
     ui.log(`使用自动检测的 bump 类型：${autoBump}`)
     return autoBump
@@ -297,8 +327,7 @@ function applyBumpOverride(ui: ReleaseUi, entries: Intent[], bump: Bump, dryRun:
     ui.log(`（演练）将把 ${entries.length} 个意图的 frontmatter 改写为 ${bump}`)
     return
   }
-  if (!isBump(bump))
-    return
+  if (!isBump(bump)) return
   let changedFiles = 0
   let changedLines = 0
   for (const entry of entries) {
@@ -306,13 +335,11 @@ function applyBumpOverride(ui: ReleaseUi, entries: Intent[], bump: Bump, dryRun:
     let content: string
     try {
       content = fs.readFileSync(filePath, 'utf8')
-    }
-    catch {
+    } catch {
       continue
     }
     const result = overrideIntentBump(content, bump)
-    if (result.changed === 0)
-      continue
+    if (result.changed === 0) continue
     fs.writeFileSync(filePath, result.content)
     changedFiles++
     changedLines += result.changed

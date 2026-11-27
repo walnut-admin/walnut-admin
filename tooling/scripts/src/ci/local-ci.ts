@@ -55,7 +55,18 @@ import type { Buffer } from 'node:buffer'
 import type { GateResult, GateStatus, PrepushGate } from './prepush.ts'
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs'
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
@@ -63,7 +74,12 @@ import process from 'node:process'
 import { ChildRunError, runArgs } from '../lib/child-run.ts'
 import { killChildTree, registerChild, unregisterChild } from '../lib/child-tree.ts'
 import { resolveCommandArgv } from '../lib/commands.ts'
-import { PreconditionError, SKIPPED_EXIT_CODE, SkippedError, ViolationError } from '../lib/errors.ts'
+import {
+  PreconditionError,
+  SKIPPED_EXIT_CODE,
+  SkippedError,
+  ViolationError,
+} from '../lib/errors.ts'
 import { err, line, out } from '../lib/log.ts'
 import { getPnpmBin } from '../lib/pnpm-launcher.ts'
 import { REPO_ROOT } from '../lib/repo-root.ts'
@@ -115,10 +131,11 @@ export const LOCAL_CI_STEPS: readonly LocalCiStep[] = [
     label: '构建 server + 共享包（turbo build --filter=@walnut/server...）',
     argv: ['exec', 'turbo', 'run', 'build', '--filter=@walnut/server...'],
     budgetMs: 15 * MINUTE,
-    why: '第 1 步是后面所有 server 侧步骤的前提：worker 冒烟读的就是它产出的 '
-      + 'apps/server/dist/apps/worker/src/main.js。用 @walnut/server... 形态（含依赖包）而不是只构建 server：'
-      + 'contract / utils 的 dist 不进 git、install 也不生成，而 worker / openapi 的运行时都要 require 它们。'
-      + ' // LINK .github/workflows/ci.yml 的「Build server + shared packages」一步',
+    why:
+      '第 1 步是后面所有 server 侧步骤的前提：worker 冒烟读的就是它产出的 ' +
+      'apps/server/dist/apps/worker/src/main.js。用 @walnut/server... 形态（含依赖包）而不是只构建 server：' +
+      'contract / utils 的 dist 不进 git、install 也不生成，而 worker / openapi 的运行时都要 require 它们。' +
+      ' // LINK .github/workflows/ci.yml 的「Build server + shared packages」一步',
   },
   {
     id: 'build-admin',
@@ -130,73 +147,80 @@ export const LOCAL_CI_STEPS: readonly LocalCiStep[] = [
     // 优先于 env 文件，所以这一个变量就够了。
     env: { VITE_BUILD_SENTRY: 'false' },
     budgetMs: 20 * MINUTE,
-    why: '**--force 是刻意的，别去掉**：忽略 turbo 缓存、真的跑一次构建。因为「CI 的绿有可能是缓存给的」，'
-      + '而发版是 cache miss ⇒ 真构建 ⇒ 才暴露（2026-09-30 实测：v0.1.4 的发版死在 Build admin，'
-      + '同一个提交的 CI 却是绿的）。代价是这一步 2~5 分钟，换来的是本地与 CI / 发版在「构建」这件事上同源。'
-      + '注意这里**不**像根脚本 build:admin 那样设 NODE_OPTIONS=--max-old-space-size：'
-      + 'CI 用的是裸 pnpm exec turbo，要与它同源就不能在这里偷偷加内存上限。'
-      + '**VITE_BUILD_SENTRY=false 是本地路径唯一刻意的差异**：关掉 sourcemap 与 Sentry 插件挂载，'
-      + '本地构建不再向 Sentry 上传 sourcemap（2026-11-24 实测约 720 个文件）；CI 的 Build admin 仍按 env 上传。'
-      + ' // LINK .github/workflows/ci.yml 的「Build admin」一步',
+    why:
+      '**--force 是刻意的，别去掉**：忽略 turbo 缓存、真的跑一次构建。因为「CI 的绿有可能是缓存给的」，' +
+      '而发版是 cache miss ⇒ 真构建 ⇒ 才暴露（2026-09-30 实测：v0.1.4 的发版死在 Build admin，' +
+      '同一个提交的 CI 却是绿的）。代价是这一步 2~5 分钟，换来的是本地与 CI / 发版在「构建」这件事上同源。' +
+      '注意这里**不**像根脚本 build:admin 那样设 NODE_OPTIONS=--max-old-space-size：' +
+      'CI 用的是裸 pnpm exec turbo，要与它同源就不能在这里偷偷加内存上限。' +
+      '**VITE_BUILD_SENTRY=false 是本地路径唯一刻意的差异**：关掉 sourcemap 与 Sentry 插件挂载，' +
+      '本地构建不再向 Sentry 上传 sourcemap（2026-11-24 实测约 720 个文件）；CI 的 Build admin 仍按 env 上传。' +
+      ' // LINK .github/workflows/ci.yml 的「Build admin」一步',
   },
   {
     id: 'smoke-dist',
     label: '产物冒烟（真实浏览器打开 dist，断言 splash 消失）',
     argv: ['smoke:dist'],
     budgetMs: 5 * MINUTE,
-    why: '构建成功不等于跑得起来（留档 V13）：resolve.conditions 少了默认条件 ⇒ 产物一执行就抛 '
-      + 'Cannot destructure property __extends、页面停在 splash —— 而 tsc / lint / build / dist 密钥扫描**全绿**。'
-      + '这一步是唯一在运行期看得见它的地方。**没有浏览器时脚本自己 SKIP**（CHROME_PATH 可指定）。'
-      + ' // LINK .github/workflows/ci.yml 的「Smoke test the built admin bundle」一步',
+    why:
+      '构建成功不等于跑得起来（留档 V13）：resolve.conditions 少了默认条件 ⇒ 产物一执行就抛 ' +
+      'Cannot destructure property __extends、页面停在 splash —— 而 tsc / lint / build / dist 密钥扫描**全绿**。' +
+      '这一步是唯一在运行期看得见它的地方。**没有浏览器时脚本自己 SKIP**（CHROME_PATH 可指定）。' +
+      ' // LINK .github/workflows/ci.yml 的「Smoke test the built admin bundle」一步',
   },
   {
     id: 'lint-dist',
     label: '产物去密体检（扫 dist 有没有把后端 env 打包进去）',
     argv: ['lint:dist'],
     budgetMs: 5 * MINUTE,
-    why: '前端产物是**公开文件**，而「把后端 env 泄进前端」在本仓有现成的静默路径：'
-      + 'apps/server/env-local 与 apps/admin/env-local 是两套 env，搬错一行就会被打包进去，'
-      + '而构建 / 类型 / lint / 测试全都不会响。它扫的就是 dist，所以**必须紧跟构建**'
-      + '（没有产物时会以 2 退出）。 // LINK .github/workflows/ci.yml 的「Dist secret scan」一步',
+    why:
+      '前端产物是**公开文件**，而「把后端 env 泄进前端」在本仓有现成的静默路径：' +
+      'apps/server/env-local 与 apps/admin/env-local 是两套 env，搬错一行就会被打包进去，' +
+      '而构建 / 类型 / lint / 测试全都不会响。它扫的就是 dist，所以**必须紧跟构建**' +
+      '（没有产物时会以 2 退出）。 // LINK .github/workflows/ci.yml 的「Dist secret scan」一步',
   },
   {
     id: 'build-docs',
     label: '构建文档站（顺带死链门禁）',
     argv: ['build:docs'],
     budgetMs: 10 * MINUTE,
-    why: 'VitePress 构建本身就是死链校验（ignoreDeadLinks 已从 true 收窄成白名单，只剩冻结语料）。'
-      + '改文档、改包名、改仓库路径都可能把链接改死，而只有构建会报；本地没有这一步时就只能等 CI 的 '
-      + 'Docs build。 // LINK .github/workflows/ci.yml 的「Docs build (dead-link check)」一步',
+    why:
+      'VitePress 构建本身就是死链校验（ignoreDeadLinks 已从 true 收窄成白名单，只剩冻结语料）。' +
+      '改文档、改包名、改仓库路径都可能把链接改死，而只有构建会报；本地没有这一步时就只能等 CI 的 ' +
+      'Docs build。 // LINK .github/workflows/ci.yml 的「Docs build (dead-link check)」一步',
   },
   {
     id: 'migration-run',
     label: '对本地库跑迁移（幂等；下一步的 worker 冒烟要一个已迁移的库）',
     argv: ['migration:run'],
     budgetMs: 10 * MINUTE,
-    why: 'worker 冒烟要连一个**已迁移**的库（CI 那边是 openapi job 的 service 容器 + 同名命令）。'
-      + '迁移是幂等的，重复跑只会报「No migrations are pending」，所以每次推之前跑一遍是安全的。'
-      + ' // LINK .github/workflows/ci.yml 的「Apply migrations (fresh PG service)」一步',
+    why:
+      'worker 冒烟要连一个**已迁移**的库（CI 那边是 openapi job 的 service 容器 + 同名命令）。' +
+      '迁移是幂等的，重复跑只会报「No migrations are pending」，所以每次推之前跑一遍是安全的。' +
+      ' // LINK .github/workflows/ci.yml 的「Apply migrations (fresh PG service)」一步',
   },
   {
     id: 'worker-smoke',
     label: 'worker 冒烟（起 worker → 断言 cron 挂上了 → 断言它没碰 .data）',
     run: workerSmoke,
-    why: 'worker 的失败是**静默的**：cron 没挂上时 api 照常 200、/health/ready 照过，'
-      + '部署脚本与 post-verify 都看不见。唯一现成的探针是 apps/server/apps/worker/src/main.ts 里那行 '
-      + 'cron jobs: N，不用改代码。它同时守住第二条不变量：.data/tokensList.json（CAP token 存储）'
-      + '在 worker 启停前后必须**逐字节不变** —— 变了就说明 CAP 求值链回到了 worker 闭包里。'
-      + 'CI 的 openapi job 经 `pnpm walnut ci:local --only=worker-smoke` 调的就是这一份（前面还有一步「Build server for worker smoke」先产出 dist）',
+    why:
+      'worker 的失败是**静默的**：cron 没挂上时 api 照常 200、/health/ready 照过，' +
+      '部署脚本与 post-verify 都看不见。唯一现成的探针是 apps/server/apps/worker/src/main.ts 里那行 ' +
+      'cron jobs: N，不用改代码。它同时守住第二条不变量：.data/tokensList.json（CAP token 存储）' +
+      '在 worker 启停前后必须**逐字节不变** —— 变了就说明 CAP 求值链回到了 worker 闭包里。' +
+      'CI 的 openapi job 经 `pnpm walnut ci:local --only=worker-smoke` 调的就是这一份（前面还有一步「Build server for worker smoke」先产出 dist）',
   },
   {
     id: 'actionlint',
     label: 'workflow 校验（actionlint，经 pnpm walnut lint:workflows）',
     argv: ['lint:workflows'],
     budgetMs: 5 * MINUTE,
-    why: '非法的 workflow 文件**自己不会运行**：GitHub 判 Invalid workflow file 后启动即失败、0 个 job，'
-      + '在 Actions 列表里只留一个看起来只是「跑失败了」的红叉（本仓 2026-08-13 到 09-21 就这么静默失效了五周）。'
-      + '本机没装 actionlint 时那一步**压根没跑**（SkippedError ⇒ 退出码 3，不是 0）：'
-      + '权威闸门是 CI 的 workflow-lint.yml，本地这一步只是提前量。'
-      + ' // LINK .github/workflows/workflow-lint.yml:32-38',
+    why:
+      '非法的 workflow 文件**自己不会运行**：GitHub 判 Invalid workflow file 后启动即失败、0 个 job，' +
+      '在 Actions 列表里只留一个看起来只是「跑失败了」的红叉（本仓 2026-08-13 到 09-21 就这么静默失效了五周）。' +
+      '本机没装 actionlint 时那一步**压根没跑**（SkippedError ⇒ 退出码 3，不是 0）：' +
+      '权威闸门是 CI 的 workflow-lint.yml，本地这一步只是提前量。' +
+      ' // LINK .github/workflows/workflow-lint.yml:32-38',
   },
 ]
 
@@ -265,8 +289,7 @@ const WORKER_STOP_TIMEOUT_MS = 15_000
  */
 export function matchCronJobs(log: string): number | null {
   let jobs: number | null = null
-  for (const m of log.matchAll(/cron jobs: (\d+)/g))
-    jobs = Number(m[1])
+  for (const m of log.matchAll(/cron jobs: (\d+)/g)) jobs = Number(m[1])
   return jobs
 }
 
@@ -306,10 +329,8 @@ export function formatSnapshot(s: FileSnapshot): string {
  * （lib/cli.ts 的映射）。其余一律算失败 —— 宁可多报一条红，也不许把没验过说成验过了。
  */
 export function stepStatusOf(error: unknown): GateStatus {
-  if (error instanceof SkippedError)
-    return 'skipped'
-  if (error instanceof ChildRunError && error.exitCode === SKIPPED_EXIT_CODE)
-    return 'skipped'
+  if (error instanceof SkippedError) return 'skipped'
+  if (error instanceof ChildRunError && error.exitCode === SKIPPED_EXIT_CODE) return 'skipped'
   return 'failed'
 }
 
@@ -339,14 +360,17 @@ export function parseSelectionArgs(argv: readonly string[]): SelectionArgs {
       throw new PreconditionError(`不认识的参数「${arg}」。${USAGE}`)
     if (eq < 0)
       throw new PreconditionError(`${flag} 要用等号连接取值（形如 ${flag}=a,b）。${USAGE}`)
-    const ids = arg.slice(eq + 1).split(',').map(id => id.trim()).filter(id => id !== '')
+    const ids = arg
+      .slice(eq + 1)
+      .split(',')
+      .map((id) => id.trim())
+      .filter((id) => id !== '')
     if (ids.length === 0)
       throw new PreconditionError(`${flag} 没给 id（形如 ${flag}=a,b）。${USAGE}`)
     if (flag === '--only') {
       hasOnly = true
       only.push(...ids)
-    }
-    else {
+    } else {
       skip.push(...ids)
     }
   }
@@ -360,25 +384,22 @@ export function parseSelectionArgs(argv: readonly string[]): SelectionArgs {
  * 未知 id 直接抛 PreconditionError（退出码 2）并把表里真实的 id 全列出来 ——
  * 拼错一个 id 却「跑完了」的形态，比跑红危险得多。
  */
-export function selectSteps(
-  steps: readonly LocalCiStep[],
-  argv: readonly string[],
-): LocalCiStep[] {
+export function selectSteps(steps: readonly LocalCiStep[], argv: readonly string[]): LocalCiStep[] {
   const { only, skip } = parseSelectionArgs(argv)
-  const known = new Set(steps.map(step => step.id))
+  const known = new Set(steps.map((step) => step.id))
   const ids = [...new Set([...(only ?? []), ...skip])]
-  const unknown = ids.filter(id => !known.has(id))
+  const unknown = ids.filter((id) => !known.has(id))
   if (unknown.length > 0) {
     throw new PreconditionError(
-      `未知步骤 id：${unknown.join(', ')}。表里的是：${steps.map(step => step.id).join(', ')}（表在 tooling/scripts/src/ci/local-ci.ts）`,
+      `未知步骤 id：${unknown.join(', ')}。表里的是：${steps.map((step) => step.id).join(', ')}（表在 tooling/scripts/src/ci/local-ci.ts）`,
     )
   }
 
-  const picked = only === null ? steps : steps.filter(step => only.includes(step.id))
-  const kept = picked.filter(step => !skip.includes(step.id))
+  const picked = only === null ? steps : steps.filter((step) => only.includes(step.id))
+  const kept = picked.filter((step) => !skip.includes(step.id))
   if (kept.length === 0) {
     throw new PreconditionError(
-      `--only / --skip 之后一步都不剩，没有可跑的。表里的是：${steps.map(step => step.id).join(', ')}`,
+      `--only / --skip 之后一步都不剩，没有可跑的。表里的是：${steps.map((step) => step.id).join(', ')}`,
     )
   }
   return [...kept]
@@ -407,7 +428,12 @@ export function stepEnv(
  * - 表里的 argv 写在**可执行的名字**上，先经命令表解析成真正要跑的 argv（与 prepush 同一个函数）。
  * - 预算按步给（budgetMs），整台机器都慢时用 {@link LOCAL_CI_BUDGET_ENV} 一处放宽。
  */
-async function runPnpmStep(step: PnpmStep, bin: string, index: number, total: number): Promise<void> {
+async function runPnpmStep(
+  step: PnpmStep,
+  bin: string,
+  index: number,
+  total: number,
+): Promise<void> {
   await runArgs(bin, resolveCommandArgv(step.argv), {
     cwd: REPO_ROOT,
     env: stepEnv(step.env),
@@ -419,7 +445,7 @@ async function runPnpmStep(step: PnpmStep, bin: string, index: number, total: nu
 
 /** 秒级 sleep（轮询用） */
 function sleep(ms: number): Promise<void> {
-  return new Promise(done => setTimeout(done, ms))
+  return new Promise((done) => setTimeout(done, ms))
 }
 
 /**
@@ -434,8 +460,7 @@ function moveDir(from: string, to: string): void {
   try {
     renameSync(from, to)
     return
-  }
-  catch (error) {
+  } catch (error) {
     if ((error as { code?: unknown }).code !== 'EXDEV') {
       throw new PreconditionError(
         `挪动 ${from} 失败（${String((error as { code?: unknown }).code)}）：先停掉占用它的进程（本地的 api / worker）再重跑`,
@@ -545,15 +570,17 @@ async function workerSmoke(): Promise<void> {
       // 用 for (;;) + 显式 break 而不是 while (三个条件)：`alive` 由 close 回调改（这个循环看不见），
       // 写成循环条件会被 no-unmodified-loop-condition 判成「永远不会退出」。
       for (;;) {
-        if (cronJobs !== null || !alive || Date.now() - pollStart >= pollTimeoutMs)
-          break
+        if (cronJobs !== null || !alive || Date.now() - pollStart >= pollTimeoutMs) break
         await sleep(WORKER_POLL_INTERVAL_MS)
         cronJobs = matchCronJobs(log)
       }
       const waited = ((Date.now() - pollStart) / 1000).toFixed(1)
-      const probe = cronJobs === null
-        ? (alive ? '没等到 cron jobs: N（进程仍在，超时）' : '没等到 cron jobs: N（进程已退出）')
-        : `cron jobs: ${cronJobs}`
+      const probe =
+        cronJobs === null
+          ? alive
+            ? '没等到 cron jobs: N（进程仍在，超时）'
+            : '没等到 cron jobs: N（进程已退出）'
+          : `cron jobs: ${cronJobs}`
       out(`  ${waited}s 后：${probe}`)
 
       // ---- 收尾：SIGTERM + 等退出（Windows 上 Node 的 child.kill 是直接终止，可接受）----
@@ -574,21 +601,32 @@ async function workerSmoke(): Promise<void> {
 
       // ---- 断言 1：cron jobs: N，N >= 1 ----
       // 诊断块用数组拼行：跨行模板里既有拼接又有缩进，会被 style/indent-binary-ops 与 prefer-template 判红
-      const tail = ['日志尾部：', ...log.trimEnd().split('\n').slice(-5).map(item => `  | ${item}`)].join('\n')
+      const tail = [
+        '日志尾部：',
+        ...log
+          .trimEnd()
+          .split('\n')
+          .slice(-5)
+          .map((item) => `  | ${item}`),
+      ].join('\n')
       if (cronJobs === null) {
         const exit = exitInfo === null ? '' : `（${exitInfo}）`
-        throw new ViolationError([
-          `worker 日志里没出现 cron jobs: N${exit} —— 进程没走到「注册完 cron」那一步。`,
-          '若是连不上 PG / Redis，先起库再重跑（那不是代码问题）。',
-          tail,
-        ].join('\n'))
+        throw new ViolationError(
+          [
+            `worker 日志里没出现 cron jobs: N${exit} —— 进程没走到「注册完 cron」那一步。`,
+            '若是连不上 PG / Redis，先起库再重跑（那不是代码问题）。',
+            tail,
+          ].join('\n'),
+        )
       }
       if (cronJobs < 1) {
-        throw new ViolationError([
-          'cron jobs: 0 —— 进程起来了，但一个 cron 都没挂上（CI 的 worker 冒烟一直把它判红）。',
-          'WorkerModule 必须保证注册过 ScheduleModule，且 cron 装饰器所在的模块进了 imports。',
-          tail,
-        ].join('\n'))
+        throw new ViolationError(
+          [
+            'cron jobs: 0 —— 进程起来了，但一个 cron 都没挂上（CI 的 worker 冒烟一直把它判红）。',
+            'WorkerModule 必须保证注册过 ScheduleModule，且 cron 装饰器所在的模块进了 imports。',
+            tail,
+          ].join('\n'),
+        )
       }
       out(`  断言通过：cron jobs: ${cronJobs}（>= 1）`)
 
@@ -597,27 +635,26 @@ async function workerSmoke(): Promise<void> {
       out(`  worker 停掉之后：${formatSnapshot(after)}`)
 
       if (!sameSnapshot(before, after)) {
-        throw new ViolationError([
-          'worker 触碰了 CAP token 存储（apps/server/.data/tokensList.json）—— CAP 求值链回到了 worker 闭包里。',
-          `  before: ${formatSnapshot(before)}`,
-          `  after : ${formatSnapshot(after)}`,
-          `  现在的内容：${readFileSync(tokenFile, 'utf8').slice(0, 200)}`,
-        ].join('\n'))
+        throw new ViolationError(
+          [
+            'worker 触碰了 CAP token 存储（apps/server/.data/tokensList.json）—— CAP 求值链回到了 worker 闭包里。',
+            `  before: ${formatSnapshot(before)}`,
+            `  after : ${formatSnapshot(after)}`,
+            `  现在的内容：${readFileSync(tokenFile, 'utf8').slice(0, 200)}`,
+          ].join('\n'),
+        )
       }
       out('  OK: worker 没有触碰 .data/tokensList.json（CAP 求值链不在 worker 闭包里）')
-    }
-    finally {
+    } finally {
       // 兜底收尾：任何一条路径上都不许留下一个还在跑的 worker（它会继续写 .data，并把恢复搞乱）
       if (alive) {
         child.kill('SIGTERM')
         await Promise.race([closed, sleep(5_000)])
       }
-      if (alive)
-        killChildTree(child)
+      if (alive) killChildTree(child)
       unregisterChild(child)
     }
-  }
-  finally {
+  } finally {
     // 恢复现场：删掉我们造的那份 .data，把备份原样挪回去。**异常路径同样执行**
     rmSync(dataDir, { recursive: true, force: true })
     if (hadData) {
@@ -650,7 +687,11 @@ function gateOf(step: LocalCiStep): PrepushGate {
  * 其余按违规处理，否则「修环境」会被说成「改代码」。
  */
 export function failureToError(failure: unknown): Error {
-  if (failure instanceof PreconditionError || failure instanceof ViolationError || failure instanceof SkippedError)
+  if (
+    failure instanceof PreconditionError ||
+    failure instanceof ViolationError ||
+    failure instanceof SkippedError
+  )
     return failure
   if (failure instanceof ChildRunError) {
     const message = failure.message
@@ -667,7 +708,8 @@ export function failureToError(failure: unknown): Error {
  * 而不是在 CLI 里抄三种装法：抄一份就多一份会腐烂的命令（装法本身会变，文档改一处就够）。
  */
 export function skippedHint(skippedLine: string): string {
-  const hint = '  提示：跳过不等于通过。actionlint 未安装时就是这一段没跑 —— 装法（Windows / macOS / Linux 各一条）见 docs 的「本地复刻 CI」小节：apps/docs/src/zh-CN/content/monorepo/ci-cd.md'
+  const hint =
+    '  提示：跳过不等于通过。actionlint 未安装时就是这一段没跑 —— 装法（Windows / macOS / Linux 各一条）见 docs 的「本地复刻 CI」小节：apps/docs/src/zh-CN/content/monorepo/ci-cd.md'
   return [skippedLine, hint].join('\n')
 }
 
@@ -686,7 +728,9 @@ export async function main(argv: readonly string[] = process.argv.slice(2)): Pro
   const plan = selectSteps(LOCAL_CI_STEPS, argv)
   const startedAt = Date.now()
   out(`本地复刻 CI：${plan.length} 步，**顺序**执行（表在 tooling/scripts/src/ci/local-ci.ts）`)
-  out('  与 prepush 的分工：那边跑静态门禁（必跑、快），这边跑构建类（推之前跑一次）；两边没有重叠。')
+  out(
+    '  与 prepush 的分工：那边跑静态门禁（必跑、快），这边跑构建类（推之前跑一次）；两边没有重叠。',
+  )
 
   const results: GateResult[] = []
   let failure: unknown = null
@@ -698,12 +742,9 @@ ${index + 1}/${plan.length} ${step.label}`)
     let status: GateStatus = 'ok'
     let error: unknown = null
     try {
-      if ('run' in step)
-        await step.run()
-      else
-        await runPnpmStep(step, pnpmBin(), index + 1, plan.length)
-    }
-    catch (caught) {
+      if ('run' in step) await step.run()
+      else await runPnpmStep(step, pnpmBin(), index + 1, plan.length)
+    } catch (caught) {
       // 四态在这里收敛成三态（跳过 / 失败），最终的退出码由 runCli 一处映射
       error = caught
       status = stepStatusOf(caught)
@@ -712,7 +753,7 @@ ${index + 1}/${plan.length} ${step.label}`)
       gate: gateOf(step),
       status,
       ms: Date.now() - stepStart,
-      output: error === null ? '' : (error instanceof Error ? error.message : String(error)),
+      output: error === null ? '' : error instanceof Error ? error.message : String(error),
     }
     results.push(result)
     out(formatLine(result))
@@ -724,14 +765,13 @@ ${index + 1}/${plan.length} ${step.label}`)
 
   const total = ((Date.now() - startedAt) / 1000).toFixed(1)
   const summary = summarizeRun(results, total, false)
-  const unrun = plan.slice(results.length).map(step => step.id)
+  const unrun = plan.slice(results.length).map((step) => step.id)
 
   if (summary.failed.length === 0) {
     line('ok', summary.okLine)
     // 有跳过时**不许**以 0 退出：SkippedError ⇒ 3，「没验过」在机器眼里必须区别于「通过」。
     // 那一行汇总（段名 + 「跳过不等于通过」+ 权威闸门指向）由 summarizeRun 给，别在这里另写一句。
-    if (summary.skippedLine !== null)
-      throw new SkippedError(skippedHint(summary.skippedLine))
+    if (summary.skippedLine !== null) throw new SkippedError(skippedHint(summary.skippedLine))
     return
   }
 
@@ -743,13 +783,16 @@ ${rule} ${result.gate.label} 失败（${(result.ms / 1000).toFixed(1)}s） ${rul
     err(`为什么必须有这一步：${result.gate.why}`)
     err(result.output.trimEnd() || '（这一步没有输出，只有非零退出码）')
   }
-  err(`${summary.failed.length}/${results.length} 步失败：${summary.failed.map(item => item.gate.id).join(', ')}（总 ${total}s）`)
+  err(
+    `${summary.failed.length}/${results.length} 步失败：${summary.failed.map((item) => item.gate.id).join(', ')}（总 ${total}s）`,
+  )
   if (unrun.length > 0) {
-    err(`后续 ${unrun.length} 步**未执行**（顺序即依赖：前一步没过时，后面的结论不可信）：${unrun.join(', ')}`)
+    err(
+      `后续 ${unrun.length} 步**未执行**（顺序即依赖：前一步没过时，后面的结论不可信）：${unrun.join(', ')}`,
+    )
   }
   // 已经有失败时结论早就红了，但「还有几步没验过」仍要说
-  if (summary.skippedLine !== null)
-    err(summary.skippedLine)
+  if (summary.skippedLine !== null) err(summary.skippedLine)
 
   throw failureToError(failure)
 }

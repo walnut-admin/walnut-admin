@@ -84,8 +84,7 @@ export function headingsOf(text: string): Heading[] {
   let match = re.exec(text)
   while (match !== null) {
     const title = (match[1] ?? '').trim()
-    if (title !== '' && !title.startsWith('#'))
-      out.push({ title, offset: match.index })
+    if (title !== '' && !title.startsWith('#')) out.push({ title, offset: match.index })
     match = re.exec(text)
   }
   return out
@@ -108,8 +107,7 @@ function numberToFile(files: readonly string[]): Map<string, string> {
   const out = new Map<string, string>()
   for (const file of files) {
     const match = /(?:^|\/)(\d{4})-[^/]+\.md$/.exec(file)
-    if (match)
-      out.set(match[1] ?? '', file)
+    if (match) out.set(match[1] ?? '', file)
   }
   return out
 }
@@ -121,17 +119,17 @@ function numberToFile(files: readonly string[]): Map<string, string> {
  * `regexp/no-super-linear-backtracking` 要拦的形状；切列没有回溯，也更好读。
  * 表头分隔行（`|-----|`）与其它表格会被第一列的链接形态自然筛掉。
  */
-export function indexRowsOf(text: string): Array<{ number: string, target: string, status: string }> {
-  const out: Array<{ number: string, target: string, status: string }> = []
+export function indexRowsOf(
+  text: string,
+): Array<{ number: string; target: string; status: string }> {
+  const out: Array<{ number: string; target: string; status: string }> = []
   for (const line of text.split('\n')) {
     const trimmed = line.trim()
-    if (!trimmed.startsWith('|'))
-      continue
+    if (!trimmed.startsWith('|')) continue
     // `| a | b | c |`.split('|') → ['', ' a ', ' b ', ' c ', '']，首尾是空串
-    const cells = trimmed.split('|').map(cell => cell.trim())
+    const cells = trimmed.split('|').map((cell) => cell.trim())
     const link = /^\[(\d{4})\]\(\.\/([^)]+)\)$/.exec(cells[1] ?? '')
-    if (link)
-      out.push({ number: link[1] ?? '', target: link[2] ?? '', status: cells[3] ?? '' })
+    if (link) out.push({ number: link[1] ?? '', target: link[2] ?? '', status: cells[3] ?? '' })
   }
   return out
 }
@@ -139,7 +137,9 @@ export function indexRowsOf(text: string): Array<{ number: string, target: strin
 export function collectFindings(input: AdrInput): AdrFinding[] {
   const findings: AdrFinding[] = []
   const adrFiles = input.files
-    .filter(file => file.startsWith(`${ADR_DIR}/`) && !NON_ADR_FILES.has(path.posix.basename(file)))
+    .filter(
+      (file) => file.startsWith(`${ADR_DIR}/`) && !NON_ADR_FILES.has(path.posix.basename(file)),
+    )
     .sort()
 
   if (adrFiles.length === 0) {
@@ -181,15 +181,16 @@ export function collectFindings(input: AdrInput): AdrFinding[] {
     const title = titleMatch ? (titleMatch[2] ?? '').trim() : ''
     if (!titleMatch || title === '') {
       findings.push({ file, problem: '首部标题不是 `# ADR-NNNN: <title>` 形态' })
-    }
-    else if (titleMatch[1] !== fileNumber) {
-      findings.push({ file, problem: `标题编号 ADR-${titleMatch[1]} 与文件名 ${fileNumber} 不一致` })
+    } else if (titleMatch[1] !== fileNumber) {
+      findings.push({
+        file,
+        problem: `标题编号 ADR-${titleMatch[1]} 与文件名 ${fileNumber} 不一致`,
+      })
     }
 
     // ③ 日期
     const date = dateOf(text)
-    if (date === null)
-      findings.push({ file, problem: '缺 `**Date:**` 行' })
+    if (date === null) findings.push({ file, problem: '缺 `**Date:**` 行' })
     else if (!/^\d{4}-\d{2}-\d{2}$/.test(date))
       findings.push({ file, problem: `\`**Date:**\` 不是 YYYY-MM-DD 形态（现值 ${date}）` })
 
@@ -197,15 +198,13 @@ export function collectFindings(input: AdrInput): AdrFinding[] {
     const status = statusOf(text)
     if (status === null) {
       findings.push({ file, problem: '缺 `**Status:**` 行' })
-    }
-    else if (status.startsWith(SUPERSEDED_PREFIX)) {
+    } else if (status.startsWith(SUPERSEDED_PREFIX)) {
       const target = status.slice(SUPERSEDED_PREFIX.length).trim()
       if (!/^\d{4}$/.test(target))
         findings.push({ file, problem: `\`Superseded by\` 的目标不是四位编号（现值 ${target}）` })
       else if (!byNumber.has(target))
         findings.push({ file, problem: `\`Superseded by ADR-${target}\` 指向的 ADR 不存在` })
-    }
-    else if (!(ADR_STATUSES as readonly string[]).includes(status)) {
+    } else if (!(ADR_STATUSES as readonly string[]).includes(status)) {
       findings.push({
         file,
         problem: `\`**Status:**\` 取值不在枚举内（现值 ${status}；只允许 ${[...ADR_STATUSES, 'Superseded by ADR-NNNN'].join(' / ')}）`,
@@ -214,33 +213,41 @@ export function collectFindings(input: AdrInput): AdrFinding[] {
 
     // ⑤⑥ 小节
     const headings = headingsOf(text)
-    const titles = headings.map(h => h.title)
-    if (!titles.includes('Context'))
-      findings.push({ file, problem: '缺 `## Context` 小节' })
-    if (!titles.some(t => t === 'Decision' || t.startsWith('Decision ')))
+    const titles = headings.map((h) => h.title)
+    if (!titles.includes('Context')) findings.push({ file, problem: '缺 `## Context` 小节' })
+    if (!titles.some((t) => t === 'Decision' || t.startsWith('Decision ')))
       findings.push({ file, problem: '缺 `## Decision` 小节' })
     if (!titles.includes('Consequences'))
       findings.push({ file, problem: '缺 `## Consequences` 小节' })
 
     const altIndexes = headings
       .map((h, i) => (h.title === 'Alternatives considered' ? i : -1))
-      .filter(i => i >= 0)
+      .filter((i) => i >= 0)
     if (altIndexes.length === 0) {
       findings.push({ file, problem: '缺 `## Alternatives considered` 小节' })
-    }
-    else if (altIndexes.length > 1) {
-      findings.push({ file, problem: `\`## Alternatives considered\` 出现了 ${altIndexes.length} 次（只允许一个家）` })
-    }
-    else {
+    } else if (altIndexes.length > 1) {
+      findings.push({
+        file,
+        problem: `\`## Alternatives considered\` 出现了 ${altIndexes.length} 次（只允许一个家）`,
+      })
+    } else {
       const altIndex = altIndexes[0] ?? 0
-      const firstDecision = headings.findIndex(h => h.title === 'Decision' || h.title.startsWith('Decision '))
+      const firstDecision = headings.findIndex(
+        (h) => h.title === 'Decision' || h.title.startsWith('Decision '),
+      )
       if (firstDecision >= 0 && altIndex < firstDecision)
-        findings.push({ file, problem: '`## Alternatives considered` 排在第一个 `## Decision` 之前' })
+        findings.push({
+          file,
+          problem: '`## Alternatives considered` 排在第一个 `## Decision` 之前',
+        })
 
       const start = headings[altIndex]?.offset ?? 0
       const end = headings[altIndex + 1]?.offset ?? text.length
       if (!/^\s*[-*][ \t]+\S/m.test(text.slice(start, end)))
-        findings.push({ file, problem: '`## Alternatives considered` 里没有任何列表项（至少写一条）' })
+        findings.push({
+          file,
+          problem: '`## Alternatives considered` 里没有任何列表项（至少写一条）',
+        })
     }
   }
 
@@ -248,12 +255,18 @@ export function collectFindings(input: AdrInput): AdrFinding[] {
   const indexRows = indexRowsOf(input.indexText)
 
   if (indexRows.length === 0)
-    findings.push({ file: `${ADR_DIR}/index.md`, problem: '`## ADR 列表` 里一行都没解析到（表格格式变了？）' })
+    findings.push({
+      file: `${ADR_DIR}/index.md`,
+      problem: '`## ADR 列表` 里一行都没解析到（表格格式变了？）',
+    })
 
-  const listed = new Set(indexRows.map(r => r.number))
+  const listed = new Set(indexRows.map((r) => r.number))
   for (const [number, file] of byNumber) {
     if (!listed.has(number))
-      findings.push({ file: `${ADR_DIR}/index.md`, problem: `ADR ${number}（${path.posix.basename(file)}）没有登记进表格` })
+      findings.push({
+        file: `${ADR_DIR}/index.md`,
+        problem: `ADR ${number}（${path.posix.basename(file)}）没有登记进表格`,
+      })
   }
 
   for (const row of indexRows) {
@@ -263,7 +276,10 @@ export function collectFindings(input: AdrInput): AdrFinding[] {
       continue
     }
     if (!input.files.includes(`${ADR_DIR}/${row.target}`))
-      findings.push({ file: `${ADR_DIR}/index.md`, problem: `第 ${row.number} 行链接到 ${row.target}，该文件不存在` })
+      findings.push({
+        file: `${ADR_DIR}/index.md`,
+        problem: `第 ${row.number} 行链接到 ${row.target}，该文件不存在`,
+      })
 
     const status = statusOf(input.readText(file))
     if (status !== null && row.status !== status) {
@@ -291,11 +307,13 @@ export function main(): void {
   const findings = collectFindings({
     files,
     indexText: fs.readFileSync(path.join(REPO_ROOT, indexFile), 'utf8'),
-    readText: file => fs.readFileSync(path.join(REPO_ROOT, file), 'utf8'),
+    readText: (file) => fs.readFileSync(path.join(REPO_ROOT, file), 'utf8'),
   })
 
-  const count = files.filter(f => !NON_ADR_FILES.has(path.posix.basename(f))).length
-  out(`ADR 形态校验：${count} 篇 ADR（状态枚举 ${ADR_STATUSES.join(' / ')} / Superseded by ADR-NNNN）`)
+  const count = files.filter((f) => !NON_ADR_FILES.has(path.posix.basename(f))).length
+  out(
+    `ADR 形态校验：${count} 篇 ADR（状态枚举 ${ADR_STATUSES.join(' / ')} / Superseded by ADR-NNNN）`,
+  )
 
   if (findings.length === 0) {
     line('ok', '编号连续、状态在枚举内、四个必需小节齐备、index.md 双向对齐')
@@ -303,8 +321,7 @@ export function main(): void {
   }
 
   const byFile = new Map<string, string[]>()
-  for (const f of findings)
-    byFile.set(f.file, [...(byFile.get(f.file) ?? []), f.problem])
+  for (const f of findings) byFile.set(f.file, [...(byFile.get(f.file) ?? []), f.problem])
 
   for (const [file, problems] of byFile) {
     lineErr('violation', `${file}`)

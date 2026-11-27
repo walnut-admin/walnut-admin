@@ -2,7 +2,12 @@
 import type { SystemLang } from '@walnut/api-types'
 import { langAPI } from '@/api/system/lang'
 import { useCRUD } from '@/components/Advanced/CRUD'
-import { WTablePresetCreatedAtColumn, WTablePresetOrderColumn, WTablePresetStatusColumn, WTablePresetUpdatedAtColumn } from '@/components/UI/Table/src/utils/presetColumns'
+import {
+  WTablePresetCreatedAtColumn,
+  WTablePresetOrderColumn,
+  WTablePresetStatusColumn,
+  WTablePresetUpdatedAtColumn,
+} from '@/components/UI/Table/src/utils/presetColumns'
 
 import { useAppRouterPush } from '@/router/index'
 
@@ -14,13 +19,7 @@ defineOptions({
 const key = 'lang'
 const keyField = 'id'
 
-const [
-  register,
-  {
-    onOpenCreateForm,
-    onReadAndOpenUpdateForm,
-  },
-] = useCRUD<SystemLang>({
+const [register, { onOpenCreateForm, onReadAndOpenUpdateForm }] = useCRUD<SystemLang>({
   baseAPI: langAPI,
 
   safeForm: true,
@@ -30,7 +29,7 @@ const [
 
   tableProps: {
     localeUniqueKey: key,
-    rowKey: row => row[keyField]!,
+    rowKey: (row) => row[keyField]!,
     striped: true,
     bordered: true,
     singleLine: false,
@@ -100,7 +99,7 @@ const [
         key: 'localePercentage',
         width: 100,
         extendType: 'link',
-        formatter: row => `${row.process}%`,
+        formatter: (row) => `${row.process}%`,
         onClick: async (p) => {
           await useAppRouterPush({
             name: 'Locale',

@@ -3,34 +3,33 @@ import { computed } from 'vue'
 
 defineOptions({ name: 'TextShimmer' })
 
-const props = withDefaults(defineProps<{
-  as?: string
-  duration?: number
-  spread?: number
-  delay?: number
-}>(), {
-  as: 'p',
-  duration: 2,
-  spread: 100,
-  delay: 0,
-})
+const props = withDefaults(
+  defineProps<{
+    as?: string
+    duration?: number
+    spread?: number
+    delay?: number
+  }>(),
+  {
+    as: 'p',
+    duration: 2,
+    spread: 100,
+    delay: 0,
+  },
+)
 
 const shimmerStyle = computed(() => ({
   '--an-shimmer-duration': `${props.duration}s`,
   '--an-shimmer-spread': `${props.spread}px`,
-  'animationDelay': props.delay > 0 ? `${props.delay}s` : undefined,
-  'animationDuration': `${props.duration}s`,
-  'animationIterationCount': 'infinite',
-  'animationTimingFunction': 'linear',
+  animationDelay: props.delay > 0 ? `${props.delay}s` : undefined,
+  animationDuration: `${props.duration}s`,
+  animationIterationCount: 'infinite',
+  animationTimingFunction: 'linear',
 }))
 </script>
 
 <template>
-  <component
-    :is="as"
-    class="an-text-shimmer an-text-shimmer--active"
-    :style="shimmerStyle"
-  >
+  <component :is="as" class="an-text-shimmer an-text-shimmer--active" :style="shimmerStyle">
     <slot />
   </component>
 </template>

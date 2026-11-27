@@ -35,7 +35,9 @@ describe('isBaselineManifest', () => {
   })
 
   it('命名 profile 的库名通过（形状正则与 env.ts 同口径）', () => {
-    expect(isBaselineManifest({ ...validManifest(), profile: 'risk', database: 'walnut_e2e_risk' })).toBe(true)
+    expect(
+      isBaselineManifest({ ...validManifest(), profile: 'risk', database: 'walnut_e2e_risk' }),
+    ).toBe(true)
   })
 
   it.each([

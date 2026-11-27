@@ -40,8 +40,8 @@ function extractDirectRepositoryEntityNames(source: string): string[] {
 
   return match[1]
     .split('|')
-    .map(name => name.trim())
-    .filter(name => name !== '')
+    .map((name) => name.trim())
+    .filter((name) => name !== '')
 }
 
 /** 实体类名（EntityTarget 在注册表里恒为实体类；string / EntitySchema 只兜底报错信息） */
@@ -61,8 +61,8 @@ function diffEntityLists(parsed: string[], registered: string[]): IEntityListDif
   const registeredSet = new Set(registered)
 
   return {
-    missing: registered.filter(name => !parsedSet.has(name)).sort(),
-    extra: parsed.filter(name => !registeredSet.has(name)).sort(),
+    missing: registered.filter((name) => !parsedSet.has(name)).sort(),
+    extra: parsed.filter((name) => !registeredSet.has(name)).sort(),
   }
 }
 
@@ -90,22 +90,27 @@ function findRepoRoot(start: string): string {
 
 const NEST_TS_PATH = join(findRepoRoot(__dirname), 'tooling/eslint-config/nest.ts')
 
-const ACTION_HINT = '加实体要同步 nest.ts 的 walnut/data-scope/direct-repository 正则，或从 WALNUT_DATA_SCOPE_ENTITIES 删'
+const ACTION_HINT =
+  '加实体要同步 nest.ts 的 walnut/data-scope/direct-repository 正则，或从 WALNUT_DATA_SCOPE_ENTITIES 删'
 
 describe('eslint direct-repository 实体清单 ↔ 注册表', () => {
   it('nest.ts 定位正确（路径解析失效时本守卫必须是红的，而不是空断言通过）', () => {
-    expect(existsSync(NEST_TS_PATH), `未找到 ${NEST_TS_PATH}（本 spec 的仓库根定位失效）`).toBe(true)
+    expect(existsSync(NEST_TS_PATH), `未找到 ${NEST_TS_PATH}（本 spec 的仓库根定位失效）`).toBe(
+      true,
+    )
   })
 
   it('正则里的实体名集合 ≡ WALNUT_DATA_SCOPE_ENTITIES 的实体类名集合', () => {
     const source = readFileSync(NEST_TS_PATH, 'utf8')
     const parsed = extractDirectRepositoryEntityNames(source)
-    const registered = WALNUT_DATA_SCOPE_ENTITIES.map(config => entityClassName(config.entity))
+    const registered = WALNUT_DATA_SCOPE_ENTITIES.map((config) => entityClassName(config.entity))
 
     // 解析失败（规则改名/正则形态变化）时 parsed 为空 —— 与注册表非空必然不等，不会静默通过
     expect(parsed, `未从 nest.ts 解析到实体名清单。${ACTION_HINT}`).not.toEqual([])
-    expect(diffEntityLists(parsed, registered), `ESLint 实体清单与数据权限注册表漂移。${ACTION_HINT}`)
-      .toEqual({ missing: [], extra: [] })
+    expect(
+      diffEntityLists(parsed, registered),
+      `ESLint 实体清单与数据权限注册表漂移。${ACTION_HINT}`,
+    ).toEqual({ missing: [], extra: [] })
   })
 })
 
@@ -114,11 +119,12 @@ describe('对账守卫自测（注入篡改文本，不改真 nest.ts）', () =>
   const syntheticSource = (names: string): string =>
     `name: '${RULE_NAME}',\n rules: { 'no-restricted-syntax': ['error', { selector: 'CallExpression[arguments.0.name=/^(${names})$/]' }] }`
 
-  const registered = WALNUT_DATA_SCOPE_ENTITIES.map(config => entityClassName(config.entity))
+  const registered = WALNUT_DATA_SCOPE_ENTITIES.map((config) => entityClassName(config.entity))
 
   it('从注入文本解析出实体名集合', () => {
-    expect(extractDirectRepositoryEntityNames(syntheticSource('SysUserEntity|AppDemoEntity')))
-      .toEqual(['SysUserEntity', 'AppDemoEntity'])
+    expect(
+      extractDirectRepositoryEntityNames(syntheticSource('SysUserEntity|AppDemoEntity')),
+    ).toEqual(['SysUserEntity', 'AppDemoEntity'])
   })
 
   it('真 nest.ts 里删掉一个实体名 → 对账报 missing（守卫本身会红）', () => {
@@ -139,7 +145,9 @@ describe('对账守卫自测（注入篡改文本，不改真 nest.ts）', () =>
   })
 
   it('注入一个注册表没有的实体名 → 对账报 extra', () => {
-    const parsed = extractDirectRepositoryEntityNames(syntheticSource('SysUserEntity|FakeGhostEntity'))
+    const parsed = extractDirectRepositoryEntityNames(
+      syntheticSource('SysUserEntity|FakeGhostEntity'),
+    )
 
     expect(diffEntityLists(parsed, ['SysUserEntity'])).toEqual({
       missing: [],
@@ -149,8 +157,10 @@ describe('对账守卫自测（注入篡改文本，不改真 nest.ts）', () =>
 
   it('规则名缺失 / 正则形态变化 → 解析为空（守卫按失败处理，不静默放行）', () => {
     expect(extractDirectRepositoryEntityNames('const rules = {}')).toEqual([])
-    expect(extractDirectRepositoryEntityNames(
-      syntheticSource('SysUserEntity').replace('arguments.0.name=', 'arguments.1.name='),
-    )).toEqual([])
+    expect(
+      extractDirectRepositoryEntityNames(
+        syntheticSource('SysUserEntity').replace('arguments.0.name=', 'arguments.1.name='),
+      ),
+    ).toEqual([])
   })
 })

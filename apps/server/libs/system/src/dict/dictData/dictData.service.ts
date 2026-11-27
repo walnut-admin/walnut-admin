@@ -33,7 +33,11 @@ export class SysDictDataService {
   }
 
   async delete(id: string, userId: string, em: EntityManager) {
-    const deletedDictData: SysDictDataEntity = await this.dictDataBasicRepo.deleteSoftById(id, userId, em)
+    const deletedDictData: SysDictDataEntity = await this.dictDataBasicRepo.deleteSoftById(
+      id,
+      userId,
+      em,
+    )
 
     // delete all locales with deleted dict data label
     await this.localeSharedService.deleteByKey(deletedDictData.label, userId, em)

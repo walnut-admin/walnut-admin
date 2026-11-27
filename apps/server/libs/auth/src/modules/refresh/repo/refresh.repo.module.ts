@@ -18,4 +18,4 @@ import { AuthRefreshRepositoryService } from './refresh.repo.service'
   providers: [AuthRefreshRepositoryService],
   exports: [AuthRefreshRepositoryService],
 })
-export class AuthRefreshRepositoryModule { }
+export class AuthRefreshRepositoryModule {}

@@ -21,8 +21,7 @@ export class LRUMap<K, V> {
     this.#map.set(key, value)
     if (this.#map.size > this.#max) {
       const oldest = this.#map.keys().next().value
-      if (oldest !== undefined)
-        this.#map.delete(oldest)
+      if (oldest !== undefined) this.#map.delete(oldest)
     }
   }
 

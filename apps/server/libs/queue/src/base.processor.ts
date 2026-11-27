@@ -18,17 +18,12 @@ export abstract class WalnutAdminCommonBasicProcessor {
   @OnQueueCompleted()
   onComplete(job: Job, result: any) {
     this.logger.log(
-      `Completed job ${job.id} of type ${job.name}. Result: ${JSON.stringify(
-        result,
-      )}`,
+      `Completed job ${job.id} of type ${job.name}. Result: ${JSON.stringify(result)}`,
     )
   }
 
   @OnQueueFailed()
   onError(job: Job<any>, error: any) {
-    this.logger.error(
-      `Failed job ${job.id} of type ${job.name}`,
-      error,
-    )
+    this.logger.error(`Failed job ${job.id} of type ${job.name}`, error)
   }
 }

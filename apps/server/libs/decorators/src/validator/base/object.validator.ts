@@ -1,6 +1,13 @@
 import { applyDecorators } from '@nestjs/common'
 
-import { Allow, IsDefined, IsNotEmptyObject, IsObject, IsOptional, ValidateNested } from 'class-validator'
+import {
+  Allow,
+  IsDefined,
+  IsNotEmptyObject,
+  IsObject,
+  IsOptional,
+  ValidateNested,
+} from 'class-validator'
 import { WalnutAdminDecoratorValidatorArray } from '../common/array.validator'
 
 function defaultOptions(): IWADVObjOpt {
@@ -22,8 +29,7 @@ export function WalnutAdminDecoratorValidatorObject(
 
   if (any === true) {
     decorators.push(Allow())
-  }
-  else {
+  } else {
     if (required === false) {
       decorators.push(Allow())
 
@@ -37,8 +43,7 @@ export function WalnutAdminDecoratorValidatorObject(
           ValidateNested({ each: isArray }),
         )
       }
-    }
-    else {
+    } else {
       decorators.push(
         IsDefined({ each: isArray }),
         IsObject({ each: isArray }),

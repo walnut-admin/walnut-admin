@@ -33,12 +33,15 @@ function readEnvLocal(key: string): string {
   const envPath = path.resolve(process.cwd(), 'env-local', `.env.${env}`)
 
   if (!fs.existsSync(envPath)) {
-    throw new Error(`[data-source.cli] env file not found: ${envPath} (run \`pnpm setup-env\` first)`)
+    throw new Error(
+      `[data-source.cli] env file not found: ${envPath} (run \`pnpm setup-env\` first)`,
+    )
   }
 
-  const line = fs.readFileSync(envPath, 'utf-8')
+  const line = fs
+    .readFileSync(envPath, 'utf-8')
     .split(/\r?\n/)
-    .find(l => l.startsWith(`${key}=`))
+    .find((l) => l.startsWith(`${key}=`))
 
   if (line === undefined) {
     throw new Error(`[data-source.cli] missing ${key} in ${envPath}`)

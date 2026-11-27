@@ -3,13 +3,16 @@ import { computed } from 'vue'
 
 defineOptions({ name: 'Thinking' })
 
-const props = withDefaults(defineProps<{
-  text?: string
-  size?: number
-}>(), {
-  text: 'Generating',
-  size: 16,
-})
+const props = withDefaults(
+  defineProps<{
+    text?: string
+    size?: number
+  }>(),
+  {
+    text: 'Generating',
+    size: 16,
+  },
+)
 
 const letters = computed(() => props.text.split(''))
 
@@ -33,8 +36,11 @@ const wrapperStyle = computed(() => {
       :key="i"
       class="z-1 inline-block animate-[loader-letter-anim_2s_infinite] rounded-[50ch] border-none"
       :style="{ animationDelay: `${i * 0.1}s` }"
-    >{{ letter }}</span>
-    <div class="absolute left-0 top-0 z-0 aspect-square w-full animate-[loader-rotate_2s_linear_infinite] rounded-full bg-transparent" />
+      >{{ letter }}</span
+    >
+    <div
+      class="absolute left-0 top-0 z-0 aspect-square w-full animate-[loader-rotate_2s_linear_infinite] rounded-full bg-transparent"
+    />
   </div>
 </template>
 
@@ -80,7 +86,8 @@ html.dark .thinking-wrapper {
 }
 
 @keyframes loader-letter-anim {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.4;
     transform: translateY(0);
   }

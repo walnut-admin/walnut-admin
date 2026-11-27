@@ -49,12 +49,16 @@ const fakeTencentAk = `AKID${'x'.repeat(32)}`
 const fakeMongoUri = `mongodb://root:${'s3cr3t-password-9'}@db:27017/x`
 const fakeRedisUri = `redis://:${'r3dis-password'}@r:6379`
 /** jwt.io 上那个被引用了无数次的示例 token —— 同样不许以连续字面量出现 */
-const fakeJwt = ['eyJhbGciOiJIUzI1NiJ9', 'eyJzdWIiOiIxMjM0NTY3ODkwIn0', 'dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U'].join('.')
+const fakeJwt = [
+  'eyJhbGciOiJIUzI1NiJ9',
+  'eyJzdWIiOiIxMjM0NTY3ODkwIn0',
+  'dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U',
+].join('.')
 
 describe('scanText —— 形态规则', () => {
   it('真私钥（头 + base64 正体）→ 报', () => {
     const key = `-----BEGIN PRIVATE KEY-----\n${'MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQ'.repeat(4)}\n-----END PRIVATE KEY-----`
-    expect(scanText(key, 'a.js').map(f => f.rule)).toEqual(['pem-private-key'])
+    expect(scanText(key, 'a.js').map((f) => f.rule)).toEqual(['pem-private-key'])
   })
 
   // 反例，来自真产物：WebCrypto 导出 PEM 时用的模板常量
@@ -64,8 +68,8 @@ describe('scanText —— 形态规则', () => {
   })
 
   it('带凭据的连接串 → 报；不带凭据的 / 只有主机名的 / 口令不像真的 → 不报', () => {
-    expect(scanText(fakeMongoUri, 'a.js').map(f => f.rule)).toEqual(['credential-uri'])
-    expect(scanText(fakeRedisUri, 'a.js').map(f => f.rule)).toEqual(['credential-uri'])
+    expect(scanText(fakeMongoUri, 'a.js').map((f) => f.rule)).toEqual(['credential-uri'])
+    expect(scanText(fakeRedisUri, 'a.js').map((f) => f.rule)).toEqual(['credential-uri'])
     expect(scanText('http://backend:3000/w/v1/', 'a.js')).toEqual([])
     expect(scanText('mongodb://db:27017/x', 'a.js')).toEqual([])
     // 下面三条对应「短口令 / 纯数字」这条收窄 —— 它们是**量出来的**误报源：
@@ -82,17 +86,19 @@ describe('scanText —— 形态规则', () => {
   })
 
   it('jWT 三段 → 报', () => {
-    expect(scanText(fakeJwt, 'a.js').map(f => f.rule)).toEqual(['jwt'])
+    expect(scanText(fakeJwt, 'a.js').map((f) => f.rule)).toEqual(['jwt'])
   })
 
   it('云厂商 AK 形状 → 报（AWS / 腾讯云各一）', () => {
-    expect(scanText(fakeAwsAk, 'a.js').map(f => f.rule)).toEqual(['cloud-access-key'])
-    expect(scanText(fakeTencentAk, 'a.js').map(f => f.rule)).toEqual(['cloud-access-key'])
+    expect(scanText(fakeAwsAk, 'a.js').map((f) => f.rule)).toEqual(['cloud-access-key'])
+    expect(scanText(fakeTencentAk, 'a.js').map((f) => f.rule)).toEqual(['cloud-access-key'])
   })
 
   // 反例，来自真产物：内联的 data-URI 图片长这样
   it('长 base64（data-URI 图片，真产物里 5 次误报）→ 不报', () => {
-    expect(scanText(`url(data:image/png;base64,${'iVBORw0KGgoAAAANSUhEUg'.repeat(12)})`, 'a.css')).toEqual([])
+    expect(
+      scanText(`url(data:image/png;base64,${'iVBORw0KGgoAAAANSUhEUg'.repeat(12)})`, 'a.css'),
+    ).toEqual([])
   })
 
   it('finding 里带上文件与规则名（便于定位），且不回显匹配到的东西', () => {
@@ -123,8 +129,8 @@ describe('stripPrecompressed / 敏感文件名', () => {
     writeFileSync(join(dir, 'assets', 'server.pem.gz'), 'x')
     writeFileSync(join(dir, 'assets', 'app.js'), 'var a=1')
     const { findings } = scanDist(dir, join(dir, 'no-such-env'))
-    expect(findings.map(f => f.rule)).toEqual(['bad-file-name', 'bad-file-name'])
-    expect(findings.every(f => f.rule !== 'env-value-leak')).toBe(true)
+    expect(findings.map((f) => f.rule)).toEqual(['bad-file-name', 'bad-file-name'])
+    expect(findings.every((f) => f.rule !== 'env-value-leak')).toBe(true)
   })
 })
 
@@ -147,7 +153,7 @@ describe('parseSecretValues —— 键名判定', () => {
   ].join('\n')
 
   it('只挑键名像机密的，且跳过太短 / 布尔 / 纯数字的值', () => {
-    const keys = parseSecretValues(env, '.env.production').map(s => s.key)
+    const keys = parseSecretValues(env, '.env.production').map((s) => s.key)
     expect(keys).toEqual([
       'APP_COOKIE_SECRET',
       'DATABASE_PASS',
@@ -159,17 +165,26 @@ describe('parseSecretValues —— 键名判定', () => {
   })
 
   it('键名判定**不能**放宽到裸 `KEY` / `ACCESS`（真产物里 6 条误报的成因）', () => {
-    const keys = parseSecretValues('VENDOR_KEYS_ALI_OSS_BUCKET=b\nVENDOR_KEYS_ALI_OSS_REGION=r\n', 'x').map(s => s.key)
+    const keys = parseSecretValues(
+      'VENDOR_KEYS_ALI_OSS_BUCKET=b\nVENDOR_KEYS_ALI_OSS_REGION=r\n',
+      'x',
+    ).map((s) => s.key)
     expect(keys).toEqual([])
   })
 
   it('去掉包裹的引号', () => {
-    expect(parseSecretValues('APP_COOKIE_SECRET="quoted-value-1"', 'x')[0]!.value).toBe('quoted-value-1')
+    expect(parseSecretValues('APP_COOKIE_SECRET="quoted-value-1"', 'x')[0]!.value).toBe(
+      'quoted-value-1',
+    )
   })
 })
 
 describe('findLeakedValues —— 最硬的那条', () => {
-  const secret = { key: 'JWT_ACCESS_TOKEN_SECRET', value: 'super-secret-token-value', source: '.env.production' }
+  const secret = {
+    key: 'JWT_ACCESS_TOKEN_SECRET',
+    value: 'super-secret-token-value',
+    source: '.env.production',
+  }
 
   it('产物里出现真值 → 报，且报的是键名不是值', () => {
     const [finding] = findLeakedValues(`var x="${secret.value}"`, 'static/js/a.js', [secret])
@@ -213,11 +228,14 @@ describe('collectFindingsForDists —— 多产物（dist + dist-staging）', ()
     writeFileSync(join(dist, 'app.js'), `var ak='${fakeAwsAk}'`)
     writeFileSync(join(staging, 'app.js'), 'var a=1')
 
-    const result = collectFindingsForDists([dist, staging, join(root, 'missing')], join(root, 'no-env'))
+    const result = collectFindingsForDists(
+      [dist, staging, join(root, 'missing')],
+      join(root, 'no-env'),
+    )
 
     expect(result.scannedDirs).toHaveLength(2)
     expect(result.missingDirs).toHaveLength(1)
-    expect(result.findings.map(f => f.rule)).toEqual(['cloud-access-key'])
+    expect(result.findings.map((f) => f.rule)).toEqual(['cloud-access-key'])
     expect(result.precondition).toBeUndefined()
   })
 
@@ -232,13 +250,16 @@ describe('collectFindingsForDists —— 多产物（dist + dist-staging）', ()
 
     const result = collectFindingsForDists([dist, staging], join(root, 'no-env'))
 
-    expect(result.findings.map(f => f.rule)).toEqual(['jwt'])
+    expect(result.findings.map((f) => f.rule)).toEqual(['jwt'])
   })
 
   it('两份都不存在 → 前置条件失败（不是"通过"）', () => {
     const root = mkdtempSync(join(tmpdir(), 'dist-multi-'))
 
-    const result = collectFindingsForDists([join(root, 'dist'), join(root, 'dist-staging')], join(root, 'no-env'))
+    const result = collectFindingsForDists(
+      [join(root, 'dist'), join(root, 'dist-staging')],
+      join(root, 'no-env'),
+    )
 
     expect(result.precondition).toBeDefined()
     expect(result.missingDirs).toHaveLength(2)

@@ -73,7 +73,7 @@ async function expectKeyGone(api: WalnutApiClient, key: string, timeoutMs = 5000
     if (!(await api.hasWalnutCacheKey(key))) {
       return
     }
-    await new Promise(resolve => setTimeout(resolve, 50))
+    await new Promise((resolve) => setTimeout(resolve, 50))
   }
   expect(await api.hasWalnutCacheKey(key), `key should be gone: ${key}`).toBe(false)
 }
@@ -81,12 +81,15 @@ async function expectKeyGone(api: WalnutApiClient, key: string, timeoutMs = 5000
 /** 从 JWT（AT/RT）第二段解 payload（base64url，无验签 —— 测试侧只读 sid/jti） */
 function decodeJwtPayload(token: string): Record<string, unknown> {
   const payloadPart = token.split('.')[1]
-  return JSON.parse(Buffer.from(payloadPart, 'base64url').toString('utf8')) as Record<string, unknown>
+  return JSON.parse(Buffer.from(payloadPart, 'base64url').toString('utf8')) as Record<
+    string,
+    unknown
+  >
 }
 
 /** 解 Set-Cookie 里的 signed RT_JTI 值：`__Host-RT_JTI=s%3A<jti>.<sig>` → `<jti>`（jti 为 nanoid，不含 `.`） */
 function decodeSignedJti(setCookies: string[] | undefined): string | null {
-  const raw = setCookies?.find(c => c.startsWith('__Host-RT_JTI=')) ?? null
+  const raw = setCookies?.find((c) => c.startsWith('__Host-RT_JTI=')) ?? null
   if (raw === null) {
     return null
   }
@@ -161,7 +164,9 @@ describe('D 段：auth 会话链 permissions/refresh/signout/keys（真实 HTTP 
       }
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
-      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [[api.deviceId, anonClient.deviceId]])
+      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [
+        [api.deviceId, anonClient.deviceId],
+      ])
       await api.cleanupWalnutCacheKeys(seed8, api.deviceId, anonClient.deviceId, fixture.userId)
     }
     await app.close()
@@ -173,7 +178,7 @@ describe('D 段：auth 会话链 permissions/refresh/signout/keys（真实 HTTP 
 
     const data = bodyOf<PermissionsData>(res).data
     // 顶层是首个根节点的 children —— MENU 子级在其中
-    expect(data.permissionMenuTree.some(node => node.name === menuName)).toBe(true)
+    expect(data.permissionMenuTree.some((node) => node.name === menuName)).toBe(true)
     expect(Array.isArray(data.permissionStrings)).toBe(true)
     expect(Array.isArray(data.permissionRouteTree)).toBe(true)
     expect(Array.isArray(data.affixedTabs)).toBe(true)
@@ -211,11 +216,15 @@ describe('D 段：auth 会话链 permissions/refresh/signout/keys（真实 HTTP 
   })
 
   it('refresh → 20000 新 AT；RT 轮换是 revoke-and-insert（旧行 revoked=rotate + 新行 + Set-Cookie 回种新 jti）', async () => {
-    const rowsBefore: Array<{ jti: string, encrypted_token: string, expired_at: Date, revoked: boolean }>
-      = await api.pgDataSource.query(
-        'SELECT jti, encrypted_token, expired_at, revoked FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
-        [fixture!.userId, api.deviceId],
-      )
+    const rowsBefore: Array<{
+      jti: string
+      encrypted_token: string
+      expired_at: Date
+      revoked: boolean
+    }> = await api.pgDataSource.query(
+      'SELECT jti, encrypted_token, expired_at, revoked FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
+      [fixture!.userId, api.deviceId],
+    )
     expect(rowsBefore).toHaveLength(1)
     const before = rowsBefore[0]
     expect(before.revoked).toBe(false)
@@ -235,16 +244,21 @@ describe('D 段：auth 会话链 permissions/refresh/signout/keys（真实 HTTP 
     expect(newPayload.sid).toBe(decodeJwtPayload(api.getAuth()!.accessToken).sid)
 
     // 轮换后行级形态：旧行 revoked（reason=rotate）+ 新行未撤销，恰两行
-    const rowsAfter: Array<{ jti: string, encrypted_token: string, expired_at: Date, revoked: boolean, revoke_reason: string | null }>
-      = await api.pgDataSource.query(
-        'SELECT jti, encrypted_token, expired_at, revoked, revoke_reason FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2 ORDER BY created_at ASC',
-        [fixture!.userId, api.deviceId],
-      )
+    const rowsAfter: Array<{
+      jti: string
+      encrypted_token: string
+      expired_at: Date
+      revoked: boolean
+      revoke_reason: string | null
+    }> = await api.pgDataSource.query(
+      'SELECT jti, encrypted_token, expired_at, revoked, revoke_reason FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2 ORDER BY created_at ASC',
+      [fixture!.userId, api.deviceId],
+    )
     expect(rowsAfter).toHaveLength(2)
     // 不依赖 created_at 排序（同毫秒/时区/时钟源都可能让两行并列——实测跑批里出现过
     // 顺序颠倒）；按轮换前的 jti 身份取旧行，另一行即新行。
-    const oldRow = rowsAfter.find(row => row.jti === before.jti)!
-    const newRow = rowsAfter.find(row => row.jti !== before.jti)!
+    const oldRow = rowsAfter.find((row) => row.jti === before.jti)!
+    const newRow = rowsAfter.find((row) => row.jti !== before.jti)!
     expect(oldRow).toBeDefined()
     expect(newRow).toBeDefined()
     expect(oldRow.jti).toBe(before.jti)
@@ -280,7 +294,9 @@ describe('D 段：auth 会话链 permissions/refresh/signout/keys（真实 HTTP 
     // 种回轮换前留存的 signed cookie（签名绑定旧 jti，合法通过 cookie-parser 验签）
     api.setCookie(WalnutAdminConstCookieKeys.RT_JTI, replayCookie)
     const replay = await api.anon('POST', api.apiPath('/auth/refresh'))
-    expect(bodyOf(replay).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_REFRESH_TOKEN_EXPIRED)
+    expect(bodyOf(replay).code).toBe(
+      WalnutAdminConstAppResponseCode.UNAUTHORIZED_REFRESH_TOKEN_EXPIRED,
+    )
 
     // 重放无副作用：仍恰两行（无第三次插入）
     const rows: Array<{ c: number }> = await api.pgDataSource.query(
@@ -293,7 +309,7 @@ describe('D 段：auth 会话链 permissions/refresh/signout/keys（真实 HTTP 
     api.setCookie(WalnutAdminConstCookieKeys.RT_JTI, currentCookie)
     const res = await api.anon('POST', api.apiPath('/auth/refresh'))
     expectOk(res, 'auth refresh after replay')
-    const rowsAfter: Array<{ revoked: boolean, c: number }> = await api.pgDataSource.query(
+    const rowsAfter: Array<{ revoked: boolean; c: number }> = await api.pgDataSource.query(
       'SELECT revoked, count(*)::int AS c FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2 GROUP BY revoked ORDER BY revoked ASC',
       [fixture!.userId, api.deviceId],
     )
@@ -305,7 +321,9 @@ describe('D 段：auth 会话链 permissions/refresh/signout/keys（真实 HTTP 
 
   it('refresh 无 RT cookie（干净设备）→ 40102 RefreshTokenExpired', async () => {
     const res = await anonClient.anon('POST', anonClient.apiPath('/auth/refresh'))
-    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_REFRESH_TOKEN_EXPIRED)
+    expect(bodyOf(res).code).toBe(
+      WalnutAdminConstAppResponseCode.UNAUTHORIZED_REFRESH_TOKEN_EXPIRED,
+    )
   })
 
   it('permissions 匿名 → 40101（JWT guard 拦在权限组装之前）', async () => {
@@ -331,21 +349,21 @@ describe('D 段：auth 会话链 permissions/refresh/signout/keys（真实 HTTP 
 
     // RT_JTI cookie 被清除（__Host- 前缀 + Expires 归零）
     const setCookies = res.headers['set-cookie'] as unknown as string[] | undefined
-    const rtCookie = setCookies?.find(raw => raw.startsWith('__Host-RT_JTI='))
+    const rtCookie = setCookies?.find((raw) => raw.startsWith('__Host-RT_JTI='))
     expect(rtCookie).toBeTruthy()
     expect(rtCookie!).toMatch(/Expires=Thu, 01 Jan 1970/)
 
     // RT 行 revoke（revoke-and-insert 时代同维度多行：历轮 rotate 旧行 + 轮换后的现役行，
     // signout 全量撤销；本用例前序已轮换两轮 → 3 行全 revoked）
-    const rows: Array<{ revoked: boolean, revoke_reason: string | null }>
-      = await api.pgDataSource.query(
+    const rows: Array<{ revoked: boolean; revoke_reason: string | null }> =
+      await api.pgDataSource.query(
         'SELECT revoked, revoke_reason FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
         [fixture!.userId, api.deviceId],
       )
     expect(rows.length).toBe(3)
-    expect(rows.every(r => r.revoked)).toBe(true)
+    expect(rows.every((r) => r.revoked)).toBe(true)
     // signout 的撤销不带 reason —— 只覆盖 revoked 列，rotate 旧行的历史 reason 保留
-    expect(rows.filter(r => r.revoke_reason === 'rotate')).toHaveLength(2)
+    expect(rows.filter((r) => r.revoke_reason === 'rotate')).toHaveLength(2)
 
     // 会话系缓存清理（after-commit 钩子，轮询兜时序）—— P1-2 修复后三键全部消失
     await expectKeyGone(api, keysToClear[0])
@@ -369,13 +387,22 @@ describe('D 段：auth 会话链 permissions/refresh/signout/keys（真实 HTTP 
       // 已过期但签名合法的 AT：同 payload 用 -10s 重签（guard-matrix 的过期 AT 同款手法）
       const jwtService = app.get(JwtService)
       const accessSecret = app.get(ConfigService).get<string>('jwt.access.secret')!
-      const { iat: _iat, exp: _exp, ...payload } = jwtService.decode<Record<string, unknown>>(tokens.accessToken)
-      const expiredAt = await jwtService.signAsync(payload, { secret: accessSecret, expiresIn: '-10s' })
+      const {
+        iat: _iat,
+        exp: _exp,
+        ...payload
+      } = jwtService.decode<Record<string, unknown>>(tokens.accessToken)
+      const expiredAt = await jwtService.signAsync(payload, {
+        secret: accessSecret,
+        expiresIn: '-10s',
+      })
       rtOnly.setAuth({ ...tokens, accessToken: expiredAt })
 
       // 正对照：这枚 AT 确实过期 —— 受保护端点 40101（否则下面那句「能登出」不说明任何事）
       const guardRes = await rtOnly.root('GET', rtOnly.apiPath('/auth/permissions'))
-      expect(bodyOf(guardRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+      expect(bodyOf(guardRes).code).toBe(
+        WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
+      )
 
       const res: SuperTestResponse = await rtOnly.root('POST', rtOnly.apiPath('/auth/signout'))
       expectOk(res, 'signout with expired AT')
@@ -387,15 +414,18 @@ describe('D 段：auth 会话链 permissions/refresh/signout/keys（真实 HTTP 
         [fixture!.userId, rtOnly.deviceId],
       )
       expect(rows.length).toBeGreaterThan(0)
-      expect(rows.every(row => row.revoked)).toBe(true)
+      expect(rows.every((row) => row.revoked)).toBe(true)
 
       // 「RT 失效」要可验：同一枚 RT 再换 AT → 40102（撤销行在 guard 层即死）
       const refreshRes = await rtOnly.anon('POST', rtOnly.apiPath('/auth/refresh'))
-      expect(bodyOf(refreshRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_REFRESH_TOKEN_EXPIRED)
-    }
-    finally {
+      expect(bodyOf(refreshRes).code).toBe(
+        WalnutAdminConstAppResponseCode.UNAUTHORIZED_REFRESH_TOKEN_EXPIRED,
+      )
+    } finally {
       // 删设备行即可：fk_rt_device / fk_user_device_device 都带 ON DELETE CASCADE
-      await rtOnly.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [rtOnly.deviceId])
+      await rtOnly.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [
+        rtOnly.deviceId,
+      ])
       await rtOnly.cleanupWalnutCacheKeys(fixture!.userId, rtOnly.deviceId)
     }
   })

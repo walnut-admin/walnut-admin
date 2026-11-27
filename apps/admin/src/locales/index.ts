@@ -30,6 +30,12 @@ export async function loadLocaleMessages() {
   await appStoreLocale.onLoadMessageCache(appStoreLocale.getLocale)
 }
 
-export const AppI18n = (): I18n<Record<string, unknown>, Record<string, unknown>, Record<string, unknown>, Locale, false> => i18n
+export const AppI18n = (): I18n<
+  Record<string, unknown>,
+  Record<string, unknown>,
+  Record<string, unknown>,
+  Locale,
+  false
+> => i18n
 
 export const useAppI18n = () => useI18n()

@@ -31,7 +31,9 @@ export const WalnutAdminConstSecuritySensitiveType = {
   IDENTITY_MANAGE: 'identity_manage',
 } as const
 
-export type IWalnutAdminConstSecuritySensitiveType = ValueOf<typeof WalnutAdminConstSecuritySensitiveType>
+export type IWalnutAdminConstSecuritySensitiveType = ValueOf<
+  typeof WalnutAdminConstSecuritySensitiveType
+>
 
 /**
  * Verification methods

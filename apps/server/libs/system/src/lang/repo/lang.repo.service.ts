@@ -88,7 +88,7 @@ export class SysLangRepoService {
       .addSelect('lang.lang', 'lang')
       .addSelect('lang.description', 'description')
       .where('lang.status = :status', { status: true })
-      .getRawMany<{ order: number | null, lang: string, description: string | null }>()
+      .getRawMany<{ order: number | null; lang: string; description: string | null }>()
   }
 
   /**
@@ -102,7 +102,7 @@ export class SysLangRepoService {
   async findMessagesByLang(lang: LocaleType) {
     const row = await this.dataSource
       .createQueryBuilder()
-      .select('COALESCE(jsonb_object_agg(locale.key, locale.value), \'{}\'::jsonb)', 'data')
+      .select("COALESCE(jsonb_object_agg(locale.key, locale.value), '{}'::jsonb)", 'data')
       .from(SysLocaleEntity, 'locale')
       .innerJoin(SysLangEntity, 'lang', 'lang.id = locale.langId')
       .where('lang.lang = :lang', { lang })

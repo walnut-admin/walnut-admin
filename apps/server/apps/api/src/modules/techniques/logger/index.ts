@@ -99,18 +99,13 @@ const fileJsonFormat = winston.format.combine(
       requestId,
     }
 
-    if (type)
-      orderedInfo.type = type
-    if (request)
-      orderedInfo.request = request
-    if (response)
-      orderedInfo.response = response
+    if (type) orderedInfo.type = type
+    if (request) orderedInfo.request = request
+    if (response) orderedInfo.response = response
 
     // Error 和 Stack 放最后
-    if (!isNil(error))
-      orderedInfo.error = error
-    if (stack && (isNil(error) || isNil(error.stack)))
-      orderedInfo.stack = stack
+    if (!isNil(error)) orderedInfo.error = error
+    if (stack && (isNil(error) || isNil(error.stack))) orderedInfo.stack = stack
 
     if (Object.keys(rest).length > 0) {
       Object.assign(orderedInfo, rest)

@@ -9,29 +9,23 @@ defineOptions({
     <n-alert title="Remember Scroll Position" type="info">
       Can be enabled in
       <router-link to="/system/menu" #="{ navigate, href }" custom>
-        <n-a :href="href" @click="navigate">
-          Menu Management
-        </n-a>
+        <n-a :href="href" @click="navigate"> Menu Management </n-a>
       </router-link>
     </n-alert>
 
     <n-h1>
-      This feature supports to remember user scroll position in the current
-      route. For now, it is achieved by
-      <n-text type="info">
-        `localStorage`.
-      </n-text>
+      This feature supports to remember user scroll position in the current route. For now, it is
+      achieved by
+      <n-text type="info"> `localStorage`. </n-text>
     </n-h1>
 
     <n-h1>
-      For longer purpose, you can
-      make it compatiable with backend api, remember and extract the scroll
-      position from backend
+      For longer purpose, you can make it compatiable with backend api, remember and extract the
+      scroll position from backend
     </n-h1>
 
     <n-h1>
-      Maybe normally used for a article page which need to recovery the read
-      position for user ?
+      Maybe normally used for a article page which need to recovery the read position for user ?
     </n-h1>
 
     <!-- eslint-disable -->

@@ -1,4 +1,7 @@
-import type { IWalnutAdminDataScopeDescriptor, IWalnutAdminDataScopeRlsSettings } from '@walnut-server/db'
+import type {
+  IWalnutAdminDataScopeDescriptor,
+  IWalnutAdminDataScopeRlsSettings,
+} from '@walnut-server/db'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminConstDataScopeMode } from '@walnut-server/const/app/dataScope'
@@ -47,10 +50,13 @@ export class ALSRequestService {
    * fail-closed 语义）。使用点应能说清「为什么这个任务需要跨用户读」。
    */
   runAsSystem<T>(callback: () => T): T {
-    return this.als.run({
-      dataScope: { mode: WalnutAdminConstDataScopeMode.ALL },
-      systemTask: true,
-    }, callback)
+    return this.als.run(
+      {
+        dataScope: { mode: WalnutAdminConstDataScopeMode.ALL },
+        systemTask: true,
+      },
+      callback,
+    )
   }
 
   /** 当前异步链路上是否有 ALS store（区分「请求内缺上下文」与「非请求通道」） */
@@ -70,9 +76,10 @@ export class ALSRequestService {
 
     if (store) {
       store[key] = value
-    }
-    else {
-      this.logger.warn(`No ALS store found when setting ${key}. This means ALS scope is not active.`)
+    } else {
+      this.logger.warn(
+        `No ALS store found when setting ${key}. This means ALS scope is not active.`,
+      )
     }
   }
 

@@ -40,9 +40,12 @@ export async function replaySnapshots<T extends ObjectLiteral>(
 ): Promise<void> {
   const deletedRepository = em.getRepository(SysDeletedEntity)
 
-  const snapshots = await deletedRepository.createQueryBuilder('deleted')
+  const snapshots = await deletedRepository
+    .createQueryBuilder('deleted')
     .where('deleted.modelName = :modelName', { modelName: options.modelName })
-    .andWhere(`deleted.content ->> '${options.whereColumn}' = :whereValue`, { whereValue: options.whereValue })
+    .andWhere(`deleted.content ->> '${options.whereColumn}' = :whereValue`, {
+      whereValue: options.whereValue,
+    })
     .orderBy('deleted.deletedAt', 'DESC')
     .getMany()
 
@@ -60,8 +63,7 @@ export async function replaySnapshots<T extends ObjectLiteral>(
       await em.getRepository(options.entityTarget).insert(snapshot.content as never)
       await deletedRepository.delete({ id: snapshot.id })
       await em.query('RELEASE SAVEPOINT walnut_cascade_recover')
-    }
-    catch (error) {
+    } catch (error) {
       await em.query('ROLLBACK TO SAVEPOINT walnut_cascade_recover')
       logger.warn(
         `cascade recover skipped ${options.modelName} snapshot ${snapshot.id}: ${error instanceof Error ? error.message : String(error)}`,

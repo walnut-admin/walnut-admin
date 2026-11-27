@@ -39,7 +39,7 @@ export class AppErrorEntity {
   method: string | null
 
   // 任意请求头 → jsonb；DDL 默认 '{}'
-  @Column({ type: 'jsonb', name: 'headers', default: () => '\'{}\'::jsonb' })
+  @Column({ type: 'jsonb', name: 'headers', default: () => "'{}'::jsonb" })
   headers: Record<string, unknown>
 
   // Q7 定案：ETL parse 入 jsonb，失败入旁路 raw_payload

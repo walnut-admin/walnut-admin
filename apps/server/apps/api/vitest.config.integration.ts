@@ -39,10 +39,7 @@ export default defineWalnutVitestConfig({
     // globalSetup 每轮 drop 重建，互相不可见脏数据。
     include: realDataOnly
       ? ['apps/api/test/api/platform/real-data.api-spec.ts']
-      : [
-          'apps/api/test/integration/**/*.int-spec.ts',
-          'apps/api/test/api/**/*.api-spec.ts',
-        ],
+      : ['apps/api/test/integration/**/*.int-spec.ts', 'apps/api/test/api/**/*.api-spec.ts'],
     exclude: ['**/node_modules/**', '**/dist/**'],
     root: './',
     setupFiles: ['apps/api/test/integration/helpers/setup-env.ts'],

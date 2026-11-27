@@ -1,12 +1,14 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  Logger,
-} from '@nestjs/common'
+import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
-import { WalnutAdminExceptionBlackListPathDetected, WalnutAdminExceptionBotDetected, WalnutAdminExceptionSuspiciousRequest, WalnutAdminExceptionUserAgentBrowserNotAcceptable, WalnutAdminExceptionUserAgentNotAcceptable, WalnutAdminExceptionUserAgentOSNotAcceptable } from '@walnut-server/exceptions/base/406'
+import {
+  WalnutAdminExceptionBlackListPathDetected,
+  WalnutAdminExceptionBotDetected,
+  WalnutAdminExceptionSuspiciousRequest,
+  WalnutAdminExceptionUserAgentBrowserNotAcceptable,
+  WalnutAdminExceptionUserAgentNotAcceptable,
+  WalnutAdminExceptionUserAgentOSNotAcceptable,
+} from '@walnut-server/exceptions/base/406'
 import { SharedIpService } from '@walnut-server/ip'
 import { stripApiPrefix } from '@walnut/utils/sign-raw'
 import { isNil } from 'lodash'
@@ -32,7 +34,7 @@ export const WALNUT_ADMIN_PERMANENT_BLACKLIST_PATHS = [
 
 export function isWalnutAdminBlacklistedPath(path: string): boolean {
   const normalizedPath = path.toLowerCase()
-  return WALNUT_ADMIN_PERMANENT_BLACKLIST_PATHS.some(blacklisted =>
+  return WALNUT_ADMIN_PERMANENT_BLACKLIST_PATHS.some((blacklisted) =>
     normalizedPath.startsWith(blacklisted.toLowerCase()),
   )
 }
@@ -63,7 +65,15 @@ export class WalnutAdminGuardSecurity implements CanActivate {
     // 1. check permanent blacklist paths
     // P1-11 修复（2026-10-28）：req.path 带 `/{prefix}/v{version}`，旧实现拿裸常量
     // `startsWith('/admin')` 匹配永不命中。匹配前按 sign guard 同口径 strip API 前缀。
-    if (this.isBlacklistedPath(stripApiPrefix(req.path, this.configService.get<string>('app.api.prefix')!, this.configService.get<string>('app.api.version')!))) {
+    if (
+      this.isBlacklistedPath(
+        stripApiPrefix(
+          req.path,
+          this.configService.get<string>('app.api.prefix')!,
+          this.configService.get<string>('app.api.version')!,
+        ),
+      )
+    ) {
       // add to permanent blacklist
       await this.sharedIpService.addToPermanentBlackList(req.realIp)
       throw new WalnutAdminExceptionBlackListPathDetected()
@@ -115,12 +125,11 @@ export class WalnutAdminGuardSecurity implements CanActivate {
    * @description check if actual is in whitelist
    */
   private isInWhiteList(actual?: string, whiteList: string[] = []): boolean {
-    if (isNil(actual))
-      return false
+    if (isNil(actual)) return false
 
     const normalized = actual.toLowerCase().trim()
     return whiteList
-      .map(i => i.toLowerCase().trim())
-      .some(allowed => normalized.includes(allowed))
+      .map((i) => i.toLowerCase().trim())
+      .some((allowed) => normalized.includes(allowed))
   }
 }

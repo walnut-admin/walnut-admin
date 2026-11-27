@@ -27,7 +27,7 @@ withDefaults(defineProps<ICompVendorCodeMirrorProps>(), {
   autofocus: false,
 })
 
-const emits = defineEmits<{ blur: [e: ViewUpdate], focus: [e: ViewUpdate] }>()
+const emits = defineEmits<{ blur: [e: ViewUpdate]; focus: [e: ViewUpdate] }>()
 
 const value = defineModel<string>('value')
 
@@ -53,17 +53,13 @@ const appStoreLocale = useAppStoreLocale()
 watch(
   () => appStoreLocale.locale,
   async (v) => {
-    const modules = import.meta.glob(
-      '/vendor/codeMirror/langs/zh-CN.js',
-    )
+    const modules = import.meta.glob('/vendor/codeMirror/langs/zh-CN.js')
 
     for (const path in modules) {
       const res = (await modules[path]()) as { default: Recordable }
 
-      if (v === AppConstLocale.ZH_CN)
-        phrases.value = res.default
-      else
-        phrases.value = {}
+      if (v === AppConstLocale.ZH_CN) phrases.value = res.default
+      else phrases.value = {}
     }
   },
   {
@@ -71,9 +67,7 @@ watch(
   },
 )
 
-const extensions = computed(() =>
-  isDark.value ? [...languages, oneDark] : languages,
-)
+const extensions = computed(() => (isDark.value ? [...languages, oneDark] : languages))
 
 // @codemirror/view
 const view = shallowRef<EditorView>()
@@ -97,10 +91,7 @@ function onBlur(e: ViewUpdate) {
 function onUpdate(e: ViewUpdate) {
   const ranges = e.state.selection.ranges
 
-  infos.value!.selected = ranges.reduce(
-    (plus, range) => plus + range.to - range.from,
-    0,
-  )
+  infos.value!.selected = ranges.reduce((plus, range) => plus + range.to - range.from, 0)
   infos.value!.cursor = ranges[0].anchor
   infos.value!.length = e.state.doc.length
   infos.value!.lines = e.state.doc.lines
@@ -121,10 +112,8 @@ function onRedo() {
 }
 
 function onSearch() {
-  if (!searchPanelOpen.value)
-    openSearchPanel(view.value!)
-  else
-    closeSearchPanel(view.value!)
+  if (!searchPanelOpen.value) openSearchPanel(view.value!)
+  else closeSearchPanel(view.value!)
 
   searchPanelOpen.value = !searchPanelOpen.value
 }

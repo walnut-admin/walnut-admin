@@ -7,4 +7,4 @@ import { SysUserDeviceSharedService } from './user_device.shared.service'
   providers: [SysUserDeviceSharedService],
   exports: [SysUserDeviceSharedService],
 })
-export class SysUserDeviceSharedModule { }
+export class SysUserDeviceSharedModule {}

@@ -165,9 +165,7 @@ const nav: DefaultTheme.NavItem[] = [
   },
   {
     text: '公告',
-    items: [
-      { text: '1.0.0', link: '/announcement/v1.0.0' },
-    ],
+    items: [{ text: '1.0.0', link: '/announcement/v1.0.0' }],
   },
   {
     text: '支持',
@@ -234,9 +232,7 @@ const sidebar: DefaultTheme.Sidebar = {
         {
           text: 'HOC —— 高阶组件',
           collapsed: true,
-          items: [
-            { text: 'WithValue', link: '/component/HOC/withValue' },
-          ],
+          items: [{ text: 'WithValue', link: '/component/HOC/withValue' }],
         },
         {
           text: 'UI —— 原子化基础组件',
@@ -289,7 +285,10 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: 'pnpm Catalog', link: '/content/monorepo/pnpm-catalog' },
         { text: 'Turbo', link: '/content/monorepo/turbo' },
         { text: '🧊 Turbo 缓存边界（实测判据表）', link: '/content/monorepo/turbo-cache-boundary' },
-        { text: '🔍 与参考仓 Z 的基建交叉对比', link: '/content/monorepo/reference-repo-comparison' },
+        {
+          text: '🔍 与参考仓 Z 的基建交叉对比',
+          link: '/content/monorepo/reference-repo-comparison',
+        },
         { text: '✍️ 文档规范（写之前先看）', link: '/content/monorepo/doc-conventions' },
         { text: '📦 发布 & 发版指南', link: '/content/monorepo/release' },
         { text: '🚀 CI/CD 与容器构建', link: '/content/monorepo/ci-cd' },
@@ -298,8 +297,14 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: 'Syncpack 版本一致性', link: '/content/monorepo/syncpack' },
         { text: '环境变量加密管理', link: '/content/monorepo/env-management' },
         { text: '📋 架构待办事项', link: '/content/monorepo/architecture-todo' },
-        { text: '　⤷ 搁置（未落地的设计）', link: '/content/monorepo/architecture-todo#搁置-等条件成熟' },
-        { text: '　⤷ 未裁决（等你拍板）', link: '/content/monorepo/architecture-todo#未裁决-2026-09-21-评审提出-尚未决定做不做' },
+        {
+          text: '　⤷ 搁置（未落地的设计）',
+          link: '/content/monorepo/architecture-todo#搁置-等条件成熟',
+        },
+        {
+          text: '　⤷ 未裁决（等你拍板）',
+          link: '/content/monorepo/architecture-todo#未裁决-2026-09-21-评审提出-尚未决定做不做',
+        },
       ],
     },
     {
@@ -313,9 +318,15 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: '0005 JIT vs 构建', link: '/content/adr/0005-jit-vs-build' },
         { text: '0006 运行时 API 分离', link: '/content/adr/0006-runtime-api-separation' },
         { text: '0007 后端不参与 workspace', link: '/content/adr/0007-backend-libs-not-workspace' },
-        { text: '0008 统一版本独立部署', link: '/content/adr/0008-unified-versioning-separate-deploy' },
+        {
+          text: '0008 统一版本独立部署',
+          link: '/content/adr/0008-unified-versioning-separate-deploy',
+        },
         { text: '0009 CI 质量门禁', link: '/content/adr/0009-ci-quality-gates' },
-        { text: '0010 不用 TS Project References', link: '/content/adr/0010-no-ts-project-references' },
+        {
+          text: '0010 不用 TS Project References',
+          link: '/content/adr/0010-no-ts-project-references',
+        },
         { text: '0011 依赖治理与发布', link: '/content/adr/0011-dependency-governance-release' },
         { text: '0012 前后端工具链分歧', link: '/content/adr/0012-toolchain-divergence' },
         { text: '0013 Barrel Export 策略', link: '/content/adr/0013-barrel-exports-policy' },
@@ -324,18 +335,45 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: '0016 验证策略', link: '/content/adr/0016-validation-strategy' },
         { text: '0017 包重组', link: '/content/adr/0017-package-reorganization' },
         { text: '0018 Git 钩子迁 lefthook', link: '/content/adr/0018-git-hooks-lefthook' },
-        { text: '0019 tsconfig 预设与无 .mjs', link: '/content/adr/0019-tsconfig-presets-and-no-mjs' },
+        {
+          text: '0019 tsconfig 预设与无 .mjs',
+          link: '/content/adr/0019-tsconfig-presets-and-no-mjs',
+        },
         { text: '0020 移除 auto-import', link: '/content/adr/0020-remove-unplugin-auto-import' },
         { text: '0021 MongoDB 迁 PostgreSQL', link: '/content/adr/0021-postgresql-migration' },
-        { text: '0022 领域 lib 分层与组合根', link: '/content/adr/0022-backend-lib-layering-and-composition-roots' },
-        { text: '0023 契约上收与路由门禁', link: '/content/adr/0023-contract-uplift-and-route-parity-gates' },
-        { text: '0024 健康探针 liveness/readiness', link: '/content/adr/0024-health-probes-liveness-readiness-separation' },
-        { text: '0025 定时任务锁与 bootstrap 归属', link: '/content/adr/0025-cron-single-instance-lock-and-bootstrap-ownership' },
-        { text: '0026 签名原文跨端统一', link: '/content/adr/0026-shared-sign-raw-across-frontend-and-backend' },
-        { text: '0027 数据权限行级设计', link: '/content/adr/0027-data-scope-row-level-six-tier-and-rls' },
-        { text: '0028 tooling 提升为顶层目录组', link: '/content/adr/0028-top-level-tooling-directory' },
+        {
+          text: '0022 领域 lib 分层与组合根',
+          link: '/content/adr/0022-backend-lib-layering-and-composition-roots',
+        },
+        {
+          text: '0023 契约上收与路由门禁',
+          link: '/content/adr/0023-contract-uplift-and-route-parity-gates',
+        },
+        {
+          text: '0024 健康探针 liveness/readiness',
+          link: '/content/adr/0024-health-probes-liveness-readiness-separation',
+        },
+        {
+          text: '0025 定时任务锁与 bootstrap 归属',
+          link: '/content/adr/0025-cron-single-instance-lock-and-bootstrap-ownership',
+        },
+        {
+          text: '0026 签名原文跨端统一',
+          link: '/content/adr/0026-shared-sign-raw-across-frontend-and-backend',
+        },
+        {
+          text: '0027 数据权限行级设计',
+          link: '/content/adr/0027-data-scope-row-level-six-tier-and-rls',
+        },
+        {
+          text: '0028 tooling 提升为顶层目录组',
+          link: '/content/adr/0028-top-level-tooling-directory',
+        },
         { text: '0029 命令表与统一入口', link: '/content/adr/0029-command-table-and-entry' },
-        { text: '0030 admin 构建配置抽出为 tooling 包', link: '/content/adr/0030-admin-build-config-as-tooling-package' },
+        {
+          text: '0030 admin 构建配置抽出为 tooling 包',
+          link: '/content/adr/0030-admin-build-config-as-tooling-package',
+        },
         { text: 'Zod vs class-validator 评估', link: '/content/adr/zod-evaluation' },
       ],
     },
@@ -348,7 +386,10 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: '数据权限 Phase 2-3 计划', link: '/content/plans/data-scope-phase2-3-plan' },
         { text: '数据权限整改计划', link: '/content/plans/data-scope-remediation-plan' },
         { text: 'PostgreSQL 迁移 Phase 2', link: '/content/plans/postgres-migration-phase2' },
-        { text: 'PostgreSQL 迁移 Phase 3 计划', link: '/content/plans/postgres-migration-phase3-plan' },
+        {
+          text: 'PostgreSQL 迁移 Phase 3 计划',
+          link: '/content/plans/postgres-migration-phase3-plan',
+        },
         { text: '现代化路线图', link: '/content/plans/modernization-roadmap' },
         { text: 'libs 解耦残留与后续', link: '/content/plans/libs-decoupling-residuals' },
         { text: 'Package 下沉提案', link: '/content/plans/package-sinking-proposal' },
@@ -356,33 +397,63 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: 'E2E 沙盒测试计划', link: '/content/plans/e2e-sandbox-plan' },
         { text: 'apps/e2e 改造优化方案', link: '/content/plans/e2e-optimization-plan' },
         { text: 'Rust 化工具链迁移计划', link: '/content/plans/rust-toolchain-migration-plan' },
-        { text: 'Rust 化工具链迁移执行计划', link: '/content/plans/rust-toolchain-migration-execution' },
+        {
+          text: 'Rust 化工具链迁移执行计划',
+          link: '/content/plans/rust-toolchain-migration-execution',
+        },
       ],
     },
     {
       text: '行业调研',
       items: [
         { text: '调研索引', link: '/content/industry-research/' },
-        { text: 'TypeScript 配置策略', link: '/content/industry-research/01-typescript-configuration' },
+        {
+          text: 'TypeScript 配置策略',
+          link: '/content/industry-research/01-typescript-configuration',
+        },
         { text: 'ESLint 与代码质量', link: '/content/industry-research/02-eslint-configuration' },
         { text: 'CI/CD 流水线设计', link: '/content/industry-research/03-ci-cd-pipeline' },
         { text: '测试体系', link: '/content/industry-research/04-testing-strategy' },
         { text: 'Package Scripts 与 Turbo', link: '/content/industry-research/05-package-scripts' },
-        { text: '版本管理与发布日志', link: '/content/industry-research/06-versioning-and-changelog' },
-        { text: 'Vue3 + NestJS 全栈架构', link: '/content/industry-research/07-fullstack-architecture' },
+        {
+          text: '版本管理与发布日志',
+          link: '/content/industry-research/06-versioning-and-changelog',
+        },
+        {
+          text: 'Vue3 + NestJS 全栈架构',
+          link: '/content/industry-research/07-fullstack-architecture',
+        },
         { text: 'E2E 与沙盒测试', link: '/content/industry-research/08-e2e-and-sandbox-testing' },
-        { text: 'Rust 化工具链迁移评估', link: '/content/industry-research/rust-toolchain-migration-assessment' },
+        {
+          text: 'Rust 化工具链迁移评估',
+          link: '/content/industry-research/rust-toolchain-migration-assessment',
+        },
       ],
     },
     {
       text: '后端架构调研（归档）',
       items: [
         { text: '调研索引与总览', link: '/content/industry-research/backend-architecture-review/' },
-        { text: '跨批核对', link: '/content/industry-research/backend-architecture-review/06-cross-check' },
-        { text: '6 条决策记录', link: '/content/industry-research/backend-architecture-review/07-decisions' },
-        { text: '建议方案', link: '/content/industry-research/backend-architecture-review/08-recommended-plan' },
-        { text: '调研摘要', link: '/content/industry-research/backend-architecture-review/09-research-summaries' },
-        { text: '实施计划（5 批 × 3 轮）', link: '/content/industry-research/backend-architecture-review/10-implementation-plan' },
+        {
+          text: '跨批核对',
+          link: '/content/industry-research/backend-architecture-review/06-cross-check',
+        },
+        {
+          text: '6 条决策记录',
+          link: '/content/industry-research/backend-architecture-review/07-decisions',
+        },
+        {
+          text: '建议方案',
+          link: '/content/industry-research/backend-architecture-review/08-recommended-plan',
+        },
+        {
+          text: '调研摘要',
+          link: '/content/industry-research/backend-architecture-review/09-research-summaries',
+        },
+        {
+          text: '实施计划（5 批 × 3 轮）',
+          link: '/content/industry-research/backend-architecture-review/10-implementation-plan',
+        },
       ],
     },
     {
@@ -399,12 +470,27 @@ const sidebar: DefaultTheme.Sidebar = {
       text: '归档（设计 / 计划 / 评审）',
       items: [
         { text: '归档说明与索引', link: '/content/archive/' },
-        { text: '2026-08-08 全容器化部署设计', link: '/content/archive/2026-08-08-dockerized-deployment-design' },
-        { text: '2026-08-08 全容器化部署实施计划', link: '/content/archive/2026-08-08-dockerized-deployment-plan' },
-        { text: '2026-09-21 CI/CD 重构实施记录', link: '/content/archive/2026-09-21-ci-cd-pipeline-plan' },
+        {
+          text: '2026-08-08 全容器化部署设计',
+          link: '/content/archive/2026-08-08-dockerized-deployment-design',
+        },
+        {
+          text: '2026-08-08 全容器化部署实施计划',
+          link: '/content/archive/2026-08-08-dockerized-deployment-plan',
+        },
+        {
+          text: '2026-09-21 CI/CD 重构实施记录',
+          link: '/content/archive/2026-09-21-ci-cd-pipeline-plan',
+        },
         { text: '2026-09-21 架构 Review', link: '/content/archive/2026-09-21-architecture-review' },
-        { text: '2026-09-21 行业调研审计', link: '/content/archive/2026-09-21-industry-research-audit' },
-        { text: '2026-09-21 pnpm 12 迁移计划', link: '/content/archive/2026-09-21-pnpm12-and-hoist-migration-plan' },
+        {
+          text: '2026-09-21 行业调研审计',
+          link: '/content/archive/2026-09-21-industry-research-audit',
+        },
+        {
+          text: '2026-09-21 pnpm 12 迁移计划',
+          link: '/content/archive/2026-09-21-pnpm12-and-hoist-migration-plan',
+        },
       ],
     },
     {

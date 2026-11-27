@@ -8,7 +8,10 @@ import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base
 import { WalnutAdminExceptionUserBannedToSignin } from '@walnut-server/exceptions/business/auth'
 import { AppTokenService } from '@walnut-server/token'
 import { omit } from 'lodash'
-import { IIdentityDataScopeInvalidator, WALNUT_ADMIN_IDENTITY_DATA_SCOPE_INVALIDATOR } from '../../identity.ports'
+import {
+  IIdentityDataScopeInvalidator,
+  WALNUT_ADMIN_IDENTITY_DATA_SCOPE_INVALIDATOR,
+} from '../../identity.ports'
 import { SysUserDeviceSharedService } from '../../user_device/shared/user_device.shared.service'
 import { SysUserEntity } from '../entity/user.entity'
 import { ISysUserPopulated, SysUserRepositoryService } from '../repo/user.repo.service'
@@ -24,7 +27,7 @@ export class SysUserSharedService {
     private readonly sysUserRepoService: SysUserRepositoryService,
     @Inject(WALNUT_ADMIN_IDENTITY_DATA_SCOPE_INVALIDATOR)
     private readonly dataScopeInvalidator: IIdentityDataScopeInvalidator,
-  ) { }
+  ) {}
 
   /**
    * @description update mfa status for user
@@ -40,13 +43,16 @@ export class SysUserSharedService {
 
     // B5 订正脚本落地后 functionalRole.defaultRole 是 role 的 v5 uuid（phase3-plan §5
     // 残留窗口 2）—— PG 侧按 uuid 语义直用，不再有 ObjectId 包装
-    return this.sysUserRepoService.createUser({
-      ...omit(payload, ['roles_list']),
-      userName: payload.userName ?? `user_${randomBytes(4).toString('hex').slice(2, 8)}`,
-      roles: [functionalRole.defaultRole],
-      currentRole: functionalRole.defaultRole,
-      roleMode: WalnutAdminConstRoleMode.SWITCH,
-    }, em)
+    return this.sysUserRepoService.createUser(
+      {
+        ...omit(payload, ['roles_list']),
+        userName: payload.userName ?? `user_${randomBytes(4).toString('hex').slice(2, 8)}`,
+        roles: [functionalRole.defaultRole],
+        currentRole: functionalRole.defaultRole,
+        roleMode: WalnutAdminConstRoleMode.SWITCH,
+      },
+      em,
+    )
   }
 
   /**
@@ -70,20 +76,19 @@ export class SysUserSharedService {
     if (roleMode === WalnutAdminConstRoleMode.COMBINE) {
       // role combine mode
       // if no role has true status, also banned to sign in
-      if (!roles_list?.some(i => i.status)) {
+      if (!roles_list?.some((i) => i.status)) {
         throw new WalnutAdminExceptionUserBannedToSignin()
       }
     }
 
     // switch
     if (roleMode === WalnutAdminConstRoleMode.SWITCH) {
-      const currentRoleFromList = roles_list?.find(i => i.id === currentRole)
+      const currentRoleFromList = roles_list?.find((i) => i.id === currentRole)
       if (currentRoleFromList) {
         if (!currentRoleFromList.status) {
           throw new WalnutAdminExceptionUserBannedToSignin()
         }
-      }
-      else {
+      } else {
         this.logger.log('Cannot find current role in `roles_list` which should not happen')
         this.logger.log('This case should not happen, some logic is wrong, need to check')
       }
@@ -114,7 +119,9 @@ export class SysUserSharedService {
     }
 
     // roleId should be in `user.roles`
-    if (!(await this.sysUserRepoService.populatedRolesList(userId)).map(i => i.id).includes(roleId)) {
+    if (
+      !(await this.sysUserRepoService.populatedRolesList(userId)).map((i) => i.id).includes(roleId)
+    ) {
       throw new WalnutAdminExceptionBadRequest()
     }
 
@@ -150,7 +157,11 @@ export class SysUserSharedService {
   /**
    * @description get access token payload when user existed
    */
-  async getAccessTokenPayloadWhenUserExisted(payload: SysUserEntity, deviceId: string, em?: EntityManager) {
+  async getAccessTokenPayloadWhenUserExisted(
+    payload: SysUserEntity,
+    deviceId: string,
+    em?: EntityManager,
+  ) {
     // Step 1 - get user with role infos
     const user = await this.getUserWithPopulatedRoles(payload, em)
 
@@ -167,7 +178,11 @@ export class SysUserSharedService {
   /**
    * @description get access token payload after automatic sign up for non exist user
    */
-  async getAccessTokenPayloadAfterAutomaticSignUpForNonExistUser(payload: Partial<SysUserEntity>, deviceId: string, em?: EntityManager) {
+  async getAccessTokenPayloadAfterAutomaticSignUpForNonExistUser(
+    payload: Partial<SysUserEntity>,
+    deviceId: string,
+    em?: EntityManager,
+  ) {
     // Step 1 - sign up for the non exist user
     const user = await this.createForAuthUser(payload, em)
 

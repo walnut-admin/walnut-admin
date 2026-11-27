@@ -1,14 +1,25 @@
 import type { WalnutLockService } from '@walnut-server/lock'
 import { Buffer } from 'node:buffer'
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
-import { CanActivate, ExecutionContext, Inject, Injectable, Logger, SetMetadata } from '@nestjs/common'
+import {
+  CanActivate,
+  ExecutionContext,
+  Inject,
+  Injectable,
+  Logger,
+  SetMetadata,
+} from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Reflector } from '@nestjs/core'
 import { AuthSessionService } from '@walnut-server/auth'
 import { AppTechCacheRsaService, AppTechCacheSignService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
-import { AppTechCookieService, getWalnutAdminCookie, getWalnutAdminCookieString } from '@walnut-server/cookie'
+import {
+  AppTechCookieService,
+  getWalnutAdminCookie,
+  getWalnutAdminCookieString,
+} from '@walnut-server/cookie'
 import {
   WalnutAdminExceptionExpiredSignature,
   WalnutAdminExceptionInvalidSignature,
@@ -90,14 +101,7 @@ export class WalnutAdminGuardSign implements CanActivate {
     }
 
     // 3. 提取并验证必需的 Request 头（Cookie）
-    const {
-      sign,
-      ua,
-      nonce,
-      timestamp,
-      deviceId,
-      signTicket,
-    } = this.extractRequestMetadata(req)
+    const { sign, ua, nonce, timestamp, deviceId, signTicket } = this.extractRequestMetadata(req)
 
     // 4. 验证 RSA 证书（确保已完成握手）
     await this.cacheRsaService.getRsaPubKeyCache(deviceId)
@@ -147,9 +151,10 @@ export class WalnutAdminGuardSign implements CanActivate {
         aesKey,
       )
       signMode = 'dual-factor'
-      this.logger.debug(`Sign guard: using dual-factor mode (user=${userSession.userId}, session=${userSession.sid})`)
-    }
-    else {
+      this.logger.debug(
+        `Sign guard: using dual-factor mode (user=${userSession.userId}, session=${userSession.sid})`,
+      )
+    } else {
       // 【未登录】单因子模式：仅使用 AES Key
       serverSign = this.computeSingleFactorSignature(raw, aesKey)
       signMode = 'single-factor'
@@ -162,10 +167,10 @@ export class WalnutAdminGuardSign implements CanActivate {
       // 验证码、PII），签名本身泄漏则 attacker 可直接重放。改打摘要：同一 raw 在两侧算出的
       // 摘要一致即可判定「原文一致但密钥不同」，排障信息不丢。
       this.logger.error(
-        `Sign guard: signature mismatch (${signMode})\n`
-        + `  Client digest: ${this.secretDigest(sign)}\n`
-        + `  Server digest: ${this.secretDigest(serverSign)}\n`
-        + `  Raw length: ${raw.length}, raw digest: ${this.secretDigest(raw)}`,
+        `Sign guard: signature mismatch (${signMode})\n` +
+          `  Client digest: ${this.secretDigest(sign)}\n` +
+          `  Server digest: ${this.secretDigest(serverSign)}\n` +
+          `  Raw length: ${raw.length}, raw digest: ${this.secretDigest(raw)}`,
       )
       throw new WalnutAdminExceptionInvalidSignature()
     }
@@ -196,12 +201,12 @@ export class WalnutAdminGuardSign implements CanActivate {
 
     if (!sign || !ua || !nonce || !timestamp || !deviceId) {
       this.logger.error(
-        `Sign guard: missing required metadata\n`
-        + `  sign: ${!!sign}\n`
-        + `  ua: ${!!ua}\n`
-        + `  nonce: ${!!nonce}\n`
-        + `  timestamp: ${!!timestamp}\n`
-        + `  deviceId: ${!!deviceId}`,
+        `Sign guard: missing required metadata\n` +
+          `  sign: ${!!sign}\n` +
+          `  ua: ${!!ua}\n` +
+          `  nonce: ${!!nonce}\n` +
+          `  timestamp: ${!!timestamp}\n` +
+          `  deviceId: ${!!deviceId}`,
       )
       throw new WalnutAdminExceptionInvalidSignature()
     }
@@ -224,10 +229,10 @@ export class WalnutAdminGuardSign implements CanActivate {
 
     if (diff > this.TIMESTAMP_TOLERANCE_MS) {
       this.logger.error(
-        `Sign guard: timestamp expired\n`
-        + `  Server: ${now}\n`
-        + `  Client: ${ts}\n`
-        + `  Diff: ${diff}ms (max: ${this.TIMESTAMP_TOLERANCE_MS}ms)`,
+        `Sign guard: timestamp expired\n` +
+          `  Server: ${now}\n` +
+          `  Client: ${ts}\n` +
+          `  Diff: ${diff}ms (max: ${this.TIMESTAMP_TOLERANCE_MS}ms)`,
       )
       throw new WalnutAdminExceptionInvalidSignature()
     }
@@ -255,7 +260,11 @@ export class WalnutAdminGuardSign implements CanActivate {
   /**
    * 验证 Sign Ticket
    */
-  private async validateSignTicket(deviceId: string, signTicket: string | undefined, req: IWalnutAdminExpressRequest) {
+  private async validateSignTicket(
+    deviceId: string,
+    signTicket: string | undefined,
+    req: IWalnutAdminExpressRequest,
+  ) {
     const cachedSignTicket = await this.cacheSignService.getSignTicketCache(deviceId)
 
     // 缓存存在 - 快速路径(无锁)
@@ -264,9 +273,9 @@ export class WalnutAdminGuardSign implements CanActivate {
         // F-06：signTicket 是会话绑定的凭据（Cookie 值，可被直接回放），error 级日志会落盘
         // —— 同样只打摘要。
         this.logger.error(
-          `Sign guard: sign ticket mismatch\n`
-          + `  Cookie digest: ${this.secretDigest(signTicket)}\n`
-          + `  Cache digest: ${this.secretDigest(cachedSignTicket)}`,
+          `Sign guard: sign ticket mismatch\n` +
+            `  Cookie digest: ${this.secretDigest(signTicket)}\n` +
+            `  Cache digest: ${this.secretDigest(cachedSignTicket)}`,
         )
         throw new WalnutAdminExceptionInvalidSignature()
       }
@@ -284,42 +293,41 @@ export class WalnutAdminGuardSign implements CanActivate {
   /**
    * 使用分布式锁生成 Sign Ticket
    */
-  private async generateSignTicketWithLock(
-    deviceId: string,
-    req: IWalnutAdminExpressRequest,
-  ) {
+  private async generateSignTicketWithLock(deviceId: string, req: IWalnutAdminExpressRequest) {
     const lockKey = `${WalnutAdminConstAppCacheKeys.APP_MURLOCK}:SIGN:${deviceId}`
 
-    await this.lockService.runWithLock(
-      lockKey,
-      3000,
-      async () => {
+    await this.lockService.runWithLock(lockKey, 3000, async () => {
       // 双重检查
-        const doubleCheckTicket = await this.cacheSignService.getSignTicketCache(deviceId)
+      const doubleCheckTicket = await this.cacheSignService.getSignTicketCache(deviceId)
 
-        if (!isNil(doubleCheckTicket)) {
-          this.logger.log(`Sign ticket double cache hit: ${deviceId}`)
-          this.setSignTicketCookie(req, doubleCheckTicket)
-          return
-        }
+      if (!isNil(doubleCheckTicket)) {
+        this.logger.log(`Sign ticket double cache hit: ${deviceId}`)
+        this.setSignTicketCookie(req, doubleCheckTicket)
+        return
+      }
 
-        // 生成新 ticket
-        this.logger.log(`Generating new sign ticket: ${deviceId}`)
-        const newTicket = randomBytes(16).toString('base64url')
+      // 生成新 ticket
+      this.logger.log(`Generating new sign ticket: ${deviceId}`)
+      const newTicket = randomBytes(16).toString('base64url')
 
-        await this.cacheSignService.setSignTicketCache(deviceId, newTicket)
-        this.setSignTicketCookie(req, newTicket)
+      await this.cacheSignService.setSignTicketCache(deviceId, newTicket)
+      this.setSignTicketCookie(req, newTicket)
 
-        this.logger.log(`Sign ticket created: ${deviceId}`)
-      },
-    )
+      this.logger.log(`Sign ticket created: ${deviceId}`)
+    })
   }
 
   /**
    * 设置 Sign Ticket Cookie
    */
   private setSignTicketCookie(req: IWalnutAdminExpressRequest, ticket: string) {
-    this.cookieService.setResponseCookie(req, [{ key: WalnutAdminConstCookieKeys.SIGN_TICKET, value: ticket, options: { maxAge: this.tokenService.getAccessTokenExpireSeconds() * 1000 } }])
+    this.cookieService.setResponseCookie(req, [
+      {
+        key: WalnutAdminConstCookieKeys.SIGN_TICKET,
+        value: ticket,
+        options: { maxAge: this.tokenService.getAccessTokenExpireSeconds() * 1000 },
+      },
+    ])
   }
 
   /**
@@ -349,9 +357,7 @@ export class WalnutAdminGuardSign implements CanActivate {
    * @returns 签名（hex 编码）
    */
   private computeSingleFactorSignature(raw: string, aesKey: string): string {
-    return createHmac('sha256', aesKey)
-      .update(raw, 'utf8')
-      .digest('hex')
+    return createHmac('sha256', aesKey).update(raw, 'utf8').digest('hex')
   }
 
   /**
@@ -392,8 +398,8 @@ export class WalnutAdminGuardSign implements CanActivate {
       // 降级曾让「正确签名的伪造 AT + 设备 aesKey + 显式单因子签名」绕过会话绑定
       // （会话吊销对自选签名模式的客户端不设防）；未登录请求仍走单因子（登录/握手端点）。
       this.logger.error(
-        `Sign guard: session not found for authenticated request, rejecting `
-        + `(user=${userId}, device=${deviceId}, session=${sessionId})`,
+        `Sign guard: session not found for authenticated request, rejecting ` +
+          `(user=${userId}, device=${deviceId}, session=${sessionId})`,
       )
       throw new WalnutAdminExceptionInvalidSignature()
     }
@@ -423,12 +429,8 @@ export class WalnutAdminGuardSign implements CanActivate {
     }
 
     try {
-      return timingSafeEqual(
-        Buffer.from(clientSign, 'hex'),
-        Buffer.from(serverSign, 'hex'),
-      )
-    }
-    catch {
+      return timingSafeEqual(Buffer.from(clientSign, 'hex'), Buffer.from(serverSign, 'hex'))
+    } catch {
       return false
     }
   }

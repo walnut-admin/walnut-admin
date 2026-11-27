@@ -5,15 +5,13 @@ import { AppAxios } from '@/utils/axios'
 
 // get area children by pcode, default will return province info
 export function getAreaChildrenByPcodeAPI(pcode?: string) {
-  return AppAxios.get<SharedArea[]>(
-    {
-      url: SharedRoutes.AREA_CHILDREN,
-      params: {
-        pcode,
-      },
-      _cache: true,
+  return AppAxios.get<SharedArea[]>({
+    url: SharedRoutes.AREA_CHILDREN,
+    params: {
+      pcode,
     },
-  )
+    _cache: true,
+  })
 }
 
 // area feedback, single

@@ -44,7 +44,7 @@ export class SysUserPreferenceEntity {
   layoutMode: string
 
   // 前端布局的自由状态袋 → jsonb 合理（phase2 5.5）；DDL 默认 '{}'
-  @Column({ type: 'jsonb', name: 'layout', default: () => '\'{}\'::jsonb' })
+  @Column({ type: 'jsonb', name: 'layout', default: () => "'{}'::jsonb" })
   layout: Record<string, unknown>
 
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })

@@ -23,7 +23,7 @@ export class SysUserLockEntity {
   @Column({ type: 'uuid', name: 'user_id' })
   userId: string
 
-  @Column({ type: 'jsonb', name: 'lock_route', default: () => '\'{}\'::jsonb' })
+  @Column({ type: 'jsonb', name: 'lock_route', default: () => "'{}'::jsonb" })
   lockRoute: IUserLockRoute
 
   // bcrypt hash

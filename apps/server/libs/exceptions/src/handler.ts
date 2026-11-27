@@ -7,7 +7,11 @@ import { WalnutAdminResponseException } from '@walnut-server/utils/response'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract'
 import { QueryFailedError } from 'typeorm'
 
-export function WalnutAdminExceptionHandler(e: Error, requestId: string, i18n: I18nContext): IWalnutAdminResponseBase {
+export function WalnutAdminExceptionHandler(
+  e: Error,
+  requestId: string,
+  i18n: I18nContext,
+): IWalnutAdminResponseBase {
   // ========== 1. HttpException (NestJS Built-in or Custom) ==========
   if (e instanceof HttpException) {
     const status = e.getStatus()
@@ -21,20 +25,19 @@ export function WalnutAdminExceptionHandler(e: Error, requestId: string, i18n: I
       const devMsg = err._devMsg ?? errMsg
       const _meta = err.meta as Recordable
 
-      return WalnutAdminResponseException(
-        {
-          errCode,
-          errMsg: errMsg ? i18n.t(errMsg) : undefined,
-          _devMsg: devMsg,
-          requestId,
-          meta: _meta,
-        },
-      )
+      return WalnutAdminResponseException({
+        errCode,
+        errMsg: errMsg ? i18n.t(errMsg) : undefined,
+        _devMsg: devMsg,
+        requestId,
+        meta: _meta,
+      })
     }
 
     // 处理 NestJS 原生异常（如 BadRequestException, NotFoundException 等）
     // 将标准的 HTTP 状态码映射到我们的自定义业务错误码
-    let mappedErrCode: IWalnutAdminConstAppResponseCode = WalnutAdminConstAppResponseCode.INTERNAL_SERVER_ERROR
+    let mappedErrCode: IWalnutAdminConstAppResponseCode =
+      WalnutAdminConstAppResponseCode.INTERNAL_SERVER_ERROR
     const devMessage: string = typeof response === 'string' ? response : (response as Error).message
 
     switch (status) {
@@ -61,13 +64,11 @@ export function WalnutAdminExceptionHandler(e: Error, requestId: string, i18n: I
         break
     }
 
-    return WalnutAdminResponseException(
-      {
-        errCode: mappedErrCode,
-        requestId,
-        _devMsg: devMessage || e.message,
-      },
-    )
+    return WalnutAdminResponseException({
+      errCode: mappedErrCode,
+      requestId,
+      _devMsg: devMessage || e.message,
+    })
   }
 
   // ========== 2. QueryFailedError（TypeORM 驱动层）==========
@@ -77,7 +78,9 @@ export function WalnutAdminExceptionHandler(e: Error, requestId: string, i18n: I
   // - 23503 foreign_key_violation：外键引用不存在（如 role create 的 junction 腿），P1-7 修复。
   // CHECK 值集与 DTO/const 的三方一致性由 dto-entity.drift.spec 的枚举守卫钉住。
   if (e instanceof QueryFailedError) {
-    const driverError = e.driverError as { code?: string, constraint?: string, column?: string } | undefined
+    const driverError = e.driverError as
+      | { code?: string; constraint?: string; column?: string }
+      | undefined
 
     if (driverError?.code === '23514') {
       const detail = [driverError.constraint, driverError.column]
@@ -104,21 +107,17 @@ export function WalnutAdminExceptionHandler(e: Error, requestId: string, i18n: I
 
   // ========== 3. TypeError (Runtime Error) ==========
   if (e instanceof TypeError) {
-    return WalnutAdminResponseException(
-      {
-        errCode: WalnutAdminConstAppResponseCode.INTERNAL_SERVER_ERROR,
-        requestId,
-        _devMsg: e.message,
-      },
-    )
+    return WalnutAdminResponseException({
+      errCode: WalnutAdminConstAppResponseCode.INTERNAL_SERVER_ERROR,
+      requestId,
+      _devMsg: e.message,
+    })
   }
 
   // ========== 4. Fallback ==========
-  return WalnutAdminResponseException(
-    {
-      errCode: WalnutAdminConstAppResponseCode.INTERNAL_SERVER_ERROR,
-      requestId,
-      _devMsg: e.message ?? 'Unknown Error',
-    },
-  )
+  return WalnutAdminResponseException({
+    errCode: WalnutAdminConstAppResponseCode.INTERNAL_SERVER_ERROR,
+    requestId,
+    _devMsg: e.message ?? 'Unknown Error',
+  })
 }

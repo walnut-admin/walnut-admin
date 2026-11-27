@@ -16,8 +16,7 @@ export class SingletonPromise<T> {
           throw e
         })
         .finally(() => {
-          if (this.clearOnFinally)
-            this.promise = null
+          if (this.clearOnFinally) this.promise = null
         })
     }
     return this.promise

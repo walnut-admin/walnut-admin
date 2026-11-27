@@ -115,7 +115,8 @@ describe('cap.service：ttl 按「秒」进、按 cap.js / Express 要的单位�
         release = resolve
       })
     })
-    const logSpy = vi.spyOn((service as unknown as { logger: { log: (msg: string) => void } }).logger, 'log')
+    const logSpy = vi
+      .spyOn((service as unknown as { logger: { log: (msg: string) => void } }).logger, 'log')
       .mockImplementation(() => undefined)
 
     const hook = service.beforeApplicationShutdown('SIGTERM')

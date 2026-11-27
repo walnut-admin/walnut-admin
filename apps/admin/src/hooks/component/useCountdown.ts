@@ -4,7 +4,10 @@ import { onBeforeMount, ref } from 'vue'
 import { AppConstPersistKey } from '@/const/persistent'
 import { useAppI18n } from '@/locales/index'
 
-const buttonRetryMapPersistent = useAppStorageSync<Map<string, number>>(AppConstPersistKey.COUNTDOWN, new Map<string, number>())
+const buttonRetryMapPersistent = useAppStorageSync<Map<string, number>>(
+  AppConstPersistKey.COUNTDOWN,
+  new Map<string, number>(),
+)
 
 export function useCountdownStorage({
   persistKey,
@@ -21,9 +24,7 @@ export function useCountdownStorage({
   const _leftSeconds = ref<number>(persistSeconds)
 
   function readStart(): number | undefined {
-    return persistKey
-      ? buttonRetryMapPersistent.value?.get(persistKey)
-      : undefined
+    return persistKey ? buttonRetryMapPersistent.value?.get(persistKey) : undefined
   }
 
   function writeStart(ts: number) {
@@ -84,13 +85,11 @@ export function useCountdownStorage({
 
       if (_leftSeconds.value > 0) {
         resume()
-      }
-      else {
+      } else {
         clearPersist()
         onCountdownComplete?.()
       }
-    }
-    else {
+    } else {
       _leftSeconds.value = persistSeconds
     }
   })

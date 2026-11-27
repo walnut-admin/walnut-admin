@@ -28,10 +28,7 @@ function defaultResOpt(): IWADTStrResOpt {
   }
 }
 
-export function WalnutAdminDecoratorTransformerString(
-  options?: IWADTStrOpt,
-  isArray?: boolean,
-) {
+export function WalnutAdminDecoratorTransformerString(options?: IWADTStrOpt, isArray?: boolean) {
   const decorators: PropertyDecorator[] = []
 
   const reqOptions = Object.assign(defaultReqOpt(), options?.req ?? {})
@@ -97,8 +94,7 @@ export function WalnutAdminDecoratorTransformStringToTrim(
   options: TransformOptions = {},
 ): PropertyDecorator {
   return Transform(({ value }: { value: string | null | undefined }) => {
-    if (isNil(value))
-      return null
+    if (isNil(value)) return null
 
     if (isArray && Array.isArray(value)) {
       return value.map((v: string) => v.trim().replace(/\s{2,}/g, ' '))
@@ -113,8 +109,7 @@ export function WalnutAdminDecoratorTransformStringToLowerCase(
   options: TransformOptions = {},
 ): PropertyDecorator {
   return Transform(({ value }: { value: string | null | undefined }) => {
-    if (isNil(value))
-      return null
+    if (isNil(value)) return null
 
     if (isArray && Array.isArray(value)) {
       return value.map((v: string) => v.toLowerCase())
@@ -129,8 +124,7 @@ export function WalnutAdminDecoratorTransformStringToUpperCase(
   options: TransformOptions = {},
 ): PropertyDecorator {
   return Transform(({ value }: { value: string | null | undefined }) => {
-    if (isNil(value))
-      return null
+    if (isNil(value)) return null
 
     if (isArray && Array.isArray(value)) {
       return value.map((v: string) => v.toUpperCase())
@@ -149,8 +143,7 @@ export function WalnutAdminDecoratorTransformStringBoolean(
   options: TransformOptions = {},
 ): PropertyDecorator {
   return Transform(({ value }: { value: string | null | undefined }) => {
-    if (isNil(value))
-      return null
+    if (isNil(value)) return null
 
     if (isArray && Array.isArray(value)) {
       return value.map((v: string) => transformBooleanStringToBoolean(v))

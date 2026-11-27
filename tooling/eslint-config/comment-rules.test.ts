@@ -19,7 +19,7 @@ describe('no-emoji —— 注释里不许有 emoji', () => {
       valid: [
         { code: '// 纯文字注释，含排版符号：A → B ⇒ C，≤ 5，—破折号' },
         { code: '/* 块注释也是纯文字 */\nconst a = 1' },
-        { code: 'const s = \'CLI 图标留在字符串里：✅ ❌ ⚠️\'' },
+        { code: "const s = 'CLI 图标留在字符串里：✅ ❌ ⚠️'" },
         { code: 'const t = "⏭️ 文档断言用的标记也在字符串里"' },
         { code: 'const n = `模板字符串里的 🚀 不管`' },
         { code: 'const re = /⚠️/u' },

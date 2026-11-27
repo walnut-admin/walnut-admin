@@ -11,10 +11,10 @@ import { syncLocalStorage } from './localStorage'
 
 function toShallowReactive<T>(value: T): T {
   if (
-    value instanceof Map
-    || value instanceof Set
-    || Array.isArray(value)
-    || (value !== null && typeof value === 'object')
+    value instanceof Map ||
+    value instanceof Set ||
+    Array.isArray(value) ||
+    (value !== null && typeof value === 'object')
   ) {
     return shallowReactive(value) as T
   }
@@ -53,30 +53,24 @@ export function useAppStorageSync<T>(
     if (resetBehavior === 'keepInitial') {
       const fresh = cloneDeep(initialValue)
       state.value = toShallowReactive(fresh)
-    }
-    else {
+    } else {
       state.value = null as any
     }
   }
 
   function computeExpire(): number | null {
-    if (expire === Infinity)
-      return null
-    if (ttlMode === 'sliding')
-      return Date.now() + expire
+    if (expire === Infinity) return null
+    if (ttlMode === 'sliding') return Date.now() + expire
 
     // 使用缓存避免重复读取
-    if (cachedExpireTime !== null)
-      return cachedExpireTime
+    if (cachedExpireTime !== null) return cachedExpireTime
 
     const oldRaw = storage.getItem(realKey)
     if (oldRaw) {
       try {
         const { e } = superjson.parse(oldRaw) as IStorageData<T>
-        if (typeof e === 'number')
-          return e
-      }
-      catch (error) {
+        if (typeof e === 'number') return e
+      } catch (error) {
         // 记录错误
         console.warn(`Failed to parse storage data for key "${realKey}":`, error)
       }
@@ -86,8 +80,7 @@ export function useAppStorageSync<T>(
 
   function read(): T | null {
     const raw = storage.getItem(realKey)
-    if (raw === null)
-      return null
+    if (raw === null) return null
 
     try {
       const { v, e } = superjson.parse(raw) as IStorageData<T>
@@ -102,8 +95,7 @@ export function useAppStorageSync<T>(
       }
 
       return v as T
-    }
-    catch (error) {
+    } catch (error) {
       // 记录错误
       console.warn(`Failed to read storage data for key "${realKey}":`, error)
       storage.removeItem(realKey)
@@ -121,8 +113,7 @@ export function useAppStorageSync<T>(
     try {
       storage.setItem(realKey, superjson.stringify(payload))
       exp ? armExpireTimer(exp) : clearExpireTimer()
-    }
-    catch (error) {
+    } catch (error) {
       // 处理存储失败（如 QuotaExceededError）
       console.error(`Failed to write storage data for key "${realKey}":`, error)
     }
@@ -131,8 +122,7 @@ export function useAppStorageSync<T>(
   const initialData = read()
   if (initialData !== null) {
     state.value = toShallowReactive(initialData)
-  }
-  else {
+  } else {
     state.value = toShallowReactive(cloneDeep(initialValue))
     write(initialValue)
   }
@@ -145,15 +135,13 @@ export function useAppStorageSync<T>(
   watch(
     state,
     (val) => {
-      if (isInitializing)
-        return // 跳过初始化触发
+      if (isInitializing) return // 跳过初始化触发
 
       if (val === null || val === undefined) {
         storage.removeItem(realKey)
         clearExpireTimer()
         cachedExpireTime = null
-      }
-      else {
+      } else {
         debouncedWrite(val) // 防抖写入
       }
     },

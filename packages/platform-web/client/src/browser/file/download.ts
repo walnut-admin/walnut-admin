@@ -3,7 +3,11 @@ import { base64ToBlob, imgUrlToBase64 } from './base64'
 /**
  * @description Download url resources
  */
-export function downloadByUrl(url: string, fileName?: string, target: '_self' | '_blank' = '_blank') {
+export function downloadByUrl(
+  url: string,
+  fileName?: string,
+  target: '_self' | '_blank' = '_blank',
+) {
   return new Promise<boolean>((resolve, reject) => {
     if (/(iP)/.test(window.navigator.userAgent))
       reject(new Error('Your browser does not support download!'))
@@ -14,16 +18,14 @@ export function downloadByUrl(url: string, fileName?: string, target: '_self' | 
       a.target = target
       a.style.display = 'none'
 
-      a.download
-        = fileName || url.substring(url.lastIndexOf('/') + 1, url.length)
+      a.download = fileName || url.substring(url.lastIndexOf('/') + 1, url.length)
 
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
 
       resolve(true)
-    }
-    catch (error) {
+    } catch (error) {
       reject(error)
     }
   })

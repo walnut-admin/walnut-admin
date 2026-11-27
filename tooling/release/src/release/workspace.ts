@@ -30,8 +30,7 @@ function readManifestVersion(manifestPath: string): string | null {
   try {
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as { version?: string }
     return manifest.version ?? null
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -47,12 +46,10 @@ export function currentVersion(): string {
 /** 某个 ref 上的版本（打标前复核 HEAD 用） */
 export function versionAtRef(ref: string): string | null {
   const content = fileAtRef(ref, MAIN_APP_MANIFEST)
-  if (!content)
-    return null
+  if (!content) return null
   try {
     return (JSON.parse(content) as { version?: string }).version ?? null
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -62,8 +59,7 @@ export function packagesNotAtVersion(version: string): string[] {
   const misaligned: string[] = []
   for (const pkg of versionedPackages()) {
     const actual = readManifestVersion(path.join(REPO_ROOT, pkg.dir, 'package.json'))
-    if (actual !== version)
-      misaligned.push(`${pkg.name}（${actual ?? '无版本'}）`)
+    if (actual !== version) misaligned.push(`${pkg.name}（${actual ?? '无版本'}）`)
   }
   return misaligned
 }
@@ -79,8 +75,7 @@ export function intentFilesOnDisk(): string[] {
   let entries: string[]
   try {
     entries = fs.readdirSync(CHANGESET_DIR)
-  }
-  catch {
+  } catch {
     return []
   }
   return entries.filter(isIntentFile)
@@ -92,10 +87,8 @@ export function readIntents(): Intent[] {
   for (const file of intentFilesOnDisk()) {
     try {
       const parsed = parseIntent(file, fs.readFileSync(path.join(CHANGESET_DIR, file), 'utf8'))
-      if (parsed)
-        intents.push(parsed)
-    }
-    catch {
+      if (parsed) intents.push(parsed)
+    } catch {
       continue
     }
   }
@@ -126,26 +119,23 @@ function readLedger(): LedgerEntry[] {
   let raw: string
   try {
     raw = fs.readFileSync(LEDGER_PATH, 'utf8')
-  }
-  catch {
+  } catch {
     return []
   }
   let parsed: unknown
   try {
     parsed = parseYaml(raw)
-  }
-  catch (error: any) {
+  } catch (error: any) {
     throw new PreconditionError(`.changeset/ledger.yaml 不是合法 YAML：${error?.message ?? error}`)
   }
-  if (!parsed || typeof parsed !== 'object')
-    return []
+  if (!parsed || typeof parsed !== 'object') return []
   const entries: LedgerEntry[] = []
   for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
     const at = key.lastIndexOf('@')
     const version = at > 0 ? key.slice(at + 1) : ''
     const record = (value ?? {}) as Record<string, unknown>
     const intents = Array.isArray(record.intents)
-      ? record.intents.map(item => String(item).replace(/\.md$/, ''))
+      ? record.intents.map((item) => String(item).replace(/\.md$/, ''))
       : []
     entries.push({
       key,
@@ -161,8 +151,7 @@ function readLedger(): LedgerEntry[] {
 function consumedIntentIds(): Set<string> {
   const ids = new Set<string>()
   for (const entry of readLedger()) {
-    for (const id of entry.intents)
-      ids.add(id)
+    for (const id of entry.intents) ids.add(id)
   }
   return ids
 }
@@ -174,8 +163,8 @@ function consumedIntentIds(): Set<string> {
 export function unconsumedIntents(): string[] {
   const consumed = consumedIntentIds()
   return intentFilesOnDisk()
-    .map(file => file.replace(/\.md$/, ''))
-    .filter(id => !consumed.has(id))
+    .map((file) => file.replace(/\.md$/, ''))
+    .filter((id) => !consumed.has(id))
     .sort()
 }
 
@@ -183,8 +172,7 @@ export function unconsumedIntents(): string[] {
 export function intentsOfVersion(version: string): string[] {
   const ids: string[] = []
   for (const entry of readLedger()) {
-    if (entry.version === version)
-      ids.push(...entry.intents)
+    if (entry.version === version) ids.push(...entry.intents)
   }
   return [...new Set(ids)].sort()
 }
@@ -211,13 +199,11 @@ export function deleteConsumedIntents(): CollectedIntents {
   const removed: string[] = []
   for (const file of intentFilesOnDisk()) {
     const id = file.replace(/\.md$/, '')
-    if (!consumed.has(id))
-      continue
+    if (!consumed.has(id)) continue
     try {
       fs.unlinkSync(path.join(CHANGESET_DIR, file))
       removed.push(file)
-    }
-    catch {
+    } catch {
       // 删不掉就当没删：下一次 `git add -A` 会把它带进提交，但不影响正确性
     }
   }
@@ -226,16 +212,14 @@ export function deleteConsumedIntents(): CollectedIntents {
   let parkedEntries: string[] = []
   try {
     parkedEntries = fs.readdirSync(PARKED_CHANGELOGS_DIR)
-  }
-  catch {
+  } catch {
     parkedEntries = []
   }
   if (parkedEntries.length > 0) {
     parked = parkedEntries.length
     try {
       fs.rmSync(PARKED_CHANGELOGS_DIR, { recursive: true, force: true })
-    }
-    catch {
+    } catch {
       parked = 0
     }
   }
@@ -253,20 +237,16 @@ export function deleteConsumedIntents(): CollectedIntents {
  */
 function isNotReleaseOwned(file: string): boolean {
   const normalized = file.replace(/\\/g, '/')
-  if (normalized.startsWith('.changeset/'))
-    return true
-  if (normalized === 'changelog-latest.md')
-    return true
-  if (normalized.endsWith('/CHANGELOG.md'))
-    return true
+  if (normalized.startsWith('.changeset/')) return true
+  if (normalized === 'changelog-latest.md') return true
+  if (normalized.endsWith('/CHANGELOG.md')) return true
   for (const pkg of versionedPackages()) {
-    if (normalized === `${pkg.dir}/package.json`)
-      return true
+    if (normalized === `${pkg.dir}/package.json`) return true
   }
   return false
 }
 
 /** 从一批脏文件里滤出「与发版无关」的那些 */
 export function unrelatedChanges(files: string[]): string[] {
-  return files.filter(file => !isNotReleaseOwned(file)).sort()
+  return files.filter((file) => !isNotReleaseOwned(file)).sort()
 }

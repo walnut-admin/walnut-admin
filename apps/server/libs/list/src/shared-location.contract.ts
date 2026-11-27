@@ -29,7 +29,8 @@ type Assert<T extends true> = T
 /** 双向可赋值才算「同型」：`string` 与 `string | undefined` 会判 false */
 type SameType<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false
 
-export type WalnutAdminSharedLocationContract
-  = & Assert<SameType<SharedLocationDTO['country'], ISharedIpLocationCore['country']>>
-    & Assert<SameType<SharedLocationDTO['region'], ISharedIpLocationCore['region']>>
-    & Assert<SameType<SharedLocationDTO['city'], ISharedIpLocationCore['city']>>
+export type WalnutAdminSharedLocationContract = Assert<
+  SameType<SharedLocationDTO['country'], ISharedIpLocationCore['country']>
+> &
+  Assert<SameType<SharedLocationDTO['region'], ISharedIpLocationCore['region']>> &
+  Assert<SameType<SharedLocationDTO['city'], ISharedIpLocationCore['city']>>

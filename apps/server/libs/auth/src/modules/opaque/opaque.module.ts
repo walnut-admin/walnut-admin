@@ -6,11 +6,7 @@ import { AuthOpaqueUserModule } from './user/opaque.user.module'
 // TODO 还差注册和忘记密码流程
 
 @Module({
-  imports: [
-    AuthOpaqueCoreModule,
-    AuthOpaqueUserModule,
-    AuthOpaqueAdminModule,
-  ],
+  imports: [AuthOpaqueCoreModule, AuthOpaqueUserModule, AuthOpaqueAdminModule],
   controllers: [],
   providers: [],
   exports: [],

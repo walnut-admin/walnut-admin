@@ -21,14 +21,15 @@ function read(relativePath: string): string {
 function publicModules(): string[] {
   return readdirSync(srcDir, { withFileTypes: true })
     .filter((entry) => {
-      if (!entry.isFile() || !entry.name.endsWith('.ts'))
-        return false
-      return entry.name !== 'index.ts'
-        && !entry.name.endsWith('.test.ts')
-        && !entry.name.endsWith('.spec.ts')
-        && !entry.name.endsWith('.d.ts')
+      if (!entry.isFile() || !entry.name.endsWith('.ts')) return false
+      return (
+        entry.name !== 'index.ts' &&
+        !entry.name.endsWith('.test.ts') &&
+        !entry.name.endsWith('.spec.ts') &&
+        !entry.name.endsWith('.d.ts')
+      )
     })
-    .map(entry => entry.name.slice(0, -'.ts'.length))
+    .map((entry) => entry.name.slice(0, -'.ts'.length))
     .sort()
 }
 
@@ -40,8 +41,9 @@ interface ViteEntry {
 /** 从 vite.config.ts 文本提取 entries（`'x': resolve(__dirname, 'src/x.ts')`） */
 function viteEntries(): ViteEntry[] {
   const source = read('vite.config.ts')
-  const pattern = /['"]?([\w-]+)['"]?:\s*resolve\(\s*__dirname\s*,\s*['"]src\/([^'"]+)\.ts['"]\s*\)/g
-  return [...source.matchAll(pattern)].map(match => ({ key: match[1]!, module: match[2]! }))
+  const pattern =
+    /['"]?([\w-]+)['"]?:\s*resolve\(\s*__dirname\s*,\s*['"]src\/([^'"]+)\.ts['"]\s*\)/g
+  return [...source.matchAll(pattern)].map((match) => ({ key: match[1]!, module: match[2]! }))
 }
 
 /** 从 src/index.ts 提取「模块 → 具名导出集合」的映射 */
@@ -54,9 +56,13 @@ function barrelExports(): Map<string, Set<string>> {
     const moduleName = match[2]!
     const set = map.get(moduleName) ?? new Set<string>()
     for (const raw of names.split(',')) {
-      const name = raw.trim().replace(/^type\s+/, '').split(/\s+as\s+/).pop()?.trim()
-      if (name)
-        set.add(name)
+      const name = raw
+        .trim()
+        .replace(/^type\s+/, '')
+        .split(/\s+as\s+/)
+        .pop()
+        ?.trim()
+      if (name) set.add(name)
     }
     map.set(moduleName, set)
   }
@@ -67,15 +73,19 @@ function barrelExports(): Map<string, Set<string>> {
 function declaredExports(moduleName: string): string[] {
   const source = read(`src/${moduleName}.ts`)
   const names = new Set<string>()
-  const declaration = /export\s+(?:declare\s+)?(?:const|let|var|function|class|interface|type|enum)\s+([A-Za-z_$][\w$]*)/g
-  for (const match of source.matchAll(declaration))
-    names.add(match[1]!)
+  const declaration =
+    /export\s+(?:declare\s+)?(?:const|let|var|function|class|interface|type|enum)\s+([A-Za-z_$][\w$]*)/g
+  for (const match of source.matchAll(declaration)) names.add(match[1]!)
   const list = /export\s+(?:type\s+)?\{([^}]*)\}/g
   for (const match of source.matchAll(list)) {
     for (const raw of match[1]!.split(',')) {
-      const name = raw.trim().replace(/^type\s+/, '').split(/\s+as\s+/).pop()?.trim()
-      if (name)
-        names.add(name)
+      const name = raw
+        .trim()
+        .replace(/^type\s+/, '')
+        .split(/\s+as\s+/)
+        .pop()
+        ?.trim()
+      if (name) names.add(name)
     }
   }
   return [...names]
@@ -92,33 +102,31 @@ function packageExports(): Record<string, unknown> {
 
 /** 按 Node 的 exports 模式规则（最长前缀）解析子路径 */
 function resolveExportSubpath(exportsMap: Record<string, unknown>, subpath: string): unknown {
-  if (Object.hasOwn(exportsMap, subpath))
-    return exportsMap[subpath]
+  if (Object.hasOwn(exportsMap, subpath)) return exportsMap[subpath]
 
-  let best: { base: string, trailer: string, target: unknown } | undefined
+  let best: { base: string; trailer: string; target: unknown } | undefined
   for (const [key, target] of Object.entries(exportsMap)) {
     const star = key.indexOf('*')
-    if (star < 0)
-      continue
+    if (star < 0) continue
     const base = key.slice(0, star)
     const trailer = key.slice(star + 1)
-    if (!subpath.startsWith(base) || !subpath.endsWith(trailer) || subpath.length < base.length + trailer.length)
+    if (
+      !subpath.startsWith(base) ||
+      !subpath.endsWith(trailer) ||
+      subpath.length < base.length + trailer.length
+    )
       continue
-    if (!best || base.length > best.base.length)
-      best = { base, trailer, target }
+    if (!best || base.length > best.base.length) best = { base, trailer, target }
   }
-  if (!best)
-    return undefined
+  if (!best) return undefined
 
   const wildcard = subpath.slice(best.base.length, subpath.length - best.trailer.length)
   return substituteWildcard(best.target, wildcard)
 }
 
 function substituteWildcard(target: unknown, wildcard: string): unknown {
-  if (typeof target === 'string')
-    return target.replaceAll('*', wildcard)
-  if (Array.isArray(target))
-    return target.map(item => substituteWildcard(item, wildcard))
+  if (typeof target === 'string') return target.replaceAll('*', wildcard)
+  if (Array.isArray(target)) return target.map((item) => substituteWildcard(item, wildcard))
   if (target && typeof target === 'object') {
     return Object.fromEntries(
       Object.entries(target).map(([key, value]) => [key, substituteWildcard(value, wildcard)]),
@@ -138,14 +146,16 @@ describe('entries / barrel / exports drift gate', () => {
 
   it('every public module has a vite entry and no entry is orphaned', () => {
     const problems: string[] = []
-    const entryKeys = new Set(entries.map(entry => entry.key))
+    const entryKeys = new Set(entries.map((entry) => entry.key))
 
     if (!entryKeys.has('index'))
       problems.push('vite.config.ts is missing the "index" entry → src/index.ts')
 
     for (const entry of entries) {
       if (entry.key !== entry.module)
-        problems.push(`entry "${entry.key}" resolves src/${entry.module}.ts — entry key must match the file name`)
+        problems.push(
+          `entry "${entry.key}" resolves src/${entry.module}.ts — entry key must match the file name`,
+        )
       if (!existsSync(resolve(srcDir, `${entry.module}.ts`)))
         problems.push(`orphan entry "${entry.key}" — src/${entry.module}.ts does not exist`)
     }
@@ -155,14 +165,16 @@ describe('entries / barrel / exports drift gate', () => {
 
     for (const module of modules) {
       if (!entryKeys.has(module))
-        problems.push(`src/${module}.ts is missing a vite build.lib entry (expected '${module}': resolve(__dirname, 'src/${module}.ts'))`)
+        problems.push(
+          `src/${module}.ts is missing a vite build.lib entry (expected '${module}': resolve(__dirname, 'src/${module}.ts'))`,
+        )
     }
 
     expect(problems).toEqual([])
   })
 
   it('vite entry key set equals the public modules plus the "index" barrel', () => {
-    const entryKeys = [...new Set(entries.map(entry => entry.key))].sort()
+    const entryKeys = [...new Set(entries.map((entry) => entry.key))].sort()
     const expected = [...modules, 'index'].sort()
     expect(entryKeys).toEqual(expected)
   })
@@ -173,12 +185,16 @@ describe('entries / barrel / exports drift gate', () => {
     const barrelSource = read('src/index.ts')
 
     if (/export\s+\*\s+from/.test(barrelSource))
-      problems.push('src/index.ts uses `export *` — the barrel must re-export names selectively (ADR 0013)')
+      problems.push(
+        'src/index.ts uses `export *` — the barrel must re-export names selectively (ADR 0013)',
+      )
 
     for (const module of modules) {
       const moduleSource = read(`src/${module}.ts`)
       if (/export\s+default/.test(moduleSource))
-        problems.push(`src/${module}.ts uses a default export — public modules must expose named exports`)
+        problems.push(
+          `src/${module}.ts uses a default export — public modules must expose named exports`,
+        )
 
       const exported = barrel.get(module)
       if (!exported) {
@@ -187,13 +203,17 @@ describe('entries / barrel / exports drift gate', () => {
       }
       for (const name of declaredExports(module)) {
         if (!exported.has(name))
-          problems.push(`src/${module}.ts exports "${name}" but src/index.ts does not re-export it from './${module}'`)
+          problems.push(
+            `src/${module}.ts exports "${name}" but src/index.ts does not re-export it from './${module}'`,
+          )
       }
     }
 
     for (const module of barrel.keys()) {
       if (!existsSync(resolve(srcDir, `${module}.ts`)))
-        problems.push(`src/index.ts re-exports from './${module}' but src/${module}.ts does not exist`)
+        problems.push(
+          `src/index.ts re-exports from './${module}' but src/${module}.ts does not exist`,
+        )
     }
 
     expect(problems).toEqual([])
@@ -206,11 +226,15 @@ describe('entries / barrel / exports drift gate', () => {
     for (const module of modules) {
       const target = resolveExportSubpath(exportsMap, `./${module}`)
       if (!target) {
-        problems.push(`package.json exports has no subpath for './${module}' (explicit key or wildcard pattern)`)
+        problems.push(
+          `package.json exports has no subpath for './${module}' (explicit key or wildcard pattern)`,
+        )
         continue
       }
       if (typeof target !== 'object' || Array.isArray(target)) {
-        problems.push(`package.json exports['./${module}'] must be a condition object, got ${JSON.stringify(target)}`)
+        problems.push(
+          `package.json exports['./${module}'] must be a condition object, got ${JSON.stringify(target)}`,
+        )
         continue
       }
 
@@ -224,7 +248,9 @@ describe('entries / barrel / exports drift gate', () => {
       }
       for (const [condition, expectedTarget] of Object.entries(expected)) {
         if (conditions[condition] !== expectedTarget)
-          problems.push(`package.json exports['./${module}'].${condition} is ${String(conditions[condition])} — expected ${expectedTarget}`)
+          problems.push(
+            `package.json exports['./${module}'].${condition} is ${String(conditions[condition])} — expected ${expectedTarget}`,
+          )
       }
     }
 

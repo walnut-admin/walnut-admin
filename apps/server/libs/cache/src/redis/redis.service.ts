@@ -39,10 +39,7 @@ export class AppTechRedisService implements OnModuleInit, OnModuleDestroy {
   /**
    * 根据 pattern 批量删除 key（使用 SCAN，安全）
    */
-  async delByPattern(
-    pattern: string,
-    batchSize = 100,
-  ): Promise<number> {
+  async delByPattern(pattern: string, batchSize = 100): Promise<number> {
     let deleted = 0
     const pipeline: string[] = []
 
@@ -64,9 +61,7 @@ export class AppTechRedisService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (deleted > 0) {
-      this.logger.debug(
-        `delByPattern executed - pattern="${pattern}", deleted=${deleted}`,
-      )
+      this.logger.debug(`delByPattern executed - pattern="${pattern}", deleted=${deleted}`)
     }
 
     return deleted

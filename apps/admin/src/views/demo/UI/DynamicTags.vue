@@ -18,9 +18,7 @@ const state = reactive({
 
     <n-list>
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Basic usage
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Basic usage </WTitle>
 
         <n-space vertical>
           <WDynamicTags v-model:value="state.dynamicTag1" />

@@ -11,7 +11,10 @@ import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
 import { SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 import { SysUserDTOSafe } from '@/modules/system/user/dto/user.dto'
-import { SysUserMeDTOUpdateProfileRequest, SysUserMeSecurityTab2ResponseDTO } from '@/modules/system/user/dto/user.me.dto'
+import {
+  SysUserMeDTOUpdateProfileRequest,
+  SysUserMeSecurityTab2ResponseDTO,
+} from '@/modules/system/user/dto/user.me.dto'
 
 const Permissions = {
   UPDATE_PROFILE: 'system:user:updateProfile',
@@ -20,9 +23,7 @@ const Permissions = {
 @Controller(SystemRoutes.USER_ME)
 @ApiTags('system/user/me')
 export class SysUserMeController {
-  constructor(
-    private readonly userMeService: SysUserMeService,
-  ) { }
+  constructor(private readonly userMeService: SysUserMeService) {}
 
   @Put('profile')
   @HttpCode(HttpStatus.OK)
@@ -31,7 +32,10 @@ export class SysUserMeController {
     description: 'update profile',
     DTO: SysUserDTOSafe,
   })
-  async updateProfile(@WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload, @Body() payload: SysUserMeDTOUpdateProfileRequest) {
+  async updateProfile(
+    @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
+    @Body() payload: SysUserMeDTOUpdateProfileRequest,
+  ) {
     const profile = await this.userMeService.updateProfile(user.userId, payload)
     return plainToInstance(SysUserDTOSafe, profile)
   }
@@ -58,9 +62,7 @@ export class SysUserMeController {
     description: 'Get current user profile',
     DTO: SysUserDTOSafe,
   })
-  async getProfile(
-    @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-  ) {
+  async getProfile(@WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload) {
     const res = await this.userMeService.getUserProfile(user.userId)
     return plainToInstance(SysUserDTOSafe, res)
   }
@@ -68,7 +70,8 @@ export class SysUserMeController {
   @Patch('role/switch/:roleId')
   @HttpCode(HttpStatus.OK)
   @ApiWalnutOkResponse({
-    description: 'switch role, notice that front end need to get new access token after this operation',
+    description:
+      'switch role, notice that front end need to get new access token after this operation',
     primitive: 'boolean',
   })
   async switchRole(
@@ -82,12 +85,14 @@ export class SysUserMeController {
   @Patch('roleMode/switch/:roleMode')
   @HttpCode(HttpStatus.OK)
   @ApiWalnutOkResponse({
-    description: 'switch role mode, notice that front end need to get new access token after this operation',
+    description:
+      'switch role mode, notice that front end need to get new access token after this operation',
     primitive: 'boolean',
   })
   async switchRoleMode(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @Param('roleMode', new WalnutAdminPipeParamEnum(WalnutAdminConstRoleMode)) roleMode: IWalnutAdminConstRoleMode,
+    @Param('roleMode', new WalnutAdminPipeParamEnum(WalnutAdminConstRoleMode))
+    roleMode: IWalnutAdminConstRoleMode,
   ) {
     await this.userMeService.switchRoleMode(user.userId, roleMode)
     return true

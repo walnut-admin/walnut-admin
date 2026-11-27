@@ -80,11 +80,14 @@ const PATH_EXT = /\.(?:ts|tsx|vue|js|mjs|cjs|json|jsonc|yaml|yml|toml|sh|hcl|css
  */
 export const ALLOWED_MISSING_PATHS: Record<string, string> = {
   // 规划中（数据权限批 5 落地，见 apps/docs/src/zh-CN/content/plans/data-scope-remediation-plan.md §3.1；建出来后应从本清单删掉）
-  'packages/platform-any/contract/src/data-scope.ts': '规划中（数据权限整改批 5：六档常量进 contract）',
+  'packages/platform-any/contract/src/data-scope.ts':
+    '规划中（数据权限整改批 5：六档常量进 contract）',
   '.changeset/ledger.yaml': '首次发版时才生成（pnpm 的消费台账）',
   '.changeset/.release-state.json': '发版中间状态，gitignored，只在跑发版时短暂存在',
-  '.changeset/config.json': '有意删除（迁到 pnpm-workspace.yaml 的 versioning 段），引用处都在说「已删除」',
-  'apps/server/changelog-latest.md': '已删除的历史产物；引用处的原话就是「已删除两个陈旧 changelog」',
+  '.changeset/config.json':
+    '有意删除（迁到 pnpm-workspace.yaml 的 versioning 段），引用处都在说「已删除」',
+  'apps/server/changelog-latest.md':
+    '已删除的历史产物；引用处的原话就是「已删除两个陈旧 changelog」',
   'deploy/env/.env.production': '部署机上的运行时文件（gitignored）',
   'deploy/nginx/certs/': '证书目录，只在服务器上存在（gitignored）',
   // 「提及某路径**正是因为**它不存在」是合法写法，机械检查分辨不了，只能豁免：
@@ -100,13 +103,16 @@ export const ALLOWED_MISSING_PACKAGES: Record<string, string> = {
   '@walnut/i18n': '规划中（待办 A8）',
   '@walnut/security': '规划中（待办 A9）',
   // 已更名 / 已删除：引用处都是历史叙述
-  '@walnut/axios': '已更名 @walnut/http（2026-07）。现在只剩 ADR（改名决策的历史记录）与冻结语料里还提它 —— 2026-09-23 把最后一处活文档（`content/introduction.md` 的包清单）改正后，活文档已零引用',
+  '@walnut/axios':
+    '已更名 @walnut/http（2026-07）。现在只剩 ADR（改名决策的历史记录）与冻结语料里还提它 —— 2026-09-23 把最后一处活文档（`content/introduction.md` 的包清单）改正后，活文档已零引用',
   '@walnut/tooling': '已拆成 6 个包（2026-09）',
   '@walnut/shared': '从未存在（ADR 0001 讨论过的候选名）',
   '@walnut/core': '从未存在（ADR 0001 讨论过的候选名）',
   '@walnut/ai': '已删除的空壳包',
-  '@walnut/r3-ghost': '从未存在 —— R3 评审报告记录"包名/路径分别受检"的三连实验时用的探针包名；报告本身不改（它记录的是实验），因此按 prose 引用豁免',
-  '@walnut/ui': '已删除（2026-11，批次 1 / 决策 D1：3 个 naive 透传组件回 apps/admin/src/components/UI/）。活文档里的引用只剩 ADR 0012/0017、已完成的 proposal 与 admin CHANGELOG 等历史叙述',
+  '@walnut/r3-ghost':
+    '从未存在 —— R3 评审报告记录"包名/路径分别受检"的三连实验时用的探针包名；报告本身不改（它记录的是实验），因此按 prose 引用豁免',
+  '@walnut/ui':
+    '已删除（2026-11，批次 1 / 决策 D1：3 个 naive 透传组件回 apps/admin/src/components/UI/）。活文档里的引用只剩 ADR 0012/0017、已完成的 proposal 与 admin CHANGELOG 等历史叙述',
   // 名称 ≠ 目录名，容易被写错；正名是 @walnut/utils
   '@walnut/utils-core': '包名是 @walnut/utils，`utils-core` 只是目录名',
   // 归档的抽取提案 / 行业调研里的示例名
@@ -134,15 +140,14 @@ export interface DocRefs {
  */
 export function liveDocs(): string[] {
   return lsFilesWithUntracked('*.md')
-    .filter(f => !FROZEN.test(f))
-    .filter(f => fs.existsSync(path.join(REPO_ROOT, f)))
+    .filter((f) => !FROZEN.test(f))
+    .filter((f) => fs.existsSync(path.join(REPO_ROOT, f)))
 }
 
 /** 包名引用：`@walnut/<段>`（`@walnut-server/` 不查，见模块头注释 ①） */
 export function extractPackageRefs(text: string): string[] {
   const found = new Set<string>()
-  for (const m of text.matchAll(/@walnut\/([a-z0-9][a-z0-9-]*)/g))
-    found.add(`@walnut/${m[1]}`)
+  for (const m of text.matchAll(/@walnut\/([a-z0-9][a-z0-9-]*)/g)) found.add(`@walnut/${m[1]}`)
   return [...found]
 }
 
@@ -160,15 +165,12 @@ export function extractPathRefs(text: string): string[] {
       // 去掉行内注释尾巴与锚点
       const token = raw.split(/\s+#/)[0].split('#')[0].trim()
       // `*` 通配、`<包>` 占位、`...` 省略、`$VAR`、含空格的句子 —— 都不是可解析的路径
-      if (!token || /[*<>{}|$\s]/.test(token) || token.includes('...'))
-        continue
-      if (token.startsWith('~/') || token.startsWith('http'))
-        continue
-      if (!TOP_LEVEL_DIRS.some(dir => token === `${dir}/` || token.startsWith(`${dir}/`)))
+      if (!token || /[*<>{}|$\s]/.test(token) || token.includes('...')) continue
+      if (token.startsWith('~/') || token.startsWith('http')) continue
+      if (!TOP_LEVEL_DIRS.some((dir) => token === `${dir}/` || token.startsWith(`${dir}/`)))
         continue
       const looksLikePath = PATH_EXT.test(token) || token.endsWith('/') || !token.includes('.')
-      if (!looksLikePath)
-        continue
+      if (!looksLikePath) continue
       found.add(token)
     }
   }
@@ -202,14 +204,11 @@ export interface Finding {
 function aliasBaseOf(file: string): 'server' | 'admin' | null {
   if (/^\.claude\/skills\//.test(file)) {
     const skill = file.split('/')[2] ?? ''
-    if (skill.startsWith('be-'))
-      return 'server'
-    if (skill.startsWith('fe-'))
-      return 'admin'
+    if (skill.startsWith('be-')) return 'server'
+    if (skill.startsWith('fe-')) return 'admin'
     return null
   }
-  if (/^apps\/server\/libs\//.test(file))
-    return 'server'
+  if (/^apps\/server\/libs\//.test(file)) return 'server'
   return null
 }
 
@@ -222,12 +221,10 @@ export function extractAliasRefs(text: string): string[] {
       inFence = !inFence
       continue
     }
-    if (inFence)
-      continue
+    if (inFence) continue
     for (const m of line.matchAll(/`(@\/[\w./-]+|@walnut-server\/[\w./-]+)`/g)) {
       const ref = m[1] ?? ''
-      if (!ref.includes('*'))
-        found.add(ref)
+      if (!ref.includes('*')) found.add(ref)
     }
   }
   return [...found]
@@ -239,18 +236,31 @@ function aliasCandidates(ref: string, base: 'server' | 'admin'): string[] {
   if (ref.startsWith('@walnut-server/')) {
     const [lib, ...rest] = ref.slice('@walnut-server/'.length).split('/')
     dir = path.posix.join('apps/server/libs', lib ?? '', 'src', ...rest)
+  } else {
+    dir = path.posix.join(
+      base === 'server' ? 'apps/server/apps/api/src' : 'apps/admin/src',
+      ref.slice(2),
+    )
   }
-  else {
-    dir = path.posix.join(base === 'server' ? 'apps/server/apps/api/src' : 'apps/admin/src', ref.slice(2))
-  }
-  return [dir, `${dir}.ts`, `${dir}.tsx`, `${dir}.vue`, `${dir}/index.ts`, `${dir}/index.tsx`, `${dir}/index.vue`]
+  return [
+    dir,
+    `${dir}.ts`,
+    `${dir}.tsx`,
+    `${dir}.vue`,
+    `${dir}/index.ts`,
+    `${dir}/index.tsx`,
+    `${dir}/index.vue`,
+  ]
 }
 
 /** 这个别名引用能不能落到真实文件上（基址不唯一可判的文件一律返回 true —— 见 `aliasBaseOf`） */
-export function aliasResolves(ref: string, file: string, fsExists: (repoRelative: string) => boolean): boolean {
+export function aliasResolves(
+  ref: string,
+  file: string,
+  fsExists: (repoRelative: string) => boolean,
+): boolean {
   const base = aliasBaseOf(file)
-  if (base === null)
-    return true
+  if (base === null) return true
   return aliasCandidates(ref, base).some(fsExists)
 }
 
@@ -273,17 +283,15 @@ export function extractLinkTargets(text: string): string[] {
       inFence = !inFence
       continue
     }
-    if (inFence)
-      continue
+    if (inFence) continue
     // 行内链接 `](target)` 与引用式定义 `[id]: target`（去掉可选的 "title" 与 <...> 包裹）
     const raw = [
-      ...[...line.matchAll(/\]\(([^)\n]+)\)/g)].map(m => m[1]),
-      ...[...line.matchAll(/^\s*\[[^\]]+\]:\s*(\S+)/g)].map(m => m[1]),
+      ...[...line.matchAll(/\]\(([^)\n]+)\)/g)].map((m) => m[1]),
+      ...[...line.matchAll(/^\s*\[[^\]]+\]:\s*(\S+)/g)].map((m) => m[1]),
     ]
     for (const item of raw) {
       const target = item.trim().split(/\s+/)[0].replace(/^<|>$/g, '')
-      if (!target.startsWith('./') && !target.startsWith('../'))
-        continue
+      if (!target.startsWith('./') && !target.startsWith('../')) continue
       found.add(target.split('#')[0])
     }
   }
@@ -296,12 +304,14 @@ export function extractLinkTargets(text: string): string[] {
  * 三条都试是为了对齐 VitePress 的解析规则 —— 本仓文档里 174 条相对链接有 15 条不带 `.md`
  * （`./ci-cd`），只按原样判会把它们全报成死链。
  */
-export function linkResolves(target: string, docFile: string, fsExists: (repoRelative: string) => boolean): boolean {
+export function linkResolves(
+  target: string,
+  docFile: string,
+  fsExists: (repoRelative: string) => boolean,
+): boolean {
   const docDir = path.posix.dirname(docFile)
   const base = path.posix.normalize(path.posix.join(docDir, target))
-  return fsExists(base)
-    || fsExists(`${base}.md`)
-    || fsExists(`${base}/index.md`)
+  return fsExists(base) || fsExists(`${base}.md`) || fsExists(`${base}/index.md`)
 }
 
 /**
@@ -322,8 +332,12 @@ export function pathProbes(ref: string, docFile: string): string[] {
   ]
 }
 
-export function pathResolves(ref: string, docFile: string, fsExists: (repoRelative: string) => boolean): boolean {
-  return pathProbes(ref, docFile).some(p => fsExists(p))
+export function pathResolves(
+  ref: string,
+  docFile: string,
+  fsExists: (repoRelative: string) => boolean,
+): boolean {
+  return pathProbes(ref, docFile).some((p) => fsExists(p))
 }
 
 /**
@@ -370,30 +384,30 @@ export interface CheckOptions {
  * 不必为每种探针各写一套"要探哪些形态"的清单（那种清单一定会漏，而漏掉的那种就失去 gitignore 语义）。
  */
 export function collectFindings(options: CheckOptions = {}): Finding[] {
-  if (options.fsExists !== undefined)
-    return runCollect(options, options.fsExists)
+  if (options.fsExists !== undefined) return runCollect(options, options.fsExists)
 
   const misses = new Set<string>()
   const first = runCollect(options, (p) => {
     const ok = fs.existsSync(path.join(REPO_ROOT, p))
-    if (!ok)
-      misses.add(p)
+    if (!ok) misses.add(p)
     return ok
   })
-  if (misses.size === 0)
-    return first
+  if (misses.size === 0) return first
 
   const ignored = ignoredProbes(misses)
-  if (ignored.size === 0)
-    return first
+  if (ignored.size === 0) return first
   // 被 gitignore 的路径：`ignored` 里存的是**去掉尾斜杠**的形式，探针可能带尾斜杠
-  return runCollect(options, p => fs.existsSync(path.join(REPO_ROOT, p)) || ignored.has(p.replace(/\/$/, '')))
+  return runCollect(
+    options,
+    (p) => fs.existsSync(path.join(REPO_ROOT, p)) || ignored.has(p.replace(/\/$/, '')),
+  )
 }
 
 function runCollect(options: CheckOptions, fsExists: (repoRelative: string) => boolean): Finding[] {
   const docs = options.docs ?? liveDocs()
   const realPackages = options.realPackages ?? workspacePackageNames()
-  const readText = options.readText ?? ((file: string) => fs.readFileSync(path.join(REPO_ROOT, file), 'utf8'))
+  const readText =
+    options.readText ?? ((file: string) => fs.readFileSync(path.join(REPO_ROOT, file), 'utf8'))
 
   const pkgHits = new Map<string, string[]>()
   const pathHits = new Map<string, string[]>()
@@ -403,26 +417,26 @@ function runCollect(options: CheckOptions, fsExists: (repoRelative: string) => b
   for (const file of docs) {
     const text = readText(file)
     for (const ref of extractPackageRefs(text)) {
-      if (ref.startsWith(SERVER_LIB_NAMESPACE) || realPackages.has(ref) || ref in ALLOWED_MISSING_PACKAGES)
+      if (
+        ref.startsWith(SERVER_LIB_NAMESPACE) ||
+        realPackages.has(ref) ||
+        ref in ALLOWED_MISSING_PACKAGES
+      )
         continue
       pkgHits.set(ref, [...(pkgHits.get(ref) ?? []), file])
     }
     // 别名只管 `.claude/skills/**`（aliasResolves 内部按目录前缀决定要不要查，见它的注释）
     for (const ref of extractAliasRefs(text)) {
-      if (aliasResolves(ref, file, fsExists))
-        continue
+      if (aliasResolves(ref, file, fsExists)) continue
       aliasHits.set(ref, [...(aliasHits.get(ref) ?? []), file])
     }
     for (const ref of extractPathRefs(text)) {
-      if (PATH_CHECK_EXCLUDED.test(file))
-        continue
-      if (ref in ALLOWED_MISSING_PATHS || pathResolves(ref, file, fsExists))
-        continue
+      if (PATH_CHECK_EXCLUDED.test(file)) continue
+      if (ref in ALLOWED_MISSING_PATHS || pathResolves(ref, file, fsExists)) continue
       pathHits.set(ref, [...(pathHits.get(ref) ?? []), file])
     }
     for (const ref of extractLinkTargets(text)) {
-      if (PATH_CHECK_EXCLUDED.test(file))
-        continue
+      if (PATH_CHECK_EXCLUDED.test(file)) continue
       // 分工（2026-09-23 实测后定的边界，**两边零重叠**）：
       //   · 文档站里的 `.md` 链接 → 交给 VitePress 内置死链校验（它有自己的白名单：冻结语料 +
       //     尚未编写的组件页）。实测它会在这个 case 上 exit 1。
@@ -430,10 +444,8 @@ function runCollect(options: CheckOptions, fsExists: (repoRelative: string) => b
       //     所以留在这里查。`release.md` 那两条层级写错的 `../../../../../pnpm-workspace.yaml` 就是这么抓到的。
       //   · 文档站**之外**的 markdown 链接 → 没有任何工具管，全部在这里查。
       const isDocsTree = file.startsWith('apps/docs/src/')
-      if (isDocsTree && ref.endsWith('.md'))
-        continue
-      if (linkResolves(ref, file, fsExists))
-        continue
+      if (isDocsTree && ref.endsWith('.md')) continue
+      if (linkResolves(ref, file, fsExists)) continue
       linkHits.set(ref, [...(linkHits.get(ref) ?? []), file])
     }
   }
@@ -457,7 +469,9 @@ export function main(): void {
     throw new PreconditionError('扫描面为空（活文档 0 篇或 0 个包）—— 拒绝把「扫不到东西」当绿灯')
   }
 
-  out(`文档引用校验：${docs.length} 篇活文档；包名豁免 ${Object.keys(ALLOWED_MISSING_PACKAGES).length} 条、路径豁免 ${Object.keys(ALLOWED_MISSING_PATHS).length} 条`)
+  out(
+    `文档引用校验：${docs.length} 篇活文档；包名豁免 ${Object.keys(ALLOWED_MISSING_PACKAGES).length} 条、路径豁免 ${Object.keys(ALLOWED_MISSING_PATHS).length} 条`,
+  )
 
   if (findings.length === 0) {
     line('ok', '没有引用不存在的包名或路径')
@@ -465,12 +479,20 @@ export function main(): void {
   }
 
   for (const f of findings) {
-    const label = f.kind === 'package' ? '包名' : f.kind === 'link' ? '链接' : f.kind === 'alias' ? '别名' : '路径'
+    const label =
+      f.kind === 'package'
+        ? '包名'
+        : f.kind === 'link'
+          ? '链接'
+          : f.kind === 'alias'
+            ? '别名'
+            : '路径'
     lineErr('violation', `${label} ${f.ref}  （${f.files.length} 处）`)
     for (const file of f.files.slice(0, 6)) err(`    ${file}`)
-    if (f.files.length > 6)
-      err(`    … 另外 ${f.files.length - 6} 处`)
+    if (f.files.length > 6) err(`    … 另外 ${f.files.length - 6} 处`)
   }
-  err(`\n共 ${findings.length} 类失效引用。修掉它们，或在 check-doc-refs.ts 的 ALLOWED_* 清单里写明理由。`)
+  err(
+    `\n共 ${findings.length} 类失效引用。修掉它们，或在 check-doc-refs.ts 的 ALLOWED_* 清单里写明理由。`,
+  )
   throw new ViolationError(`文档引用有 ${findings.length} 类失效（明细见上）`)
 }

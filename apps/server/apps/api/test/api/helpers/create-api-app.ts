@@ -40,7 +40,9 @@ import {
  *
  * @param extraProviders 额外 provider（预留，与集成装配同口径）。
  */
-export async function createApiApp(extraProviders: Provider[] = []): Promise<NestExpressApplication> {
+export async function createApiApp(
+  extraProviders: Provider[] = [],
+): Promise<NestExpressApplication> {
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule as unknown as Type<unknown> | DynamicModule],
     providers: extraProviders,
@@ -74,9 +76,7 @@ export async function createApiApp(extraProviders: Provider[] = []): Promise<Nes
         exposeUnsetFields: false,
       },
       exceptionFactory: (errors: ValidationError[]) =>
-        new WalnutAdminExceptionRequestDataError(
-          getAllConstraints(errors).join(','),
-        ),
+        new WalnutAdminExceptionRequestDataError(getAllConstraints(errors).join(',')),
     }),
   )
 

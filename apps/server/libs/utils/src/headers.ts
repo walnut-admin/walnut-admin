@@ -12,8 +12,7 @@ export function setCustomHeaders(context: ArgumentsHost) {
   const response = ctx.getResponse<IWalnutAdminExpressResponse>()
   const request = ctx.getRequest<IWalnutAdminExpressRequest>()
 
-  if (request.url.includes('/sse/'))
-    return
+  if (request.url.includes('/sse/')) return
 
   try {
     response.setHeader(RequestHeaders.ID, request.id)
@@ -22,8 +21,7 @@ export function setCustomHeaders(context: ArgumentsHost) {
     response.setHeader(RequestHeaders.LANGUAGE, request.language)
     response.setHeader(RequestHeaders.VERSION, request.version)
     response.setHeader(RequestHeaders.REPO_VERSION, request.repoVersion)
-  }
-  catch (error) {
+  } catch (error) {
     logger.error('set custom response headers failed', error)
   }
 }

@@ -42,10 +42,7 @@ onBeforeMount(onInit)
   <n-list hoverable clickable>
     <n-list-item>
       <template #prefix>
-        <WIconButton
-          :icon-props="{ icon: 'mdi:devices' }"
-          :button-props="{ type: 'primary' }"
-        />
+        <WIconButton :icon-props="{ icon: 'mdi:devices' }" :button-props="{ type: 'primary' }" />
       </template>
       <template #suffix>
         <n-button type="primary" size="small" @click="onClick(1)">

@@ -29,15 +29,19 @@ const Permissions = {
   LIST: 'system:role:list',
 } as const
 
-const { WalnutAdminDecoratorCreate, WalnutAdminDecoratorRead, WalnutAdminDecoratorUpdate, WalnutAdminDecoratorList }
-  = WalnutCrudDecorators({
-    title: WalnutAdminConstDecoratorLogOperateTitle.ROLE,
-    DTO: SysRoleDTOSafe,
-    // list 行不是完整 SysRoleDTOSafe：controller 返回的 SysRoleDTOListResponse 只含
-    // RealPartialType(SysRoleDTOSafeWithoutMenus)（menus / deptIds 不在行里）。
-    // 把真实响应类交给 list 装饰器，swagger 行 schema 才与 wire 一致（P2-6 收尾）。
-    listResponseDTO: SysRoleDTOListResponse,
-  })
+const {
+  WalnutAdminDecoratorCreate,
+  WalnutAdminDecoratorRead,
+  WalnutAdminDecoratorUpdate,
+  WalnutAdminDecoratorList,
+} = WalnutCrudDecorators({
+  title: WalnutAdminConstDecoratorLogOperateTitle.ROLE,
+  DTO: SysRoleDTOSafe,
+  // list 行不是完整 SysRoleDTOSafe：controller 返回的 SysRoleDTOListResponse 只含
+  // RealPartialType(SysRoleDTOSafeWithoutMenus)（menus / deptIds 不在行里）。
+  // 把真实响应类交给 list 装饰器，swagger 行 schema 才与 wire 一致（P2-6 收尾）。
+  listResponseDTO: SysRoleDTOListResponse,
+})
 
 /**
  * B5 迁移模板（controller 层，B1 同款）：路由参数 ParamMongoId → uuid 参数装饰器；
@@ -53,10 +57,7 @@ export class SysRoleController {
   @WalnutAdminDecoratorHasPermission(Permissions.CREATE)
   @WalnutAdminDecoratorCreate()
   @WalnutTx()
-  async create(
-    @WalnutTxSession() ctx: WalnutTxContext,
-    @Body() payload: SysRoleDTOCreateRequest,
-  ) {
+  async create(@WalnutTxSession() ctx: WalnutTxContext, @Body() payload: SysRoleDTOCreateRequest) {
     return plainToInstance(SysRoleDTOCreateResponse, await this.roleService.create(payload, ctx.em))
   }
 
@@ -74,7 +75,10 @@ export class SysRoleController {
     @Body() payload: SysRoleDTOUpdateRequest,
     @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return plainToInstance(SysRoleDTOUpdateResponse, await this.roleService.update(id, payload, ctx.em))
+    return plainToInstance(
+      SysRoleDTOUpdateResponse,
+      await this.roleService.update(id, payload, ctx.em),
+    )
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)

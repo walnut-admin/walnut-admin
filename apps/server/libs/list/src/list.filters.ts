@@ -40,7 +40,7 @@ export function getFilter(
   if (!Array.isArray(filters)) {
     return undefined
   }
-  return filters.find(item => item !== null && typeof item === 'object' && item.field === field)
+  return filters.find((item) => item !== null && typeof item === 'object' && item.field === field)
 }
 
 /**
@@ -65,7 +65,9 @@ export function omitFilters(
     return undefined
   }
   const omit = new Set(fields)
-  const rest = filters.filter(item => item !== null && typeof item === 'object' && !omit.has(item.field))
+  const rest = filters.filter(
+    (item) => item !== null && typeof item === 'object' && !omit.has(item.field),
+  )
   return rest.length > 0 ? rest : undefined
 }
 
@@ -78,6 +80,8 @@ export function pickFilters(
     return undefined
   }
   const keep = new Set(fields)
-  const picked = filters.filter(item => item !== null && typeof item === 'object' && keep.has(item.field))
+  const picked = filters.filter(
+    (item) => item !== null && typeof item === 'object' && keep.has(item.field),
+  )
   return picked.length > 0 ? picked : undefined
 }

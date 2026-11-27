@@ -21,7 +21,11 @@ import { AuthRefreshSharedModule } from './shared/refresh.shared.module'
     AuthRefreshRepositoryModule,
     AuthCookieModule,
   ],
-  providers: [JwtRefreshTokenStrategy, AuthRefreshTokenPgPurgeService, authRefreshTokenRecoverableProvider],
+  providers: [
+    JwtRefreshTokenStrategy,
+    AuthRefreshTokenPgPurgeService,
+    authRefreshTokenRecoverableProvider,
+  ],
   exports: [AuthRefreshTokenPgPurgeService],
 })
-export class AuthRefreshModule { }
+export class AuthRefreshModule {}

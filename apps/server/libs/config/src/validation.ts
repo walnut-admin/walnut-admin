@@ -1,5 +1,13 @@
 import { plainToClass, Transform } from 'class-transformer'
-import { IsInt, IsNumber, IsOptional, IsString, Matches, MinLength, validateSync } from 'class-validator'
+import {
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Matches,
+  MinLength,
+  validateSync,
+} from 'class-validator'
 import { assertWalnutPgAppBootstrapPassword } from './utils/pg-app-password'
 
 /**
@@ -61,8 +69,7 @@ export class EnvironmentVariables {
    */
   @IsOptional()
   @Transform(({ value }: { value: unknown }) => {
-    if (value === undefined || value === null || value === '')
-      return undefined
+    if (value === undefined || value === null || value === '') return undefined
 
     const parsed = Number(value)
     // 非有限值原样返回：让 IsInt 把它当「不是整数」拒掉，而不是静默变成 NaN
@@ -235,10 +242,13 @@ export class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
-  @MinLength(8, { message: 'SOCKET_ADMIN_UI_PASSWORD 对应的强口令最少 8 位（admin UI 强口令下限）' })
+  @MinLength(8, {
+    message: 'SOCKET_ADMIN_UI_PASSWORD 对应的强口令最少 8 位（admin UI 强口令下限）',
+  })
   @Matches(/^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/, {
-    message: 'SOCKET_ADMIN_UI_PASSWORD 必须是 bcrypt hash（$2a/$2b/$2y 开头、共 60 位）'
-      + '—— 用 bcryptjs.hash(强口令, 10) 生成；明文会被 @socket.io/admin-ui 启动拒绝',
+    message:
+      'SOCKET_ADMIN_UI_PASSWORD 必须是 bcrypt hash（$2a/$2b/$2y 开头、共 60 位）' +
+      '—— 用 bcryptjs.hash(强口令, 10) 生成；明文会被 @socket.io/admin-ui 启动拒绝',
   })
   SOCKET_ADMIN_UI_PASSWORD: string
 
@@ -316,11 +326,16 @@ export function validateConfig(config: Record<string, unknown>) {
   const appUser = config.DATABASE_PG_APP_USER
   const appPass = config.DATABASE_PG_APP_PASS
 
-  if (typeof appUser !== 'string' || appUser === '' || typeof appPass !== 'string' || appPass === '') {
+  if (
+    typeof appUser !== 'string' ||
+    appUser === '' ||
+    typeof appPass !== 'string' ||
+    appPass === ''
+  ) {
     throw new Error(
-      '[config] 缺少 DATABASE_PG_APP_USER / DATABASE_PG_APP_PASS（数据权限三期 RLS 运行时角色）。'
-      + '请先执行 `pnpm setup-env` 解密 env-local；确认迁移 1793360000000-DataScopePhase3Rls '
-      + '已创建 walnut_app 角色，或按部署文档预建该角色并配置强密码。',
+      '[config] 缺少 DATABASE_PG_APP_USER / DATABASE_PG_APP_PASS（数据权限三期 RLS 运行时角色）。' +
+        '请先执行 `pnpm setup-env` 解密 env-local；确认迁移 1793360000000-DataScopePhase3Rls ' +
+        '已创建 walnut_app 角色，或按部署文档预建该角色并配置强密码。',
     )
   }
 

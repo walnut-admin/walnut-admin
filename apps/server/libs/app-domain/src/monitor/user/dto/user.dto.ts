@@ -1,4 +1,8 @@
-import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldDate, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
+import {
+  WalnutAdminDecoratorFieldBoolean,
+  WalnutAdminDecoratorFieldDate,
+  WalnutAdminDecoratorFieldString,
+} from '@walnut-server/decorators/field'
 import { WalnutAdminCommonBasicModel } from '@walnut-server/identity'
 import { Expose } from 'class-transformer'
 

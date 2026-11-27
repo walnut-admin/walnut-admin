@@ -88,7 +88,7 @@ export interface DocTsFinding {
 /** 扫描面：文档站里的活文档（排除冻结语料） */
 export function docFiles(): string[] {
   return lsFilesWithUntracked('*.md')
-    .filter(f => f.startsWith(DOCS_TREE) && !FROZEN.test(f))
+    .filter((f) => f.startsWith(DOCS_TREE) && !FROZEN.test(f))
     .sort()
 }
 
@@ -125,8 +125,7 @@ export function fencedBlocks(file: string, markdown: string): DocBlock[] {
       out.push({ file, line: start, lang, code: body.join('\n') })
       continue
     }
-    if (open)
-      body.push(line)
+    if (open) body.push(line)
   }
   return out
 }
@@ -138,12 +137,12 @@ function isPseudo(block: DocBlock): boolean {
 
 /** 只留需要检查的 ts / tsx 块，并剔掉带伪代码标记的 */
 export function tsBlocksOf(blocks: readonly DocBlock[]): DocBlock[] {
-  return blocks.filter(b => TS_LANGS.has(b.lang) && !isPseudo(b))
+  return blocks.filter((b) => TS_LANGS.has(b.lang) && !isPseudo(b))
 }
 
 /** 只留标成 `json` 的块（严格 JSON 校验面），并剔掉带伪代码标记的 */
 export function jsonBlocksOf(blocks: readonly DocBlock[]): DocBlock[] {
-  return blocks.filter(b => STRICT_JSON_LANGS.has(b.lang) && !isPseudo(b))
+  return blocks.filter((b) => STRICT_JSON_LANGS.has(b.lang) && !isPseudo(b))
 }
 
 /**
@@ -156,19 +155,21 @@ export function jsonFindingsOfBlock(block: DocBlock): DocTsFinding[] {
   try {
     JSON.parse(block.code)
     return []
-  }
-  catch (error) {
+  } catch (error) {
     const raw = error instanceof Error ? error.message : String(error)
     // Node 20+ 的 JSON.parse 报错里常带 `(line N column M)`；不带时（例如 `//` 注释那条）退回块首行。
     const at = /\(line (\d+) column \d+\)/.exec(raw)
     const line = at === null ? block.line : block.line + Number(at[1]) - 1
-    return [{
-      file: block.file,
-      line,
-      kind: 'json-syntax',
-      message: `标成 \`json\` 的块不是合法 JSON —— JSON 不允许注释 / 裸键 / 尾逗号（${raw}）。`
-        + '带注释或裸键的片段请把围栏改标 ```jsonc。',
-    }]
+    return [
+      {
+        file: block.file,
+        line,
+        kind: 'json-syntax',
+        message:
+          `标成 \`json\` 的块不是合法 JSON —— JSON 不允许注释 / 裸键 / 尾逗号（${raw}）。` +
+          '带注释或裸键的片段请把围栏改标 ```jsonc。',
+      },
+    ]
   }
 }
 
@@ -200,9 +201,8 @@ function parseDiagnosticsOf(sf: ts.SourceFile): readonly ts.Diagnostic[] {
  *      走到这里说明它已经解析失败了。
  */
 function looksLikeJson(code: string): boolean {
-  if (parseDiagnosticsOf(ts.parseJsonText('block.json', code)).length === 0)
-    return true
-  const firstLine = code.split('\n').find(l => l.trim() !== '') ?? ''
+  if (parseDiagnosticsOf(ts.parseJsonText('block.json', code)).length === 0) return true
+  const firstLine = code.split('\n').find((l) => l.trim() !== '') ?? ''
   return /^\s*"(?:[^"\\]|\\.)*"\s*:\s*[[{]/.test(firstLine)
 }
 
@@ -217,30 +217,34 @@ export function findingsOfBlock(block: DocBlock): DocTsFinding[] {
   const name = block.lang === 'tsx' ? 'block.tsx' : 'block.ts'
   const sf = ts.createSourceFile(name, block.code, ts.ScriptTarget.Latest, false, scriptKind)
   const diags = parseDiagnosticsOf(sf)
-  if (diags.length === 0)
-    return []
+  if (diags.length === 0) return []
 
   // ② 是不是「TS 解析不过、但内容其实是 JSON」⇒ 标错了语言
   if (looksLikeJson(block.code)) {
-    return [{
-      file: block.file,
-      line: block.line,
-      kind: 'json-in-ts',
-      message: '这个块的内容是 JSON，却标成了 `ts` —— 语法高亮会全错。请把围栏改成 ```jsonc',
-    }]
+    return [
+      {
+        file: block.file,
+        line: block.line,
+        kind: 'json-in-ts',
+        message: '这个块的内容是 JSON，却标成了 `ts` —— 语法高亮会全错。请把围栏改成 ```jsonc',
+      },
+    ]
   }
 
   // ③ 真的写坏了：报第一条，并给出块内相对行号
   const first = diags[0]!
-  const at = first.start === undefined
-    ? block.line
-    : block.line + sf.getLineAndCharacterOfPosition(first.start).line
-  return [{
-    file: block.file,
-    line: at,
-    kind: 'syntax',
-    message: `TypeScript 解析失败：${ts.flattenDiagnosticMessageText(first.messageText, ' ')}`,
-  }]
+  const at =
+    first.start === undefined
+      ? block.line
+      : block.line + sf.getLineAndCharacterOfPosition(first.start).line
+  return [
+    {
+      file: block.file,
+      line: at,
+      kind: 'syntax',
+      message: `TypeScript 解析失败：${ts.flattenDiagnosticMessageText(first.messageText, ' ')}`,
+    },
+  ]
 }
 
 /** 收集全部 findings（纯逻辑：只依赖传入的文件清单与读取函数） */
@@ -251,10 +255,8 @@ export function collectFindings(
   const out: DocTsFinding[] = []
   for (const file of files) {
     const blocks = fencedBlocks(file, readText(file))
-    for (const block of tsBlocksOf(blocks))
-      out.push(...findingsOfBlock(block))
-    for (const block of jsonBlocksOf(blocks))
-      out.push(...jsonFindingsOfBlock(block))
+    for (const block of tsBlocksOf(blocks)) out.push(...findingsOfBlock(block))
+    for (const block of jsonBlocksOf(blocks)) out.push(...jsonFindingsOfBlock(block))
   }
   return out
 }
@@ -265,7 +267,7 @@ export function main(): void {
     throw new PreconditionError('扫描面为空（0 篇文档）—— 拒绝把「扫不到东西」当绿灯')
   }
 
-  const findings = collectFindings(files, f => fs.readFileSync(path.join(REPO_ROOT, f), 'utf8'))
+  const findings = collectFindings(files, (f) => fs.readFileSync(path.join(REPO_ROOT, f), 'utf8'))
 
   let tsCount = 0
   let jsonCount = 0
@@ -284,7 +286,9 @@ export function main(): void {
 
   for (const f of findings)
     lineErr('violation', `${f.file}:${f.line}  [${f.kind}]\n    ${f.message}`)
-  err(`\n共 ${findings.length} 处。有意的伪代码请在块的第一行写 \`${PSEUDO_MARKER}\`；`
-    + '带注释或裸键的 JSON 片段请标 `jsonc`（`jsonc` 刻意不做严格校验，见本文件顶部）。')
+  err(
+    `\n共 ${findings.length} 处。有意的伪代码请在块的第一行写 \`${PSEUDO_MARKER}\`；` +
+      '带注释或裸键的 JSON 片段请标 `jsonc`（`jsonc` 刻意不做严格校验，见本文件顶部）。',
+  )
   throw new ViolationError(`文档代码块有 ${findings.length} 处问题（明细见上）`)
 }

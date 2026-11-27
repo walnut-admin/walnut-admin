@@ -22,11 +22,13 @@ import {
 function findRoot(start: string): string {
   let dir = path.resolve(start)
   for (;;) {
-    if (path.basename(dir) === 'walnut-admin' && path.basename(path.dirname(dir)) === 'walnut-admin')
+    if (
+      path.basename(dir) === 'walnut-admin' &&
+      path.basename(path.dirname(dir)) === 'walnut-admin'
+    )
       return dir
     const up = path.dirname(dir)
-    if (up === dir)
-      throw new Error(`从 ${start} 向上找不到仓库根`)
+    if (up === dir) throw new Error(`从 ${start} 向上找不到仓库根`)
     dir = up
   }
 }
@@ -117,7 +119,7 @@ describe('nestOutDir —— server 侧产物目录的真源在 tsconfig', () => 
 describe('collectFindings（对着真实仓库跑）', () => {
   it('本仓当前全部不变量都成立', () => {
     // 断言直接落在 «规则 id + 细节» 上：失败时能一眼看出是哪一条不变量、差在哪
-    expect(collectFindings(dry, ROOT).map(f => `${f.rule} :: ${f.detail}`)).toEqual([])
+    expect(collectFindings(dry, ROOT).map((f) => `${f.rule} :: ${f.detail}`)).toEqual([])
   })
 
   it('解析到全部 workspace 包（下界断言，新包加入时不必回头改这里）', () => {
@@ -129,9 +131,9 @@ describe('collectFindings（对着真实仓库跑）', () => {
 
   it.skipIf(!hasEnvLocal)('产物目录掉出 outputs 会被报出来（dist-staging 那个 bug 的守卫）', () => {
     const broken = structuredClone(dry)
-    const t = broken.tasks.find(x => x.taskId === '@walnut/admin#build:stage')!
+    const t = broken.tasks.find((x) => x.taskId === '@walnut/admin#build:stage')!
     t.resolvedTaskDefinition.outputs = ['dist/**', '.vitepress/dist/**']
-    const hit = collectFindings(broken, ROOT).filter(f => f.rule === 'outputs-cover-artifacts')
+    const hit = collectFindings(broken, ROOT).filter((f) => f.rule === 'outputs-cover-artifacts')
     expect(hit).toHaveLength(1)
     expect(hit[0].detail).toContain('dist-staging')
   })
@@ -140,9 +142,11 @@ describe('collectFindings（对着真实仓库跑）', () => {
     const broken = structuredClone(dry)
     for (const t of broken.tasks) {
       if (t.task === 'build' && t.resolvedTaskDefinition.inputs)
-        t.resolvedTaskDefinition.inputs = t.resolvedTaskDefinition.inputs.filter(i => i !== 'env-local/**')
+        t.resolvedTaskDefinition.inputs = t.resolvedTaskDefinition.inputs.filter(
+          (i) => i !== 'env-local/**',
+        )
     }
-    const hit = collectFindings(broken, ROOT).filter(f => f.rule === 'env-local-in-inputs')
+    const hit = collectFindings(broken, ROOT).filter((f) => f.rule === 'env-local-in-inputs')
     expect(hit.length).toBeGreaterThan(0)
     expect(hit[0].detail).toContain('env-local/**')
   })
@@ -150,29 +154,31 @@ describe('collectFindings（对着真实仓库跑）', () => {
   // 反面：干净检出（CI）里那三条不变量**跳过**，而不是误报 —— 这条断言在两种环境下都跑
   it('env-local 不存在时，读 env 的那三条不变量安静跳过（不是误报）', () => {
     const rules = ['env-local-in-inputs', 'outputs-cover-artifacts']
-    const fired = collectFindings(dry, ROOT).filter(f => rules.includes(f.rule))
-    if (hasEnvLocal)
-      expect(fired, '有 env-local 时这面本来就该是干净的').toEqual([])
-    else
-      expect(fired, '没有 env-local ⇒ 前置条件不满足，门禁不该报').toEqual([])
+    const fired = collectFindings(dry, ROOT).filter((f) => rules.includes(f.rule))
+    if (hasEnvLocal) expect(fired, '有 env-local 时这面本来就该是干净的').toEqual([])
+    else expect(fired, '没有 env-local ⇒ 前置条件不满足，门禁不该报').toEqual([])
   })
 
   it('docs#build 的输入里没有 .md 会被报出来', () => {
     const broken = structuredClone(dry)
-    const t = broken.tasks.find(x => x.taskId === '@walnut/docs#build')!
-    t.inputs = Object.fromEntries(Object.entries(t.inputs ?? {}).filter(([k]) => !k.endsWith('.md')))
-    expect(collectFindings(broken, ROOT).map(f => f.rule)).toContain('docs-build-sees-markdown')
+    const t = broken.tasks.find((x) => x.taskId === '@walnut/docs#build')!
+    t.inputs = Object.fromEntries(
+      Object.entries(t.inputs ?? {}).filter(([k]) => !k.endsWith('.md')),
+    )
+    expect(collectFindings(broken, ROOT).map((f) => f.rule)).toContain('docs-build-sees-markdown')
   })
 })
 
 describe('//#lint:root —— 根级文件也要能被缓存', () => {
   it('任务存在，且 inputs 逐字等于根脚本那三个 glob', () => {
-    const task = (read('turbo.json') as { tasks: Record<string, { inputs?: string[] }> }).tasks['//#lint:root']
+    const task = (read('turbo.json') as { tasks: Record<string, { inputs?: string[] }> }).tasks[
+      '//#lint:root'
+    ]
     expect(task.inputs).toEqual(['$TURBO_ROOT$/*.ts', '$TURBO_ROOT$/*.json', '$TURBO_ROOT$/*.yaml'])
   })
 
   it('它真的在 turbo 的图里（不是只写在配置里没人调）', () => {
-    expect(dry.tasks.some(t => t.taskId === '//#lint:root')).toBe(true)
+    expect(dry.tasks.some((t) => t.taskId === '//#lint:root')).toBe(true)
   })
 
   it('根 package.json 里真的有 lint:root 脚本 —— 否则 turbo 把任务标成 <NONEXISTENT>、跑 0 个任务仍退 0', () => {
@@ -180,50 +186,58 @@ describe('//#lint:root —— 根级文件也要能被缓存', () => {
     // 「Tasks: 0 successful, 0 total」并退出 0 —— prepush 与发版电池的 lint-root 段静默空转。
     const scripts = (read('package.json') as { scripts: Record<string, string> }).scripts
     expect(scripts['lint:root'], '根 turbo 的 //#lint:root 任务要跑根上同名脚本').toBeTruthy()
-    const task = dry.tasks.find(t => t.taskId === '//#lint:root')
-    expect(task?.command, 'turbo 认不出 //#lint:root 的命令（脚本缺失？）').not.toBe('<NONEXISTENT>')
+    const task = dry.tasks.find((t) => t.taskId === '//#lint:root')
+    expect(task?.command, 'turbo 认不出 //#lint:root 的命令（脚本缺失？）').not.toBe(
+      '<NONEXISTENT>',
+    )
   })
 
   it('inputs 与脚本不一致时会被报出来（两个方向）', () => {
     // 直接打桩：把 package.json 的脚本读成多一个 glob 的样子做不到（断言读的是真文件），
     // 所以这条靠**负向注入实验**覆盖（见 turbo-cache-boundary.md 第六节）。
     // 这里只钉住「当前状态是自洽的」这一半。
-    const f = collectFindings(dry, ROOT).filter(x => x.rule === 'lint-root-inputs')
+    const f = collectFindings(dry, ROOT).filter((x) => x.rule === 'lint-root-inputs')
     expect(f).toEqual([])
   })
 })
 
 describe('边界本身（哈希层的不变量回归）', () => {
   it('admin#types:check 经 transit 串到上游包 —— 断了这条边就回放假绿', () => {
-    const t = dry.tasks.find(x => x.taskId === '@walnut/admin#types:check')!
+    const t = dry.tasks.find((x) => x.taskId === '@walnut/admin#types:check')!
     expect(t.resolvedTaskDefinition.dependsOn).toContain('transit')
-    const transit = dry.tasks.find(x => x.taskId === '@walnut/admin#transit')!
+    const transit = dry.tasks.find((x) => x.taskId === '@walnut/admin#transit')!
     // 共享包（源码直消费）都该在上游：contract / types / utils / client / http / ui 至少各有一个
     expect((transit.dependencies ?? []).length).toBeGreaterThanOrEqual(6)
   })
 
   it('build:stage 的产物面覆盖 admin 的 staging 目录', () => {
-    const t = dry.tasks.find(x => x.taskId === '@walnut/admin#build:stage')!
+    const t = dry.tasks.find((x) => x.taskId === '@walnut/admin#build:stage')!
     expect(t.resolvedTaskDefinition.outputs).toContain('dist-staging/**')
   })
 
   it('docs#build 把 .md 算进输入 —— 它就是死链校验的输入', () => {
-    const t = dry.tasks.find(x => x.taskId === '@walnut/docs#build')!
-    expect(Object.keys(t.inputs ?? {}).filter(k => k.endsWith('.md')).length).toBeGreaterThan(100)
+    const t = dry.tasks.find((x) => x.taskId === '@walnut/docs#build')!
+    expect(Object.keys(t.inputs ?? {}).filter((k) => k.endsWith('.md')).length).toBeGreaterThan(100)
   })
 
   it('`.md` 仍被代码包的 build 排除（改 README 不该重建）', () => {
-    const t = dry.tasks.find(x => x.taskId === '@walnut/admin#build')!
-    expect(Object.keys(t.inputs ?? {}).filter(k => k.endsWith('.md'))).toEqual([])
+    const t = dry.tasks.find((x) => x.taskId === '@walnut/admin#build')!
+    expect(Object.keys(t.inputs ?? {}).filter((k) => k.endsWith('.md'))).toEqual([])
   })
 
   // 同上前提：干净检出里 `env-local/` 不存在 ⇒ turbo 的 inputs 里也不会有它的文件
-  it.skipIf(!hasEnvLocal)('env-local 在 build 的输入里（它被 gitignore，只能靠显式 glob 捞回来）', () => {
-    for (const id of ['@walnut/admin#build', '@walnut/admin#build:stage']) {
-      const t = dry.tasks.find(x => x.taskId === id)!
-      expect(Object.keys(t.inputs ?? {}).filter(k => k.startsWith('env-local/')).length, id).toBeGreaterThan(0)
-    }
-  })
+  it.skipIf(!hasEnvLocal)(
+    'env-local 在 build 的输入里（它被 gitignore，只能靠显式 glob 捞回来）',
+    () => {
+      for (const id of ['@walnut/admin#build', '@walnut/admin#build:stage']) {
+        const t = dry.tasks.find((x) => x.taskId === id)!
+        expect(
+          Object.keys(t.inputs ?? {}).filter((k) => k.startsWith('env-local/')).length,
+          id,
+        ).toBeGreaterThan(0)
+      }
+    },
+  )
 
   it('全局依赖的关键成员仍在（globalCacheInputs 是它的真源）', () => {
     const files = Object.keys(dry.globalCacheInputs.files)
@@ -245,47 +259,60 @@ describe('tags —— 形态 / 平台一致 / 反向断言', () => {
     globalDependencies: [],
     boundaries: { tags: { shared: { dependencies: { deny: ['app'] } } } },
     tasks: {
-      'transit': { dependsOn: ['^transit'] },
+      transit: { dependsOn: ['^transit'] },
       'types:check': { dependsOn: ['transit'] },
       // 与命令表里 lint:root 的三个 glob 逐字一致（不变量 ⑧ 现在读命令表，不再读根 package.json）
-      '//#lint:root': { inputs: ['$TURBO_ROOT$/*.ts', '$TURBO_ROOT$/*.json', '$TURBO_ROOT$/*.yaml'] },
+      '//#lint:root': {
+        inputs: ['$TURBO_ROOT$/*.ts', '$TURBO_ROOT$/*.json', '$TURBO_ROOT$/*.yaml'],
+      },
     },
   }
 
   /** 造一个只含一个包的夹具仓库；`tags` 决定那个包的 turbo.json 长什么样 */
-  function fixture(dir: string, tags: unknown): { cwd: string, dry: ReturnType<typeof fakeDry> } {
+  function fixture(dir: string, tags: unknown): { cwd: string; dry: ReturnType<typeof fakeDry> } {
     const cwd = mkdtempSync(path.join(tmpdir(), 'walnut-tags-'))
     const pkgRoot = path.join(cwd, dir)
     mkdirSync(pkgRoot, { recursive: true })
     writeFileSync(path.join(cwd, 'turbo.json'), JSON.stringify(ROOT_TURBO, null, 2))
-    writeFileSync(path.join(cwd, 'package.json'), JSON.stringify({ scripts: { 'lint:root': 'eslint *.ts *.json *.yaml' } }))
-    writeFileSync(path.join(pkgRoot, 'turbo.json'), JSON.stringify({ extends: ['//'], tags }, null, 2))
+    writeFileSync(
+      path.join(cwd, 'package.json'),
+      JSON.stringify({ scripts: { 'lint:root': 'eslint *.ts *.json *.yaml' } }),
+    )
+    writeFileSync(
+      path.join(pkgRoot, 'turbo.json'),
+      JSON.stringify({ extends: ['//'], tags }, null, 2),
+    )
     return { cwd, dry: fakeDry(cwd, dir) }
   }
 
   function fakeDry(cwd: string, dir: string) {
     return {
-      tasks: [{
-        taskId: 'pkg#build',
-        task: 'build',
-        package: 'pkg',
-        directory: path.join(cwd, dir),
-        hash: 'x',
-        resolvedTaskDefinition: { outputs: [], inputs: [] },
-      }],
+      tasks: [
+        {
+          taskId: 'pkg#build',
+          task: 'build',
+          package: 'pkg',
+          directory: path.join(cwd, dir),
+          hash: 'x',
+          resolvedTaskDefinition: { outputs: [], inputs: [] },
+        },
+      ],
       packages: ['//', 'pkg'],
       globalCacheInputs: { files: {} },
     } as unknown as Parameters<typeof collectFindings>[0]
   }
 
-  const rulesOf = (f: ReturnType<typeof fixture>) => collectFindings(f.dry, f.cwd).map(x => x.rule)
+  const rulesOf = (f: ReturnType<typeof fixture>) =>
+    collectFindings(f.dry, f.cwd).map((x) => x.rule)
 
   it('合规的包里里外外都通过（夹具本身是绿的，才谈得上负对照）', () => {
     expect(rulesOf(fixture('packages/platform-any/a', ['shared', 'platform-any']))).toEqual([])
   })
 
   it('tags 写成大写/下划线 → 报 tag-shape（它匹配不上 boundaries 里任何一条规则）', () => {
-    expect(rulesOf(fixture('packages/platform-any/a', ['shared', 'Platform_Web']))).toContain('tag-shape')
+    expect(rulesOf(fixture('packages/platform-any/a', ['shared', 'Platform_Web']))).toContain(
+      'tag-shape',
+    )
   })
 
   it('tags 有重复 → 报 tag-shape', () => {
@@ -293,11 +320,15 @@ describe('tags —— 形态 / 平台一致 / 反向断言', () => {
   })
 
   it('platform-any 目录下的包漏了 platform-any → 报', () => {
-    expect(rulesOf(fixture('packages/platform-any/a', ['shared']))).toContain('platform-tag-matches-dir')
+    expect(rulesOf(fixture('packages/platform-any/a', ['shared']))).toContain(
+      'platform-tag-matches-dir',
+    )
   })
 
   it('platform-any 目录下的包声明了 platform-web → 报（规则会套到错的一侧）', () => {
-    expect(rulesOf(fixture('packages/platform-any/a', ['shared', 'platform-any', 'platform-web']))).toContain('platform-tag-matches-dir')
+    expect(
+      rulesOf(fixture('packages/platform-any/a', ['shared', 'platform-any', 'platform-web'])),
+    ).toContain('platform-tag-matches-dir')
   })
 
   it('boundaries.tags 里有一条没有任何包声明它 → 报 boundary-rule-has-subject（恒关的规则 = 没有规则）', () => {
@@ -322,7 +353,9 @@ describe('跨平台：这一段门禁必须能在 CI 的 Linux runner 上跑', (
       .replace(/\/\*[\s\S]*?\*\//g, '') // 块注释
       .replace(/(^|\s)\/\/.*$/gm, '$1') // 行注释（`://` 不会被吃掉）
   }
-  const code = stripComments(readFileSync(path.join(ROOT, 'tooling/scripts/src/ci/check-turbo-cache.ts'), 'utf8'))
+  const code = stripComments(
+    readFileSync(path.join(ROOT, 'tooling/scripts/src/ci/check-turbo-cache.ts'), 'utf8'),
+  )
 
   // 2026-09-23 读出来的真 bug：loadTurboDry 原本是 `execFileSync('cmd', ['/c', '… 2>nul'])`，
   // 那是**只在 Windows 上成立**的写法 —— CI 的 runner 是 ubuntu-latest，那里没有 `cmd`，
@@ -351,10 +384,10 @@ describe('跨平台：这一段门禁必须能在 CI 的 Linux runner 上跑', (
  */
 describe('ci.yml 的缓存范围：有产物的构建任务不许落在缓存步骤之后', () => {
   const scripts = {
-    'build': 'turbo build',
+    build: 'turbo build',
     'build:stage': 'turbo build:stage',
     'build:docs': 'turbo build --filter=@walnut/docs',
-    'lint': 'turbo lint',
+    lint: 'turbo lint',
   }
   /** 缓存步骤在前、可选步骤在中、另一个 job 在后（用来验「只扫同一个 job」） */
   const workflow = (steps: string) => `jobs:
@@ -386,7 +419,9 @@ ${steps}
   })
 
   it('官方写法（--cache-dir 直接跟在 id 后、不写 --）放行', () => {
-    const yaml = workflow('      - name: Docs build\n        run: pnpm walnut build:docs --cache-dir=.turbo/cache-docs')
+    const yaml = workflow(
+      '      - name: Docs build\n        run: pnpm walnut build:docs --cache-dir=.turbo/cache-docs',
+    )
     expect(ciStepsWritingBuildProducts(yaml, scripts)).toEqual([])
   })
 
@@ -399,7 +434,9 @@ ${steps}
   })
 
   it('--cache-dir 写在 `--` 之后 ⇒ 报 passthrough（缓存污染守卫按旗标是否在 -- 之前判定）', () => {
-    const yaml = workflow('      - name: Docs build\n        run: pnpm walnut build:docs -- --cache-dir=.turbo/cache-docs')
+    const yaml = workflow(
+      '      - name: Docs build\n        run: pnpm walnut build:docs -- --cache-dir=.turbo/cache-docs',
+    )
     const found = ciStepsWritingBuildProducts(yaml, scripts)
     expect(found).toHaveLength(1)
     expect(found[0]?.kind).toBe('passthrough')
@@ -420,7 +457,12 @@ ${steps}
   })
 
   it('在**另一个 job** 里跑 ⇒ 不管（缓存步骤是 job 级的）', () => {
-    expect(ciStepsWritingBuildProducts(workflow('      - name: Lint\n        run: pnpm walnut lint'), scripts)).toEqual([])
+    expect(
+      ciStepsWritingBuildProducts(
+        workflow('      - name: Lint\n        run: pnpm walnut lint'),
+        scripts,
+      ),
+    ).toEqual([])
   })
 
   it('没有产物的任务（lint）不受影响', () => {
@@ -434,6 +476,11 @@ ${steps}
   })
 
   it('文件里根本没有缓存步骤 ⇒ 不管（没有跨 run 缓存，也就无所谓）', () => {
-    expect(ciStepsWritingBuildProducts('jobs:\n  quality:\n    steps:\n      - run: pnpm build\n', scripts)).toEqual([])
+    expect(
+      ciStepsWritingBuildProducts(
+        'jobs:\n  quality:\n    steps:\n      - run: pnpm build\n',
+        scripts,
+      ),
+    ).toEqual([])
   })
 })

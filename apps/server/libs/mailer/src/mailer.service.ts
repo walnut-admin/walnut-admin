@@ -11,9 +11,7 @@ import { isNil } from 'lodash'
 export class AppMailerService implements OnModuleInit {
   private readonly logger = new Logger(AppMailerService.name)
 
-  constructor(
-    @InjectQueue(WalnutAdminConstAppQueue.EMAIL) private readonly emailQueue: Queue,
-  ) {}
+  constructor(@InjectQueue(WalnutAdminConstAppQueue.EMAIL) private readonly emailQueue: Queue) {}
 
   /**
    * F-29（CQ-014）：验证码投递失败必须可观测。
@@ -38,8 +36,7 @@ export class AppMailerService implements OnModuleInit {
 
   // send welcome email
   async sendWelcomeEmail(toEmail: string | string[], lang: LocaleType) {
-    if (isNil(toEmail) || toEmail.length === 0)
-      return
+    if (isNil(toEmail) || toEmail.length === 0) return
 
     // push to queue
     await this.emailQueue.add(

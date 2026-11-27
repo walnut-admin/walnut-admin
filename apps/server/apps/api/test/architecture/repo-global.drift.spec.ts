@@ -156,15 +156,18 @@ function readArrayProperty(
     for (const element of prop.initializer.elements) {
       if (ts.isIdentifier(element)) {
         ids.push(element.text)
-      }
-      else if (ts.isSpreadElement(element) && ts.isIdentifier(element.expression)) {
+      } else if (ts.isSpreadElement(element) && ts.isIdentifier(element.expression)) {
         ids.push(...(localArrays.get(element.expression.text) ?? []))
       }
       // 增强器登记形态 { provide: APP_GUARD, useClass: X }：X 的依赖由**本模块**的注入器解析，
       // 所以它同样让本模块成为 X 依赖的消费方（A2 的第三种宿主形态，漏了同样假绿）
       else if (ts.isObjectLiteralExpression(element)) {
         for (const inner of element.properties) {
-          if (ts.isPropertyAssignment(inner) && inner.name.getText(sf) === 'useClass' && ts.isIdentifier(inner.initializer)) {
+          if (
+            ts.isPropertyAssignment(inner) &&
+            inner.name.getText(sf) === 'useClass' &&
+            ts.isIdentifier(inner.initializer)
+          ) {
             ids.push(inner.initializer.text)
           }
         }
@@ -200,7 +203,10 @@ function scan(file: string): FileInfo {
     info.injections.set(className, bucket)
     info.fileInjections.add(injected)
   }
-  const readInjectDecorators = (className: string, decorators: readonly ts.Decorator[] | undefined): void => {
+  const readInjectDecorators = (
+    className: string,
+    decorators: readonly ts.Decorator[] | undefined,
+  ): void => {
     for (const decorator of decorators ?? []) {
       const token = decorator.getText(sf).match(INJECT_DECORATOR_RE)
       if (token) {
@@ -232,13 +238,17 @@ function scan(file: string): FileInfo {
     }
 
     const decorators = ts.getDecorators?.(node) ?? []
-    const moduleDecorator = decorators
-      .find(decorator => decorator.expression.getText(sf).startsWith('Module'))
+    const moduleDecorator = decorators.find((decorator) =>
+      decorator.expression.getText(sf).startsWith('Module'),
+    )
     // 只认真正的装饰器（注释里提到 @Global 不算）：@Global() 的 expression 是 CallExpression
-    info.isGlobal = decorators.some(decorator => /^Global\s*\(\s*\)$/.test(decorator.expression.getText(sf)))
-    const arg = moduleDecorator && ts.isCallExpression(moduleDecorator.expression)
-      ? moduleDecorator.expression.arguments[0]
-      : undefined
+    info.isGlobal = decorators.some((decorator) =>
+      /^Global\s*\(\s*\)$/.test(decorator.expression.getText(sf)),
+    )
+    const arg =
+      moduleDecorator && ts.isCallExpression(moduleDecorator.expression)
+        ? moduleDecorator.expression.arguments[0]
+        : undefined
     if (!arg || !ts.isObjectLiteralExpression(arg)) {
       continue
     }
@@ -254,7 +264,7 @@ function scan(file: string): FileInfo {
       if (!ts.isArrayLiteralExpression(prop.initializer)) {
         continue
       }
-      if (prop.initializer.elements.some(element => !ts.isIdentifier(element))) {
+      if (prop.initializer.elements.some((element) => !ts.isIdentifier(element))) {
         info.hasTokenBinding = true
       }
     }
@@ -288,8 +298,11 @@ function scan(file: string): FileInfo {
 }
 
 const allFiles = walkTsFiles(SERVER_ROOT)
-const isTestFile = (file: string) => /[\\/](?:test|__tests__)[\\/]/.test(file) || file.endsWith('.spec.ts')
-const infos = new Map(allFiles.filter(file => !isTestFile(file)).map(file => [file, scan(file)]))
+const isTestFile = (file: string) =>
+  /[\\/](?:test|__tests__)[\\/]/.test(file) || file.endsWith('.spec.ts')
+const infos = new Map(
+  allFiles.filter((file) => !isTestFile(file)).map((file) => [file, scan(file)]),
+)
 
 /** 类名 → 它注入的标识符（跨文件合并；嵌套类也进） */
 const injectionsByClass = new Map<string, Set<string>>()
@@ -317,7 +330,7 @@ for (const [file, info] of infos) {
   if (!file.endsWith('.module.ts')) {
     continue
   }
-  const moduleClass = info.classes.find(name => name.endsWith('Module'))
+  const moduleClass = info.classes.find((name) => name.endsWith('Module'))
   if (moduleClass !== undefined) {
     moduleByClass.set(moduleClass, file)
   }
@@ -381,8 +394,12 @@ for (const [file, info] of infos) {
   if (!SCOPED_MODULE_FILE_RE.test(file)) {
     continue
   }
-  const providerClasses = info.providerClasses.filter(provider => repoDeclaredClasses.has(provider))
-  const consumersByProvider = new Map<string, string[]>(providerClasses.map(provider => [provider, []]))
+  const providerClasses = info.providerClasses.filter((provider) =>
+    repoDeclaredClasses.has(provider),
+  )
+  const consumersByProvider = new Map<string, string[]>(
+    providerClasses.map((provider) => [provider, []]),
+  )
   const injectingFiles = new Set<string>()
 
   for (const [candidate, candidateInfo] of infos) {
@@ -410,8 +427,9 @@ for (const [file, info] of infos) {
       if (candidateInfo.providerClasses.includes(provider)) {
         continue
       }
-      const injecting = declared.filter(className =>
-        (injectionsByClass.get(className) ?? new Set<string>()).has(provider))
+      const injecting = declared.filter((className) =>
+        (injectionsByClass.get(className) ?? new Set<string>()).has(provider),
+      )
       if (injecting.length > 0) {
         consumersByProvider.get(provider)!.push(candidate)
       }
@@ -427,7 +445,7 @@ for (const [file, info] of infos) {
 
   reports.push({
     file,
-    moduleClass: info.classes.find(name => name.endsWith('Module')) ?? '',
+    moduleClass: info.classes.find((name) => name.endsWith('Module')) ?? '',
     isGlobal: info.isGlobal,
     hasTokenBinding: info.hasTokenBinding,
     providerClasses,
@@ -438,16 +456,16 @@ for (const [file, info] of infos) {
 }
 
 const rel = (file: string) => relative(SERVER_ROOT, file).split(sep).join('/')
-const reportByPath = (path: string) => reports.find(report => rel(report.file) === path)
+const reportByPath = (path: string) => reports.find((report) => rel(report.file) === path)
 
 describe('d10 repo / shared 模块的 @Global 判据：消费方模块数 ≥ 2', () => {
   it('扫描口径有效（防「扫不到文件 ⇒ 全绿」）', () => {
     expect(reports.length).toBeGreaterThanOrEqual(20)
     // A1：两种形态都在扫描面内
-    expect(reports.some(report => /\.repo\.module\.ts$/.test(report.file))).toBe(true)
-    expect(reports.some(report => /\.shared\.module\.ts$/.test(report.file))).toBe(true)
-    expect(reports.some(report => report.isGlobal)).toBe(true)
-    expect(reports.some(report => !report.isGlobal)).toBe(true)
+    expect(reports.some((report) => /\.repo\.module\.ts$/.test(report.file))).toBe(true)
+    expect(reports.some((report) => /\.shared\.module\.ts$/.test(report.file))).toBe(true)
+    expect(reports.some((report) => report.isGlobal)).toBe(true)
+    expect(reports.some((report) => !report.isGlobal)).toBe(true)
     // A5：libs/system/src/logs 源码子树必须在扫描面内（裸名 'logs' 剪枝会让它整棵消失）
     expect(reportByPath('libs/system/src/logs/auth/shared/log.auth.shared.module.ts')).toBeDefined()
     expect(reportByPath('libs/system/src/logs/auth/repo/log.auth.repo.module.ts')).toBeDefined()
@@ -456,25 +474,41 @@ describe('d10 repo / shared 模块的 @Global 判据：消费方模块数 ≥ 2'
   it('判据 a2：消费方计数同时含 controllers[] 与属性级 @Inject', () => {
     const shared = reportByPath('libs/system/src/logs/auth/shared/log.auth.shared.module.ts')!
     // controllers[]：AuthOpaqueUserController 的宿主模块必须被算成消费方（只建 providers 映射时是 0）
-    expect(shared.consumerModules.map(rel)).toContain('apps/api/src/modules/auth/auth-http.module.ts')
+    expect(shared.consumerModules.map(rel)).toContain(
+      'apps/api/src/modules/auth/auth-http.module.ts',
+    )
     // 属性级 @Inject：mixin 工厂里的 @Inject(SysLogAuthSharedService) 也要被看见
     expect(shared.injectingFiles.map(rel)).toContain('libs/guards/src/guards/auth.guard.ts')
-    expect(shared.injectingFiles.map(rel)).toContain('libs/guards/src/decorators/log.auth.decorator.ts')
+    expect(shared.injectingFiles.map(rel)).toContain(
+      'libs/guards/src/decorators/log.auth.decorator.ts',
+    )
   })
 
   it('判据 ①：消费方 ≤ 1 时不许 @Global', () => {
     const offenders = reports
-      .filter(report => report.isGlobal && !report.hasTokenBinding && report.consumerModules.length <= 1)
-      .map(report => `  ${rel(report.file)}（消费方 ${report.consumerModules.length}：${report.consumerModules.map(rel).join(', ') || '无'}）`)
+      .filter(
+        (report) =>
+          report.isGlobal && !report.hasTokenBinding && report.consumerModules.length <= 1,
+      )
+      .map(
+        (report) =>
+          `  ${rel(report.file)}（消费方 ${report.consumerModules.length}：${report.consumerModules.map(rel).join(', ') || '无'}）`,
+      )
 
     expect(offenders).toEqual([])
   })
 
   it('判据 ①b：消费方 ≥ 2 的 @Global 必须在模块注释里登记理由', () => {
     const offenders = reports
-      .filter(report => report.isGlobal && !report.hasTokenBinding && report.consumerModules.length >= 2)
-      .filter(report => !/@Global/.test(infos.get(report.file)?.commentText ?? ''))
-      .map(report => `${rel(report.file)}（消费方 ${report.consumerModules.length}）没在模块注释里登记 @Global 理由`)
+      .filter(
+        (report) =>
+          report.isGlobal && !report.hasTokenBinding && report.consumerModules.length >= 2,
+      )
+      .filter((report) => !/@Global/.test(infos.get(report.file)?.commentText ?? ''))
+      .map(
+        (report) =>
+          `${rel(report.file)}（消费方 ${report.consumerModules.length}）没在模块注释里登记 @Global 理由`,
+      )
 
     expect(offenders).toEqual([])
   })
@@ -498,7 +532,9 @@ describe('d10 repo / shared 模块的 @Global 判据：消费方模块数 ≥ 2'
             }
           }
           if (!visible.has(provider)) {
-            offenders.push(`${rel(consumer)} 注入了 ${rel(report.file)} 的 [${provider}]，但 imports 闭包里看不见它`)
+            offenders.push(
+              `${rel(consumer)} 注入了 ${rel(report.file)} 的 [${provider}]，但 imports 闭包里看不见它`,
+            )
           }
         }
       }
@@ -511,7 +547,9 @@ describe('d10 repo / shared 模块的 @Global 判据：消费方模块数 ≥ 2'
     const shared = reportByPath('libs/system/src/logs/auth/shared/log.auth.shared.module.ts')!
     expect(shared.isGlobal).toBe(false)
     expect(shared.hasTokenBinding).toBe(false)
-    expect(shared.consumerModules.map(rel)).toEqual(['apps/api/src/modules/auth/auth-http.module.ts'])
+    expect(shared.consumerModules.map(rel)).toEqual([
+      'apps/api/src/modules/auth/auth-http.module.ts',
+    ])
 
     // 判据 ② 的具体形态：AuthHttpModule 的 imports 闭包里必须有 SysLogAuthSharedService
     const visible = new Set<string>()

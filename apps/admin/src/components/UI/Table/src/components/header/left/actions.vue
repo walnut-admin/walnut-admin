@@ -22,17 +22,19 @@ const { getProps: tableProps } = tablePropsCtx
 const getDeleteDisabled = computed(() => checkedRowKeys.value.length === 0)
 
 function isShow(t: WTable.HeaderLeftBulitInActionType) {
-  return tableProps.value.headerLeftBuiltInActions?.map(i => i._builtInType).includes(t)
+  return tableProps.value.headerLeftBuiltInActions?.map((i) => i._builtInType).includes(t)
 }
 
-const options = computed<{
-  type: WTable.HeaderLeftBulitInActionType
-  text: string
-  icon: string
-  disabled?: boolean
-  auth?: string
-  testId?: string
-}[]>(() =>
+const options = computed<
+  {
+    type: WTable.HeaderLeftBulitInActionType
+    text: string
+    icon: string
+    disabled?: boolean
+    auth?: string
+    testId?: string
+  }[]
+>(() =>
   sortBy(
     [
       {
@@ -67,18 +69,19 @@ const options = computed<{
         auth: tableProps.value.auths?.export ?? 'force-auth',
       },
     ],
-    i => tableProps.value.headerLeftBuiltInActions?.map(i => i._builtInType).indexOf(i.type),
+    (i) => tableProps.value.headerLeftBuiltInActions?.map((i) => i._builtInType).indexOf(i.type),
   )
-    .filter(i => isShow(i.type))
+    .filter((i) => isShow(i.type))
     // E2E 稳定选择器由页面配置透传（未配置时不产生属性）
-    .map(item => ({
+    .map((item) => ({
       ...item,
-      testId: tableProps.value.headerLeftBuiltInActions?.find(i => i._builtInType === item.type)?.testId,
+      testId: tableProps.value.headerLeftBuiltInActions?.find((i) => i._builtInType === item.type)
+        ?.testId,
     })),
 )
 
 function onButtonClick(key: WTable.HeaderLeftBulitInActionType) {
-  const target = tableProps.value.headerLeftBuiltInActions?.find(i => i._builtInType === key)
+  const target = tableProps.value.headerLeftBuiltInActions?.find((i) => i._builtInType === key)
   target && target.onPresetClick!()
 }
 </script>
@@ -91,9 +94,7 @@ function onButtonClick(key: WTable.HeaderLeftBulitInActionType) {
       :key="item.type"
       :icon="item.icon"
       :text-prop="item.text"
-      :disabled="
-        item.type === 'delete' ? getDeleteDisabled : tableProps.loading
-      "
+      :disabled="item.type === 'delete' ? getDeleteDisabled : tableProps.loading"
       :confirm="item.type === 'delete'"
       :auth="item.auth"
       :test-id="item.testId"
@@ -101,18 +102,20 @@ function onButtonClick(key: WTable.HeaderLeftBulitInActionType) {
     />
 
     <!-- extra custom buttons -->
-    <WButton v-for="(item, index) in tableProps.headerLeftExtraActions" :key="index" v-bind="item" />
+    <WButton
+      v-for="(item, index) in tableProps.headerLeftExtraActions"
+      :key="index"
+      v-bind="item"
+    />
 
     <n-text
       v-if="
-        isShow('delete')
-          && userStorePermission.hasPermission(tableProps.auths?.deleteMany ?? 'force-auth')
+        isShow('delete') &&
+        userStorePermission.hasPermission(tableProps.auths?.deleteMany ?? 'force-auth')
       "
       type="warning"
     >
-      {{
-        t('table.header.action.checkedText', { checked: checkedRowKeys.length })
-      }}
+      {{ t('table.header.action.checkedText', { checked: checkedRowKeys.length }) }}
     </n-text>
   </div>
 </template>

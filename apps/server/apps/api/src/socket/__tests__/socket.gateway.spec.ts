@@ -19,7 +19,10 @@ vi.mock('@socket.io/admin-ui', () => ({ instrument: vi.fn() }))
 const ADMIN_USER = 'spec-admin'
 const ADMIN_PASSWORD = 'spec-strong-pass'
 
-function createGatewayClass(GatewayClass: typeof SocketGateway, env: Record<string, string | undefined>) {
+function createGatewayClass(
+  GatewayClass: typeof SocketGateway,
+  env: Record<string, string | undefined>,
+) {
   const configService = { get: (key: string) => env[key] }
   const socketService = { socket: null as unknown }
   const gateway = new GatewayClass(
@@ -70,7 +73,9 @@ describe('socketGateway.afterInit：F-01 admin UI 门禁（fail-closed）', () =
 
   it('只配 password 不配 user → 不挂载', () => {
     vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {})
-    const { gateway } = createGatewayClass(SocketGateway, { SOCKET_ADMIN_UI_PASSWORD: ADMIN_PASSWORD })
+    const { gateway } = createGatewayClass(SocketGateway, {
+      SOCKET_ADMIN_UI_PASSWORD: ADMIN_PASSWORD,
+    })
     const namespace = createNamespace()
 
     gateway.afterInit(namespace as never)

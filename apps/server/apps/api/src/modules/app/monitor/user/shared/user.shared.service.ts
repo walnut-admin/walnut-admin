@@ -3,7 +3,10 @@ import type { IIdentityUserNotifier } from '@walnut-server/identity'
 import { Injectable } from '@nestjs/common'
 import { AppMonitorUserRepositoryService } from '@walnut-server/app-domain'
 import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
-import { IWalnutAdminConstRevokeRTType, WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
+import {
+  IWalnutAdminConstRevokeRTType,
+  WalnutAdminConstRevokeRTType,
+} from '@walnut-server/const/app/setting'
 import { WalnutAdminSocketEvents } from '@/socket/socket.const'
 // Note: IWalnutAdminSocketEvents is now a global type from @walnut-server/types
 import { SocketService } from '@/socket/socket.service'
@@ -29,9 +32,13 @@ export class AppMonitorUserSharedService implements IIdentityUserNotifier, IAuth
   /**
    * @description send socket event to all monitors of user
    */
-  async sendSocketEventToUserAllMonitors(userId: string, event: IWalnutAdminSocketEvents, data?: object) {
+  async sendSocketEventToUserAllMonitors(
+    userId: string,
+    event: IWalnutAdminSocketEvents,
+    data?: object,
+  ) {
     const allMonitors = await this.appMonitorUserRepo.findAllByUserId(userId)
-    const authOnlineMonitors = allMonitors.filter(m => m.auth && !m.left)
+    const authOnlineMonitors = allMonitors.filter((m) => m.auth && !m.left)
     for (const monitor of authOnlineMonitors) {
       this.socketService.sendToUserRoom(userId, monitor.visitorId?.toString(), event, data)
     }
@@ -41,20 +48,32 @@ export class AppMonitorUserSharedService implements IIdentityUserNotifier, IAuth
    * @description 批 6：身份内核的单设备 socket 通知端口实现（user_lock 的 lock/unlock）。
    * 与 sendSocketEventToUserAllMonitors 共用同一 SocketService，行为不变。
    */
-  sendSocketEventToUserDevice(userId: string, fingerprint: string, event: IWalnutAdminSocketEvents) {
+  sendSocketEventToUserDevice(
+    userId: string,
+    fingerprint: string,
+    event: IWalnutAdminSocketEvents,
+  ) {
     this.socketService.sendToUserRoom(userId, fingerprint, event)
   }
 
   /**
    * @description force quit monitor by socket
    */
-  async forceQuitMonitorBySocket(userId: string, visitorId: string, revokeReason?: IWalnutAdminConstRevokeRTType) {
+  async forceQuitMonitorBySocket(
+    userId: string,
+    visitorId: string,
+    revokeReason?: IWalnutAdminConstRevokeRTType,
+  ) {
     const forceQuitConfig = await this.cacheAppSettingsService.getForceQuitConfig()
 
     this.socketService.sendToUserRoom(userId, visitorId, WalnutAdminSocketEvents.FORCE_QUIT, {
       // 'rotate' 是 RT 轮换行标记（revoke-and-insert，2026-10-27），不是 force-quit 触发因，
       // 不会从踢人链路传入 —— 索引面收窄回 12 个触发因
-      strategy: forceQuitConfig[(revokeReason as Exclude<IWalnutAdminConstRevokeRTType, 'rotate'>) || WalnutAdminConstRevokeRTType.forceQuitOnline],
+      strategy:
+        forceQuitConfig[
+          (revokeReason as Exclude<IWalnutAdminConstRevokeRTType, 'rotate'>) ||
+            WalnutAdminConstRevokeRTType.forceQuitOnline
+        ],
     })
   }
 
@@ -63,7 +82,7 @@ export class AppMonitorUserSharedService implements IIdentityUserNotifier, IAuth
    */
   async forceQuitMonitorsBySocket(userId: string, revokeReason: IWalnutAdminConstRevokeRTType) {
     const allMonitors = await this.appMonitorUserRepo.findAllByUserId(userId)
-    const authOnlineMonitors = allMonitors.filter(m => m.auth && !m.left)
+    const authOnlineMonitors = allMonitors.filter((m) => m.auth && !m.left)
     for (const monitor of authOnlineMonitors) {
       await this.forceQuitMonitorBySocket(userId, monitor.visitorId?.toString(), revokeReason)
     }
@@ -92,6 +111,6 @@ export class AppMonitorUserSharedService implements IIdentityUserNotifier, IAuth
       }),
     )
 
-    return res.filter(i => i.status === 'fulfilled')
+    return res.filter((i) => i.status === 'fulfilled')
   }
 }

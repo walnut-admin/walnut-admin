@@ -101,7 +101,10 @@ describe('appTechCacheCronLockService', () => {
 
     expect(result).toBe(42)
     expect(fn).toHaveBeenCalledTimes(1)
-    expect(setIfAbsent).toHaveBeenCalledWith('CRON_LOCK:rotateAppKey', expect.any(String), { ttl: 300, t: WalnutAdminConstAppCacheType.BUILT_IN })
+    expect(setIfAbsent).toHaveBeenCalledWith('CRON_LOCK:rotateAppKey', expect.any(String), {
+      ttl: 300,
+      t: WalnutAdminConstAppCacheType.BUILT_IN,
+    })
     expect(deleteIfValue).toHaveBeenCalledWith('CRON_LOCK:rotateAppKey', heldToken(setIfAbsent))
     expect(store.size).toBe(0)
   })
@@ -109,7 +112,10 @@ describe('appTechCacheCronLockService', () => {
   it('未拿到锁：warn 后跳过本次 tick，不执行任务体、返回 undefined', async () => {
     const { cache, store, deleteIfValue } = createFakeCache()
     // 模拟另一个实例已持有锁
-    store.set('CRON_LOCK:extractAppSetting', { value: 'other-instance-token', expiresAt: Number.POSITIVE_INFINITY })
+    store.set('CRON_LOCK:extractAppSetting', {
+      value: 'other-instance-token',
+      expiresAt: Number.POSITIVE_INFINITY,
+    })
     const service = new AppTechCacheCronLockService(cache)
     const fn = vi.fn(async () => 1)
     const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined)
@@ -174,9 +180,14 @@ describe('appTechCacheCronLockService', () => {
       throw new Error('task failed')
     })
 
-    await expect(service.runExclusive('deleteExpiredRefreshToken', 900, fn)).rejects.toThrow('task failed')
+    await expect(service.runExclusive('deleteExpiredRefreshToken', 900, fn)).rejects.toThrow(
+      'task failed',
+    )
 
-    expect(deleteIfValue).toHaveBeenCalledWith('CRON_LOCK:deleteExpiredRefreshToken', expect.any(String))
+    expect(deleteIfValue).toHaveBeenCalledWith(
+      'CRON_LOCK:deleteExpiredRefreshToken',
+      expect.any(String),
+    )
     expect(store.size).toBe(0)
   })
 
@@ -188,7 +199,10 @@ describe('appTechCacheCronLockService', () => {
     // 任务体运行期间锁 TTL 到期（任务超时），键被另一实例以新 token 重新持有
     const fn = vi.fn(async () => {
       advance(300_000 + 1_000)
-      store.set('CRON_LOCK:rotateAppKey', { value: 'other-instance-token', expiresAt: Number.POSITIVE_INFINITY })
+      store.set('CRON_LOCK:rotateAppKey', {
+        value: 'other-instance-token',
+        expiresAt: Number.POSITIVE_INFINITY,
+      })
     })
 
     await service.runExclusive('rotateAppKey', 300, fn)

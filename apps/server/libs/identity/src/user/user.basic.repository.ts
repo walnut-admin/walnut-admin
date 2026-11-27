@@ -1,10 +1,21 @@
 import type { IWalnutAdminRequestList } from '@walnut-server/list'
-import type { DataSource, EntityManager, EntityTarget, ObjectLiteral, SelectQueryBuilder } from 'typeorm'
+import type {
+  DataSource,
+  EntityManager,
+  EntityTarget,
+  ObjectLiteral,
+  SelectQueryBuilder,
+} from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 
 import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
-import { applyPgListQuery, buildPgListQueryOptionsFromQb, WALNUT_PG_LIST_TOTAL_ALIAS, WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
+import {
+  applyPgListQuery,
+  buildPgListQueryOptionsFromQb,
+  WALNUT_PG_LIST_TOTAL_ALIAS,
+  WalnutAdminCommonPgBaseRepository,
+} from '@walnut-server/repository'
 import { SysUserDeviceEntity } from '../user_device/entity/user-device.entity'
 import { SysUserIdentityEntity } from '../user_identity/entity/user-identity.entity'
 import { SysUserLockEntity } from '../user_lock/entity/user-lock.entity'
@@ -49,7 +60,10 @@ export class SysUserBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
     super(SysUserEntity, WalnutModelName.SYS_USER, dataSource)
   }
 
-  public async create(dto: Partial<SysUserEntity> & { roles?: string[] }, em?: EntityManager): Promise<ISysUserWithRoles> {
+  public async create(
+    dto: Partial<SysUserEntity> & { roles?: string[] },
+    em?: EntityManager,
+  ): Promise<ISysUserWithRoles> {
     const { roles, ...userData } = dto
 
     const created = await super.create(userData, em)
@@ -74,7 +88,7 @@ export class SysUserBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
       // 新集合首角色；空集合 → null（列可空 = 无当前角色）。
       const current = await this.readById(id, em)
       if (current.currentRole === null || !roles.includes(current.currentRole)) {
-        (userData as Partial<SysUserEntity>).currentRole = roles[0] ?? null
+        ;(userData as Partial<SysUserEntity>).currentRole = roles[0] ?? null
       }
     }
 
@@ -96,44 +110,47 @@ export class SysUserBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
     params: IWalnutAdminRequestList<T>,
     _customize?: (qb: SelectQueryBuilder<SysUserEntity>) => void,
     em?: EntityManager,
-  ): Promise<{ data: ISysUserListRow[], total: number }> {
+  ): Promise<{ data: ISysUserListRow[]; total: number }> {
     // 数据权限三期：注册实体的读路径必须进事务（withScopedManager 负责自动事务 +
     // RLS set_config），覆写 list 与基类同口径。
-    return this.withScopedManager(em, async (manager) => {
-      const qb = manager
-        .createQueryBuilder(SysUserEntity, 'entity')
+    return this.withScopedManager(
+      em,
+      async (manager) => {
+        const qb = manager.createQueryBuilder(SysUserEntity, 'entity')
 
-      applyPgListQuery(qb, 'entity', buildPgListQueryOptionsFromQb<T>(qb, params))
+        applyPgListQuery(qb, 'entity', buildPgListQueryOptionsFromQb<T>(qb, params))
 
-      // 数据权限：sys_user 已注册（SELF = 本人账号行），覆写 list 必须显式注入
-      this.applyDataScope(qb, 'entity')
+        // 数据权限：sys_user 已注册（SELF = 本人账号行），覆写 list 必须显式注入
+        this.applyDataScope(qb, 'entity')
 
-      // 对齐 Mongo 版 $lookup(sys_role) + $size：junction 计数子查询
-      qb.addSelect((sub) => {
-        return sub
-          .select('count(*)::int')
-          .from(SysUserRoleEntity, 'user_role')
-          .where('user_role.user_id = entity.id')
-      }, 'roles_count')
+        // 对齐 Mongo 版 $lookup(sys_role) + $size：junction 计数子查询
+        qb.addSelect((sub) => {
+          return sub
+            .select('count(*)::int')
+            .from(SysUserRoleEntity, 'user_role')
+            .where('user_role.user_id = entity.id')
+        }, 'roles_count')
 
-      qb.addSelect(`COUNT(*) OVER()`, WALNUT_PG_LIST_TOTAL_ALIAS)
+        qb.addSelect(`COUNT(*) OVER()`, WALNUT_PG_LIST_TOTAL_ALIAS)
 
-      const { raw, entities } = await qb.getRawAndEntities()
+        const { raw, entities } = await qb.getRawAndEntities()
 
-      const firstRaw = raw[0] as Record<string, unknown> | undefined
-      const total = Number(firstRaw?.[WALNUT_PG_LIST_TOTAL_ALIAS] ?? 0)
+        const firstRaw = raw[0] as Record<string, unknown> | undefined
+        const total = Number(firstRaw?.[WALNUT_PG_LIST_TOTAL_ALIAS] ?? 0)
 
-      // 无 JOIN 单表查询，raw 与 entities 逐行对齐；计数列不在实体映射里，按行并回
-      const data = entities.map((entity, index) => {
-        const row = raw[index] as Record<string, unknown> | undefined
+        // 无 JOIN 单表查询，raw 与 entities 逐行对齐；计数列不在实体映射里，按行并回
+        const data = entities.map((entity, index) => {
+          const row = raw[index] as Record<string, unknown> | undefined
 
-        return Object.assign(entity, {
-          roles_count: Number(row?.roles_count ?? 0),
+          return Object.assign(entity, {
+            roles_count: Number(row?.roles_count ?? 0),
+          })
         })
-      })
 
-      return { data, total }
-    }, { readOnly: true })
+        return { data, total }
+      },
+      { readOnly: true },
+    )
   }
 
   /**
@@ -147,7 +164,7 @@ export class SysUserBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
     await repository.delete({ userId })
 
     if (roleIds.length > 0) {
-      await repository.insert(roleIds.map(roleId => ({ userId, roleId })))
+      await repository.insert(roleIds.map((roleId) => ({ userId, roleId })))
     }
   }
 
@@ -165,34 +182,45 @@ export class SysUserBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
   private async snapshotPeripheralRows(userId: string, deletedBy: string, em?: EntityManager) {
     const manager = this.getManager(em)
 
-    const snapshotRows = async <T extends ObjectLiteral>(modelName: string, entityTarget: EntityTarget<T>, rows: T[]) => {
+    const snapshotRows = async <T extends ObjectLiteral>(
+      modelName: string,
+      entityTarget: EntityTarget<T>,
+      rows: T[],
+    ) => {
       if (rows.length === 0) {
         return
       }
 
       const collectionName = this.dataSource.getMetadata(entityTarget).tableName
       for (const row of rows) {
-        await this.deletedRepoService.createSoftDelete({
-          content: { ...row },
-          modelName,
-          collectionName,
-          deletedId: (row as T & { id: string }).id,
-          deletedBy,
-        }, em)
+        await this.deletedRepoService.createSoftDelete(
+          {
+            content: { ...row },
+            modelName,
+            collectionName,
+            deletedId: (row as T & { id: string }).id,
+            deletedBy,
+          },
+          em,
+        )
       }
     }
 
-    const identities = await manager.getRepository(SysUserIdentityEntity)
+    const identities = await manager
+      .getRepository(SysUserIdentityEntity)
       .createQueryBuilder('entity')
       .addSelect('entity.value')
       .where('entity.userId = :userId', { userId })
       .getMany()
 
-    const preferences = await manager.getRepository(SysUserPreferenceEntity).find({ where: { userId } })
+    const preferences = await manager
+      .getRepository(SysUserPreferenceEntity)
+      .find({ where: { userId } })
 
     const userDevices = await manager.getRepository(SysUserDeviceEntity).find({ where: { userId } })
 
-    const mfaRows = await manager.getRepository(SysUserMfaEntity)
+    const mfaRows = await manager
+      .getRepository(SysUserMfaEntity)
       .createQueryBuilder('entity')
       .addSelect([
         'entity.totpSecretCiphertext',
@@ -225,7 +253,11 @@ export class SysUserBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
    * 外围快照之前失败，不能把安全性隐式寄托在 `@WalnutTx` 的回滚上（缺事务调用的
    * 场景会留下不属于当前用户的外围快照）。
    */
-  public async deleteSoftById(id: string, userId: string, em?: EntityManager): Promise<SysUserEntity> {
+  public async deleteSoftById(
+    id: string,
+    userId: string,
+    em?: EntityManager,
+  ): Promise<SysUserEntity> {
     await this.readById(id, em)
     await this.snapshotPeripheralRows(id, userId, em)
     return super.deleteSoftById(id, userId, em)

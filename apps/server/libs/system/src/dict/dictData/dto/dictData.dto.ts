@@ -111,7 +111,9 @@ export class SysDictDataDTOSafe extends SysDictDataDTO {
   }
 }
 
-class SysDictDataDTOSafeRequest extends RealPartialType(RealOmitType(SysDictDataDTOSafe, ['tagType'] as const)) {
+class SysDictDataDTOSafeRequest extends RealPartialType(
+  RealOmitType(SysDictDataDTOSafe, ['tagType'] as const),
+) {
   // 列表查询可选过滤：query 信封不挂 ValidateNested（见 list.dto.ts 的 required: false），
   // enum 校验器也没有 nullable 选项 —— 此处无需 IsOptional（F-38：不裸挂 class-validator）
   @WalnutAdminDecoratorFieldEnum(() => SysDictDataTagTypeConst, {
@@ -132,28 +134,28 @@ class SysDictDataDTOSafeRequest extends RealPartialType(RealOmitType(SysDictData
 export class SysDictDataDTOListRequest extends CreateWalnutAdminRequestListDTO(
   SysDictDataDTOSafeRequest,
   { sortOnlyIn: ['order', 'status', 'createdAt', 'updatedAt'] },
-) { }
+) {}
 
 export class SysDictDataDTOListResponse extends CreateWalnutAdminResponseListDTO(
   RealPartialType(SysDictDataDTOSafe),
-) { }
+) {}
 
 // create
-export class SysDictDataDTOCreateRequest extends IntersectionType(RealPickType(
-  SysDictDataDTOSafe,
-  [
+export class SysDictDataDTOCreateRequest extends IntersectionType(
+  RealPickType(SysDictDataDTOSafe, [
     'typeId',
     'label',
     'value',
     'tagType',
     'order',
     'status',
-  ] as const,
-), RealPartialType(RealPickType(SysDictDataDTOSafe, ['description'] as const))) { }
-export class SysDictDataDTOCreateResponse extends SysDictDataDTOSafe { }
+  ] as const),
+  RealPartialType(RealPickType(SysDictDataDTOSafe, ['description'] as const)),
+) {}
+export class SysDictDataDTOCreateResponse extends SysDictDataDTOSafe {}
 
 // read
-export class SysDictDataDTOReadResponse extends SysDictDataDTOSafe { }
+export class SysDictDataDTOReadResponse extends SysDictDataDTOSafe {}
 
 // update —— 白名单同 create 的可选形态 + 真 PATCH 语义（preserveAbsent，2026-11 F2）
 export class SysDictDataDTOUpdateRequest extends RealPartialType(
@@ -167,11 +169,11 @@ export class SysDictDataDTOUpdateRequest extends RealPartialType(
     'description',
   ] as const),
   { preserveAbsent: true },
-) { }
-export class SysDictDataDTOUpdateResponse extends SysDictDataDTOSafe { }
+) {}
+export class SysDictDataDTOUpdateResponse extends SysDictDataDTOSafe {}
 
 // delete
-export class SysDictDataDTODeleteResponse extends SysDictDataDTOSafe { }
+export class SysDictDataDTODeleteResponse extends SysDictDataDTOSafe {}
 
 export class SysDictDataDTOPopulatedDictData extends RealPickType(SysDictDataDTOSafe, [
   'value',

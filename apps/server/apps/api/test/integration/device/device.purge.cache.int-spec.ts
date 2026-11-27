@@ -120,8 +120,12 @@ describe('SysDevicePgPurgeService：90 天留存清理必须连带失效设备�
     }
 
     if (seededDeviceIds.length > 0) {
-      await pgDataSource.query('DELETE FROM app_monitor_user WHERE device_id = ANY($1::text[])', [seededDeviceIds])
-      await pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [seededDeviceIds])
+      await pgDataSource.query('DELETE FROM app_monitor_user WHERE device_id = ANY($1::text[])', [
+        seededDeviceIds,
+      ])
+      await pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [
+        seededDeviceIds,
+      ])
     }
 
     await app?.close()
@@ -132,7 +136,9 @@ describe('SysDevicePgPurgeService：90 天留存清理必须连带失效设备�
 
     // A 对照：行还在 ⇒ device guard 通过（缓存 miss 回源 DB 并回填），拒绝发生在更后面的层
     const alive = await requestWithDevice(deviceId)
-    expect(bodyOf(alive).code).not.toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED)
+    expect(bodyOf(alive).code).not.toBe(
+      WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED,
+    )
 
     // 关键前置：缓存里**确实**已经有了一条「放行凭据」—— 这就是本 bug 的载体。
     // 若这一步是 null，下面的 40605 就只是「本来就没缓存」，用例会空转。
@@ -146,7 +152,9 @@ describe('SysDevicePgPurgeService：90 天留存清理必须连带失效设备�
     // 这是行为判据：缓存键没被失效时，guard 读到的仍是「放行」，请求会落到更后面几层，
     // 拿到的就不是 40605 —— 90 天留存策略在缓存层等于没生效。
     const gone = await requestWithDevice(deviceId)
-    expect(bodyOf(gone).code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED)
+    expect(bodyOf(gone).code).toBe(
+      WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED,
+    )
 
     // 机制判据（与上一条互为因果）：删除设备行的同一任务里把缓存键一起清掉
     // （改前无任何生产代码调用 delSysDeviceCache）；键还在的话，40605 就可能只是「这一轮恰好 miss」
@@ -160,11 +168,14 @@ describe('SysDevicePgPurgeService：90 天留存清理必须连带失效设备�
     const deviceId = await seedExpiredDevice()
 
     const alive = await requestWithDevice(deviceId)
-    expect(bodyOf(alive).code).not.toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED)
+    expect(bodyOf(alive).code).not.toBe(
+      WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED,
+    )
     expect(await cacheDeviceService.getSysDeviceCache(deviceId)).not.toBeNull()
 
     const errorSpy = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined)
-    const delSpy = vi.spyOn(cacheDeviceService, 'delSysDeviceCache')
+    const delSpy = vi
+      .spyOn(cacheDeviceService, 'delSysDeviceCache')
       .mockRejectedValueOnce(new Error('redis down (simulated)'))
 
     try {
@@ -175,14 +186,17 @@ describe('SysDevicePgPurgeService：90 天留存清理必须连带失效设备�
       expect(await exists('sys_device', deviceId)).toBe(false)
 
       // 失败有痕迹：逐键 error（带 deviceId）+ 聚合 error（带 1/1 计数）
-      const messages = errorSpy.mock.calls.map(call => String(call[0]))
-      expect(messages.some(m => m.includes('[PgPurgeCacheInvalidationError]') && m.includes(deviceId))).toBe(true)
-      expect(messages.some(m => m.includes('[PgPurgeCacheInvalidation]') && m.includes('1/1'))).toBe(true)
+      const messages = errorSpy.mock.calls.map((call) => String(call[0]))
+      expect(
+        messages.some((m) => m.includes('[PgPurgeCacheInvalidationError]') && m.includes(deviceId)),
+      ).toBe(true)
+      expect(
+        messages.some((m) => m.includes('[PgPurgeCacheInvalidation]') && m.includes('1/1')),
+      ).toBe(true)
 
       // 现状记录：失效失败的键还在 ⇒ 该设备仍会被放行 —— 这正是「不能静默」要暴露的后果
       expect(await cacheDeviceService.getSysDeviceCache(deviceId)).not.toBeNull()
-    }
-    finally {
+    } finally {
       delSpy.mockRestore()
       errorSpy.mockRestore()
       // 清理本用例故意留下的那把键（用例体里**没有**用它来让断言通过）

@@ -54,7 +54,7 @@ export interface CommandGroupOptions {
 export function buildCommandGroups(commands: readonly Command[]): CommandGroupOptions[] {
   const groups: CommandGroupOptions[] = []
   for (const command of commands) {
-    let group = groups.find(item => item.group === command.group)
+    let group = groups.find((item) => item.group === command.group)
     if (group === undefined) {
       group = { group: command.group, options: [] }
       groups.push(group)
@@ -69,7 +69,9 @@ export function buildCommandGroups(commands: readonly Command[]): CommandGroupOp
  *
  * 真正的实现见 `run/clack.ts`；用例注入假的实现，于是三种结局都能覆盖而不用真起界面。
  */
-export type CommandPicker = (groups: readonly CommandGroupOptions[]) => Promise<readonly string[] | null>
+export type CommandPicker = (
+  groups: readonly CommandGroupOptions[],
+) => Promise<readonly string[] | null>
 
 /**
  * 多选的四个结局（没有第五种：界面自身抛出的异常不吞，交给 CLI 的顶层映射）。
@@ -79,11 +81,11 @@ export type CommandPicker = (groups: readonly CommandGroupOptions[]) => Promise<
  * - `empty`：用户什么都没勾就回车 —— 什么都没跑，不算失败；
  * - `picked`：选中了若干条，已按表里的顺序排好。
  */
-export type ChooseOutcome
-  = | { kind: 'non-interactive' }
-    | { kind: 'cancelled' }
-    | { kind: 'empty' }
-    | { kind: 'picked', commands: Command[] }
+export type ChooseOutcome =
+  | { kind: 'non-interactive' }
+  | { kind: 'cancelled' }
+  | { kind: 'empty' }
+  | { kind: 'picked'; commands: Command[] }
 
 export interface ChooseDeps {
   /** 是不是终端（生产路径 = `lib/prompt.ts` 的 `isInteractive`） */
@@ -101,16 +103,13 @@ export async function chooseCommands(
   commands: readonly Command[],
   deps: ChooseDeps,
 ): Promise<ChooseOutcome> {
-  if (!deps.isInteractive())
-    return { kind: 'non-interactive' }
+  if (!deps.isInteractive()) return { kind: 'non-interactive' }
 
   const picked = await deps.picker(buildCommandGroups(commands))
-  if (picked === null)
-    return { kind: 'cancelled' }
+  if (picked === null) return { kind: 'cancelled' }
 
   // 勾选顺序由界面决定，执行顺序由表决定
   const chosen = selectCommands(commands, picked)
-  if (chosen.length === 0)
-    return { kind: 'empty' }
+  if (chosen.length === 0) return { kind: 'empty' }
   return { kind: 'picked', commands: chosen }
 }

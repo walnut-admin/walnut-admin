@@ -1,6 +1,12 @@
 import { Module } from '@nestjs/common'
 
-import { AppErrorModule, AppKeyModule, AppLoggerModule, AppMonitorUserModule, AppSettingsModule } from '@walnut-server/app-domain'
+import {
+  AppErrorModule,
+  AppKeyModule,
+  AppLoggerModule,
+  AppMonitorUserModule,
+  AppSettingsModule,
+} from '@walnut-server/app-domain'
 import { SysAuthModule } from '@walnut-server/auth'
 import { WalnutConfigModule } from '@walnut-server/config'
 import { WalnutModule } from '@walnut-server/db'

@@ -46,27 +46,26 @@ const [register, { onOpen, onClose }] = useForm<typeof formData.value>({
         await userStoreAuth.changePasswordWithOpaque(formData.value.newPasswordConfirm!)
         useAppMsgSuccess()
         resetFormData()
-      }
-      finally {
+      } finally {
         done()
       }
 
-    //   const { confirmed, inst } = await useAppConfirm(t('app.base.switchRole.confirm', { roleName: getCurrentRoleName.value }), { maskClosable: false })
-    //   if (confirmed) {
-    //     try {
-    //       await switchRoleAPI(formData.value.roleId!)
-    //       useAppMessage()
-    //       await userStoreAuth.ExecuteAfterSwitchRole()
-    //     }
-    //     finally {
-    //       done()
-    //     }
-    //   }
-    //   else {
-    //     inst.destroy()
-    //     // TODO onYes need to expose close fn
-    //     done()
-    //   }
+      //   const { confirmed, inst } = await useAppConfirm(t('app.base.switchRole.confirm', { roleName: getCurrentRoleName.value }), { maskClosable: false })
+      //   if (confirmed) {
+      //     try {
+      //       await switchRoleAPI(formData.value.roleId!)
+      //       useAppMessage()
+      //       await userStoreAuth.ExecuteAfterSwitchRole()
+      //     }
+      //     finally {
+      //       done()
+      //     }
+      //   }
+      //   else {
+      //     inst.destroy()
+      //     // TODO onYes need to expose close fn
+      //     done()
+      //   }
     },
     onNo: (close) => {
       close()
@@ -77,13 +76,33 @@ const [register, { onOpen, onClose }] = useForm<typeof formData.value>({
 
   rules: {
     newPassword: [
-      { min, message: computed(() => t('form.base.rule.min', { min })), trigger: ['input', 'blur'] },
-      { max, message: computed(() => t('form.base.rule.max', { max })), trigger: ['input', 'blur'] },
+      {
+        min,
+        message: computed(() => t('form.base.rule.min', { min })),
+        trigger: ['input', 'blur'],
+      },
+      {
+        max,
+        message: computed(() => t('form.base.rule.max', { max })),
+        trigger: ['input', 'blur'],
+      },
     ],
     newPasswordConfirm: [
-      { min, message: computed(() => t('form.base.rule.min', { min })), trigger: ['input', 'blur'] },
-      { max, message: computed(() => t('form.base.rule.max', { max })), trigger: ['input', 'blur'] },
-      { validator: (_, val) => (val === formData.value.newPassword), message: computed(() => t('app.base.pass.new.notMatch')), trigger: ['input', 'blur'] },
+      {
+        min,
+        message: computed(() => t('form.base.rule.min', { min })),
+        trigger: ['input', 'blur'],
+      },
+      {
+        max,
+        message: computed(() => t('form.base.rule.max', { max })),
+        trigger: ['input', 'blur'],
+      },
+      {
+        validator: (_, val) => val === formData.value.newPassword,
+        message: computed(() => t('app.base.pass.new.notMatch')),
+        trigger: ['input', 'blur'],
+      },
     ],
   },
 

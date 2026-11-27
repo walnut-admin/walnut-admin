@@ -32,24 +32,29 @@ async function onBeforeCountdown() {
 
     <n-list>
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Basic usage
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Basic usage </WTitle>
 
         <n-space vertical>
           <WVerifyCode v-model:value="state.input1" class="w-72" />
 
-          <WVerifyCode v-model:value="state.input2" class="w-72" :retry-seconds="30" retry-key="refresh-still-count-down" />
+          <WVerifyCode
+            v-model:value="state.input2"
+            class="w-72"
+            :retry-seconds="30"
+            retry-key="refresh-still-count-down"
+          />
         </n-space>
       </n-list-item>
 
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Before Countdown Support
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Before Countdown Support </WTitle>
 
         <n-space vertical>
-          <WVerifyCode v-model:value="state.input3" class="w-72" :on-before-countdown="onBeforeCountdown" />
+          <WVerifyCode
+            v-model:value="state.input3"
+            class="w-72"
+            :on-before-countdown="onBeforeCountdown"
+          />
         </n-space>
       </n-list-item>
     </n-list>

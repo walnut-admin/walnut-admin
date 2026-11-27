@@ -6,7 +6,7 @@ type Loggable = Pick<Logger, 'error'>
 
 /** 让 Node 走完 unhandledRejection 的判定窗口（判据是「本轮无人处理」） */
 async function flush() {
-  await new Promise<void>(resolve => setTimeout(resolve, 20))
+  await new Promise<void>((resolve) => setTimeout(resolve, 20))
 }
 
 /**
@@ -51,8 +51,7 @@ describe('fireAndForget', () => {
       expect(message).toBe('[fireAndForget] welcome email rejected')
       expect(stack).toContain('boom')
       expect(unhandled.reasons).toEqual([])
-    }
-    finally {
+    } finally {
       unhandled.restore()
     }
   })
@@ -69,15 +68,16 @@ describe('fireAndForget', () => {
       expect(logger.error).toHaveBeenCalledTimes(1)
       expect(logger.error.mock.calls[0][0]).toContain('background task')
       expect(unhandled.reasons).toEqual([])
-    }
-    finally {
+    } finally {
       unhandled.restore()
     }
   })
 
   it('logger.error 自身抛错也不外泄（否则只是把崩点挪了个位置）', async () => {
     const logger: Loggable = {
-      error: () => { throw new Error('logger down') },
+      error: () => {
+        throw new Error('logger down')
+      },
     }
     const unhandled = collectUnhandledRejections()
 
@@ -86,8 +86,7 @@ describe('fireAndForget', () => {
       await flush()
 
       expect(unhandled.reasons).toEqual([])
-    }
-    finally {
+    } finally {
       unhandled.restore()
     }
   })

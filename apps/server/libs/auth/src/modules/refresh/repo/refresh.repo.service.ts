@@ -46,11 +46,7 @@ export class AuthRefreshRepositoryService {
    * 让「登录复签 revive」「撤销判据」等调用方稳定落在最近一轮。判「设备是否活会话」
    * 不要用本方法（会命中 revoked 旧行），用 findActiveByDeviceIdAndUserId。
    */
-  async findByDeviceIdAndUserId(
-    deviceId: string,
-    userId: string,
-    em?: EntityManager,
-  ) {
+  async findByDeviceIdAndUserId(deviceId: string, userId: string, em?: EntityManager) {
     return this.getRepository(em).findOne({
       where: { deviceId, userId },
       order: { createdAt: 'DESC' },
@@ -76,9 +72,10 @@ export class AuthRefreshRepositoryService {
     em?: EntityManager,
     options?: { lock?: boolean },
   ) {
-    const lock = options?.lock && em?.queryRunner?.isTransactionActive
-      ? { mode: 'pessimistic_write' as const }
-      : undefined
+    const lock =
+      options?.lock && em?.queryRunner?.isTransactionActive
+        ? { mode: 'pessimistic_write' as const }
+        : undefined
 
     return this.getRepository(em).findOne({
       where: { deviceId, userId, revoked: false },
@@ -111,9 +108,10 @@ export class AuthRefreshRepositoryService {
     }
     // 悲观锁只在活跃事务里有意义：生产轮换路径恒在 @WalnutTx 内；
     // 非事务上下文（连接级 manager）无法提供并发保护，退化为普通读
-    const lock = options?.lock && em?.queryRunner?.isTransactionActive
-      ? { mode: 'pessimistic_write' as const }
-      : undefined
+    const lock =
+      options?.lock && em?.queryRunner?.isTransactionActive
+        ? { mode: 'pessimistic_write' as const }
+        : undefined
     return this.getRepository(em).findOne({ where: { jti }, ...(lock ? { lock } : {}) })
   }
 
@@ -173,12 +171,9 @@ export class AuthRefreshRepositoryService {
       where: { deviceId, revoked: false },
       select: { userId: true },
     })
-    const userIds = [...new Set(activeRows.map(row => row.userId))]
+    const userIds = [...new Set(activeRows.map((row) => row.userId))]
 
-    await repository.update(
-      { deviceId, revoked: false },
-      { revoked: true, revokeReason },
-    )
+    await repository.update({ deviceId, revoked: false }, { revoked: true, revokeReason })
 
     return userIds
   }

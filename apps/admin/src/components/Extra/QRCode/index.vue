@@ -35,14 +35,15 @@ function onRefresh() {
 </script>
 
 <template>
-  <div class="relative" :style="{ height: `${size + padding * 2}px`, width: `${size + padding * 2}px` }">
+  <div
+    class="relative"
+    :style="{ height: `${size + padding * 2}px`, width: `${size + padding * 2}px` }"
+  >
     <n-qr-code
       :value="url"
       alt="QR Code"
       class="transition transition-all"
-      :class="[
-        { 'blur-sm brightness-80 contrast-50': !isActive || success },
-      ]"
+      :class="[{ 'blur-sm brightness-80 contrast-50': !isActive || success }]"
       :size="size"
       :padding="padding"
       :style="{ height: `${size + padding * 2}px`, width: `${size + padding * 2}px` }"

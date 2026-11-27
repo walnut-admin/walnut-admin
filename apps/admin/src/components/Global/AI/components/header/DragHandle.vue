@@ -38,8 +38,7 @@ function onPointerDown(e: PointerEvent) {
 }
 
 function onPointerMove(e: PointerEvent) {
-  if (!isDragging.value)
-    return
+  if (!isDragging.value) return
   aiPrefs.value.panelRight = clampRight(startRight + startX - e.clientX)
   aiPrefs.value.panelBottom = clampBottom(startBottom + startY - e.clientY)
 }

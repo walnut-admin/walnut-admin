@@ -23,7 +23,9 @@ const expandedKeys = ref<TreeKey[]>()
 const indeterminateKeys = ref<TreeKey[]>()
 
 const getTreeKeyField = computed(() => treeSelectProps?.keyField)
-const getTreeOptions = computed((): TreeNodeItem<T>[] => treeSelectProps?.options as unknown as TreeNodeItem<T>[])
+const getTreeOptions = computed(
+  (): TreeNodeItem<T>[] => treeSelectProps?.options as unknown as TreeNodeItem<T>[],
+)
 
 async function onUpdateValue(keys: TreeKey | TreeKey[]) {
   if (multiple && Array.isArray(keys)) {
@@ -31,8 +33,7 @@ async function onUpdateValue(keys: TreeKey | TreeKey[]) {
 
     internalValue.value = keys
     value.value = keys.concat(indeterminateKeys.value!)
-  }
-  else {
+  } else {
     internalValue.value = keys
     value.value = keys
   }
@@ -40,8 +41,7 @@ async function onUpdateValue(keys: TreeKey | TreeKey[]) {
 
 async function onFeedback() {
   if (multiple) {
-    if (!Array.isArray(value.value) || !value.value.length)
-      return
+    if (!Array.isArray(value.value) || !value.value.length) return
 
     // internal value
     internalValue.value = value.value
@@ -51,14 +51,26 @@ async function onFeedback() {
     // expanded keys
     const data = nTreeSelctRef.value?.getCheckedData()
     // get no children node
-    const leafNodeKeyList = data?.options.filter(i => !i!.children || i!.children.length === 0).map(i => i![getTreeKeyField.value!])
-    const intersection = Array.from(new Set(leafNodeKeyList).intersection(new Set(internalValue.value)))
+    const leafNodeKeyList = data?.options
+      .filter((i) => !i!.children || i!.children.length === 0)
+      .map((i) => i![getTreeKeyField.value!])
+    const intersection = Array.from(
+      new Set(leafNodeKeyList).intersection(new Set(internalValue.value)),
+    )
     internalValue.value = intersection
 
-    const allNodes = new Set<TreeKey>([...internalValue.value.map(i => findPath(getTreeOptions.value!, (n: Recordable) => n[getTreeKeyField.value!] === i) ?? []).flat().map(i => i[getTreeKeyField.value!])])
+    const allNodes = new Set<TreeKey>([
+      ...internalValue.value
+        .map(
+          (i) =>
+            findPath(getTreeOptions.value!, (n: Recordable) => n[getTreeKeyField.value!] === i) ??
+            [],
+        )
+        .flat()
+        .map((i) => i[getTreeKeyField.value!]),
+    ])
     expandedKeys.value = Array.from(allNodes)
-  }
-  else {
+  } else {
     if (!value.value) {
       internalValue.value = null
       expandedKeys.value = []
@@ -69,8 +81,12 @@ async function onFeedback() {
     internalValue.value = value.value
 
     // expanded keys
-    const targetNodeSingleTree = findPath(getTreeOptions.value!, (n: Recordable) => n[getTreeKeyField.value!] === internalValue.value) as [] ?? []
-    expandedKeys.value = targetNodeSingleTree.map(i => i[getTreeKeyField.value!])
+    const targetNodeSingleTree =
+      (findPath(
+        getTreeOptions.value!,
+        (n: Recordable) => n[getTreeKeyField.value!] === internalValue.value,
+      ) as []) ?? []
+    expandedKeys.value = targetNodeSingleTree.map((i) => i[getTreeKeyField.value!])
   }
 }
 

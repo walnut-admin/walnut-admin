@@ -14,7 +14,11 @@
 import { execFileSync, spawnSync } from 'node:child_process'
 import path from 'node:path'
 import process from 'node:process'
-import { affectedTargetProfiles, classifyAffectedPaths, describeAffectedPlan } from './affected-plan.ts'
+import {
+  affectedTargetProfiles,
+  classifyAffectedPaths,
+  describeAffectedPlan,
+} from './affected-plan.ts'
 import { E2E_ROOT, REPO_ROOT } from './env.ts'
 import { E2ePreconditionError, reportFailure } from './failure.ts'
 
@@ -39,7 +43,7 @@ function gitOutput(args: readonly string[]): string {
 }
 
 /** 解析 base（`--base <ref>` / `--base=<ref>` / 第一个位置参数；`--help` / `--json` 单独返回） */
-function parseArgs(argv: readonly string[]): { base: string, help: boolean, json: boolean } {
+function parseArgs(argv: readonly string[]): { base: string; help: boolean; json: boolean } {
   let base = DEFAULT_BASE
   let help = false
   let json = false
@@ -85,11 +89,10 @@ function parseArgs(argv: readonly string[]): { base: string, help: boolean, json
 function assertBaseExists(base: string): void {
   try {
     gitOutput(['rev-parse', '--verify', '--quiet', `${base}^{commit}`])
-  }
-  catch {
+  } catch {
     throw new E2ePreconditionError(
-      `找不到 base 引用「${base}」。默认 base 是 ${DEFAULT_BASE}：先 \`git fetch origin main\`，`
-      + '或用 `--base <ref>` 指定一个存在的分支 / tag / 提交 sha（浅克隆还需 `git fetch --unshallow`）。',
+      `找不到 base 引用「${base}」。默认 base 是 ${DEFAULT_BASE}：先 \`git fetch origin main\`，` +
+        '或用 `--base <ref>` 指定一个存在的分支 / tag / 提交 sha（浅克隆还需 `git fetch --unshallow`）。',
     )
   }
 }
@@ -98,10 +101,9 @@ function readChangedPaths(base: string): string[] {
   try {
     return gitOutput(['diff', '--name-only', `${base}...HEAD`])
       .split(/\r?\n/)
-      .map(line => line.trim())
-      .filter(line => line !== '')
-  }
-  catch (error) {
+      .map((line) => line.trim())
+      .filter((line) => line !== '')
+  } catch (error) {
     throw new E2ePreconditionError(
       `读不到 ${base}...HEAD 的改动：${error instanceof Error ? error.message : String(error)}`,
     )
@@ -121,15 +123,21 @@ function main(): void {
 
   if (json) {
     // stdout 只有这一份 JSON（与 data-key.ts 的 --cache-key 同口径：机器消费者不解析日志）
-    console.log(JSON.stringify({
-      base,
-      mode: plan.mode,
-      projects: plan.projects,
-      targetProfiles: affectedTargetProfiles(plan),
-      rebuild: plan.rebuild,
-      reason: plan.reason,
-      changedPaths: plan.changedPaths,
-    }, null, 2))
+    console.log(
+      JSON.stringify(
+        {
+          base,
+          mode: plan.mode,
+          projects: plan.projects,
+          targetProfiles: affectedTargetProfiles(plan),
+          rebuild: plan.rebuild,
+          reason: plan.reason,
+          changedPaths: plan.changedPaths,
+        },
+        null,
+        2,
+      ),
+    )
     return
   }
 
@@ -143,9 +151,8 @@ function main(): void {
     return
   }
 
-  const args = plan.mode === 'projects'
-    ? plan.projects.map(project => `--project=${project}`)
-    : []
+  const args =
+    plan.mode === 'projects' ? plan.projects.map((project) => `--project=${project}`) : []
   if (plan.rebuild) {
     args.push('--rebuild-baseline')
   }
@@ -164,7 +171,6 @@ function main(): void {
 
 try {
   main()
-}
-catch (error) {
+} catch (error) {
   process.exitCode = reportFailure('e2e/affected', error)
 }

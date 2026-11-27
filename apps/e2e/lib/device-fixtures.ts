@@ -18,7 +18,13 @@ import { localIpFor, STACK_PROFILE } from '../scripts/stack-profiles.ts'
 import { deleteDeviceRow, withPg } from './pg.ts'
 import { SIGN_USER_AGENT } from './protocol/sign.ts'
 import { deleteDeviceScopedKeys, deleteRiskDeviceState, withRedis } from './redis.ts'
-import { DEVICE_LOCAL_STORAGE_KEY, FINGERPRINT_LOCAL_STORAGE_KEY, loginViaUI, readDeviceCookie, readLocalDeviceId } from './ui.ts'
+import {
+  DEVICE_LOCAL_STORAGE_KEY,
+  FINGERPRINT_LOCAL_STORAGE_KEY,
+  loginViaUI,
+  readDeviceCookie,
+  readLocalDeviceId,
+} from './ui.ts'
 
 export interface DeviceSession {
   context: BrowserContext
@@ -67,18 +73,23 @@ export function uniqueLocalIp(): string {
  * WEBAUTHN_WEB_ORIGIN —— Chrome 拒绝 IP 作 RP ID），判据必须跟着 context 的 origin 走，
  * 否则该用例的 /api 请求不带 XFF（共用 127.0.0.1 的 device/initial 计数桶）。
  */
-export async function installRealIpRoute(context: BrowserContext, realIp: string, origin: string = WEB_ORIGIN): Promise<void> {
+export async function installRealIpRoute(
+  context: BrowserContext,
+  realIp: string,
+  origin: string = WEB_ORIGIN,
+): Promise<void> {
   await context.route(
-    url => url.origin === origin && url.pathname.startsWith('/api/'),
-    route => route.continue({
-      headers: { ...route.request().headers(), 'x-forwarded-for': realIp },
-    }),
+    (url) => url.origin === origin && url.pathname.startsWith('/api/'),
+    (route) =>
+      route.continue({
+        headers: { ...route.request().headers(), 'x-forwarded-for': realIp },
+      }),
   )
 }
 
 export async function newBrowserContext(
   browser: Browser,
-  options: { realIp?: string, origin?: string } = {},
+  options: { realIp?: string; origin?: string } = {},
 ): Promise<BrowserContext> {
   const realIp = options.realIp ?? uniqueLocalIp()
   const origin = options.origin ?? WEB_ORIGIN
@@ -124,16 +135,18 @@ async function seedFingerprint(context: BrowserContext): Promise<void> {
   // `enhancedBase64LocalStorage()` 未开 forceEncrypt ⇒ 无 base64 外壳，直接写这段 JSON。
   const encoded = JSON.stringify({ json: { v: fingerprint, e: null, _v: 'e2e' } })
 
-  await context.addInitScript(({ key, value }) => {
-    try {
-      if (window.localStorage.getItem(key) === null) {
-        window.localStorage.setItem(key, value)
+  await context.addInitScript(
+    ({ key, value }) => {
+      try {
+        if (window.localStorage.getItem(key) === null) {
+          window.localStorage.setItem(key, value)
+        }
+      } catch {
+        // about:blank / 沙箱页面没有 localStorage —— 真正的 origin 页面上再写
       }
-    }
-    catch {
-      // about:blank / 沙箱页面没有 localStorage —— 真正的 origin 页面上再写
-    }
-  }, { key: FINGERPRINT_LOCAL_STORAGE_KEY, value: encoded })
+    },
+    { key: FINGERPRINT_LOCAL_STORAGE_KEY, value: encoded },
+  )
 }
 
 /** 从 Cookie（stage 无前缀）解出设备 id；cookie 没有时回落 localStorage */
@@ -141,7 +154,9 @@ export async function resolveDeviceId(page: Page): Promise<string> {
   const cookie = await readDeviceCookie(page.context())
   if (cookie !== null) {
     const decoded = decodeURIComponent(cookie.value)
-    const value = decoded.startsWith('s:') ? decoded.slice(2).split('.')[0] ?? '' : decoded.split('.')[0] ?? ''
+    const value = decoded.startsWith('s:')
+      ? (decoded.slice(2).split('.')[0] ?? '')
+      : (decoded.split('.')[0] ?? '')
     if (value !== '') {
       return value
     }
@@ -151,11 +166,17 @@ export async function resolveDeviceId(page: Page): Promise<string> {
   if (local !== null) {
     return local
   }
-  throw new Error(`[e2e/device] 既没有 ${DEVICE_COOKIE_NAME} cookie 也没有 localStorage 设备 id（URL=${page.url()}）`)
+  throw new Error(
+    `[e2e/device] 既没有 ${DEVICE_COOKIE_NAME} cookie 也没有 localStorage 设备 id（URL=${page.url()}）`,
+  )
 }
 
 /** 打开站点（默认落在登录页）→ 等 bootstrap 完成设备登记 → 返回 deviceId */
-export async function openDevice(browser: Browser, startAt = '/auth', options: { realIp?: string, origin?: string } = {}): Promise<DeviceSession> {
+export async function openDevice(
+  browser: Browser,
+  startAt = '/auth',
+  options: { realIp?: string; origin?: string } = {},
+): Promise<DeviceSession> {
   const realIp = options.realIp ?? uniqueLocalIp()
   const context = await newBrowserContext(browser, { realIp, origin: options.origin })
   const page = await context.newPage()
@@ -182,11 +203,10 @@ export async function waitForRegisteredDevice(page: Page): Promise<string> {
         return false
       }
       try {
-        const parsed = JSON.parse(raw) as { v?: unknown, json?: { v?: unknown } }
+        const parsed = JSON.parse(raw) as { v?: unknown; json?: { v?: unknown } }
         const value = parsed.json?.v ?? parsed.v
         return typeof value === 'string' && /^d1_[0-9a-f]{32}$/.test(value)
-      }
-      catch {
+      } catch {
         return false
       }
     },
@@ -197,7 +217,10 @@ export async function waitForRegisteredDevice(page: Page): Promise<string> {
 }
 
 /** 开一台设备并完成 UI 登录（CAP + MFA），返回已登录会话 */
-export async function loginDevice(browser: Browser, options: { realIp?: string, origin?: string } = {}): Promise<DeviceSession> {
+export async function loginDevice(
+  browser: Browser,
+  options: { realIp?: string; origin?: string } = {},
+): Promise<DeviceSession> {
   const session = await openDevice(browser, '/auth', options)
   await loginViaUI(session.page)
   session.deviceId = await resolveDeviceId(session.page)
@@ -253,11 +276,16 @@ export async function flushTrackedDevices(options: { testInfo?: TestInfo } = {})
 }
 
 /** worker 作用域设备的清理（与 {@link flushTrackedDevices} 同口径，失败不抛错） */
-export async function flushWorkerTrackedDevices(options: { testInfo?: TestInfo } = {}): Promise<void> {
+export async function flushWorkerTrackedDevices(
+  options: { testInfo?: TestInfo } = {},
+): Promise<void> {
   await flushDeviceSet(workerTrackedDeviceIds, options)
 }
 
-async function flushDeviceSet(idsSet: Set<string>, options: { testInfo?: TestInfo }): Promise<void> {
+async function flushDeviceSet(
+  idsSet: Set<string>,
+  options: { testInfo?: TestInfo },
+): Promise<void> {
   const ids = [...idsSet]
   idsSet.clear()
   if (ids.length === 0) {
@@ -266,18 +294,21 @@ async function flushDeviceSet(idsSet: Set<string>, options: { testInfo?: TestInf
 
   try {
     await cleanupDevices(ids)
-  }
-  catch (error) {
+  } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    console.warn(`[e2e/fixtures] 设备清理失败（不影响断言结果；worker 退出时再试一次）：${ids.join(', ')} —— ${message}`)
+    console.warn(
+      `[e2e/fixtures] 设备清理失败（不影响断言结果；worker 退出时再试一次）：${ids.join(', ')} —— ${message}`,
+    )
     for (const id of ids) {
       idsSet.add(id)
     }
     if (options.testInfo !== undefined) {
-      await options.testInfo.attach('device-cleanup-failure', {
-        body: JSON.stringify({ deviceIds: ids, error: message }, null, 2),
-        contentType: 'application/json',
-      }).catch(() => {})
+      await options.testInfo
+        .attach('device-cleanup-failure', {
+          body: JSON.stringify({ deviceIds: ids, error: message }, null, 2),
+          contentType: 'application/json',
+        })
+        .catch(() => {})
     }
   }
 }
@@ -288,7 +319,9 @@ async function flushDeviceSet(idsSet: Set<string>, options: { testInfo?: TestInf
  * **不 FLUSHDB**。
  */
 async function cleanupDevices(deviceIds: (string | null | undefined)[]): Promise<void> {
-  const ids = [...new Set(deviceIds.filter((id): id is string => typeof id === 'string' && id !== ''))]
+  const ids = [
+    ...new Set(deviceIds.filter((id): id is string => typeof id === 'string' && id !== '')),
+  ]
   if (ids.length === 0) {
     return
   }

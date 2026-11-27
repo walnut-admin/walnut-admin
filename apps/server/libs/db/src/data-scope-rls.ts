@@ -29,7 +29,8 @@ export const WALNUT_DATA_SCOPE_RLS_MODE = {
   ANONYMOUS: 'anonymous',
 } as const
 
-export type IWalnutAdminDataScopeRlsMode = typeof WALNUT_DATA_SCOPE_RLS_MODE[keyof typeof WALNUT_DATA_SCOPE_RLS_MODE]
+export type IWalnutAdminDataScopeRlsMode =
+  (typeof WALNUT_DATA_SCOPE_RLS_MODE)[keyof typeof WALNUT_DATA_SCOPE_RLS_MODE]
 
 /** GUC 键名 —— 与迁移里的 `app.data_scope_*()` 函数逐字对齐 */
 export const WALNUT_DATA_SCOPE_RLS_GUC = {
@@ -64,7 +65,7 @@ export async function applyWalnutDataScopeRlsSettings(
   manager: Pick<EntityManager, 'query'>,
   settings: IWalnutAdminDataScopeRlsSettings,
 ): Promise<void> {
-  const deptIds = [...new Set(settings.deptIds.filter(id => typeof id === 'string' && id !== ''))]
+  const deptIds = [...new Set(settings.deptIds.filter((id) => typeof id === 'string' && id !== ''))]
 
   await manager.query(
     'SELECT set_config($1, $2, true), set_config($3, $4, true), set_config($5, $6, true), set_config($7, $8, true)',
@@ -102,7 +103,7 @@ export async function withWalnutRlsTransaction<T>(
   dataSource: Pick<DataSource, 'createQueryRunner'>,
   settings: IWalnutAdminDataScopeRlsSettings,
   fn: (manager: EntityManager) => Promise<T>,
-  options: { readOnly?: boolean, logger?: IWalnutQueryRunnerTxLogger } = {},
+  options: { readOnly?: boolean; logger?: IWalnutQueryRunnerTxLogger } = {},
 ): Promise<T> {
   return withQueryRunnerTransaction(dataSource, fn, {
     readOnly: options.readOnly,

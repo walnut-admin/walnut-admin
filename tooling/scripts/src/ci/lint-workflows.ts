@@ -24,8 +24,8 @@ export function main(): void {
 
   if (probe.error || probe.status !== 0) {
     throw new SkippedError(
-      '未检测到 actionlint：workflow **未验证**（跳过不等于通过）。权威闸门是 CI 的 '
-      + '.github/workflows/workflow-lint.yml；安装方式见 https://github.com/rhysd/actionlint#download',
+      '未检测到 actionlint：workflow **未验证**（跳过不等于通过）。权威闸门是 CI 的 ' +
+        '.github/workflows/workflow-lint.yml；安装方式见 https://github.com/rhysd/actionlint#download',
     )
   }
 
@@ -34,6 +34,5 @@ export function main(): void {
   // 输出直接 `inherit` 给 actionlint（它自己往 stderr 写结构化诊断，中间隔一层只会丢信息）
   const result = spawnSync('actionlint', ['-color'], { stdio: 'inherit', shell: true })
 
-  if (result.status !== 0)
-    throw new ViolationError('actionlint 校验未通过（明细见上）')
+  if (result.status !== 0) throw new ViolationError('actionlint 校验未通过（明细见上）')
 }

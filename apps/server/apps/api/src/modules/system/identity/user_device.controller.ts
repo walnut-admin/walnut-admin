@@ -2,9 +2,19 @@ import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Put } from 
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { WalnutAdminDecoratorDecryptRequest, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
+import {
+  WalnutAdminDecoratorDecryptRequest,
+  WalnutAdminDecoratorDeviceId,
+  WalnutAdminDecoratorHasPermission,
+  WalnutAdminDecoratorUser,
+} from '@walnut-server/guards'
 
-import { SysUserDeviceListDTO, SysUserDeviceService, SysUserDeviceUpdateNameDTO, SysUserLockUnLockDto } from '@walnut-server/identity'
+import {
+  SysUserDeviceListDTO,
+  SysUserDeviceService,
+  SysUserDeviceUpdateNameDTO,
+  SysUserLockUnLockDto,
+} from '@walnut-server/identity'
 import { WalnutAdminPipeDeviceId } from '@walnut-server/pipes'
 import { SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
@@ -120,7 +130,12 @@ export class SysUserDeviceController {
     // 非空断言；security 模式下缺密码仍由 shared service 报受控 40000，行为不变。
     const lockPwdHash = body.lockPwdHash ?? ''
 
-    await this.userDeviceService.unlockUserDeviceWithUserIdAndDeviceId(user.userId, deviceId, lockPwdHash, ctx.em)
+    await this.userDeviceService.unlockUserDeviceWithUserIdAndDeviceId(
+      user.userId,
+      deviceId,
+      lockPwdHash,
+      ctx.em,
+    )
     return true
   }
 }

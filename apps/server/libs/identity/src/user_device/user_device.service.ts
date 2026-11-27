@@ -33,7 +33,7 @@ export class SysUserDeviceService {
     private readonly userLockSharedService: SysUserLockSharedService,
     @Inject(WALNUT_ADMIN_IDENTITY_SIGNOUT_SERVICE)
     private readonly signoutService: IIdentitySignoutService,
-  ) { }
+  ) {}
 
   /**
    * @description get current user device list
@@ -41,27 +41,33 @@ export class SysUserDeviceService {
   async getCurrentUserDeviceList(userId: string, deviceId: string) {
     const list = await this.userDeviceRepo.findAllDevicesForCurrentUser(userId)
 
-    const res = await Promise.all(list.map(async (item) => {
-      const device = await this.deviceService.findDeviceByDeviceId(item.deviceId)
-      const monitorUser = device
-        ? await this.monitorRepo.findFirstByDeviceId(item.deviceId)
-        : null
+    const res = await Promise.all(
+      list.map(async (item) => {
+        const device = await this.deviceService.findDeviceByDeviceId(item.deviceId)
+        const monitorUser = device
+          ? await this.monitorRepo.findFirstByDeviceId(item.deviceId)
+          : null
 
-      return { item, device, monitorUser }
-    }))
+        return { item, device, monitorUser }
+      }),
+    )
 
-    const promises = await Promise.all(res.map(async ({ item, device, monitorUser }) => ({
-      deviceId: item?.deviceId,
-      deviceName: item?.deviceName,
-      locked: item?.locked,
-      lastActiveAt: item?.lastActiveAt,
-      deviceType: (device?.deviceInfo?.type as string) ?? undefined,
-      current: item?.deviceId === deviceId,
-      auth: (monitorUser?.auth as boolean) ?? undefined,
-      location: device ? getDeviceLocationString(device) : undefined,
-    })))
+    const promises = await Promise.all(
+      res.map(async ({ item, device, monitorUser }) => ({
+        deviceId: item?.deviceId,
+        deviceName: item?.deviceName,
+        locked: item?.locked,
+        lastActiveAt: item?.lastActiveAt,
+        deviceType: (device?.deviceInfo?.type as string) ?? undefined,
+        current: item?.deviceId === deviceId,
+        auth: (monitorUser?.auth as boolean) ?? undefined,
+        location: device ? getDeviceLocationString(device) : undefined,
+      })),
+    )
 
-    return promises.sort((a, b) => (b.lastActiveAt?.getTime() ?? 0) - (a.lastActiveAt?.getTime() ?? 0))
+    return promises.sort(
+      (a, b) => (b.lastActiveAt?.getTime() ?? 0) - (a.lastActiveAt?.getTime() ?? 0),
+    )
   }
 
   /**
@@ -83,7 +89,12 @@ export class SysUserDeviceService {
 
     await this.signoutService.doSignout(
       userId,
-      { trigger: 'user-kick-other', deviceId, fingerprint: monitorUser.visitorId, isOnline: !monitorUser.left },
+      {
+        trigger: 'user-kick-other',
+        deviceId,
+        fingerprint: monitorUser.visitorId,
+        isOnline: !monitorUser.left,
+      },
       em,
     )
     return true
@@ -97,17 +108,34 @@ export class SysUserDeviceService {
     if (!monitorUser) {
       throw new WalnutAdminExceptionDataNotFound()
     }
-    return this.userLockSharedService.lockUserDevice(userId, deviceId, monitorUser.visitorId, {}, em)
+    return this.userLockSharedService.lockUserDevice(
+      userId,
+      deviceId,
+      monitorUser.visitorId,
+      {},
+      em,
+    )
   }
 
   /**
    * @description unlock user device
    */
-  async unlockUserDeviceWithUserIdAndDeviceId(userId: string, deviceId: string, lockHashPwd: string, em?: EntityManager) {
+  async unlockUserDeviceWithUserIdAndDeviceId(
+    userId: string,
+    deviceId: string,
+    lockHashPwd: string,
+    em?: EntityManager,
+  ) {
     const monitorUser = await this.monitorRepo.findByUserIdAndDeviceId(userId, deviceId)
     if (!monitorUser) {
       throw new WalnutAdminExceptionDataNotFound()
     }
-    return this.userLockSharedService.unLockUserDevice(userId, deviceId, monitorUser.visitorId, lockHashPwd, em)
+    return this.userLockSharedService.unLockUserDevice(
+      userId,
+      deviceId,
+      monitorUser.visitorId,
+      lockHashPwd,
+      em,
+    )
   }
 }

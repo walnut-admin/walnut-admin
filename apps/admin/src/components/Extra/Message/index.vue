@@ -19,7 +19,9 @@ withDefaults(defineProps<ICompExtraMessageProps>(), {
         </template>
 
         <template v-if="Array.isArray(msg)">
-          <div v-for="(item, index) in msg" :key="index" class="whitespace-pre-line">{{ item }}</div>
+          <div v-for="(item, index) in msg" :key="index" class="whitespace-pre-line">
+            {{ item }}
+          </div>
         </template>
       </template>
 

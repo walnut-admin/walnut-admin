@@ -35,14 +35,18 @@ function stepTimeout(budget: WaitBudget, step: string, capMs: number): number {
 }
 
 /** 登录表单：用户名 / 密码 / 提交（testid 见 admin 的 opaque.vue 与 Extra/Password） */
-export const LOGIN_USERNAME_SELECTOR = '[data-testid="login-username"], input[autocomplete="username"]'
-export const LOGIN_PASSWORD_SELECTOR = '[data-testid="login-password"], input[autocomplete="current-password"]'
+export const LOGIN_USERNAME_SELECTOR =
+  '[data-testid="login-username"], input[autocomplete="username"]'
+export const LOGIN_PASSWORD_SELECTOR =
+  '[data-testid="login-password"], input[autocomplete="current-password"]'
 /** 应用外壳：侧边栏容器与菜单项（testid 见 TheAside/src/menu.vue；导出给用例做计数断言） */
 export const SIDEBAR_MENU_SELECTOR = '[data-testid="sidebar-menu"], .w-menu'
-export const SIDEBAR_MENU_ITEM_SELECTOR = '[data-testid="sidebar-menu-item"], .w-menu .w-menu-item-content'
+export const SIDEBAR_MENU_ITEM_SELECTOR =
+  '[data-testid="sidebar-menu-item"], .w-menu .w-menu-item-content'
 /** MFA 验证页：方法卡 / 6 位码输入（testid 见 views/error/MfaVerified/index.vue） */
 const MFA_METHOD_CARD_SELECTOR = '[data-testid="mfa-method-card"]:visible, .w-card:visible'
-const MFA_CODE_INPUT_SELECTOR = '[data-testid="mfa-code-input"]:visible, input[placeholder="000000"]:visible'
+const MFA_CODE_INPUT_SELECTOR =
+  '[data-testid="mfa-code-input"]:visible, input[placeholder="000000"]:visible'
 /**
  * cap.js 交互 widget（standalone，需要点一下的复选框）。U13 的 post-auth CAP 重武装
  * 要在「对话框可见」这一步断言它，所以选择器从实现细节提升为导出常量。
@@ -78,7 +82,9 @@ const APP_INTRO_COOKIE_NAME = 'driver-app-intro'
  * 否则进系统后整个页面被引导遮罩盖住，页头下拉 / 卡片点击全部被拦截。
  */
 export async function markAppIntroSeen(page: Page): Promise<void> {
-  await page.context().addCookies([{ name: APP_INTRO_COOKIE_NAME, value: 'true', url: new URL(page.url()).origin }])
+  await page
+    .context()
+    .addCookies([{ name: APP_INTRO_COOKIE_NAME, value: 'true', url: new URL(page.url()).origin }])
 }
 
 export interface CapturedEnvelope {
@@ -120,7 +126,7 @@ export function snapshotRecentEnvelopes(limit = 20): CapturedEnvelope[] {
     .flat()
     .sort((left, right) => left.__seq - right.__seq)
     .slice(-limit)
-    .map(entry => ({
+    .map((entry) => ({
       url: entry.url,
       method: entry.method,
       status: entry.status,
@@ -137,7 +143,10 @@ export function snapshotRecentEnvelopes(limit = 20): CapturedEnvelope[] {
  * `installRealIpRoute` 的同源口径一致（默认 `WEB_ORIGIN + /api/`；WebAuthn 用例的
  * `localhost` origin 通过 `options.origin` 传入）。
  */
-export function captureEnvelopes(page: Page, options: { origin?: string } = {}): { entries: CapturedEnvelope[], stop: () => void } {
+export function captureEnvelopes(
+  page: Page,
+  options: { origin?: string } = {},
+): { entries: CapturedEnvelope[]; stop: () => void } {
   const origin = options.origin ?? WEB_ORIGIN
   const entries: SequencedEnvelope[] = []
   captureRegistry.push(entries)
@@ -153,7 +162,7 @@ export function captureEnvelopes(page: Page, options: { origin?: string } = {}):
         if (!contentType.includes('application/json')) {
           return
         }
-        const body = await response.json() as { code?: number, msg?: string }
+        const body = (await response.json()) as { code?: number; msg?: string }
         entries.push({
           url: response.url(),
           method: response.request().method(),
@@ -162,8 +171,7 @@ export function captureEnvelopes(page: Page, options: { origin?: string } = {}):
           msg: body.msg,
           __seq: envelopeSequence++,
         })
-      }
-      catch {
+      } catch {
         // 响应体已被释放 / 不是 JSON：忽略（采集是辅助断言，不该让用例炸）
       }
     })()
@@ -201,8 +209,7 @@ async function describePageState(page: Page): Promise<string[]> {
 
   try {
     lines.push(`页面标题=${JSON.stringify(redactText(await page.title()))}`)
-  }
-  catch {
+  } catch {
     lines.push('页面标题=<不可读（页面已关闭 / 上下文被销毁）>')
   }
 
@@ -211,19 +218,17 @@ async function describePageState(page: Page): Promise<string[]> {
     const count = await widget.count()
     let state = '不在 DOM'
     if (count > 0) {
-      state = await widget.isVisible() ? '可见（尚未解出）' : '在 DOM 但不可见'
+      state = (await widget.isVisible()) ? '可见（尚未解出）' : '在 DOM 但不可见'
     }
     lines.push(`cap-widget=${state}`)
-  }
-  catch {
+  } catch {
     lines.push('cap-widget=<状态不可读（页面已关闭 / 上下文被销毁）>')
   }
 
   try {
     const deviceId = await readLocalDeviceId(page)
     lines.push(`localStorage 设备 id=${deviceId ?? '<无>'}`)
-  }
-  catch {
+  } catch {
     lines.push('localStorage 设备 id=<不可读（页面已关闭 / 上下文被销毁）>')
   }
 
@@ -243,15 +248,12 @@ async function describePageStateWithinBudget(page: Page): Promise<string[]> {
     return await Promise.race([
       describePageState(page),
       new Promise<string[]>((resolve) => {
-        timer = setTimeout(
-          resolve,
-          CONTEXT_COLLECT_BUDGET_MS,
-          [`页面状态=<采集超时（${CONTEXT_COLLECT_BUDGET_MS / 1000}s），已跳过>`],
-        )
+        timer = setTimeout(resolve, CONTEXT_COLLECT_BUDGET_MS, [
+          `页面状态=<采集超时（${CONTEXT_COLLECT_BUDGET_MS / 1000}s），已跳过>`,
+        ])
       }),
     ])
-  }
-  finally {
+  } finally {
     if (timer !== undefined) {
       clearTimeout(timer)
     }
@@ -259,7 +261,10 @@ async function describePageStateWithinBudget(page: Page): Promise<string[]> {
 }
 
 /** 失败上下文（页面状态 + 可选的一组 envelope）；导出以便其它等待点复用同一份文案 */
-export async function describeFailureContext(page: Page, entries?: CapturedEnvelope[]): Promise<string> {
+export async function describeFailureContext(
+  page: Page,
+  entries?: CapturedEnvelope[],
+): Promise<string> {
   const lines = await describePageStateWithinBudget(page)
   if (entries !== undefined) {
     lines.push(formatEnvelopes(entries))
@@ -290,14 +295,11 @@ export async function waitForEnvelope(
       // 带上页面状态：超时最常见的原因是「URL / 设备 / CAP 状态与预期不同」，只看 envelope
       // 列表看不出这几件事。
       const page = capturePage.get(entries)
-      const context = page === undefined
-        ? formatEnvelopes(entries)
-        : await describeFailureContext(page, entries)
-      throw new Error(
-        `[e2e/ui] ${Math.round(timeoutMs / 1000)}s 内没等到目标响应；\n${context}`,
-      )
+      const context =
+        page === undefined ? formatEnvelopes(entries) : await describeFailureContext(page, entries)
+      throw new Error(`[e2e/ui] ${Math.round(timeoutMs / 1000)}s 内没等到目标响应；\n${context}`)
     }
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise((resolve) => setTimeout(resolve, 100))
   }
 }
 
@@ -326,7 +328,7 @@ export async function waitForDeviceHealSettled(
   page: Page,
   entries: CapturedEnvelope[],
   replayUrl: string,
-  options: { timeoutMs?: number, maxCapRounds?: number, skipCapSolve?: boolean } = {},
+  options: { timeoutMs?: number; maxCapRounds?: number; skipCapSolve?: boolean } = {},
 ): Promise<{ capSolved: boolean }> {
   const timeoutMs = options.timeoutMs ?? 40_000
   const maxCapRounds = options.maxCapRounds ?? 2
@@ -337,10 +339,12 @@ export async function waitForDeviceHealSettled(
   for (let round = 0; round < maxCapRounds; round += 1) {
     const entry = await waitForEnvelope(
       entries,
-      candidate => candidate.url === replayUrl
-        && (candidate.code === WalnutAdminConstAppResponseCode.SUCCESS
-          || candidate.code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED
-          || candidate.code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED),
+      (candidate) =>
+        candidate.url === replayUrl &&
+        (candidate.code === WalnutAdminConstAppResponseCode.SUCCESS ||
+          candidate.code ===
+            WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED ||
+          candidate.code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED),
       timeoutMs,
       cursor,
     )
@@ -354,16 +358,16 @@ export async function waitForDeviceHealSettled(
     // 走到这里只可能是 40116：这是 CAP 交互要求，不是自愈失败
     if (skipCapSolve) {
       throw new Error(
-        `[e2e/ui] 重放 ${replayUrl} 只等到 40116（CAP 交互要求），且 E2E_SKIP_CAP_SOLVE=1 已跳过求解`
-        + `（负对照开关，生产用例不得设置）。\n${await describeFailureContext(page, entries)}`,
+        `[e2e/ui] 重放 ${replayUrl} 只等到 40116（CAP 交互要求），且 E2E_SKIP_CAP_SOLVE=1 已跳过求解` +
+          `（负对照开关，生产用例不得设置）。\n${await describeFailureContext(page, entries)}`,
       )
     }
 
     const solved = await solveCapIfPresent(page, { timeoutMs: 60_000, appearTimeoutMs: 15_000 })
     if (!solved) {
       throw new Error(
-        '[e2e/ui] 重放吃到 40116（CAP 交互要求），但 15s 内没出现可点的 cap-widget'
-        + ` —— 风险配置或 CAP 组件被改坏了。\n${await describeFailureContext(page, entries)}`,
+        '[e2e/ui] 重放吃到 40116（CAP 交互要求），但 15s 内没出现可点的 cap-widget' +
+          ` —— 风险配置或 CAP 组件被改坏了。\n${await describeFailureContext(page, entries)}`,
       )
     }
     capSolved = true
@@ -371,16 +375,23 @@ export async function waitForDeviceHealSettled(
     // 同一批兄弟请求共用一枚 CAP token：解一次后，已记录的 40116 全部视为已消费。
     // 游标推到**最后一条已记录的 40116 之后**（而不是本次命中的那条之后）：既不会被旧 40116
     // 再骗一轮，也不会跳过解 CAP 期间已经到达的后续响应。
-    cursor = entries.reduce((last, candidate, index) => (
-      candidate.url === replayUrl && candidate.code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED ? index + 1 : last
-    ), cursor)
+    cursor = entries.reduce(
+      (last, candidate, index) =>
+        candidate.url === replayUrl &&
+        candidate.code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED
+          ? index + 1
+          : last,
+      cursor,
+    )
   }
 
   // 解完 CAP 后，被拒 URL 的最终业务码必须是 40101（新设备没有旧设备的会话键）。
   // 等不到就让 waitForEnvelope 自然抛错（带末 12 条上下文）。
   await waitForEnvelope(
     entries,
-    candidate => candidate.url === replayUrl && candidate.code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
+    (candidate) =>
+      candidate.url === replayUrl &&
+      candidate.code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
     timeoutMs,
     cursor,
   )
@@ -397,20 +408,26 @@ export async function readLocalDeviceId(page: Page): Promise<string | null> {
     try {
       // superjson 会把对象根包成 `{ json: {...} }`（`{v,e,_v}` 整体是对象）；平铺形态 `{v}`
       // 也兼容。两种都收，避免用例对存储层的实现细节过敏。
-      const parsed = JSON.parse(raw) as { v?: unknown, json?: { v?: unknown } }
+      const parsed = JSON.parse(raw) as { v?: unknown; json?: { v?: unknown } }
       const value = parsed.json?.v ?? parsed.v
       return typeof value === 'string' ? value : null
-    }
-    catch {
+    } catch {
       return null
     }
   }, DEVICE_LOCAL_STORAGE_KEY)
 }
 
 /** context 里的 DEVICE_ID cookie（stage 形态无前缀；值带 `s:` 签名，原样返回） */
-export async function readDeviceCookie(context: BrowserContext): Promise<{ value: string, secure: boolean, httpOnly: boolean, path: string, expires: number, domain: string } | null> {
+export async function readDeviceCookie(context: BrowserContext): Promise<{
+  value: string
+  secure: boolean
+  httpOnly: boolean
+  path: string
+  expires: number
+  domain: string
+} | null> {
   const cookies = await context.cookies()
-  const cookie = cookies.find(item => item.name === DEVICE_COOKIE_NAME)
+  const cookie = cookies.find((item) => item.name === DEVICE_COOKIE_NAME)
   return cookie === undefined
     ? null
     : {
@@ -480,27 +497,30 @@ const LOGIN_CAP_GRACE_MS = 2_000
 
 export async function settlePostLoginCap(
   page: Page,
-  options: { budget?: WaitBudget, budgetLabel?: string } = {},
+  options: { budget?: WaitBudget; budgetLabel?: string } = {},
 ): Promise<boolean> {
   const label = options.budgetLabel ?? '登录后 CAP'
-  const appearTimeout = options.budget === undefined
-    ? LOGIN_CAP_APPEAR_MS
-    : stepTimeout(options.budget, `${label}出现`, LOGIN_CAP_APPEAR_MS)
+  const appearTimeout =
+    options.budget === undefined
+      ? LOGIN_CAP_APPEAR_MS
+      : stepTimeout(options.budget, `${label}出现`, LOGIN_CAP_APPEAR_MS)
 
   const widget = page.locator(CAP_WIDGET_SELECTOR).first()
   const outcome = await Promise.race([
-    page.waitForURL(url => url.pathname !== '/auth', { timeout: appearTimeout })
+    page
+      .waitForURL((url) => url.pathname !== '/auth', { timeout: appearTimeout })
       .then(() => 'nav' as const)
       .catch(() => 'timeout' as const),
-    widget.waitFor({ state: 'visible', timeout: appearTimeout })
+    widget
+      .waitFor({ state: 'visible', timeout: appearTimeout })
       .then(() => 'cap' as const)
       .catch(() => 'timeout' as const),
   ])
 
   if (outcome === 'timeout') {
     throw new Error(
-      `[e2e/ui] 登录提交后 ${Math.round(appearTimeout / 1000)}s 内既没有离开 /auth 也没有出现 CAP`
-      + ' —— 登录链路卡住（不当作「不需要 CAP」继续）',
+      `[e2e/ui] 登录提交后 ${Math.round(appearTimeout / 1000)}s 内既没有离开 /auth 也没有出现 CAP` +
+        ' —— 登录链路卡住（不当作「不需要 CAP」继续）',
     )
   }
 
@@ -537,23 +557,27 @@ async function solveCapIfPresent(page: Page, options: CapSolveOptions = {}): Pro
   // 每一步都**重新**取剩余预算：一次性算三步会把「出现 + 点击 + 消失」各按剩余额度下发，
   // 合计最多能超出链路预算一倍（例如剩 10s 时三步各给 10s）。CAP 是链路里最不可控的一段，
   // 必须在每个子步骤前再判一次耗尽。
-  const limit = (step: string, capMs: number): number => options.budget === undefined
-    ? capMs
-    : stepTimeout(options.budget, step, capMs)
+  const limit = (step: string, capMs: number): number =>
+    options.budget === undefined ? capMs : stepTimeout(options.budget, step, capMs)
 
   const widget = page.locator(CAP_WIDGET_SELECTOR).first()
 
   try {
-    await widget.waitFor({ state: 'visible', timeout: limit(`${label}出现`, options.appearTimeoutMs ?? 6_000) })
-  }
-  catch {
+    await widget.waitFor({
+      state: 'visible',
+      timeout: limit(`${label}出现`, options.appearTimeoutMs ?? 6_000),
+    })
+  } catch {
     return false
   }
 
   // Playwright 的默认 action 超时是 0（跟随用例超时）：被任何 overlay 挡住都会挂到 120s。
   // 这里给点击单独设上限 —— 挡住的现场应以「intercepts pointer events」快速报错，而不是挂死。
   await widget.click({ timeout: limit(`${label}点击`, options.clickTimeoutMs ?? 30_000) })
-  await widget.waitFor({ state: 'hidden', timeout: limit(`${label}消失`, options.timeoutMs ?? 60_000) })
+  await widget.waitFor({
+    state: 'hidden',
+    timeout: limit(`${label}消失`, options.timeoutMs ?? 60_000),
+  })
   return true
 }
 
@@ -563,26 +587,37 @@ async function solveCapIfPresent(page: Page, options: CapSolveOptions = {}): Pro
  *
  * `budget` 只用来收窄本段每一步的超时；MFA 不在登录链路上（例如单独验证页）时可不传。
  */
-export async function verifyMfaIfPresent(page: Page, totpSecret: string, budget?: WaitBudget): Promise<boolean> {
-  const limit = (step: string, capMs: number): number => budget === undefined ? capMs : stepTimeout(budget, step, capMs)
+export async function verifyMfaIfPresent(
+  page: Page,
+  totpSecret: string,
+  budget?: WaitBudget,
+): Promise<boolean> {
+  const limit = (step: string, capMs: number): number =>
+    budget === undefined ? capMs : stepTimeout(budget, step, capMs)
 
   try {
-    await page.waitForURL(url => url.pathname === '/mfa-verified', { timeout: limit('MFA 页面出现', 8_000) })
-  }
-  catch {
+    await page.waitForURL((url) => url.pathname === '/mfa-verified', {
+      timeout: limit('MFA 页面出现', 8_000),
+    })
+  } catch {
     return false
   }
 
   // 只有 TOTP 一个方法启用（WebAuthn 未绑定）⇒ 可见卡片唯一。
   // 必须加 :visible —— 登录页的卡片仍挂在 DOM 里（懒卸载），裸 .first() 会点到隐藏的那个。
-  await page.locator(MFA_METHOD_CARD_SELECTOR).first().click({ timeout: limit('MFA 方法卡点击', 10_000) })
+  await page
+    .locator(MFA_METHOD_CARD_SELECTOR)
+    .first()
+    .click({ timeout: limit('MFA 方法卡点击', 10_000) })
   const input = page.locator(MFA_CODE_INPUT_SELECTOR).first()
   await input.waitFor({ state: 'visible', timeout: limit('MFA 输入框出现', 10_000) })
   await input.fill(currentTotp(totpSecret), { timeout: limit('MFA 输入', 10_000) })
   await input.press('Enter', { timeout: limit('MFA 提交', 10_000) })
 
   // 验证通过后 ExecuteCoreFnAfterAuth 会 goIndex → 离开 /mfa-verified
-  await page.waitForURL(url => url.pathname !== '/mfa-verified', { timeout: limit('MFA 验证落地', 20_000) })
+  await page.waitForURL((url) => url.pathname !== '/mfa-verified', {
+    timeout: limit('MFA 验证落地', 20_000),
+  })
   return true
 }
 
@@ -609,12 +644,17 @@ export interface LoginResult {
  */
 async function withLoginFailureContext(page: Page, error: unknown, stage: string): Promise<Error> {
   const message = error instanceof Error ? error.message : String(error)
-  const context = await describeFailureContext(page, snapshotRecentEnvelopes(ENVELOPE_CONTEXT_LIMIT))
-    .catch(() => '（失败现场不可读：页面已在关闭过程中）')
+  const context = await describeFailureContext(
+    page,
+    snapshotRecentEnvelopes(ENVELOPE_CONTEXT_LIMIT),
+  ).catch(() => '（失败现场不可读：页面已在关闭过程中）')
   return new Error(`${message}\n[e2e/ui] 登录失败现场（${stage}）：\n${context}`, { cause: error })
 }
 
-export async function loginViaUI(page: Page, options: { userName?: string, password?: string, totpSecret?: string } = {}): Promise<LoginResult> {
+export async function loginViaUI(
+  page: Page,
+  options: { userName?: string; password?: string; totpSecret?: string } = {},
+): Promise<LoginResult> {
   return runLoginChain(page, options, startWaitBudget(LOGIN_TOTAL_BUDGET_MS))
 }
 
@@ -624,25 +664,29 @@ export async function loginViaUI(page: Page, options: { userName?: string, passw
  */
 async function runLoginChain(
   page: Page,
-  options: { userName?: string, password?: string, totpSecret?: string },
+  options: { userName?: string; password?: string; totpSecret?: string },
   budget: WaitBudget,
 ): Promise<LoginResult> {
   try {
     return await performLogin(page, options, budget)
-  }
-  catch (error) {
+  } catch (error) {
     throw await withLoginFailureContext(page, error, 'loginViaUI')
   }
 }
 
 async function performLogin(
   page: Page,
-  options: { userName?: string, password?: string, totpSecret?: string },
+  options: { userName?: string; password?: string; totpSecret?: string },
   budget: WaitBudget,
 ): Promise<LoginResult> {
-  const credentials = options.userName !== undefined
-    ? { userName: options.userName, password: options.password ?? '', totpSecret: options.totpSecret ?? '' }
-    : readCredentials()
+  const credentials =
+    options.userName !== undefined
+      ? {
+          userName: options.userName,
+          password: options.password ?? '',
+          totpSecret: options.totpSecret ?? '',
+        }
+      : readCredentials()
 
   await page.goto('/auth', { timeout: stepTimeout(budget, '打开登录页', 30_000) })
 
@@ -660,8 +704,13 @@ async function performLogin(
   const capAfterBoot = await solveCapIfPresent(page, { budget, budgetLabel: '启动 CAP' })
 
   const userNameInput = page.locator(LOGIN_USERNAME_SELECTOR).first()
-  await userNameInput.waitFor({ state: 'visible', timeout: stepTimeout(budget, '登录表单出现', 30_000) })
-  await userNameInput.fill(credentials.userName, { timeout: stepTimeout(budget, '填用户名', 15_000) })
+  await userNameInput.waitFor({
+    state: 'visible',
+    timeout: stepTimeout(budget, '登录表单出现', 30_000),
+  })
+  await userNameInput.fill(credentials.userName, {
+    timeout: stepTimeout(budget, '填用户名', 15_000),
+  })
 
   const passwordInput = page.locator(LOGIN_PASSWORD_SELECTOR).first()
   await passwordInput.fill(credentials.password, { timeout: stepTimeout(budget, '填密码', 15_000) })
@@ -674,11 +723,13 @@ async function performLogin(
   const mfaVerified = await verifyMfaIfPresent(page, credentials.totpSecret, budget)
 
   // 登录成功的判据：离开 /auth 与 /mfa-verified，并出现应用外壳（侧边栏菜单）
-  await page.waitForURL(
-    url => url.pathname !== '/auth' && url.pathname !== '/mfa-verified',
-    { timeout: stepTimeout(budget, '登录落地', 40_000) },
-  )
-  await page.locator(SIDEBAR_MENU_SELECTOR).first().waitFor({ state: 'visible', timeout: stepTimeout(budget, '应用外壳出现', 30_000) })
+  await page.waitForURL((url) => url.pathname !== '/auth' && url.pathname !== '/mfa-verified', {
+    timeout: stepTimeout(budget, '登录落地', 40_000),
+  })
+  await page
+    .locator(SIDEBAR_MENU_SELECTOR)
+    .first()
+    .waitFor({ state: 'visible', timeout: stepTimeout(budget, '应用外壳出现', 30_000) })
 
   return { capSolved, mfaVerified, url: page.url() }
 }
@@ -719,16 +770,23 @@ const NAVIGATE_ROUTE_TIMEOUT_MS = 15_000
  *
  * 同路径不触发过渡（首次进入 `/home` 就已在 `/home`），直接复用当前已挂载的页面。
  */
-export async function navigateToRoute(page: Page, path: string, routeName: string, timeoutMs = NAVIGATE_ROUTE_TIMEOUT_MS): Promise<void> {
+export async function navigateToRoute(
+  page: Page,
+  path: string,
+  routeName: string,
+  timeoutMs = NAVIGATE_ROUTE_TIMEOUT_MS,
+): Promise<void> {
   if (new URL(page.url()).pathname !== path) {
     await page.evaluate(() => {
-      document.querySelectorAll('[data-e2e-stale-root]').forEach(el => el.removeAttribute('data-e2e-stale-root'))
+      document
+        .querySelectorAll('[data-e2e-stale-root]')
+        .forEach((el) => el.removeAttribute('data-e2e-stale-root'))
       const content = document.querySelector('[id$="-content"]')
       content?.firstElementChild?.setAttribute('data-e2e-stale-root', '')
     })
 
     await navigateInApp(page, path)
-    await page.waitForURL(url => url.pathname === path, { timeout: timeoutMs })
+    await page.waitForURL((url) => url.pathname === path, { timeout: timeoutMs })
 
     await expect(
       page.locator('[data-e2e-stale-root]'),
@@ -736,7 +794,7 @@ export async function navigateToRoute(page: Page, path: string, routeName: strin
     ).toHaveCount(0, { timeout: timeoutMs })
   }
 
-  await page.waitForURL(url => url.pathname === path, { timeout: timeoutMs })
+  await page.waitForURL((url) => url.pathname === path, { timeout: timeoutMs })
   await expect(
     page.locator(`#${routeName}-content`),
     `${path} 没有内容容器 #${routeName}-content（路由 name 与菜单 name 不一致？）`,

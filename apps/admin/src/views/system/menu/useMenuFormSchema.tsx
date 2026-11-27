@@ -13,7 +13,12 @@ import WRadio from '@/components/UI/Radio'
 import { AppConstMenuTernal, AppConstMenuType } from '@/const/menu'
 import { AppI18n } from '@/locales/index'
 import { isProd } from '@/utils/constant/vue'
-import { cacheKeyStrategyOptions, getViewsOptions, menuTernalOptions, menuTypeOptions } from './utils'
+import {
+  cacheKeyStrategyOptions,
+  getViewsOptions,
+  menuTernalOptions,
+  menuTypeOptions,
+} from './utils'
 
 export function useMenuFormSchema(
   actionType: Ref<IActionType>,
@@ -29,20 +34,15 @@ export function useMenuFormSchema(
   // get node item from tree data
   const getCurrentNode = computed(
     () =>
-      treeData.value
-      && findPath<IAppSystemMenuForm>(
-        treeData.value,
-        n => n.id === formData.value.pid,
-      ),
+      treeData.value &&
+      findPath<IAppSystemMenuForm>(treeData.value, (n) => n.id === formData.value.pid),
   )
 
   // for path prefix, better experience
   const getRoutePathPrefix = computed(() =>
     !getCurrentNode.value
       ? '/'
-      : `${(getCurrentNode.value as IAppSystemMenuForm[])
-        .map(item => item.path)
-        .join('/')}/`,
+      : `${(getCurrentNode.value as IAppSystemMenuForm[]).map((item) => item.path).join('/')}/`,
   )
 
   return [
@@ -60,10 +60,7 @@ export function useMenuFormSchema(
       },
       componentProp: {
         render: ({ formData }) => (
-          <WRadio
-            v-model={[formData.type, 'value']}
-            options={menuTypeOptions}
-          >
+          <WRadio v-model={[formData.type, 'value']} options={menuTypeOptions}>
             {formData.type}
           </WRadio>
         ),
@@ -143,8 +140,10 @@ export function useMenuFormSchema(
         },
       },
       visibleProp: {
-        vIf: ({ formData }) => formData.type !== AppConstMenuType.ELEMENT
-          && (formData.type === AppConstMenuType.CATALOG || formData['meta.ternal'] !== AppConstMenuTernal.NONE),
+        vIf: ({ formData }) =>
+          formData.type !== AppConstMenuType.ELEMENT &&
+          (formData.type === AppConstMenuType.CATALOG ||
+            formData['meta.ternal'] !== AppConstMenuTernal.NONE),
       },
     },
 
@@ -162,8 +161,10 @@ export function useMenuFormSchema(
         options: nameOptions,
       },
       visibleProp: {
-        vIf: ({ formData }) => formData.type !== AppConstMenuType.ELEMENT
-          && (formData.type === AppConstMenuType.MENU && formData['meta.ternal'] === AppConstMenuTernal.NONE),
+        vIf: ({ formData }) =>
+          formData.type !== AppConstMenuType.ELEMENT &&
+          formData.type === AppConstMenuType.MENU &&
+          formData['meta.ternal'] === AppConstMenuTernal.NONE,
       },
     },
 
@@ -183,12 +184,14 @@ export function useMenuFormSchema(
         disabled: isProd(),
         onUpdateValue: (val: string) => {
           // Get the name property automatically from vue `name` property
-          const target = viewOptions.find(item => item.value === val)
+          const target = viewOptions.find((item) => item.value === val)
           formData.value = Object.assign(formData.value, { name: target?.name })
         },
       },
       visibleProp: {
-        vIf: ({ formData }) => formData.type === AppConstMenuType.MENU && formData['meta.ternal'] === AppConstMenuTernal.NONE,
+        vIf: ({ formData }) =>
+          formData.type === AppConstMenuType.MENU &&
+          formData['meta.ternal'] === AppConstMenuTernal.NONE,
       },
     },
 
@@ -210,7 +213,12 @@ export function useMenuFormSchema(
         // key start with `sys.menu.` are all menu title
         prefix: 'sys.menu.',
         presetKey: 'sys.menu.',
-        extra: ['app.base.transition', 'app.base.watermark', 'app.base.maskUrl', 'app.base.hijackRefresh'],
+        extra: [
+          'app.base.transition',
+          'app.base.watermark',
+          'app.base.maskUrl',
+          'app.base.hijackRefresh',
+        ],
       },
       visibleProp: {
         vIf: ({ formData }) => formData.type !== AppConstMenuType.ELEMENT,
@@ -248,8 +256,7 @@ export function useMenuFormSchema(
       },
       visibleProp: {
         vIf: ({ formData }) =>
-          formData.type === AppConstMenuType.MENU
-          && actionType.value === 'create',
+          formData.type === AppConstMenuType.MENU && actionType.value === 'create',
       },
     },
 
@@ -263,8 +270,8 @@ export function useMenuFormSchema(
       },
       visibleProp: {
         vIf: ({ formData }) =>
-          formData.type === AppConstMenuType.MENU
-          && formData['meta.ternal'] !== AppConstMenuTernal.NONE,
+          formData.type === AppConstMenuType.MENU &&
+          formData['meta.ternal'] !== AppConstMenuTernal.NONE,
       },
     },
 
@@ -277,8 +284,8 @@ export function useMenuFormSchema(
       },
       visibleProp: {
         vIf: ({ formData }) =>
-          formData.type === AppConstMenuType.MENU
-          && formData['meta.ternal'] !== AppConstMenuTernal.EXTERNAL,
+          formData.type === AppConstMenuType.MENU &&
+          formData['meta.ternal'] !== AppConstMenuTernal.EXTERNAL,
       },
     },
 
@@ -295,8 +302,7 @@ export function useMenuFormSchema(
       },
       visibleProp: {
         vIf: ({ formData }) =>
-          formData.type === AppConstMenuType.MENU
-          && formData['meta.cache'] === true,
+          formData.type === AppConstMenuType.MENU && formData['meta.cache'] === true,
       },
     },
 
@@ -343,7 +349,7 @@ export function useMenuFormSchema(
       },
       componentProp: {
         options: computed(() =>
-          menuActiveNamesOptions.value.map(i => ({
+          menuActiveNamesOptions.value.map((i) => ({
             value: i.name,
             label: AppI18n().global.t(i.title!),
           })),

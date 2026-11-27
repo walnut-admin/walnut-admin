@@ -80,11 +80,7 @@ const config: KnipConfig = {
     // vite: false：阻止 knip 的 vite 插件尝试 jiti 加载 vite.config.ts
     // （它依赖 loadEnv/回调执行，knip 无法安全执行）；entry 已手动指定。
     'apps/admin': {
-      entry: [
-        'src/main.ts',
-        'src/router/index.ts',
-        'src/router/routes/**/*.ts',
-      ],
+      entry: ['src/main.ts', 'src/router/index.ts', 'src/router/routes/**/*.ts'],
       project: ['src/**/*.{ts,vue}'],
       vite: false,
       ignore: [
@@ -141,10 +137,7 @@ const config: KnipConfig = {
 
     // --- 文档站 ---
     'apps/docs': {
-      entry: [
-        '.vitepress/config/index.ts',
-        '.vitepress/theme/index.ts',
-      ],
+      entry: ['.vitepress/config/index.ts', '.vitepress/theme/index.ts'],
       project: ['.vitepress/**/*.ts'],
       ignore: ['.vitepress/cache/**'],
     },

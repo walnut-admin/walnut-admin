@@ -87,7 +87,6 @@ const useAppStoreGeoIPInside = defineStore(StoreKeys.APP_GEO_IP, {
 const useAppStoreGeoIPOutside = () => useAppStoreGeoIPInside(store)
 
 export function useAppStoreGeoIP() {
-  if (getCurrentInstance())
-    return useAppStoreGeoIPInside()
+  if (getCurrentInstance()) return useAppStoreGeoIPInside()
   return useAppStoreGeoIPOutside()
 }

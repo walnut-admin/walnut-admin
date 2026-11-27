@@ -10,9 +10,7 @@ const VERSION_KEY = '__APP_VERSION__'
  * - 'all' = Clear cache on any version change
  * - Specific version = Clear cache only when updating to that version
  */
-const CLEAR_ON_VERSIONS: string[] = [
-  '1.13.0',
-]
+const CLEAR_ON_VERSIONS: string[] = ['1.13.0']
 
 export function setupStorageMigrations() {
   const storedVersion = localStorage.getItem(VERSION_KEY)
@@ -34,7 +32,9 @@ export function setupStorageMigrations() {
   const shouldClear = CLEAR_ON_VERSIONS.includes('all') || CLEAR_ON_VERSIONS.includes(version)
 
   if (shouldClear) {
-    console.log(`[storage-migration] Version changed: ${storedVersion} → ${version}, clearing all storage`)
+    console.log(
+      `[storage-migration] Version changed: ${storedVersion} → ${version}, clearing all storage`,
+    )
 
     // clear localStorage
     localStorage.clear()
@@ -48,9 +48,10 @@ export function setupStorageMigrations() {
     })
 
     console.log(`[storage-migration] All storage cleared`)
-  }
-  else {
-    console.log(`[storage-migration] Version changed: ${storedVersion} → ${version}, but no clear needed`)
+  } else {
+    console.log(
+      `[storage-migration] Version changed: ${storedVersion} → ${version}, but no clear needed`,
+    )
   }
 
   // update version in localStorage

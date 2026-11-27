@@ -32,19 +32,18 @@ export async function waitForQueueConnectionsReady(
   for (const name of Object.values(WalnutAdminConstAppQueue)) {
     try {
       queues.push(app.get<IWalnutAdminBullQueueLike>(getQueueToken(name), { strict: false }))
-    }
-    catch {
+    } catch {
       // 未注册该队列的上下文（例如 worker 仅装配部分模块）：无需等待
     }
   }
 
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
-    const clients = queues.flatMap(queue => queue.clients)
-    const pending = clients.filter(client => client.status !== 'ready' && client.status !== 'end')
+    const clients = queues.flatMap((queue) => queue.clients)
+    const pending = clients.filter((client) => client.status !== 'ready' && client.status !== 'end')
     if (pending.length === 0) {
       return
     }
-    await new Promise(resolve => setTimeout(resolve, 5))
+    await new Promise((resolve) => setTimeout(resolve, 5))
   }
 }

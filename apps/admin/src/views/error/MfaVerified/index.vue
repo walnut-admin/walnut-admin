@@ -5,7 +5,12 @@ import type { ComputedRef, InputHTMLAttributes } from 'vue'
 import { startAuthentication } from '@simplewebauthn/browser'
 import { WalnutAdminConstSysUserMfaType } from '@walnut/contract/mfa'
 import { computed, nextTick, onBeforeMount, ref, useTemplateRef } from 'vue'
-import { authMfaStatusAPI, authMfaTotpVerifyAPI, authMfaWebauthnAuthenticateOptionsAPI, authMfaWebauthnAuthenticateVerifyAPI } from '@/api/auth/mfa'
+import {
+  authMfaStatusAPI,
+  authMfaTotpVerifyAPI,
+  authMfaWebauthnAuthenticateOptionsAPI,
+  authMfaWebauthnAuthenticateVerifyAPI,
+} from '@/api/auth/mfa'
 import { useAppI18n } from '@/locales/index'
 import { mainoutMfaVerifiedRoute } from '@/router/routes/mainout'
 import { useAppStoreRoute } from '@/store/modules/app/app-route'
@@ -71,20 +76,18 @@ async function onInit() {
     loading.value = true
     const res = await authMfaStatusAPI()
     mfaMethods.value = mfaMethods.value.map((method) => {
-      const target = res.find(item => item.type === method.key)
+      const target = res.find((item) => item.type === method.key)
       method.enabled = target?.enabled || false
       return method
     })
-  }
-  finally {
+  } finally {
     loading.value = false
   }
 }
 
 function selectMethod(methodKey: string) {
-  const method = mfaMethods.value.find(m => m.key === methodKey && m.enabled)
-  if (!method)
-    return
+  const method = mfaMethods.value.find((m) => m.key === methodKey && m.enabled)
+  if (!method) return
 
   selectedMethod.value = methodKey
   currentStep.value = 2
@@ -94,15 +97,13 @@ function selectMethod(methodKey: string) {
     nextTick(() => {
       nInputRef.value?.focus()
     })
-  }
-  else if (methodKey === mfaWebauthn) {
+  } else if (methodKey === mfaWebauthn) {
     performWebAuthnVerification()
   }
 }
 
 async function verifyTotp() {
-  if (!canVerify.value)
-    return
+  if (!canVerify.value) return
 
   try {
     loading.value = true
@@ -115,8 +116,7 @@ async function verifyTotp() {
 
     await userStoreAuth.ExecuteCoreFnAfterAuth(accessToken)
     appStoreRoute.removeDynamicAuthRoute(mainoutMfaVerifiedRoute)
-  }
-  finally {
+  } finally {
     loading.value = false
   }
 }
@@ -141,14 +141,12 @@ async function performWebAuthnVerification() {
     })
 
     await userStoreAuth.ExecuteCoreFnAfterAuth(accessToken)
-  }
-  catch (error: any) {
+  } catch (error: any) {
     console.error('WebAuthn verification failed:', error)
     errorMessage.value = getWebAuthnErrorMessage(error)
     currentStep.value = 1
     selectedMethod.value = ''
-  }
-  finally {
+  } finally {
     loading.value = false
   }
 }
@@ -168,7 +166,9 @@ onBeforeMount(async () => {
 <template>
   <div class="max-w-4xl min-w-[280px] w-full">
     <div class="mb-8 text-center">
-      <div class="mb-4 h-20 w-20 inline-flex items-center justify-center rounded-full bg-info text-white">
+      <div
+        class="mb-4 h-20 w-20 inline-flex items-center justify-center rounded-full bg-info text-white"
+      >
         <WIcon icon="carbon-security" height="32" />
       </div>
       <h1 class="mb-2 text-3xl font-bold">
@@ -192,9 +192,12 @@ onBeforeMount(async () => {
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
         <!-- data-testid：E2E 点击 MFA 方法卡（第一个启用的方法）来进入 TOTP 步骤 -->
         <NCard
-          v-for="method in mfaMethods.filter(m => m.enabled)" :key="method.key" :bordered="true"
+          v-for="method in mfaMethods.filter((m) => m.enabled)"
+          :key="method.key"
+          :bordered="true"
           data-testid="mfa-method-card"
-          class="cursor-pointer transition-all duration-300 hover:shadow-lg" @click="selectMethod(method.key)"
+          class="cursor-pointer transition-all duration-300 hover:shadow-lg"
+          @click="selectMethod(method.key)"
         >
           <div class="flex items-start gap-4">
             <div class="flex-shrink-0">
@@ -217,7 +220,11 @@ onBeforeMount(async () => {
         </NCard>
       </div>
 
-      <n-checkbox v-model:checked="trusted" :disabled="loading" class="mt-4 w-full flex items-center justify-center">
+      <n-checkbox
+        v-model:checked="trusted"
+        :disabled="loading"
+        class="mt-4 w-full flex items-center justify-center"
+      >
         {{ $t('mfa.trusted') }}
       </n-checkbox>
     </template>
@@ -235,9 +242,14 @@ onBeforeMount(async () => {
         <div class="mb-6">
           <!-- data-testid：E2E 填写 6 位 TOTP 的输入框（placeholder 文案不是稳定契约） -->
           <NInput
-            ref="nInputRef" v-model:value="verifyCode" placeholder="000000" size="large" maxlength="6"
+            ref="nInputRef"
+            v-model:value="verifyCode"
+            placeholder="000000"
+            size="large"
+            maxlength="6"
             :input-props="mfaCodeInputProps"
-            :allow-input="(value: string) => /^\d*$/.test(value)" class="text-center text-2xl tracking-widest font-mono"
+            :allow-input="(value: string) => /^\d*$/.test(value)"
+            class="text-center text-2xl tracking-widest font-mono"
             @keyup.enter="verifyTotp"
           >
             <template #prefix>
@@ -255,7 +267,13 @@ onBeforeMount(async () => {
             {{ $t('app.base.back') }}
           </NButton>
           <!-- data-testid：E2E 的 MFA 提交按钮（当前走 Enter，保留按钮选择器供后续用例使用） -->
-          <NButton type="primary" data-testid="mfa-verify-submit" :disabled="!canVerify" :loading="loading" @click="verifyTotp">
+          <NButton
+            type="primary"
+            data-testid="mfa-verify-submit"
+            :disabled="!canVerify"
+            :loading="loading"
+            @click="verifyTotp"
+          >
             {{ $t('app.base.verify') }}
           </NButton>
         </NSpace>
@@ -290,7 +308,12 @@ onBeforeMount(async () => {
           {{ errorMessage }}
         </NAlert>
 
-        <NButton class="mt-6" :disabled="loading" :loading="loading" @click="goBackToMethodSelection">
+        <NButton
+          class="mt-6"
+          :disabled="loading"
+          :loading="loading"
+          @click="goBackToMethodSelection"
+        >
           {{ $t('app.base.cancel') }}
         </NButton>
       </div>

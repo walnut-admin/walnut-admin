@@ -24,7 +24,14 @@ import { WalnutAdminDecoratorParamArray } from '@walnut-server/decorators/params
 import { WalnutAdminSwaggerResponseSuccessSchemeData } from '@walnut-server/decorators/swagger'
 import { WalnutAdminExceptionRequestDataError } from '@walnut-server/exceptions/base/400'
 
-import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardLockFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import {
+  WalnutAdminDecoratorHasPermission,
+  WalnutAdminDecoratorUser,
+  WalnutAdminGuardCapFree,
+  WalnutAdminGuardDeviceFree,
+  WalnutAdminGuardLockFree,
+  WalnutAdminGuardSignFree,
+} from '@walnut-server/guards'
 
 import {
   LocalePayloadTransformPipe,
@@ -68,12 +75,10 @@ const {
   listResponseDTO: SysLocaleDTOListResponse,
 })
 
-const RawBody = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): any => {
-    const request: IWalnutAdminExpressRequest = ctx.switchToHttp().getRequest()
-    return request.body
-  },
-)
+const RawBody = createParamDecorator((data: unknown, ctx: ExecutionContext): any => {
+  const request: IWalnutAdminExpressRequest = ctx.switchToHttp().getRequest()
+  return request.body
+})
 
 // https://gist.github.com/josephdpurcell/9af97c36148673de596ecaa7e5eb6a0a
 //
@@ -106,9 +111,7 @@ function TransformedLocaleBody() {
     new ParseArrayPipe({
       items: SysLocaleDTOCreateRequest,
       exceptionFactory: (errors: ValidationError[]) =>
-        new WalnutAdminExceptionRequestDataError(
-          getAllConstraints(errors).join(','),
-        ),
+        new WalnutAdminExceptionRequestDataError(getAllConstraints(errors).join(',')),
     }),
   )
 }
@@ -136,8 +139,8 @@ const LOCALE_MAPPING_BODY_SCHEMA: SchemaObject = {
     description: 'translation value, keyed by the language id (uuid) the translation belongs to',
   },
   example: {
-    'key': 'menu.title',
-    'oldKey': 'menu.oldTitle',
+    key: 'menu.title',
+    oldKey: 'menu.oldTitle',
     '3f1c9b7e-6a24-4c8e-9d1b-2a7f5e0c4d13': '标题',
   },
 }
@@ -155,7 +158,7 @@ const LOCALE_MESSAGE_DATA_SCHEMA: SchemaObject = {
 @Controller(SystemRoutes.LOCALE)
 @ApiTags('system/locale')
 export class SysLocaleController {
-  constructor(private readonly localeService: SysLocaleService) { }
+  constructor(private readonly localeService: SysLocaleService) {}
 
   @Get('/message/:locale')
   @HttpCode(HttpStatus.OK)
@@ -182,7 +185,8 @@ export class SysLocaleController {
     name: 'cache',
     required: false,
     type: Number,
-    description: '1 = use the cached message map when present, 0 = rebuild it from the database (default 1)',
+    description:
+      '1 = use the cached message map when present, 0 = rebuild it from the database (default 1)',
   })
   @ApiOkResponse({
     description: 'locale message map of the language: message key -> translated value',
@@ -204,7 +208,8 @@ export class SysLocaleController {
   @WalnutAdminDecoratorCreate()
   @WalnutTx()
   @ApiBody({
-    description: 'locale translation mapping: fixed key (+ optional oldKey) plus one property per language id (uuid) holding the translated value. The server converts it to SysLocaleDTOCreateRequest[] and validates every entry with that DTO.',
+    description:
+      'locale translation mapping: fixed key (+ optional oldKey) plus one property per language id (uuid) holding the translated value. The server converts it to SysLocaleDTOCreateRequest[] and validates every entry with that DTO.',
     schema: LOCALE_MAPPING_BODY_SCHEMA,
   })
   async create(
@@ -212,7 +217,7 @@ export class SysLocaleController {
     @TransformedLocaleBody() payload: SysLocaleDTOCreateRequest[],
   ) {
     const res = await this.localeService.create(payload, ctx.em)
-    return res.map(i => plainToInstance(SysLocaleDTOCreateResponse, i))
+    return res.map((i) => plainToInstance(SysLocaleDTOCreateResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
@@ -225,7 +230,8 @@ export class SysLocaleController {
   @WalnutAdminDecoratorUpdate()
   @WalnutTx()
   @ApiBody({
-    description: 'locale translation mapping (same wire shape as create; key = the current key, oldKey = the key before renaming). The server converts it to SysLocaleDTOCreateRequest[] and validates every entry with that DTO.',
+    description:
+      'locale translation mapping (same wire shape as create; key = the current key, oldKey = the key before renaming). The server converts it to SysLocaleDTOCreateRequest[] and validates every entry with that DTO.',
     schema: LOCALE_MAPPING_BODY_SCHEMA,
   })
   async update(
@@ -233,7 +239,7 @@ export class SysLocaleController {
     @TransformedLocaleBody() payload: SysLocaleDTOUpdateRequest[],
   ) {
     const res = await this.localeService.update(payload, ctx.em)
-    return res.map(i => plainToInstance(SysLocaleDTOUpdateResponse, i))
+    return res.map((i) => plainToInstance(SysLocaleDTOUpdateResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE)
@@ -245,7 +251,7 @@ export class SysLocaleController {
     @Param('key') key: string,
   ) {
     const res = await this.localeService.deleteByKey(key, user.userId, ctx.em)
-    return res.map(i => plainToInstance(SysLocaleDTODeleteResponse, i))
+    return res.map((i) => plainToInstance(SysLocaleDTODeleteResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE_MANY)
@@ -257,7 +263,7 @@ export class SysLocaleController {
     @WalnutAdminDecoratorParamArray({ fieldName: 'keys' }) keys: string[],
   ) {
     const res = await this.localeService.deleteManyByKey(keys, user.userId, ctx.em)
-    return res.map(i => plainToInstance(SysLocaleDTODeleteResponse, i))
+    return res.map((i) => plainToInstance(SysLocaleDTODeleteResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)

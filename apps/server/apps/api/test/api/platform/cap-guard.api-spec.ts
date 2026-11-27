@@ -109,11 +109,15 @@ describe('CAP guard：40111 形态校验 / 两条腿 / DEVICE_NEW handled 标记
         ]) {
           await pg.query(sql, [fixture.userId]).catch(() => undefined)
         }
-        await pg.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId]).catch(() => undefined)
+        await pg
+          .query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
+          .catch(() => undefined)
         await api.cleanupWalnutCacheKeys(fixture.userId)
       }
 
-      await pg.query('DELETE FROM sys_device WHERE device_id = $1', [api.deviceId]).catch(() => undefined)
+      await pg
+        .query('DELETE FROM sys_device WHERE device_id = $1', [api.deviceId])
+        .catch(() => undefined)
       await api.cleanupWalnutCacheKeys(api.deviceId)
 
       // 本文件唯一写过的 Redis 副作用：两个 challenge 标记 + 风控评估缓存
@@ -139,12 +143,17 @@ describe('CAP guard：40111 形态校验 / 两条腿 / DEVICE_NEW handled 标记
 
         // 形态非法在**本地**即可判定（不打 cap.js、不看 shouldChallenge），所以两种
         // recommendation 下都必须是 40111 —— 这也是它与 40116/40117 的语义分界。
-        expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_BOT_VERIFY_FAILED)
+        expect(bodyOf(res).code).toBe(
+          WalnutAdminConstAppResponseCode.UNAUTHORIZED_BOT_VERIFY_FAILED,
+        )
         // 负对照 1（同一个输入，只换断言）：退化实现会给出 40116，前端 /not-allowed 永不触发
-        expect(bodyOf(res).code).not.toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED)
-        expect(bodyOf(res).code).not.toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_REFRESH_REQUIRED)
-      }
-      finally {
+        expect(bodyOf(res).code).not.toBe(
+          WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED,
+        )
+        expect(bodyOf(res).code).not.toBe(
+          WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_REFRESH_REQUIRED,
+        )
+      } finally {
         api.setCookie(CAP, saved)
       }
     })
@@ -156,10 +165,13 @@ describe('CAP guard：40111 形态校验 / 两条腿 / DEVICE_NEW handled 标记
       try {
         const res = await api.unsigned('GET', capActiveAnonymous())
 
-        expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED)
-        expect(bodyOf(res).code).not.toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_BOT_VERIFY_FAILED)
-      }
-      finally {
+        expect(bodyOf(res).code).toBe(
+          WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED,
+        )
+        expect(bodyOf(res).code).not.toBe(
+          WalnutAdminConstAppResponseCode.UNAUTHORIZED_BOT_VERIFY_FAILED,
+        )
+      } finally {
         api.setCookie(CAP, saved)
       }
     })
@@ -172,10 +184,13 @@ describe('CAP guard：40111 形态校验 / 两条腿 / DEVICE_NEW handled 标记
       try {
         const res = await api.unsigned('GET', capActiveAnonymous())
 
-        expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED)
-        expect(bodyOf(res).code).not.toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_BOT_VERIFY_FAILED)
-      }
-      finally {
+        expect(bodyOf(res).code).toBe(
+          WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED,
+        )
+        expect(bodyOf(res).code).not.toBe(
+          WalnutAdminConstAppResponseCode.UNAUTHORIZED_BOT_VERIFY_FAILED,
+        )
+      } finally {
         api.setCookie(CAP, saved)
       }
     })
@@ -199,7 +214,10 @@ describe('CAP guard：40111 形态校验 / 两条腿 / DEVICE_NEW handled 标记
       expectOk(res, 'CAP-active anonymous request')
 
       expect(await redis.exists(key)).toBe(1)
-      const payload = JSON.parse(await redis.get(key) ?? 'null') as { factor?: string, handledAt?: number }
+      const payload = JSON.parse((await redis.get(key)) ?? 'null') as {
+        factor?: string
+        handledAt?: number
+      }
       expect(payload.factor).toBe('DEVICE_NEW')
       expect(typeof payload.handledAt).toBe('number')
 
@@ -217,9 +235,10 @@ describe('CAP guard：40111 形态校验 / 两条腿 / DEVICE_NEW handled 标记
       api.dropCookie(CAP)
       try {
         const degraded = await api.unsigned('GET', capActiveAnonymous())
-        expect(bodyOf(degraded).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_REFRESH_REQUIRED)
-      }
-      finally {
+        expect(bodyOf(degraded).code).toBe(
+          WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_REFRESH_REQUIRED,
+        )
+      } finally {
         api.setCookie(CAP, saved)
       }
 
@@ -228,9 +247,10 @@ describe('CAP guard：40111 形态校验 / 两条腿 / DEVICE_NEW handled 标记
       api.dropCookie(CAP)
       try {
         const challenged = await api.unsigned('GET', capActiveAnonymous())
-        expect(bodyOf(challenged).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED)
-      }
-      finally {
+        expect(bodyOf(challenged).code).toBe(
+          WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED,
+        )
+      } finally {
         api.setCookie(CAP, saved)
       }
     })
@@ -253,7 +273,11 @@ describe('CAP guard：40111 形态校验 / 两条腿 / DEVICE_NEW handled 标记
     })
 
     it('post-auth 腿独立执行 ⇒ USER_DEVICE_UNTRUSTED 的标记落在 user-device 维度（含 userId，pre-auth 腿写不出这个键）', async () => {
-      const key = challengeKey('user-device', [fixture!.userId, api.deviceId], 'USER_DEVICE_UNTRUSTED')
+      const key = challengeKey(
+        'user-device',
+        [fixture!.userId, api.deviceId],
+        'USER_DEVICE_UNTRUSTED',
+      )
 
       await redis.del(key)
       expect(await redis.exists(key)).toBe(0)
@@ -262,7 +286,7 @@ describe('CAP guard：40111 形态校验 / 两条腿 / DEVICE_NEW handled 标记
       expectOk(res, 'authenticated CAP-active request')
 
       expect(await redis.exists(key)).toBe(1)
-      const payload = JSON.parse(await redis.get(key) ?? 'null') as { factor?: string }
+      const payload = JSON.parse((await redis.get(key)) ?? 'null') as { factor?: string }
       expect(payload.factor).toBe('USER_DEVICE_UNTRUSTED')
     })
 
@@ -272,12 +296,17 @@ describe('CAP guard：40111 形态校验 / 两条腿 / DEVICE_NEW handled 标记
       try {
         const res = await api.root('GET', capActiveAuthed())
 
-        expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_BOT_VERIFY_FAILED)
-        expect(bodyOf(res).code).not.toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED)
+        expect(bodyOf(res).code).toBe(
+          WalnutAdminConstAppResponseCode.UNAUTHORIZED_BOT_VERIFY_FAILED,
+        )
+        expect(bodyOf(res).code).not.toBe(
+          WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED,
+        )
         // 佐证「CAP 在 JWT 之前就拒了」：不是 JWT 层错误（否则会话有效时不该出现）
-        expect(bodyOf(res).code).not.toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
-      }
-      finally {
+        expect(bodyOf(res).code).not.toBe(
+          WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
+        )
+      } finally {
         api.setCookie(CAP, saved)
       }
     })

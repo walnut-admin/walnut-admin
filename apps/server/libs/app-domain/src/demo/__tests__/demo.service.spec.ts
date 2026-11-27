@@ -8,7 +8,7 @@ import { AppDemoService } from '../demo.service'
  * 「参数不多不少、em 不丢」：repo 层行为由 int-spec 覆盖，单测只测这一层。
  */
 class FakeDemoRepo {
-  readonly calls: Array<{ method: string, args: unknown[] }> = []
+  readonly calls: Array<{ method: string; args: unknown[] }> = []
 
   private record(method: string, args: unknown[]): void {
     this.calls.push({ method, args })
@@ -62,7 +62,9 @@ describe('appDemoService 透传契约', () => {
 
     await expect(service.create(createPayload)).resolves.toEqual({ id: 'demo-created' })
     await expect(service.read('demo-1')).resolves.toMatchObject({ id: 'demo-1' })
-    await expect(service.update('demo-1', updatePayload)).resolves.toMatchObject({ demoString: 'UPDATED' })
+    await expect(service.update('demo-1', updatePayload)).resolves.toMatchObject({
+      demoString: 'UPDATED',
+    })
     await expect(service.list(listPayload)).resolves.toEqual({ data: [], total: 0 })
 
     expect(repo.calls).toEqual([
@@ -78,9 +80,7 @@ describe('appDemoService 透传契约', () => {
 
     await expect(service.delete('demo-1', 'user-1', EM)).resolves.toBe(true)
 
-    expect(repo.calls).toEqual([
-      { method: 'deleteSoftById', args: ['demo-1', 'user-1', EM] },
-    ])
+    expect(repo.calls).toEqual([{ method: 'deleteSoftById', args: ['demo-1', 'user-1', EM] }])
   })
 
   it('deleteMany 透传整组 id / userId / em', async () => {
@@ -89,8 +89,6 @@ describe('appDemoService 透传契约', () => {
 
     await expect(service.deleteMany(ids, 'user-2', EM)).resolves.toBe(2)
 
-    expect(repo.calls).toEqual([
-      { method: 'deleteSoftByIdMany', args: [ids, 'user-2', EM] },
-    ])
+    expect(repo.calls).toEqual([{ method: 'deleteSoftByIdMany', args: [ids, 'user-2', EM] }])
   })
 })

@@ -1,6 +1,13 @@
-import type { IWalnutAdminCacheListFilter, IWalnutAdminCacheListRequest, IWalnutAdminCacheListRow } from './cache-list.types'
+import type {
+  IWalnutAdminCacheListFilter,
+  IWalnutAdminCacheListRequest,
+  IWalnutAdminCacheListRow,
+} from './cache-list.types'
 import { Injectable, Logger } from '@nestjs/common'
-import { IWalnutAdminConstAppCacheType, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import {
+  IWalnutAdminConstAppCacheType,
+  WalnutAdminConstAppCacheType,
+} from '@walnut-server/const/app/cache'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { normalizeListPage } from '@walnut-server/utils/list-page'
 
@@ -93,7 +100,7 @@ function myFilter(
       if (f.op === 'in') {
         const candidates: unknown[] = Array.isArray(f.value) ? f.value : []
         const target = comparableOf(itemValue)
-        return candidates.some(candidate => comparableOf(candidate) === target)
+        return candidates.some((candidate) => comparableOf(candidate) === target)
       }
 
       if (f.op === 'range') {
@@ -129,9 +136,7 @@ export class AppTechCacheService {
   // 批量获取的批次大小
   private readonly BATCH_SIZE = 100
 
-  constructor(
-    private readonly redisService: AppTechRedisService,
-  ) {}
+  constructor(private readonly redisService: AppTechRedisService) {}
 
   public get redis() {
     return this.redisService.getClient()
@@ -140,14 +145,10 @@ export class AppTechCacheService {
   /**
    * Set cache with custom format
    */
-  public async set<T = any>(
-    key: string,
-    value: T,
-    options: IWalnutAdminCacheOptions,
-  ) {
+  public async set<T = any>(key: string, value: T, options: IWalnutAdminCacheOptions) {
     const cacheKey = getWalnutAdminCacheKey(key)
 
-    const ttl = (options?.ttl) ?? 0
+    const ttl = options?.ttl ?? 0
     const val: WalnutAdminCacheContent<T> = {
       v: value,
       ttl,
@@ -160,8 +161,7 @@ export class AppTechCacheService {
     if (ttl > 0) {
       await this.redis.setEx(cacheKey, ttl, serialized)
       this.logger.debug(`[CacheSet] | Key: ${cacheKey}, TTL: ${ttl}s`)
-    }
-    else {
+    } else {
       await this.redis.set(cacheKey, serialized)
       this.logger.debug(`[CacheSet] | Key: ${cacheKey}, No Expiration`)
     }
@@ -182,7 +182,7 @@ export class AppTechCacheService {
   ): Promise<boolean> {
     const cacheKey = getWalnutAdminCacheKey(key)
 
-    const ttl = (options?.ttl) ?? 0
+    const ttl = options?.ttl ?? 0
     const val: WalnutAdminCacheContent<T> = {
       v: value,
       ttl,
@@ -192,9 +192,10 @@ export class AppTechCacheService {
 
     const serialized = JSON.stringify(val)
 
-    const result = ttl > 0
-      ? await this.redis.set(cacheKey, serialized, { NX: true, EX: ttl })
-      : await this.redis.set(cacheKey, serialized, { NX: true })
+    const result =
+      ttl > 0
+        ? await this.redis.set(cacheKey, serialized, { NX: true, EX: ttl })
+        : await this.redis.set(cacheKey, serialized, { NX: true })
 
     this.logger.debug(`[CacheSetNx] | Key: ${cacheKey}, written: ${result !== null}`)
 
@@ -250,8 +251,7 @@ return redis.call('DEL', KEYS[1])`,
       const cache = JSON.parse(cached) as WalnutAdminCacheContent<T>
       this.logger.debug(`[CacheGet] | Key: ${cacheKey}, Retrieved value only`)
       return cache.v
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.error(`[CacheGet] | Error retrieving key: ${cacheKey}`, error)
       return null
     }
@@ -274,8 +274,7 @@ return redis.call('DEL', KEYS[1])`,
       const parsed = JSON.parse(cached) as WalnutAdminCacheContent<T>
       this.logger.debug(`[CacheGet Whole] | Key: ${cacheKey}, Retrieved with metadata`)
       return parsed
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.error(`[CacheGet Whole] | Error retrieving key: ${cacheKey}`, error)
       return null
     }
@@ -291,8 +290,7 @@ return redis.call('DEL', KEYS[1])`,
   public async delAndCount(key: string): Promise<number> {
     try {
       return await this.redis.del(getWalnutAdminCacheKey(key))
-    }
-    catch (error) {
+    } catch (error) {
       // F5：Redis 异常不向上抛 —— 消费方（OAuth state 一次性校验）把 0 当作
       // 「消费失败」走受控 40000，而不是 50000 未受控兜底。
       this.logger.error(`[CacheDelAndCount] failed: ${getWalnutAdminCacheKey(key)}`, error)
@@ -370,10 +368,7 @@ return redis.call('DEL', KEYS[1])`,
    * @param cacheKey cache key
    * @param ttl seconds
    */
-  public async expire<T = any>(
-    cacheKey: string,
-    ttl: number,
-  ): Promise<boolean> {
+  public async expire<T = any>(cacheKey: string, ttl: number): Promise<boolean> {
     const fullKey = getWalnutAdminCacheKey(cacheKey)
 
     // 获取当前缓存内容
@@ -393,17 +388,15 @@ return redis.call('DEL', KEYS[1])`,
 
       if (ttl > 0) {
         await this.redis.setEx(fullKey, ttl, serialized)
-      }
-      else {
-      // ttl = 0 表示永不过期
+      } else {
+        // ttl = 0 表示永不过期
         await this.redis.set(fullKey, serialized)
         await this.redis.persist(fullKey) // 移除过期时间
       }
 
       this.logger.debug(`[CacheExpire] | Updated TTL for key: ${fullKey}, TTL: ${ttl}s`)
       return true
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.error(`[CacheExpire] | Error updating TTL for key: ${fullKey}`, error)
       return false
     }
@@ -424,8 +417,7 @@ return redis.call('DEL', KEYS[1])`,
     })) {
       if (Array.isArray(key)) {
         keys.push(...key)
-      }
-      else {
+      } else {
         keys.push(key)
       }
     }
@@ -456,7 +448,9 @@ return redis.call('DEL', KEYS[1])`,
       const keysOfBatch = Array.isArray(key) ? key : [key]
 
       // 1. 在获取阶段就过滤掉不需要的 Bull 队列键，减少后续 MGET 的压力
-      const nonBullKeys = keysOfBatch.filter(item => typeof item === 'string' && !item.includes('BULL'))
+      const nonBullKeys = keysOfBatch.filter(
+        (item) => typeof item === 'string' && !item.includes('BULL'),
+      )
 
       keysBatch.push(...nonBullKeys)
 
@@ -472,19 +466,17 @@ return redis.call('DEL', KEYS[1])`,
       await this.fillCacheData(keysBatch, allCaches)
     }
 
-    this.logger.debug(`[CacheGetAllData] | Retrieved ${Object.keys(allCaches).length} valid cache entries`)
+    this.logger.debug(
+      `[CacheGetAllData] | Retrieved ${Object.keys(allCaches).length} valid cache entries`,
+    )
     return allCaches
   }
 
   /**
    * 辅助方法：批量获取 key 对应的值并填充到 result 对象中
    */
-  private async fillCacheData(
-    keys: string[],
-    result: { [key: string]: WalnutAdminCacheContent },
-  ) {
-    if (keys.length === 0)
-      return
+  private async fillCacheData(keys: string[], result: { [key: string]: WalnutAdminCacheContent }) {
+    if (keys.length === 0) return
 
     // 使用 mget 一次性获取多个值
     const values = await this.redis.mGet(keys)
@@ -496,8 +488,7 @@ return redis.call('DEL', KEYS[1])`,
       if (v !== null) {
         try {
           result[k] = JSON.parse(v) as WalnutAdminCacheContent
-        }
-        catch (error) {
+        } catch (error) {
           this.logger.warn(`[CacheGetAllData] | Failed to parse key: ${k}`, error)
           // 可以在这里选择删除损坏的 key: await this.redis.del(k)
         }
@@ -535,7 +526,9 @@ return redis.call('DEL', KEYS[1])`,
     this.logger.log(`[CacheClear] | Cleared ${deletedCount} cache entries`)
 
     if (deletedCount !== keysToDelete.length) {
-      this.logger.error(`[CacheClear] | Failed to delete ${keysToDelete.length - deletedCount} keys`)
+      this.logger.error(
+        `[CacheClear] | Failed to delete ${keysToDelete.length - deletedCount} keys`,
+      )
       return false
     }
 
@@ -550,8 +543,7 @@ return redis.call('DEL', KEYS[1])`,
     for (let i = 0; i < keys.length; i += this.BATCH_SIZE) {
       const batch = keys.slice(i, i + this.BATCH_SIZE)
       // node-redis v5：DEL/UNLINK 收「单键或键数组」，空数组会撞 rest-args 编码
-      if (batch.length === 0)
-        continue
+      if (batch.length === 0) continue
       const count = await this.redis.unlink(batch)
       deletedCount += count
     }
@@ -564,14 +556,18 @@ return redis.call('DEL', KEYS[1])`,
    * 入参/出参收结构类型（IWalnutAdminCacheListRequest / Row）：app 侧的
    * AppMonitorCacheDTOListRequest 与 AppMonitorCacheDTO 逐字段同型，结构兼容。
    */
-  public async list(payload: IWalnutAdminCacheListRequest): Promise<{ data: IWalnutAdminCacheListRow[], total: number }> {
+  public async list(
+    payload: IWalnutAdminCacheListRequest,
+  ): Promise<{ data: IWalnutAdminCacheListRow[]; total: number }> {
     const allCachedData = await this.getAllCacheData()
 
     const { sort, filters } = payload
 
     const page = normalizeListPage(payload.page)
 
-    this.logger.debug(`[CacheList] | Listing caches - Page: ${page.page}, PageSize: ${page.pageSize}`)
+    this.logger.debug(
+      `[CacheList] | Listing caches - Page: ${page.page}, PageSize: ${page.pageSize}`,
+    )
 
     let cachedArrayData: IWalnutAdminCacheListRow[] = []
 
@@ -600,8 +596,8 @@ return redis.call('DEL', KEYS[1])`,
     if (sort.length && sort.length !== 0) {
       cachedArrayData = orderBy(
         cachedArrayData,
-        sort.map(s => s.field),
-        sort.map(s => s.order === 'ascend' ? 'asc' : 'desc'),
+        sort.map((s) => s.field),
+        sort.map((s) => (s.order === 'ascend' ? 'asc' : 'desc')),
       )
     }
 

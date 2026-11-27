@@ -128,16 +128,17 @@ export function evaluateBudgets(
       findings.push({
         file: budget.file,
         kind: 'over',
-        message: `超预算 ${chars - budget.maxChars} 字符（${chars} / ${budget.maxChars}，${percent}%）。`
-          + '处置：把细节挪去文档站，这一份只留纪律与指针；确实是常驻内容才调大上限。',
+        message:
+          `超预算 ${chars - budget.maxChars} 字符（${chars} / ${budget.maxChars}，${percent}%）。` +
+          '处置：把细节挪去文档站，这一份只留纪律与指针；确实是常驻内容才调大上限。',
       })
-    }
-    else if (chars < budget.maxChars * STALE_RATIO) {
+    } else if (chars < budget.maxChars * STALE_RATIO) {
       findings.push({
         file: budget.file,
         kind: 'stale',
-        message: `只用了预算的 ${percent}%（${chars} / ${budget.maxChars}）—— 这个上限已经约束不到任何东西了。`
-          + '处置：把 `maxChars` 收紧到贴着现状（或写明为什么留这么多余量）。',
+        message:
+          `只用了预算的 ${percent}%（${chars} / ${budget.maxChars}）—— 这个上限已经约束不到任何东西了。` +
+          '处置：把 `maxChars` 收紧到贴着现状（或写明为什么留这么多余量）。',
       })
     }
   }
@@ -150,14 +151,15 @@ export function main(): void {
     throw new PreconditionError('找不到根 AGENTS.md —— 拒绝把「读不到东西」当绿灯')
   }
 
-  const [findings, reports] = evaluateBudgets(
-    DOC_BUDGETS,
-    file => fs.readFileSync(path.join(REPO_ROOT, file), 'utf8'),
+  const [findings, reports] = evaluateBudgets(DOC_BUDGETS, (file) =>
+    fs.readFileSync(path.join(REPO_ROOT, file), 'utf8'),
   )
 
   out(`文档字数预算：${reports.length} 个常驻文件`)
   for (const r of reports)
-    out(`  ${String(r.percent).padStart(3)}%  ${String(r.chars).padStart(6)} / ${String(r.maxChars).padEnd(6)}  ${r.file}`)
+    out(
+      `  ${String(r.percent).padStart(3)}%  ${String(r.chars).padStart(6)} / ${String(r.maxChars).padEnd(6)}  ${r.file}`,
+    )
 
   if (findings.length === 0) {
     line('ok', '都在预算内，且没有哪个预算已经失效')
@@ -165,7 +167,10 @@ export function main(): void {
   }
 
   for (const f of findings)
-    lineErr('violation', `${f.file}  [${f.kind === 'over' ? '超上限' : '预算过期'}]\n    ${f.message}`)
+    lineErr(
+      'violation',
+      `${f.file}  [${f.kind === 'over' ? '超上限' : '预算过期'}]\n    ${f.message}`,
+    )
   err(`\n共 ${findings.length} 处。预算表在 tooling/scripts/src/ci/check-doc-budgets.ts。`)
   throw new ViolationError(`文档字数预算有 ${findings.length} 处问题（明细见上）`)
 }

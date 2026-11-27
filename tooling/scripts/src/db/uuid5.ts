@@ -53,17 +53,14 @@ function namespaceToBytes(namespace: string): Buffer {
  * version 位置 5、variant 位置 RFC4122。
  */
 export function uuidV5(name: string, namespace: string): string {
-  const hash = createHash('sha1')
-    .update(namespaceToBytes(namespace))
-    .update(name, 'utf8')
-    .digest()
+  const hash = createHash('sha1').update(namespaceToBytes(namespace)).update(name, 'utf8').digest()
 
   // RFC 4122 只取前 16 字节（拷贝出来再就地置位，不动 digest 原缓冲）
   const bytes = Buffer.from(hash.subarray(0, 16))
 
   // version = 高 4 位置 0101；variant = 高 2 位置 10（RFC 4122 §4.1.1/§4.1.3）
-  bytes[6] = (bytes[6] & 0x0F) | 0x50
-  bytes[8] = (bytes[8] & 0x3F) | 0x80
+  bytes[6] = (bytes[6] & 0x0f) | 0x50
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
 
   const hex = bytes.toString('hex')
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
@@ -73,7 +70,10 @@ export function uuidV5(name: string, namespace: string): string {
  * @description ETL / seed 通道的派生入口：统一 namespace + ObjectId hex 本体作 name。
  * 输入不是 24 位 hex 时直接抛（ETL 侧该类输入属于数据错误，不许静默换值）。
  */
-export function deriveUuidFromObjectId(hex: string, namespace: string = WALNUT_ADMIN_UUID_NAMESPACE): string {
+export function deriveUuidFromObjectId(
+  hex: string,
+  namespace: string = WALNUT_ADMIN_UUID_NAMESPACE,
+): string {
   if (!isObjectIdHex(hex)) {
     throw new Error(`deriveUuidFromObjectId 需要 24 位 ObjectId hex，收到：${hex}`)
   }

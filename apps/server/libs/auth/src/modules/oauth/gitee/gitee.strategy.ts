@@ -44,9 +44,7 @@ export class OAuthGiteeStrategy extends PassportStrategy(
   ) {
     // F-06（与 github.strategy 同款漏点，清单外补齐）：profile 是 PII，整串 JSON 不入日志；
     // 只打 provider 侧 id 与掩码邮箱。
-    this.logger.log(
-      `oauth gitee: id=${profile.id}, email=${maskEmail(profile.email)}`,
-    )
+    this.logger.log(`oauth gitee: id=${profile.id}, email=${maskEmail(profile.email)}`)
 
     const { id, name, email, avatar_url } = profile
 

@@ -25,7 +25,9 @@ export function useLinkTag(baseHref?: string) {
   ): Promise<void> => {
     // Validate href
     if (!href) {
-      return Promise.reject(new Error('Href must be provided either as argument or through baseHref'))
+      return Promise.reject(
+        new Error('Href must be provided either as argument or through baseHref'),
+      )
     }
 
     // Avoid duplicate loading
@@ -67,8 +69,7 @@ export function useLinkTag(baseHref?: string) {
 
         // Insert into document head
         document.head.appendChild(link)
-      }
-      catch (error) {
+      } catch (error) {
         console.error(`[useDocumentLink] Error creating stylesheet: ${href}`, error)
         reject(error)
       }
@@ -81,13 +82,12 @@ export function useLinkTag(baseHref?: string) {
    * @param id Unique identifier for the stylesheet (searched first for higher precision)
    * @returns Whether the stylesheet was successfully unloaded
    */
-  const unloadLink = (
-    href: string = baseHref || '',
-    id?: string,
-  ): boolean => {
+  const unloadLink = (href: string = baseHref || '', id?: string): boolean => {
     // Validate href
     if (!href) {
-      console.error('[useDocumentLink] Href must be provided either as argument or through baseHref')
+      console.error(
+        '[useDocumentLink] Href must be provided either as argument or through baseHref',
+      )
       return false
     }
 
@@ -96,12 +96,12 @@ export function useLinkTag(baseHref?: string) {
     // Search by ID first
     if (id) {
       targetLink = document.getElementById(id) as HTMLLinkElement | null
-    }
-    else {
+    } else {
       // Otherwise match by href (handle possible cache or URL parameter differences)
-      targetLink = Array.from<HTMLLinkElement>(document.querySelectorAll('link[rel="stylesheet"]')).find(
-        link => link.href.includes(href), // Fuzzy match to avoid cache parameter interference
-      ) || null
+      targetLink =
+        Array.from<HTMLLinkElement>(document.querySelectorAll('link[rel="stylesheet"]')).find(
+          (link) => link.href.includes(href), // Fuzzy match to avoid cache parameter interference
+        ) || null
     }
 
     if (targetLink && targetLink.parentNode) {
@@ -126,7 +126,9 @@ export function useLinkTag(baseHref?: string) {
   ): Promise<boolean> => {
     // Validate href
     if (!href) {
-      console.error('[useDocumentLink] Href must be provided either as argument or through baseHref')
+      console.error(
+        '[useDocumentLink] Href must be provided either as argument or through baseHref',
+      )
       return false
     }
 
@@ -136,14 +138,12 @@ export function useLinkTag(baseHref?: string) {
       if (isLoaded) {
         // If already loaded, unload it
         return unloadLink(href, id)
-      }
-      else {
+      } else {
         // If not loaded, load it
         await loadLink(href, id, attributes)
         return true
       }
-    }
-    catch (error) {
+    } catch (error) {
       console.error(`[useDocumentLink] Failed to toggle stylesheet: ${href}`, error)
       return false
     }
@@ -157,7 +157,9 @@ export function useLinkTag(baseHref?: string) {
   const isLinkLoaded = (href: string = baseHref || ''): boolean => {
     // Validate href
     if (!href) {
-      console.error('[useDocumentLink] Href must be provided either as argument or through baseHref')
+      console.error(
+        '[useDocumentLink] Href must be provided either as argument or through baseHref',
+      )
       return false
     }
 

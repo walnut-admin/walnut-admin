@@ -4,7 +4,10 @@ import { AppTechCacheMfaService } from '@walnut-server/cache'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { getWalnutAdminCookie } from '@walnut-server/cookie'
-import { WalnutAdminExceptionMfaRequired, WalnutAdminExceptionMfaVerifyFailed } from '@walnut-server/exceptions/business/auth'
+import {
+  WalnutAdminExceptionMfaRequired,
+  WalnutAdminExceptionMfaVerifyFailed,
+} from '@walnut-server/exceptions/business/auth'
 import { Role } from '@walnut/contract'
 
 const WalnutAdminConstDecoratorMFAKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_MFA_FREE')
@@ -27,10 +30,10 @@ export class WalnutAdminGuardMFA implements CanActivate {
     const request = ctx.getRequest<IWalnutAdminExpressRequest>()
 
     // P1: MFA free decorator
-    const mfaFree = this.reflector.getAllAndOverride<boolean>(
-      WalnutAdminConstDecoratorMFAKey,
-      [context.getHandler(), context.getClass()],
-    )
+    const mfaFree = this.reflector.getAllAndOverride<boolean>(WalnutAdminConstDecoratorMFAKey, [
+      context.getHandler(),
+      context.getClass(),
+    ])
     if (mfaFree) {
       this.logger.debug('MFA check bypassed for MFA-free endpoint')
       return true
@@ -44,7 +47,10 @@ export class WalnutAdminGuardMFA implements CanActivate {
     }
 
     // P4: skip for visitor role
-    if (user.roleMode === WalnutAdminConstRoleMode.SWITCH && user.currentRoleName === Role.VISITOR) {
+    if (
+      user.roleMode === WalnutAdminConstRoleMode.SWITCH &&
+      user.currentRoleName === Role.VISITOR
+    ) {
       this.logger.debug('MFA check skipped: visitor role')
       return true
     }
@@ -65,7 +71,9 @@ export class WalnutAdminGuardMFA implements CanActivate {
     const deviceId = getWalnutAdminCookie(request, WalnutAdminConstCookieKeys.DEVICE_ID)
     const isTempVerified = await this.cacheMfaService.getVerifiedCache(user.userId, deviceId)
     if (isTempVerified) {
-      this.logger.debug(`MFA verified via device cache: userId=${user.userId}, deviceId=${deviceId}`)
+      this.logger.debug(
+        `MFA verified via device cache: userId=${user.userId}, deviceId=${deviceId}`,
+      )
       return true
     }
 

@@ -25,9 +25,9 @@ interface IPathMapping {
 }
 
 function readTsconfigPaths(): IPathMapping[] {
-  const tsconfig = JSON.parse(
-    readFileSync(resolve(SERVER_ROOT, 'tsconfig.json'), 'utf8'),
-  ) as { compilerOptions: { paths: Record<string, string[]> } }
+  const tsconfig = JSON.parse(readFileSync(resolve(SERVER_ROOT, 'tsconfig.json'), 'utf8')) as {
+    compilerOptions: { paths: Record<string, string[]> }
+  }
 
   return Object.entries(tsconfig.compilerOptions.paths).map(([pattern, targets]) => ({
     pattern,
@@ -53,9 +53,9 @@ function mapAlias(specifier: string): string | null {
     const prefix = m.pattern.slice(0, star)
     const suffix = m.pattern.slice(star + 1)
     if (
-      specifier.startsWith(prefix)
-      && specifier.endsWith(suffix)
-      && specifier.length >= prefix.length + suffix.length
+      specifier.startsWith(prefix) &&
+      specifier.endsWith(suffix) &&
+      specifier.length >= prefix.length + suffix.length
     ) {
       const captured = specifier.slice(prefix.length, specifier.length - suffix.length)
       return m.target.replace('*', captured)
@@ -106,7 +106,7 @@ function matchBracket(source: string, open: number): number {
   let i = open + 1
   while (i < source.length && expected.length > 0) {
     const ch = source[i]
-    if (ch === '\'' || ch === '"' || ch === '\u0060') {
+    if (ch === "'" || ch === '"' || ch === '\u0060') {
       i++
       while (i < source.length && source[i] !== ch) {
         i += source[i] === '\\' ? 2 : 1
@@ -126,8 +126,7 @@ function matchBracket(source: string, open: number): number {
     }
     if (pairs[ch] !== undefined) {
       expected.push(pairs[ch])
-    }
-    else if (ch === expected[expected.length - 1]) {
+    } else if (ch === expected[expected.length - 1]) {
       expected.pop()
     }
     i++
@@ -151,7 +150,8 @@ function valueOfKey(objectSource: string, key: string): string | null {
 function importBindings(source: string): Map<string, string> {
   const bindings = new Map<string, string>()
 
-  const named = /\bimport\s+(?:type\s+)?(?:([\w$]+)\s*,\s*)?(?:\{([^}]*)\}|\*\s+as\s+([\w$]+))\s*from\s*['"]([^'"]+)['"]/g
+  const named =
+    /\bimport\s+(?:type\s+)?(?:([\w$]+)\s*,\s*)?(?:\{([^}]*)\}|\*\s+as\s+([\w$]+))\s*from\s*['"]([^'"]+)['"]/g
   for (const m of source.matchAll(named)) {
     const defaultName = m[1]
     const namedPart = m[2]
@@ -165,7 +165,10 @@ function importBindings(source: string): Map<string, string> {
     }
     if (namedPart) {
       for (const piece of namedPart.split(',')) {
-        const local = piece.trim().split(/\s+as\s+/).pop()
+        const local = piece
+          .trim()
+          .split(/\s+as\s+/)
+          .pop()
         if (local !== undefined && local !== '') {
           bindings.set(local.trim(), specifier)
         }
@@ -206,9 +209,10 @@ export function readModuleDeclarations(abs: string): IModuleDeclaration[] {
     // @Module({...}) 的实参：通常是对象字面量
     const argStart = source.indexOf('{', open)
     const argClose = argStart === -1 ? -1 : matchBracket(source, argStart)
-    const objectSource = argStart === -1 || argStart > close || argClose === -1
-      ? ''
-      : source.slice(argStart, argClose + 1)
+    const objectSource =
+      argStart === -1 || argStart > close || argClose === -1
+        ? ''
+        : source.slice(argStart, argClose + 1)
 
     const classHit = /export\s+class\s+([\w$]+)/.exec(source.slice(close))
     if (!classHit) {
@@ -218,9 +222,7 @@ export function readModuleDeclarations(abs: string): IModuleDeclaration[] {
     const importsBlock = valueOfKey(objectSource, 'imports')
     const providersBlock = valueOfKey(objectSource, 'providers')
 
-    const imports = importsBlock === null
-      ? []
-      : (importsBlock.match(/\b[A-Z][\w$]*\b/g) ?? [])
+    const imports = importsBlock === null ? [] : (importsBlock.match(/\b[A-Z][\w$]*\b/g) ?? [])
 
     const guardClasses: string[] = []
     const providerNames: string[] = []

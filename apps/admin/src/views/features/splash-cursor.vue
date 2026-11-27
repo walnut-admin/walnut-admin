@@ -16,7 +16,7 @@ interface Pointer {
   deltaY: number
   down: boolean
   moved: boolean
-  color: { r: number, g: number, b: number }
+  color: { r: number; g: number; b: number }
 }
 
 interface FBO {
@@ -54,9 +54,9 @@ interface Program {
 interface GLContext {
   gl: WebGL2RenderingContext
   ext: {
-    formatRGBA: { internalFormat: number, format: number }
-    formatRG: { internalFormat: number, format: number }
-    formatR: { internalFormat: number, format: number }
+    formatRGBA: { internalFormat: number; format: number }
+    formatRG: { internalFormat: number; format: number }
+    formatR: { internalFormat: number; format: number }
     halfFloatTexType: number
     supportLinearFiltering: boolean
   }
@@ -76,7 +76,7 @@ interface Config {
   SHADING: boolean
   COLOR_UPDATE_SPEED: number
   PAUSED: boolean
-  BACK_COLOR: { r: number, g: number, b: number }
+  BACK_COLOR: { r: number; g: number; b: number }
   TRANSPARENT: boolean
 }
 
@@ -106,8 +106,7 @@ useEventListener('contextmenu', (e) => {
 })
 
 onMounted(() => {
-  if (!canvasRef.value)
-    return
+  if (!canvasRef.value) return
 
   const canvas = canvasRef.value
   let gl: WebGL2RenderingContext
@@ -177,11 +176,15 @@ onMounted(() => {
       preserveDrawingBuffer: false,
     }
 
-    let context: WebGL2RenderingContext = canvas.getContext('webgl2', params) as WebGL2RenderingContext
+    let context: WebGL2RenderingContext = canvas.getContext(
+      'webgl2',
+      params,
+    ) as WebGL2RenderingContext
 
     const isWebGL2 = !!context
     if (!isWebGL2) {
-      context = (canvas.getContext('webgl', params) || canvas.getContext('experimental-webgl', params)) as WebGL2RenderingContext
+      context = (canvas.getContext('webgl', params) ||
+        canvas.getContext('experimental-webgl', params)) as WebGL2RenderingContext
     }
 
     if (!context) {
@@ -194,8 +197,7 @@ onMounted(() => {
     if (isWebGL2) {
       context.getExtension('EXT_color_buffer_float')
       supportLinearFiltering = context.getExtension('OES_texture_float_linear')
-    }
-    else {
+    } else {
       halfFloat = context.getExtension('OES_texture_half_float')
       supportLinearFiltering = context.getExtension('OES_texture_half_float_linear')
     }
@@ -203,49 +205,36 @@ onMounted(() => {
     context.clearColor(0.0, 0.0, 0.0, 1.0)
     const halfFloatTexType = isWebGL2 ? context.HALF_FLOAT : halfFloat?.HALF_FLOAT_OES
 
-    let formatRGBA: { internalFormat: number, format: number }
-    let formatRG: { internalFormat: number, format: number }
-    let formatR: { internalFormat: number, format: number }
+    let formatRGBA: { internalFormat: number; format: number }
+    let formatRG: { internalFormat: number; format: number }
+    let formatR: { internalFormat: number; format: number }
 
     if (isWebGL2) {
-      formatRGBA = getSupportedFormat(
-        context,
-        context.RGBA16F,
-        context.RGBA,
-        halfFloatTexType,
-      ) as { internalFormat: number, format: number }
-      formatRG = getSupportedFormat(
-        context,
-        context.RG16F,
-        context.RG,
-        halfFloatTexType,
-      ) as { internalFormat: number, format: number }
-      formatR = getSupportedFormat(
-        context,
-        context.R16F,
-        context.RED,
-        halfFloatTexType,
-      ) as { internalFormat: number, format: number }
-    }
-    else {
-      formatRGBA = getSupportedFormat(
-        context,
-        context.RGBA,
-        context.RGBA,
-        halfFloatTexType,
-      ) as { internalFormat: number, format: number }
-      formatRG = getSupportedFormat(
-        context,
-        context.RGBA,
-        context.RGBA,
-        halfFloatTexType,
-      ) as { internalFormat: number, format: number }
-      formatR = getSupportedFormat(
-        context,
-        context.RGBA,
-        context.RGBA,
-        halfFloatTexType,
-      ) as { internalFormat: number, format: number }
+      formatRGBA = getSupportedFormat(context, context.RGBA16F, context.RGBA, halfFloatTexType) as {
+        internalFormat: number
+        format: number
+      }
+      formatRG = getSupportedFormat(context, context.RG16F, context.RG, halfFloatTexType) as {
+        internalFormat: number
+        format: number
+      }
+      formatR = getSupportedFormat(context, context.R16F, context.RED, halfFloatTexType) as {
+        internalFormat: number
+        format: number
+      }
+    } else {
+      formatRGBA = getSupportedFormat(context, context.RGBA, context.RGBA, halfFloatTexType) as {
+        internalFormat: number
+        format: number
+      }
+      formatRG = getSupportedFormat(context, context.RGBA, context.RGBA, halfFloatTexType) as {
+        internalFormat: number
+        format: number
+      }
+      formatR = getSupportedFormat(context, context.RGBA, context.RGBA, halfFloatTexType) as {
+        internalFormat: number
+        format: number
+      }
     }
 
     return {
@@ -265,7 +254,7 @@ onMounted(() => {
     internalFormat: number,
     format: number,
     type: number,
-  ): { internalFormat: number, format: number } | null {
+  ): { internalFormat: number; format: number } | null {
     if (!supportRenderTextureFormat(gl, internalFormat, format, type)) {
       if (gl instanceof WebGL2RenderingContext) {
         switch (internalFormat) {
@@ -297,27 +286,11 @@ onMounted(() => {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      internalFormat as number,
-      4,
-      4,
-      0,
-      format as number,
-      type,
-      null,
-    )
+    gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat as number, 4, 4, 0, format as number, type, null)
 
     const fbo = gl.createFramebuffer()
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      texture,
-      0,
-    )
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0)
 
     const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER)
     return status === gl.FRAMEBUFFER_COMPLETE
@@ -336,12 +309,10 @@ onMounted(() => {
     }
 
     setKeywords(keywords: string[]) {
-      if (!gl)
-        return
+      if (!gl) return
 
       let hash = 0
-      for (let i = 0; i < keywords.length; i++)
-        hash += hashCode(keywords[i])
+      for (let i = 0; i < keywords.length; i++) hash += hashCode(keywords[i])
 
       let program = this.programs[hash]
       if (!program) {
@@ -354,15 +325,13 @@ onMounted(() => {
         this.programs[hash] = program
       }
 
-      if (program === this.activeProgram)
-        return
+      if (program === this.activeProgram) return
       this.uniforms = getUniforms(program)
       this.activeProgram = program
     }
 
     bind() {
-      if (!gl || !this.activeProgram)
-        return
+      if (!gl || !this.activeProgram) return
       gl.useProgram(this.activeProgram)
     }
   }
@@ -372,26 +341,22 @@ onMounted(() => {
     uniforms: { [key: string]: WebGLUniformLocation | null } = {}
 
     constructor(vertexShader: WebGLShader, fragmentShader: WebGLShader) {
-      if (!gl)
-        throw new Error('WebGL context not initialized')
+      if (!gl) throw new Error('WebGL context not initialized')
       this.program = createProgram(vertexShader, fragmentShader)
       this.uniforms = getUniforms(this.program)
     }
 
     bind() {
-      if (!gl)
-        return
+      if (!gl) return
       gl.useProgram(this.program)
     }
   }
 
   function createProgram(vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram {
-    if (!gl)
-      throw new Error('WebGL context not initialized')
+    if (!gl) throw new Error('WebGL context not initialized')
 
     const program = gl.createProgram()
-    if (!program)
-      throw new Error('Failed to create WebGL program')
+    if (!program) throw new Error('Failed to create WebGL program')
 
     gl.attachShader(program, vertexShader)
     gl.attachShader(program, fragmentShader)
@@ -405,8 +370,7 @@ onMounted(() => {
   }
 
   function getUniforms(program: WebGLProgram): { [key: string]: WebGLUniformLocation | null } {
-    if (!gl)
-      return {}
+    if (!gl) return {}
 
     const uniforms: { [key: string]: WebGLUniformLocation | null } = {}
     const uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS)
@@ -421,17 +385,11 @@ onMounted(() => {
     return uniforms
   }
 
-  function compileShader(
-    type: number,
-    source: string,
-    keywords?: string[],
-  ): WebGLShader {
-    if (!gl)
-      throw new Error('WebGL context not initialized')
+  function compileShader(type: number, source: string, keywords?: string[]): WebGLShader {
+    if (!gl) throw new Error('WebGL context not initialized')
 
     const shader = gl.createShader(type)
-    if (!shader)
-      throw new Error('Failed to create shader')
+    if (!shader) throw new Error('Failed to create shader')
 
     let fullSource = source
     if (keywords) {
@@ -453,8 +411,7 @@ onMounted(() => {
   }
 
   function initWebGL() {
-    if (!canvas)
-      return
+    if (!canvas) return
 
     const context = getWebGLContext(canvas)
     gl = context.gl
@@ -776,22 +733,13 @@ onMounted(() => {
   }
 
   function blit(target: FBO | null, clear = false) {
-    if (!gl)
-      return
+    if (!gl) return
 
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([-1, -1, -1, 1, 1, 1, 1, -1]),
-      gl.STATIC_DRAW,
-    )
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, -1, 1, 1, 1, 1, -1]), gl.STATIC_DRAW)
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer())
-    gl.bufferData(
-      gl.ELEMENT_ARRAY_BUFFER,
-      new Uint16Array([0, 1, 2, 0, 2, 3]),
-      gl.STATIC_DRAW,
-    )
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array([0, 1, 2, 0, 2, 3]), gl.STATIC_DRAW)
 
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0)
     gl.enableVertexAttribArray(0)
@@ -799,8 +747,7 @@ onMounted(() => {
     if (target === null) {
       gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight)
       gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-    }
-    else {
+    } else {
       gl.viewport(0, 0, target.width, target.height)
       gl.bindFramebuffer(gl.FRAMEBUFFER, target.fbo)
     }
@@ -814,8 +761,7 @@ onMounted(() => {
   }
 
   function initFramebuffers() {
-    if (!gl || !ext)
-      return
+    if (!gl || !ext) return
 
     const simRes = getResolution(config.SIM_RESOLUTION)
     const dyeRes = getResolution(config.DYE_RESOLUTION)
@@ -836,8 +782,7 @@ onMounted(() => {
         texType,
         filtering,
       )
-    }
-    else {
+    } else {
       dye = resizeDoubleFBO(
         dye,
         dyeRes.width,
@@ -858,8 +803,7 @@ onMounted(() => {
         texType,
         filtering,
       )
-    }
-    else {
+    } else {
       velocity = resizeDoubleFBO(
         velocity,
         simRes.width,
@@ -880,14 +824,7 @@ onMounted(() => {
       gl.NEAREST,
     )
 
-    curl = createFBO(
-      simRes.width,
-      simRes.height,
-      r.internalFormat,
-      r.format,
-      texType,
-      gl.NEAREST,
-    )
+    curl = createFBO(simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST)
 
     pressure = createDoubleFBO(
       simRes.width,
@@ -907,8 +844,7 @@ onMounted(() => {
     type: number,
     param: number,
   ): FBO {
-    if (!gl)
-      throw new Error('WebGL context not initialized')
+    if (!gl) throw new Error('WebGL context not initialized')
 
     gl.activeTexture(gl.TEXTURE0)
     const texture = gl.createTexture()
@@ -917,27 +853,11 @@ onMounted(() => {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, param)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      internalFormat,
-      w,
-      h,
-      0,
-      format,
-      type,
-      null,
-    )
+    gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, w, h, 0, format, type, null)
 
     const fbo = gl.createFramebuffer()
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      texture,
-      0,
-    )
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0)
 
     gl.viewport(0, 0, w, h)
     gl.clear(gl.COLOR_BUFFER_BIT)
@@ -996,8 +916,7 @@ onMounted(() => {
     param: number,
   ): FBO {
     const newFBO = createFBO(w, h, internalFormat, format, type, param)
-    if (!copyProgram)
-      return newFBO
+    if (!copyProgram) return newFBO
 
     copyProgram.bind()
     gl?.uniform1i(copyProgram.uniforms.uTexture, target.attach(0))
@@ -1014,18 +933,9 @@ onMounted(() => {
     type: number,
     param: number,
   ): DoubleFBO {
-    if (target.width === w && target.height === h)
-      return target
+    if (target.width === w && target.height === h) return target
 
-    target.read = resizeFBO(
-      target.read,
-      w,
-      h,
-      internalFormat,
-      format,
-      type,
-      param,
-    )
+    target.read = resizeFBO(target.read, w, h, internalFormat, format, type, param)
 
     target.write = createFBO(w, h, internalFormat, format, type, param)
     target.width = w
@@ -1037,22 +947,18 @@ onMounted(() => {
   }
 
   function updateKeywords() {
-    if (!displayMaterial)
-      return
+    if (!displayMaterial) return
 
     const displayKeywords: string[] = []
-    if (config.SHADING)
-      displayKeywords.push('SHADING')
+    if (config.SHADING) displayKeywords.push('SHADING')
     displayMaterial.setKeywords(displayKeywords)
   }
 
   function updateFrame() {
-    if (!gl)
-      return
+    if (!gl) return
 
     const dt = calcDeltaTime()
-    if (resizeCanvas())
-      initFramebuffers()
+    if (resizeCanvas()) initFramebuffers()
     updateColors(dt)
     applyInputs()
     step(dt)
@@ -1069,8 +975,7 @@ onMounted(() => {
   }
 
   function resizeCanvas(): boolean {
-    if (!canvas)
-      return false
+    if (!canvas) return false
 
     const width = scaleByPixelRatio(canvas.clientWidth)
     const height = scaleByPixelRatio(canvas.clientHeight)
@@ -1104,93 +1009,46 @@ onMounted(() => {
   }
 
   function step(dt: number) {
-    if (!gl || !velocity || !dye || !divergence || !curl || !pressure)
-      return
+    if (!gl || !velocity || !dye || !divergence || !curl || !pressure) return
 
     gl.disable(gl.BLEND)
 
     // Curl
     curlProgram?.bind()
-    gl.uniform2f(
-      curlProgram?.uniforms.texelSize,
-      velocity.texelSizeX,
-      velocity.texelSizeY,
-    )
-    gl.uniform1i(
-      curlProgram?.uniforms.uVelocity,
-      velocity.read.attach(0),
-    )
+    gl.uniform2f(curlProgram?.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY)
+    gl.uniform1i(curlProgram?.uniforms.uVelocity, velocity.read.attach(0))
     blit(curl)
 
     // Vorticity
     vorticityProgram?.bind()
-    gl.uniform2f(
-      vorticityProgram?.uniforms.texelSize,
-      velocity.texelSizeX,
-      velocity.texelSizeY,
-    )
-    gl.uniform1i(
-      vorticityProgram?.uniforms.uVelocity,
-      velocity.read.attach(0),
-    )
-    gl.uniform1i(
-      vorticityProgram?.uniforms.uCurl,
-      curl?.attach(1) ?? 0,
-    )
-    gl.uniform1f(
-      vorticityProgram?.uniforms.curl,
-      config.CURL,
-    )
-    gl.uniform1f(
-      vorticityProgram?.uniforms.dt,
-      dt,
-    )
+    gl.uniform2f(vorticityProgram?.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY)
+    gl.uniform1i(vorticityProgram?.uniforms.uVelocity, velocity.read.attach(0))
+    gl.uniform1i(vorticityProgram?.uniforms.uCurl, curl?.attach(1) ?? 0)
+    gl.uniform1f(vorticityProgram?.uniforms.curl, config.CURL)
+    gl.uniform1f(vorticityProgram?.uniforms.dt, dt)
     blit(velocity.write)
     velocity.swap()
 
     // Divergence
     divergenceProgram?.bind()
-    gl.uniform2f(
-      divergenceProgram?.uniforms.texelSize,
-      velocity.texelSizeX,
-      velocity.texelSizeY,
-    )
-    gl.uniform1i(
-      divergenceProgram?.uniforms.uVelocity,
-      velocity.read.attach(0),
-    )
+    gl.uniform2f(divergenceProgram?.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY)
+    gl.uniform1i(divergenceProgram?.uniforms.uVelocity, velocity.read.attach(0))
     blit(divergence)
 
     // Clear pressure
     clearProgram?.bind()
-    gl.uniform1i(
-      clearProgram?.uniforms.uTexture,
-      pressure.read.attach(0),
-    )
-    gl.uniform1f(
-      clearProgram?.uniforms.value,
-      config.PRESSURE,
-    )
+    gl.uniform1i(clearProgram?.uniforms.uTexture, pressure.read.attach(0))
+    gl.uniform1f(clearProgram?.uniforms.value, config.PRESSURE)
     blit(pressure.write)
     pressure.swap()
 
     // Pressure
     pressureProgram?.bind()
-    gl.uniform2f(
-      pressureProgram?.uniforms.texelSize,
-      velocity.texelSizeX,
-      velocity.texelSizeY,
-    )
-    gl.uniform1i(
-      pressureProgram?.uniforms.uDivergence,
-      divergence.attach(0),
-    )
+    gl.uniform2f(pressureProgram?.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY)
+    gl.uniform1i(pressureProgram?.uniforms.uDivergence, divergence.attach(0))
 
     for (let i = 0; i < config.PRESSURE_ITERATIONS; i++) {
-      gl.uniform1i(
-        pressureProgram?.uniforms.uPressure,
-        pressure.read.attach(1),
-      )
+      gl.uniform1i(pressureProgram?.uniforms.uPressure, pressure.read.attach(1))
       blit(pressure.write)
       pressure.swap()
     }
@@ -1202,24 +1060,14 @@ onMounted(() => {
       velocity.texelSizeX,
       velocity.texelSizeY,
     )
-    gl.uniform1i(
-      gradienSubtractProgram?.uniforms.uPressure,
-      pressure.read.attach(0),
-    )
-    gl.uniform1i(
-      gradienSubtractProgram?.uniforms.uVelocity,
-      velocity.read.attach(1),
-    )
+    gl.uniform1i(gradienSubtractProgram?.uniforms.uPressure, pressure.read.attach(0))
+    gl.uniform1i(gradienSubtractProgram?.uniforms.uVelocity, velocity.read.attach(1))
     blit(velocity.write)
     velocity.swap()
 
     // Advection
     advectionProgram?.bind()
-    gl.uniform2f(
-      advectionProgram?.uniforms.texelSize,
-      velocity.texelSizeX,
-      velocity.texelSizeY,
-    )
+    gl.uniform2f(advectionProgram?.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY)
 
     if (!ext.supportLinearFiltering) {
       gl.uniform2f(
@@ -1233,40 +1081,23 @@ onMounted(() => {
     gl.uniform1i(advectionProgram?.uniforms.uVelocity, velocityId)
     gl.uniform1i(advectionProgram?.uniforms.uSource, velocityId)
     gl.uniform1f(advectionProgram?.uniforms.dt, dt)
-    gl.uniform1f(
-      advectionProgram?.uniforms.dissipation,
-      config.VELOCITY_DISSIPATION,
-    )
+    gl.uniform1f(advectionProgram?.uniforms.dissipation, config.VELOCITY_DISSIPATION)
     blit(velocity.write)
     velocity.swap()
 
     if (!ext.supportLinearFiltering) {
-      gl.uniform2f(
-        advectionProgram?.uniforms.dyeTexelSize,
-        dye.texelSizeX,
-        dye.texelSizeY,
-      )
+      gl.uniform2f(advectionProgram?.uniforms.dyeTexelSize, dye.texelSizeX, dye.texelSizeY)
     }
 
-    gl.uniform1i(
-      advectionProgram?.uniforms.uVelocity,
-      velocity.read.attach(0),
-    )
-    gl.uniform1i(
-      advectionProgram?.uniforms.uSource,
-      dye.read.attach(1),
-    )
-    gl.uniform1f(
-      advectionProgram?.uniforms.dissipation,
-      config.DENSITY_DISSIPATION,
-    )
+    gl.uniform1i(advectionProgram?.uniforms.uVelocity, velocity.read.attach(0))
+    gl.uniform1i(advectionProgram?.uniforms.uSource, dye.read.attach(1))
+    gl.uniform1f(advectionProgram?.uniforms.dissipation, config.DENSITY_DISSIPATION)
     blit(dye.write)
     dye.swap()
   }
 
   function render(target: FBO | null) {
-    if (!gl)
-      return
+    if (!gl) return
 
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
     gl.enable(gl.BLEND)
@@ -1274,26 +1105,18 @@ onMounted(() => {
   }
 
   function drawDisplay(target: FBO | null) {
-    if (!dye || !displayMaterial)
-      return
+    if (!dye || !displayMaterial) return
 
-    const width = target === null ? gl?.drawingBufferWidth ?? 0 : target.width
-    const height = target === null ? gl?.drawingBufferHeight ?? 0 : target.height
+    const width = target === null ? (gl?.drawingBufferWidth ?? 0) : target.width
+    const height = target === null ? (gl?.drawingBufferHeight ?? 0) : target.height
 
     displayMaterial.bind()
 
     if (config.SHADING) {
-      gl?.uniform2f(
-        displayMaterial.uniforms.texelSize,
-        1.0 / width,
-        1.0 / height,
-      )
+      gl?.uniform2f(displayMaterial.uniforms.texelSize, 1.0 / width, 1.0 / height)
     }
 
-    gl?.uniform1i(
-      displayMaterial.uniforms.uTexture,
-      dye.read.attach(0),
-    )
+    gl?.uniform1i(displayMaterial.uniforms.uTexture, dye.read.attach(0))
 
     blit(target)
   }
@@ -1304,58 +1127,35 @@ onMounted(() => {
     splat(pointer.texcoordX, pointer.texcoordY, dx, dy, pointer.color)
   }
 
-  function splat(x: number, y: number, dx: number, dy: number, color: { r: number, g: number, b: number }) {
-    if (!splatProgram || !velocity || !dye)
-      return
+  function splat(
+    x: number,
+    y: number,
+    dx: number,
+    dy: number,
+    color: { r: number; g: number; b: number },
+  ) {
+    if (!splatProgram || !velocity || !dye) return
 
     splatProgram.bind()
-    gl?.uniform1i(
-      splatProgram.uniforms.uTarget,
-      velocity.read.attach(0),
-    )
-    gl?.uniform1f(
-      splatProgram.uniforms.aspectRatio,
-      canvas ? canvas.width / canvas.height : 1,
-    )
-    gl?.uniform2f(
-      splatProgram.uniforms.point,
-      x,
-      y,
-    )
-    gl?.uniform3f(
-      splatProgram.uniforms.color,
-      dx,
-      dy,
-      0.0,
-    )
-    gl?.uniform1f(
-      splatProgram.uniforms.radius,
-      correctRadius(config.SPLAT_RADIUS / 100.0),
-    )
+    gl?.uniform1i(splatProgram.uniforms.uTarget, velocity.read.attach(0))
+    gl?.uniform1f(splatProgram.uniforms.aspectRatio, canvas ? canvas.width / canvas.height : 1)
+    gl?.uniform2f(splatProgram.uniforms.point, x, y)
+    gl?.uniform3f(splatProgram.uniforms.color, dx, dy, 0.0)
+    gl?.uniform1f(splatProgram.uniforms.radius, correctRadius(config.SPLAT_RADIUS / 100.0))
     blit(velocity.write)
     velocity.swap()
 
-    gl?.uniform1i(
-      splatProgram.uniforms.uTarget,
-      dye.read.attach(0),
-    )
-    gl?.uniform3f(
-      splatProgram.uniforms.color,
-      color.r,
-      color.g,
-      color.b,
-    )
+    gl?.uniform1i(splatProgram.uniforms.uTarget, dye.read.attach(0))
+    gl?.uniform3f(splatProgram.uniforms.color, color.r, color.g, color.b)
     blit(dye.write)
     dye.swap()
   }
 
   function correctRadius(radius: number): number {
-    if (!canvas)
-      return radius
+    if (!canvas) return radius
 
     const aspectRatio = canvas.width / canvas.height
-    if (aspectRatio > 1)
-      return radius * aspectRatio
+    if (aspectRatio > 1) return radius * aspectRatio
     return radius
   }
 
@@ -1372,7 +1172,12 @@ onMounted(() => {
     pointer.color = generateColor()
   }
 
-  function updatePointerMoveData(pointer: Pointer, posX: number, posY: number, color: { r: number, g: number, b: number }) {
+  function updatePointerMoveData(
+    pointer: Pointer,
+    posX: number,
+    posY: number,
+    color: { r: number; g: number; b: number },
+  ) {
     pointer.prevTexcoordX = pointer.texcoordX
     pointer.prevTexcoordY = pointer.texcoordY
     pointer.texcoordX = posX / (canvas?.width ?? 1)
@@ -1388,26 +1193,22 @@ onMounted(() => {
   }
 
   function correctDeltaX(delta: number): number {
-    if (!canvas)
-      return delta
+    if (!canvas) return delta
 
     const aspectRatio = canvas.width / canvas.height
-    if (aspectRatio < 1)
-      return delta * aspectRatio
+    if (aspectRatio < 1) return delta * aspectRatio
     return delta
   }
 
   function correctDeltaY(delta: number): number {
-    if (!canvas)
-      return delta
+    if (!canvas) return delta
 
     const aspectRatio = canvas.width / canvas.height
-    if (aspectRatio > 1)
-      return delta / aspectRatio
+    if (aspectRatio > 1) return delta / aspectRatio
     return delta
   }
 
-  function generateColor(): { r: number, g: number, b: number } {
+  function generateColor(): { r: number; g: number; b: number } {
     const c = HSVtoRGB(Math.random(), 1.0, 1.0)
     c.r *= 0.15
     c.g *= 0.15
@@ -1415,7 +1216,7 @@ onMounted(() => {
     return c
   }
 
-  function HSVtoRGB(h: number, s: number, v: number): { r: number, g: number, b: number } {
+  function HSVtoRGB(h: number, s: number, v: number): { r: number; g: number; b: number } {
     let r = 0
     let g = 0
     let b = 0
@@ -1463,14 +1264,12 @@ onMounted(() => {
 
   function wrap(value: number, min: number, max: number): number {
     const range = max - min
-    if (range === 0)
-      return min
+    if (range === 0) return min
     return ((value - min) % range) + min
   }
 
-  function getResolution(resolution: number): { width: number, height: number } {
-    if (!canvas)
-      return { width: resolution, height: resolution }
+  function getResolution(resolution: number): { width: number; height: number } {
+    if (!canvas) return { width: resolution, height: resolution }
 
     const aspectRatio = canvas.width / canvas.height
     const min = Math.round(resolution)
@@ -1488,8 +1287,7 @@ onMounted(() => {
   }
 
   function hashCode(s: string): number {
-    if (s.length === 0)
-      return 0
+    if (s.length === 0) return 0
     let hash = 0
     for (let i = 0; i < s.length; i++) {
       hash = (hash << 5) - hash + s.charCodeAt(i)
@@ -1500,8 +1298,7 @@ onMounted(() => {
 
   // 事件处理函数
   const handleMouseDown = (e: MouseEvent) => {
-    if (!canvas)
-      return
+    if (!canvas) return
 
     const pointer = pointers[0]
     const posX = scaleByPixelRatio(e.clientX - canvas.getBoundingClientRect().left)
@@ -1512,8 +1309,7 @@ onMounted(() => {
   }
 
   const handleFirstMouseMove = (e: MouseEvent) => {
-    if (!canvas)
-      return
+    if (!canvas) return
 
     const pointer = pointers[0]
     const posX = scaleByPixelRatio(e.clientX - canvas.getBoundingClientRect().left)
@@ -1526,8 +1322,7 @@ onMounted(() => {
   }
 
   const handleMouseMove = (e: MouseEvent) => {
-    if (!canvas)
-      return
+    if (!canvas) return
 
     const pointer = pointers[0]
     const posX = scaleByPixelRatio(e.clientX - canvas.getBoundingClientRect().left)
@@ -1537,8 +1332,7 @@ onMounted(() => {
   }
 
   const handleFirstTouchStart = (e: TouchEvent) => {
-    if (!canvas)
-      return
+    if (!canvas) return
 
     e.preventDefault()
     const touches = e.targetTouches
@@ -1556,8 +1350,7 @@ onMounted(() => {
   }
 
   const handleTouchStart = (e: TouchEvent) => {
-    if (!canvas)
-      return
+    if (!canvas) return
 
     e.preventDefault()
     const touches = e.targetTouches
@@ -1572,8 +1365,7 @@ onMounted(() => {
   }
 
   const handleTouchMove = (e: TouchEvent) => {
-    if (!canvas)
-      return
+    if (!canvas) return
 
     e.preventDefault()
     const touches = e.targetTouches
@@ -1588,8 +1380,7 @@ onMounted(() => {
   }
 
   const handleTouchEnd = (e: TouchEvent) => {
-    if (!canvas)
-      return
+    if (!canvas) return
 
     const touches = e.changedTouches
     const pointer = pointers[0]

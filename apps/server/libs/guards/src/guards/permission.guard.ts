@@ -1,13 +1,12 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  Logger,
-} from '@nestjs/common'
+import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { AppTechCachePermissionsService } from '@walnut-server/cache'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
-import { IWalnutAdminConstDecoratorPermissionMode, WalnutAdminConstDecoratorPermissionMetadataKey, WalnutAdminConstDecoratorPermissionMode } from '@walnut-server/const/decorator/permissions'
+import {
+  IWalnutAdminConstDecoratorPermissionMode,
+  WalnutAdminConstDecoratorPermissionMetadataKey,
+  WalnutAdminConstDecoratorPermissionMode,
+} from '@walnut-server/const/decorator/permissions'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { getWalnutAdminCookie } from '@walnut-server/cookie'
 
@@ -22,15 +21,12 @@ export class WalnutAdminGuardPermission implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly cachePermissionsService: AppTechCachePermissionsService,
-  ) { }
+  ) {}
 
-  private readonly visitorWhiteListPermissions: string[] = [
-    'app:shared:ali:sts',
-  ]
+  private readonly visitorWhiteListPermissions: string[] = ['app:shared:ali:sts']
 
   private getVisitorWhiteListPermissions(p: string) {
-    if (this.visitorWhiteListPermissions.includes(p))
-      return true
+    if (this.visitorWhiteListPermissions.includes(p)) return true
     return p.endsWith(':list') || p.endsWith(':read')
   }
 
@@ -38,15 +34,13 @@ export class WalnutAdminGuardPermission implements CanActivate {
     const ctx = context.switchToHttp()
     const request = ctx.getRequest<IWalnutAdminExpressRequest>()
 
-    const payloadPermission = this.reflector.getAllAndOverride<
-      string | string[]
-    >(WalnutAdminConstDecoratorPermissionMetadataKey.PERMISSION, [
-      context.getHandler(),
-      context.getClass(),
-    ])
+    const payloadPermission = this.reflector.getAllAndOverride<string | string[]>(
+      WalnutAdminConstDecoratorPermissionMetadataKey.PERMISSION,
+      [context.getHandler(), context.getClass()],
+    )
 
-    const payloadPermissionMode
-      = this.reflector.getAllAndOverride<IWalnutAdminConstDecoratorPermissionMode>(
+    const payloadPermissionMode =
+      this.reflector.getAllAndOverride<IWalnutAdminConstDecoratorPermissionMode>(
         WalnutAdminConstDecoratorPermissionMetadataKey.PERMISSION_MODE,
         [context.getHandler(), context.getClass()],
       )
@@ -81,11 +75,13 @@ export class WalnutAdminGuardPermission implements CanActivate {
     let canNext = true
 
     // visitor specfic handle
-    if (user.roleMode === WalnutAdminConstRoleMode.SWITCH && user.currentRoleName === Role.VISITOR) {
+    if (
+      user.roleMode === WalnutAdminConstRoleMode.SWITCH &&
+      user.currentRoleName === Role.VISITOR
+    ) {
       if (Array.isArray(payloadPermission)) {
-        canNext = payloadPermission.every(perm => this.getVisitorWhiteListPermissions(perm))
-      }
-      else if (typeof payloadPermission === 'string') {
+        canNext = payloadPermission.every((perm) => this.getVisitorWhiteListPermissions(perm))
+      } else if (typeof payloadPermission === 'string') {
         canNext = this.getVisitorWhiteListPermissions(payloadPermission)
       }
 
@@ -99,7 +95,10 @@ export class WalnutAdminGuardPermission implements CanActivate {
 
     // get permissions from cache
     const deviceId = getWalnutAdminCookie(request, WalnutAdminConstCookieKeys.DEVICE_ID)
-    const allPermissions = await this.cachePermissionsService.getPermissionsFromCache(user.userId, deviceId)
+    const allPermissions = await this.cachePermissionsService.getPermissionsFromCache(
+      user.userId,
+      deviceId,
+    )
 
     // if we do not find permission strings in cache
     // just throw
@@ -111,12 +110,12 @@ export class WalnutAdminGuardPermission implements CanActivate {
     if (Array.isArray(payloadPermission)) {
       // and mode, use `every` to judge
       if (payloadPermissionMode === WalnutAdminConstDecoratorPermissionMode.AND) {
-        canNext = payloadPermission.every(i => allPermissions?.includes(i))
+        canNext = payloadPermission.every((i) => allPermissions?.includes(i))
       }
 
       // or mode, use `some` to judge
       if (payloadPermissionMode === WalnutAdminConstDecoratorPermissionMode.OR) {
-        canNext = allPermissions?.some(i => payloadPermission.includes(i))
+        canNext = allPermissions?.some((i) => payloadPermission.includes(i))
       }
     }
 

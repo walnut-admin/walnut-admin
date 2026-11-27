@@ -7,12 +7,7 @@ import { OAuthGiteeService } from './gitee.service'
 import { OAuthGiteeStrategy } from './gitee.strategy'
 
 @Module({
-  imports: [
-    AppTechSseModule,
-    AuthSharedModule,
-    OAuthStateModule,
-    SysUserIdentitySharedModule,
-  ],
+  imports: [AppTechSseModule, AuthSharedModule, OAuthStateModule, SysUserIdentitySharedModule],
   providers: [OAuthGiteeService, OAuthGiteeStrategy],
   exports: [OAuthGiteeService],
 })

@@ -18,7 +18,8 @@ export async function requestInterceptors(config: InternalAxiosRequestConfig) {
   config.headers[AppConstRequestHeaders.LANGUAGE] = appStoreLocale.getLocale
 
   // fingerprint
-  config.headers[AppConstRequestHeaders.FINGERPRINT] = appStoreFingerprint.axiosReqInterceptorBuildFingerprint(config)
+  config.headers[AppConstRequestHeaders.FINGERPRINT] =
+    appStoreFingerprint.axiosReqInterceptorBuildFingerprint(config)
 
   // request data encrypt（**必须在 sign 之前**，Q10 / L1 修复）
   //
@@ -61,18 +62,17 @@ export async function requestInterceptors(config: InternalAxiosRequestConfig) {
   }
 
   // sign（签到的就是上面**已经加密完成**的 config.data）
-  config.headers[AppConstRequestHeaders.SIGN] = await appStoreSecurity.axiosReqInterceptorBuildSign(config)
+  config.headers[AppConstRequestHeaders.SIGN] =
+    await appStoreSecurity.axiosReqInterceptorBuildSign(config)
 
   // carry token
-  if (userStoreAuth.getAccessToken)
-    setTokenHeaderWithConfig(config, userStoreAuth.getAccessToken)
+  if (userStoreAuth.getAccessToken) setTokenHeaderWithConfig(config, userStoreAuth.getAccessToken)
 
   // add timestamp
   if (config._timestamp) {
     if (config.params) {
       config.params = Object.assign(config.params, { t: Date.now() })
-    }
-    else {
+    } else {
       config.params = {
         t: Date.now(),
       }

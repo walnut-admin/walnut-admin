@@ -1,16 +1,27 @@
-import {
-  Body,
-  Controller,
-} from '@nestjs/common'
+import { Body, Controller } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 
 import { WalnutCrudDecorators } from '@walnut-server/crud'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
-import { WalnutAdminDecoratorParamUuid, WalnutAdminDecoratorParamUuids } from '@walnut-server/decorators/params'
+import {
+  WalnutAdminDecoratorParamUuid,
+  WalnutAdminDecoratorParamUuids,
+} from '@walnut-server/decorators/params'
 
 import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
-import { SysDictDataDTOCreateRequest, SysDictDataDTOCreateResponse, SysDictDataDTODeleteResponse, SysDictDataDTOListRequest, SysDictDataDTOListResponse, SysDictDataDTOReadResponse, SysDictDataDTOSafe, SysDictDataDTOUpdateRequest, SysDictDataDTOUpdateResponse, SysDictDataService } from '@walnut-server/system'
+import {
+  SysDictDataDTOCreateRequest,
+  SysDictDataDTOCreateResponse,
+  SysDictDataDTODeleteResponse,
+  SysDictDataDTOListRequest,
+  SysDictDataDTOListResponse,
+  SysDictDataDTOReadResponse,
+  SysDictDataDTOSafe,
+  SysDictDataDTOUpdateRequest,
+  SysDictDataDTOUpdateResponse,
+  SysDictDataService,
+} from '@walnut-server/system'
 import { SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 
@@ -45,7 +56,7 @@ const {
 @Controller(SystemRoutes.DICT_DATA)
 @ApiTags('system/dict/data')
 export class SysDictDataController {
-  constructor(private readonly dictDataService: SysDictDataService) { }
+  constructor(private readonly dictDataService: SysDictDataService) {}
 
   @WalnutAdminDecoratorHasPermission(Permissions.CREATE)
   @WalnutAdminDecoratorCreate()
@@ -65,7 +76,10 @@ export class SysDictDataController {
     @Body() payload: SysDictDataDTOUpdateRequest,
     @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return plainToInstance(SysDictDataDTOUpdateResponse, await this.dictDataService.update(id, payload))
+    return plainToInstance(
+      SysDictDataDTOUpdateResponse,
+      await this.dictDataService.update(id, payload),
+    )
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE)
@@ -94,7 +108,7 @@ export class SysDictDataController {
   ) {
     const deleted = await this.dictDataService.deleteMany(ids, user.userId, ctx.em)
 
-    return deleted.map(i => plainToInstance(SysDictDataDTODeleteResponse, i))
+    return deleted.map((i) => plainToInstance(SysDictDataDTODeleteResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)

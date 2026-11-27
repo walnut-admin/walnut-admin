@@ -21,7 +21,7 @@ export function displayWidth(text: string): number {
   for (const char of text) {
     const code = char.codePointAt(0) ?? 0
     // CJK 部首扩展 ~ 全角形式：本表的分组名全落在这一段里，够用且不引依赖
-    width += code >= 0x2E80 && code <= 0xFFEF ? 2 : 1
+    width += code >= 0x2e80 && code <= 0xffef ? 2 : 1
   }
   return width
 }
@@ -35,10 +35,13 @@ function padToDisplayWidth(text: string, width: number): string {
  * 清单：每行一条「id、分组、说明」，顺序与表一致（纯文本，无表头 —— 表头会破坏「一行一条」）。
  */
 export function renderList(commands: readonly Command[]): string {
-  const idWidth = Math.max(MIN_ID_WIDTH, ...commands.map(command => command.id.length))
-  const groupWidth = Math.max(...commands.map(command => displayWidth(command.group)))
+  const idWidth = Math.max(MIN_ID_WIDTH, ...commands.map((command) => command.id.length))
+  const groupWidth = Math.max(...commands.map((command) => displayWidth(command.group)))
   return commands
-    .map(command => `  ${command.id.padEnd(idWidth)}  ${padToDisplayWidth(command.group, groupWidth)}  ${command.label}`)
+    .map(
+      (command) =>
+        `  ${command.id.padEnd(idWidth)}  ${padToDisplayWidth(command.group, groupWidth)}  ${command.label}`,
+    )
     .join('\n')
 }
 
@@ -65,7 +68,7 @@ export interface CommandsJson {
 
 export function commandsToJson(commands: readonly Command[]): CommandsJson {
   return {
-    commands: commands.map(command => ({
+    commands: commands.map((command) => ({
       id: command.id,
       group: command.group,
       label: command.label,
@@ -98,7 +101,10 @@ export function commandLineOf(command: Command, passthrough: readonly string[] =
 }
 
 /** `--dry-run` 的完整正文：每条命令一行「id + 将要执行的命令行」 */
-export function renderDryRun(commands: readonly Command[], passthrough: readonly string[] = []): string {
+export function renderDryRun(
+  commands: readonly Command[],
+  passthrough: readonly string[] = [],
+): string {
   const lines = [`将要执行 ${commands.length} 条命令（--dry-run，只打印不执行）：`]
   for (const command of commands)
     lines.push(`  ${command.id}  ${commandLineOf(command, passthrough)}`)

@@ -108,7 +108,9 @@ export async function seedPermissionChainUser(
   //    serverSetup/app.name 与服务同源配置；createForAuthUser 落 user，finishRegister
   //    按 P1-14 语义补挂 password identity）——
   const appName = configService.get<string>('app.name')!
-  const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({ password })
+  const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({
+    password,
+  })
   const registrationResponse = await opaqueCore.startRegister(userName, registrationRequest)
   const { registrationRecord } = opaque.client.finishRegistration({
     clientRegistrationState,
@@ -140,7 +142,13 @@ export async function seedPermissionChainUser(
     const rows: Array<{ id: string }> = await pgDataSource.query(
       `INSERT INTO sys_menu (pid, type, name, title, sort_order, permission)
        VALUES ($1, 'element', $2, $3, $4, $5) RETURNING id`,
-      [rootMenuId, `${options.userNamePrefix}-p${order}-${seedMark}`, `menu.title.seed.${seedMark}.p${order}`, order, permission],
+      [
+        rootMenuId,
+        `${options.userNamePrefix}-p${order}-${seedMark}`,
+        `menu.title.seed.${seedMark}.p${order}`,
+        order,
+        permission,
+      ],
     )
     return rows[0].id
   }
@@ -153,20 +161,26 @@ export async function seedPermissionChainUser(
   const secondMenuIds: string[] = []
   const secondPermissions = options.secondRolePermissions ?? []
   for (let i = 0; i < secondPermissions.length; i++) {
-    secondMenuIds.push(await seedElementMenu(secondPermissions[i], options.grantedPermissions.length + i + 1))
+    secondMenuIds.push(
+      await seedElementMenu(secondPermissions[i], options.grantedPermissions.length + i + 1),
+    )
   }
 
   // —— 种子角色 + junction（role_name 全库唯一；status 默认 true —— populate 过滤条件）——
   const mainRoleRows: Array<{ id: string }> = await pgDataSource.query(
     'INSERT INTO sys_role (role_name, description, data_scope) VALUES ($1, $2, $3) RETURNING id',
-    [`${options.userNamePrefix}-main-${seedMark}`, `seed main role ${seedMark}`, options.dataScope ?? 1],
+    [
+      `${options.userNamePrefix}-main-${seedMark}`,
+      `seed main role ${seedMark}`,
+      options.dataScope ?? 1,
+    ],
   )
   const mainRoleId = mainRoleRows[0].id
   for (const menuId of grantedMenuIds) {
-    await pgDataSource.query(
-      'INSERT INTO sys_role_menu (role_id, menu_id) VALUES ($1, $2)',
-      [mainRoleId, menuId],
-    )
+    await pgDataSource.query('INSERT INTO sys_role_menu (role_id, menu_id) VALUES ($1, $2)', [
+      mainRoleId,
+      menuId,
+    ])
   }
 
   let secondRoleId: string | null = null
@@ -177,24 +191,24 @@ export async function seedPermissionChainUser(
     )
     secondRoleId = secondRoleRows[0].id
     for (const menuId of secondMenuIds) {
-      await pgDataSource.query(
-        'INSERT INTO sys_role_menu (role_id, menu_id) VALUES ($1, $2)',
-        [secondRoleId, menuId],
-      )
+      await pgDataSource.query('INSERT INTO sys_role_menu (role_id, menu_id) VALUES ($1, $2)', [
+        secondRoleId,
+        menuId,
+      ])
     }
   }
 
   // —— 用户 ↔ 角色 junction（visitor 兜底 junction 删除，AT payload 的 roleNames 才干净）+
   //    mfa_setup / role_mode / current_role_id 直写（登录时固化进 AT payload）——
-  await pgDataSource.query(
-    'INSERT INTO sys_user_role (user_id, role_id) VALUES ($1, $2)',
-    [userId, mainRoleId],
-  )
+  await pgDataSource.query('INSERT INTO sys_user_role (user_id, role_id) VALUES ($1, $2)', [
+    userId,
+    mainRoleId,
+  ])
   if (secondRoleId !== null) {
-    await pgDataSource.query(
-      'INSERT INTO sys_user_role (user_id, role_id) VALUES ($1, $2)',
-      [userId, secondRoleId],
-    )
+    await pgDataSource.query('INSERT INTO sys_user_role (user_id, role_id) VALUES ($1, $2)', [
+      userId,
+      secondRoleId,
+    ])
   }
   const keepRoleIds = secondRoleId === null ? [mainRoleId] : [mainRoleId, secondRoleId]
   await pgDataSource.query(
@@ -235,7 +249,10 @@ export async function cleanupPermissionChainSeed(
 
   for (const fixture of fixtures) {
     await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
-    const roleIds = fixture.secondRoleId === null ? [fixture.mainRoleId] : [fixture.mainRoleId, fixture.secondRoleId]
+    const roleIds =
+      fixture.secondRoleId === null
+        ? [fixture.mainRoleId]
+        : [fixture.mainRoleId, fixture.secondRoleId]
     await api.pgDataSource.query('DELETE FROM sys_role WHERE id = ANY($1::uuid[])', [roleIds])
     // pid FK RESTRICT：element 子行（pid = 根 id）先删，CATALOG 根后删
     const rootId = fixture.menuIds[fixture.menuIds.length - 1]
@@ -246,7 +263,9 @@ export async function cleanupPermissionChainSeed(
   }
 
   if (deviceIds.length > 0) {
-    await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [deviceIds])
+    await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [
+      deviceIds,
+    ])
   }
 
   await api.cleanupWalnutCacheKeys(...fragments)

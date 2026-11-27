@@ -68,10 +68,7 @@ export class SysUserIdentityRepositoryService {
   }
 
   // Find all identities by userId
-  async findByUserId(
-    userId: string,
-    em?: EntityManager,
-  ) {
+  async findByUserId(userId: string, em?: EntityManager) {
     return this.getRepository(em).find({ where: { userId } })
   }
 
@@ -86,10 +83,7 @@ export class SysUserIdentityRepositoryService {
   }
 
   // Create identity
-  async createIdentity(
-    payload: Partial<SysUserIdentityEntity>,
-    em?: EntityManager,
-  ) {
+  async createIdentity(payload: Partial<SysUserIdentityEntity>, em?: EntityManager) {
     const repository = this.getRepository(em)
     return repository.save(repository.create(payload))
   }
@@ -136,7 +130,7 @@ export class SysUserIdentityRepositoryService {
 
     Object.entries(payload).forEach(([k, v]) => {
       if (k !== 'id') {
-        (target as unknown as Record<string, unknown>)[k] = v
+        ;(target as unknown as Record<string, unknown>)[k] = v
       }
     })
 

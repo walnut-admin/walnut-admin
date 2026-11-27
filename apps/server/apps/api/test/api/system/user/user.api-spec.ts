@@ -5,7 +5,11 @@ import { WalnutModelName } from '@walnut-server/db'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from '../../helpers/api-client'
-import { performHttpOpaqueLogin, registerRootUserFixture, WALNUT_DEFAULT_VISITOR_ROLE_UUID } from '../../helpers/auth-login'
+import {
+  performHttpOpaqueLogin,
+  registerRootUserFixture,
+  WALNUT_DEFAULT_VISITOR_ROLE_UUID,
+} from '../../helpers/auth-login'
 import { createApiApp } from '../../helpers/create-api-app'
 
 /**
@@ -31,7 +35,7 @@ interface UserRow {
   roles?: string[]
   currentRole?: string | null
   roles_count?: number
-  roles_list?: Array<{ id: string, roleName?: string }>
+  roles_list?: Array<{ id: string; roleName?: string }>
 }
 
 describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword（真实 HTTP 全链）', () => {
@@ -84,17 +88,25 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
 
   afterEach(async () => {
     if (collect.userIds.length > 0) {
-      await api.pgDataSource.query('DELETE FROM sys_user WHERE id = ANY($1::uuid[])', [collect.userIds])
-      await api.pgDataSource.query('DELETE FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])', [collect.userIds])
+      await api.pgDataSource.query('DELETE FROM sys_user WHERE id = ANY($1::uuid[])', [
+        collect.userIds,
+      ])
+      await api.pgDataSource.query('DELETE FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])', [
+        collect.userIds,
+      ])
       collect.userIds = []
     }
   })
 
   afterAll(async () => {
     if (api !== undefined && fixture !== null) {
-      await api.pgDataSource.query('DELETE FROM sys_user WHERE user_name LIKE $1', [`${userPrefix}%`])
+      await api.pgDataSource.query('DELETE FROM sys_user WHERE user_name LIKE $1', [
+        `${userPrefix}%`,
+      ])
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
-      await api.pgDataSource.query('DELETE FROM sys_role WHERE role_name LIKE $1', [`${userPrefix}%`])
+      await api.pgDataSource.query('DELETE FROM sys_role WHERE role_name LIKE $1', [
+        `${userPrefix}%`,
+      ])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
       await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [api.deviceId])
       await api.cleanupWalnutCacheKeys(seed8, api.deviceId, fixture.userId)
@@ -173,7 +185,9 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
   it('④：只发 status（真 PATCH）→ userName / roles junction 原样不动', async () => {
     const created = await createUser('PT', [bizRoleId])
 
-    const updateRes = await api.root('PUT', api.apiPath(`/system/user/${created.id}`), { status: false })
+    const updateRes = await api.root('PUT', api.apiPath(`/system/user/${created.id}`), {
+      status: false,
+    })
     expectOk(updateRes, 'user partial update')
 
     const readRes = await api.root('GET', api.apiPath(`/system/user/${created.id}`))
@@ -214,7 +228,7 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
       page: { page: 1, pageSize: 10 },
     })
     expectOk(listRes, 'user list')
-    const list = bodyOf<{ data: UserRow[], total: number }>(listRes).data
+    const list = bodyOf<{ data: UserRow[]; total: number }>(listRes).data
     expect(list.total).toBe(1)
     expect(list.data[0].userName).toBe(`${userPrefix}-L1`)
     expect(list.data[0].roles_count).toBe(1)
@@ -225,14 +239,23 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
 
   it('me/role/switch：行值 COMBINE 拒（40000）；零配置下 switchable + junction 双角色可切（P2-19）', async () => {
     // fixture 行值 combinable：switch 直接拒
-    const combineSwitch = await api.root('PATCH', api.apiPath(`/system/user/me/role/switch/${bizRoleId}`))
+    const combineSwitch = await api.root(
+      'PATCH',
+      api.apiPath(`/system/user/me/role/switch/${bizRoleId}`),
+    )
     expect(bodyOf(combineSwitch).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
 
     // 切到 switchable 后：不在 junction 的角色拒
-    const toSwitchable = await api.root('PATCH', api.apiPath('/system/user/me/roleMode/switch/switchable'))
+    const toSwitchable = await api.root(
+      'PATCH',
+      api.apiPath('/system/user/me/roleMode/switch/switchable'),
+    )
     expectOk(toSwitchable, 'roleMode switch to switchable')
 
-    const badRoleSwitch = await api.root('PATCH', api.apiPath(`/system/user/me/role/switch/${bizRoleId}`))
+    const badRoleSwitch = await api.root(
+      'PATCH',
+      api.apiPath(`/system/user/me/role/switch/${bizRoleId}`),
+    )
     expect(bodyOf(badRoleSwitch).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
 
     const roleModeRows: Array<{ role_mode: string }> = await api.pgDataSource.query(
@@ -243,12 +266,15 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
 
     // P2-19（2026-10-29）：零配置部署（effective=GLOBAL/combinable）下行值 switchable +
     // 目标角色在 junction 内必须可切 —— 旧实现按 effective 判，恒 40000。
-    await api.pgDataSource.query(
-      'INSERT INTO sys_user_role (user_id, role_id) VALUES ($1, $2)',
-      [fixture!.userId, bizRoleId],
-    )
+    await api.pgDataSource.query('INSERT INTO sys_user_role (user_id, role_id) VALUES ($1, $2)', [
+      fixture!.userId,
+      bizRoleId,
+    ])
 
-    const switchRes = await api.root('PATCH', api.apiPath(`/system/user/me/role/switch/${bizRoleId}`))
+    const switchRes = await api.root(
+      'PATCH',
+      api.apiPath(`/system/user/me/role/switch/${bizRoleId}`),
+    )
     expectOk(switchRes, 'switchRole to second junction role (zero-config)')
 
     const switchedRows: Array<{ current_role_id: string }> = await api.pgDataSource.query(
@@ -258,17 +284,23 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
     expect(switchedRows[0].current_role_id).toBe(bizRoleId)
 
     // 切回原角色 + 清掉临时 junction 行（后续用例仍以单角色 fixture 为前提）
-    const backRes = await api.root('PATCH', api.apiPath(`/system/user/me/role/switch/${fixture!.roleId}`))
+    const backRes = await api.root(
+      'PATCH',
+      api.apiPath(`/system/user/me/role/switch/${fixture!.roleId}`),
+    )
     expectOk(backRes, 'switchRole back to root role')
 
-    await api.pgDataSource.query(
-      'DELETE FROM sys_user_role WHERE user_id = $1 AND role_id = $2',
-      [fixture!.userId, bizRoleId],
-    )
+    await api.pgDataSource.query('DELETE FROM sys_user_role WHERE user_id = $1 AND role_id = $2', [
+      fixture!.userId,
+      bizRoleId,
+    ])
   })
 
   it('me/roleMode/switch：switchable → combinable 落库，非法枚举 → 40002', async () => {
-    const backToCombine = await api.root('PATCH', api.apiPath('/system/user/me/roleMode/switch/combinable'))
+    const backToCombine = await api.root(
+      'PATCH',
+      api.apiPath('/system/user/me/roleMode/switch/combinable'),
+    )
     expectOk(backToCombine, 'roleMode switch back to combinable')
     expect(bodyOf<boolean>(backToCombine).data).toBe(true)
 
@@ -286,13 +318,16 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
     const deleteSelf = await api.root('DELETE', api.apiPath(`/system/user/${fixture!.userId}`))
     expect(bodyOf(deleteSelf).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
 
-    const deleteSafe = await api.root('DELETE', api.apiPath('/system/user/7323c6ec-322f-588d-bb6a-81a768912c35'))
+    const deleteSafe = await api.root(
+      'DELETE',
+      api.apiPath('/system/user/7323c6ec-322f-588d-bb6a-81a768912c35'),
+    )
     expect(bodyOf(deleteSafe).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
 
     const victim = await createUser('DEL', [])
     const deleteRes = await api.root('DELETE', api.apiPath(`/system/user/${victim.id}`))
     expectOk(deleteRes, 'user delete other')
-    collect.userIds = collect.userIds.filter(id => id !== victim.id)
+    collect.userIds = collect.userIds.filter((id) => id !== victim.id)
 
     const readRes = await api.root('GET', api.apiPath(`/system/user/${victim.id}`))
     expect(bodyOf(readRes).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
@@ -306,7 +341,11 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
   })
 
   it('create roles 含 safe role id → 40000；缺 roles → 40099', async () => {
-    const safeRole = await api.root('POST', api.apiPath('/system/user'), userPayload('S1', ['3055c85c-8f55-53c9-8c7a-366fef0a8183']))
+    const safeRole = await api.root(
+      'POST',
+      api.apiPath('/system/user'),
+      userPayload('S1', ['3055c85c-8f55-53c9-8c7a-366fef0a8183']),
+    )
     expect(bodyOf(safeRole).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
 
     const missingRoles = await api.root('POST', api.apiPath('/system/user'), {

@@ -60,14 +60,13 @@ export function workspacePackages(): WorkspacePackage[] {
   const out: WorkspacePackage[] = []
   for (const file of lsFilesWithUntracked('*package.json')) {
     const dir = path.posix.dirname(file)
-    if (!isWorkspacePackageDir(dir))
-      continue
+    if (!isWorkspacePackageDir(dir)) continue
     try {
-      const manifest = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')) as PackageManifest
-      if (manifest.name)
-        out.push({ dir, manifest })
-    }
-    catch {
+      const manifest = JSON.parse(
+        fs.readFileSync(path.join(REPO_ROOT, file), 'utf8'),
+      ) as PackageManifest
+      if (manifest.name) out.push({ dir, manifest })
+    } catch {
       // 读不动就当它不存在：本模块只做枚举，不做清单审计（那是 release 的活）
     }
   }
@@ -76,5 +75,5 @@ export function workspacePackages(): WorkspacePackage[] {
 
 /** 真实 workspace 包名（`workspacePackages()` 的投影） */
 export function workspacePackageNames(): Set<string> {
-  return new Set(workspacePackages().map(p => p.manifest.name!))
+  return new Set(workspacePackages().map((p) => p.manifest.name!))
 }

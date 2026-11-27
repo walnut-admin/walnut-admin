@@ -41,7 +41,19 @@ describe('掩码形态', () => {
 
 describe('键名判定', () => {
   it('敏感键名认得出来；普通键名不误伤', () => {
-    for (const key of ['deviceId', 'ip', 'ipHistory', 'locationInfo', 'geoLocation', 'email', 'phoneNumber', 'valueHash', 'totpSecretCiphertext', 'webauthnPublicKey', 'avatar'])
+    for (const key of [
+      'deviceId',
+      'ip',
+      'ipHistory',
+      'locationInfo',
+      'geoLocation',
+      'email',
+      'phoneNumber',
+      'valueHash',
+      'totpSecretCiphertext',
+      'webauthnPublicKey',
+      'avatar',
+    ])
       expect(isSensitiveKey(key), key).toBe(true)
     for (const key of ['roleName', 'title', 'description', 'userName', 'menus', 'status'])
       expect(isSensitiveKey(key), key).toBe(false)
@@ -49,8 +61,14 @@ describe('键名判定', () => {
 })
 
 describe('文档脱敏', () => {
-  it('敏感键上的值被掩；普通键上的普通值一个字不动（`menus: [\'m1\']` 那种误伤不再发生）', () => {
-    const doc = { _id: 'r1', roleName: 'visitor', description: '游览角色', menus: ['m1'], status: true }
+  it("敏感键上的值被掩；普通键上的普通值一个字不动（`menus: ['m1']` 那种误伤不再发生）", () => {
+    const doc = {
+      _id: 'r1',
+      roleName: 'visitor',
+      description: '游览角色',
+      menus: ['m1'],
+      status: true,
+    }
     expect(maskDocument(doc)).toEqual(doc)
   })
 
@@ -66,7 +84,11 @@ describe('文档脱敏', () => {
   })
 
   it('坐标降精度到一位小数（城市级）；`deviceName` 这类设备型号**照样要掩**，普通备注不动', () => {
-    const masked = maskDocument({ geoLocation: { lat: 39.9042, lng: 116.4074 }, deviceName: 'MacBook Pro', remark: '备注' })
+    const masked = maskDocument({
+      geoLocation: { lat: 39.9042, lng: 116.4074 },
+      deviceName: 'MacBook Pro',
+      remark: '备注',
+    })
     expect(masked.geoLocation).toEqual({ lat: 39.9, lng: 116.4 })
     // 设备型号也是指纹数据（`/^device/` 命中），这里刻意钉住"它会被掩"
     expect(masked.deviceName).toBe('<redacted:11>')
@@ -74,13 +96,18 @@ describe('文档脱敏', () => {
   })
 
   it('不透明串只保留长度（形状变了能一眼看出来）', () => {
-    const masked = maskDocument({ deviceId: 'fp_9f2c41ab77de5510', webauthnCredentialId: 'Zm9vYmFyYmF6cXV4' })
+    const masked = maskDocument({
+      deviceId: 'fp_9f2c41ab77de5510',
+      webauthnCredentialId: 'Zm9vYmFyYmF6cXV4',
+    })
     expect(masked.deviceId).toBe('<redacted:19>')
     expect(masked.webauthnCredentialId).toBe('<redacted:16>')
   })
 
   it('嵌套结构里的敏感键也能找到（不只看第一层）', () => {
-    const masked = maskDocument({ meta: { nested: { deviceId: 'fp_abcdefgh12345678' } } }) as { meta: { nested: { deviceId: string } } }
+    const masked = maskDocument({ meta: { nested: { deviceId: 'fp_abcdefgh12345678' } } }) as {
+      meta: { nested: { deviceId: string } }
+    }
     expect(masked.meta.nested.deviceId).toBe('<redacted:19>')
   })
 
@@ -93,7 +120,11 @@ describe('文档脱敏', () => {
 
 describe('自检（门禁用）', () => {
   it('能点出未脱敏的个人数据字段路径', () => {
-    const hits = findUnmaskedPersonal({ _id: 'd1', ip: '203.0.113.7', meta: { deviceId: 'fp_abcdefgh12345678' } })
+    const hits = findUnmaskedPersonal({
+      _id: 'd1',
+      ip: '203.0.113.7',
+      meta: { deviceId: 'fp_abcdefgh12345678' },
+    })
     expect(hits).toEqual(['ip=203.0.113.7', 'meta.deviceId=fp_abcdefgh12345678'])
   })
 
@@ -102,6 +133,6 @@ describe('自检（门禁用）', () => {
       { _id: 'd1', ip: '203.0.113.7', deviceId: 'fp_9f2c41ab77de5510' },
       { _id: 'i1', value: 'alice@example.com' },
     ])
-    expect(docs.flatMap(d => findUnmaskedPersonal(d))).toEqual([])
+    expect(docs.flatMap((d) => findUnmaskedPersonal(d))).toEqual([])
   })
 })

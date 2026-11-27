@@ -4,9 +4,7 @@ import { AuthGoogleService } from './google.service'
 import { AuthGoogleStrategy } from './google.strategy'
 
 @Module({
-  imports: [
-    AuthSharedModule,
-  ],
+  imports: [AuthSharedModule],
   providers: [AuthGoogleService, AuthGoogleStrategy],
   exports: [AuthGoogleService],
 })

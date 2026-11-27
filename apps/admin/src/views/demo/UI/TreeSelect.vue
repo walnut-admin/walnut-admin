@@ -40,18 +40,18 @@ const treeSelectProps = {
       <n-list-item>
         <n-grid :cols="2" :x-gap="16">
           <n-gi>
-            <WTitle prefix="bar" class="mb-2">
-              Single Choose Tree Select
-            </WTitle>
+            <WTitle prefix="bar" class="mb-2"> Single Choose Tree Select </WTitle>
 
             <WTreeSelect v-model:value="state.treeSelect1" :tree-select-props="treeSelectProps" />
           </n-gi>
           <n-gi>
-            <WTitle prefix="bar" class="mb-2">
-              Multiple Choose Tree Select
-            </WTitle>
+            <WTitle prefix="bar" class="mb-2"> Multiple Choose Tree Select </WTitle>
 
-            <WTreeSelect v-model:value="state.treeSelect2" :tree-select-props="treeSelectProps" multiple />
+            <WTreeSelect
+              v-model:value="state.treeSelect2"
+              :tree-select-props="treeSelectProps"
+              multiple
+            />
           </n-gi>
         </n-grid>
       </n-list-item>
@@ -59,18 +59,18 @@ const treeSelectProps = {
       <n-list-item>
         <n-grid :cols="2" :x-gap="16">
           <n-gi>
-            <WTitle prefix="bar" class="mb-2">
-              Single Feedback
-            </WTitle>
+            <WTitle prefix="bar" class="mb-2"> Single Feedback </WTitle>
 
             <WTreeSelect v-model:value="state.treeSelect3" :tree-select-props="treeSelectProps" />
           </n-gi>
           <n-gi>
-            <WTitle prefix="bar" class="mb-2">
-              Multiple Feedback
-            </WTitle>
+            <WTitle prefix="bar" class="mb-2"> Multiple Feedback </WTitle>
 
-            <WTreeSelect v-model:value="state.treeSelect4" :tree-select-props="treeSelectProps" multiple />
+            <WTreeSelect
+              v-model:value="state.treeSelect4"
+              :tree-select-props="treeSelectProps"
+              multiple
+            />
           </n-gi>
         </n-grid>
       </n-list-item>

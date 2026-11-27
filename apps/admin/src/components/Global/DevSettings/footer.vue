@@ -81,9 +81,7 @@ const [register] = useForm<typeof footerRelatives>({
         path: 'transition',
       },
       componentProp: {
-        disabled: computed(
-          () => !footerRelatives.status || getCanAnimate.value,
-        ),
+        disabled: computed(() => !footerRelatives.status || getCanAnimate.value),
         tooltip: true,
       },
     },

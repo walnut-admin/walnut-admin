@@ -1,6 +1,18 @@
-import { applyDecorators, CallHandler, ExecutionContext, Injectable, Logger, NestInterceptor, SetMetadata, UseInterceptors } from '@nestjs/common'
+import {
+  applyDecorators,
+  CallHandler,
+  ExecutionContext,
+  Injectable,
+  Logger,
+  NestInterceptor,
+  SetMetadata,
+  UseInterceptors,
+} from '@nestjs/common'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
-import { IWalnutAdminConstDecoratorLogAuthType, WalnutAdminConstDecoratorLogAuthMetadataKey } from '@walnut-server/const/decorator/logAuth'
+import {
+  IWalnutAdminConstDecoratorLogAuthType,
+  WalnutAdminConstDecoratorLogAuthMetadataKey,
+} from '@walnut-server/const/decorator/logAuth'
 import { getWalnutAdminCookie } from '@walnut-server/cookie'
 import { SysLogAuthSharedService } from '@walnut-server/system'
 import { fireAndForget } from '@walnut-server/utils/fire-and-forget'
@@ -16,9 +28,7 @@ export { WalnutAdminConstDecoratorLogAuthMetadataKey }
 export class WalnutAdminInterceptorRequestAuthLog implements NestInterceptor {
   private readonly logger = new Logger(WalnutAdminInterceptorRequestAuthLog.name)
 
-  constructor(
-    private readonly logAuthSharedService: SysLogAuthSharedService,
-  ) {}
+  constructor(private readonly logAuthSharedService: SysLogAuthSharedService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const ctx = context.switchToHttp()

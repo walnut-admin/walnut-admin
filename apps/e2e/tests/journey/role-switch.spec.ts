@@ -1,7 +1,18 @@
 import { deleteLoginableUser } from '../../lib/account-fixtures.ts'
 import { openDevice, resolveDeviceId, trackDevice } from '../../lib/device-fixtures.ts'
-import { deleteRoleById, findElementMenuIdByPermission, findMenuIdByName, findMenuIdByPath, withPg } from '../../lib/pg.ts'
-import { AuthRoutes, SystemEndpointRoutes, SystemRoutes, WalnutAdminConstAppResponseCode } from '../../lib/protocol/contract.ts'
+import {
+  deleteRoleById,
+  findElementMenuIdByPermission,
+  findMenuIdByName,
+  findMenuIdByPath,
+  withPg,
+} from '../../lib/pg.ts'
+import {
+  AuthRoutes,
+  SystemEndpointRoutes,
+  SystemRoutes,
+  WalnutAdminConstAppResponseCode,
+} from '../../lib/protocol/contract.ts'
 import { rootClient } from '../../lib/protocol/root-client.ts'
 import { readPermissionsCache, withRedis } from '../../lib/redis.ts'
 import { captureEnvelopes, loginViaUI, navigateInApp, navigateToRoute } from '../../lib/ui.ts'
@@ -44,13 +55,19 @@ interface ServerEnvelope<T = Record<string, unknown>> {
 }
 
 /** 重签 AT 并读 `/auth/permissions`（AT payload 里的 currentRole 会在 refresh 时刷新） */
-async function permissionsAfterRefresh(client: Awaited<ReturnType<typeof rootClient>>): Promise<string[]> {
+async function permissionsAfterRefresh(
+  client: Awaited<ReturnType<typeof rootClient>>,
+): Promise<string[]> {
   const refreshed = await client.request<{ accessToken: string }>('POST', AuthRoutes.REFRESH)
   const accessToken = refreshed.data.accessToken
   // requestFree 返回**原始响应壳**（不剥 data），与 request 的差异见 protocol/client.ts
-  const envelope = await client.requestFree<{ data: PermissionsPayload }>('GET', AuthRoutes.PERMISSIONS, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  })
+  const envelope = await client.requestFree<{ data: PermissionsPayload }>(
+    'GET',
+    AuthRoutes.PERMISSIONS,
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+  )
   return envelope.data.permissionStrings
 }
 
@@ -94,7 +111,10 @@ test.describe('角色切换 journey', { tag: '@journey' }, () => {
       roleBId = roleB.id
 
       // 2. 双角色账号：建号（A）→ 补 B → 把 currentRole 钉到 A
-      const { user, totpSecret, client } = await createJourneyUser(root, 'e2e-switch', { roleId: roleAId, bindTotp: true })
+      const { user, totpSecret, client } = await createJourneyUser(root, 'e2e-switch', {
+        roleId: roleAId,
+        bindTotp: true,
+      })
       await root.root('PUT', `${SystemRoutes.USER}/${user.userId}`, {
         userName: user.userName,
         status: true,
@@ -105,22 +125,36 @@ test.describe('角色切换 journey', { tag: '@journey' }, () => {
       // 协议侧「切换前」：A 的权限串在、B 的不在
       const beforePermissions = await permissionsAfterRefresh(client)
       expect(beforePermissions, `切换前应含 ${ROLE_A_PERMISSION}`).toContain(ROLE_A_PERMISSION)
-      expect(beforePermissions, `切换前不应含 ${ROLE_B_PERMISSION}`).not.toContain(ROLE_B_PERMISSION)
+      expect(beforePermissions, `切换前不应含 ${ROLE_B_PERMISSION}`).not.toContain(
+        ROLE_B_PERMISSION,
+      )
 
       const session = await openDevice(browser, '/auth')
       const page = session.page
       const captured = captureEnvelopes(page)
 
       try {
-        await loginViaUI(page, { userName: user.userName, password: user.password, totpSecret: totpSecret! })
+        await loginViaUI(page, {
+          userName: user.userName,
+          password: user.password,
+          totpSecret: totpSecret!,
+        })
         session.deviceId = await resolveDeviceId(page)
         trackDevice(session.deviceId)
 
         // 3. 切换前界面：index menu = User（A 的菜单），表格可读
         await navigateToRoute(page, '/system/user', 'User')
-        await expect(page.getByTestId('user-list-table'), 'A 角色下用户表应挂载').toBeVisible({ timeout: 30_000 })
-        await expect(page.locator('[data-testid="sidebar-menu-item"]').filter({ hasText: '用户管理' }).first(), '侧边栏应有用户管理').toBeVisible({ timeout: 15_000 })
-        await expect(page.locator('[data-testid="sidebar-menu-item"]').filter({ hasText: '角色管理' }), 'A 角色不应有角色管理菜单').toHaveCount(0)
+        await expect(page.getByTestId('user-list-table'), 'A 角色下用户表应挂载').toBeVisible({
+          timeout: 30_000,
+        })
+        await expect(
+          page.locator('[data-testid="sidebar-menu-item"]').filter({ hasText: '用户管理' }).first(),
+          '侧边栏应有用户管理',
+        ).toBeVisible({ timeout: 15_000 })
+        await expect(
+          page.locator('[data-testid="sidebar-menu-item"]').filter({ hasText: '角色管理' }),
+          'A 角色不应有角色管理菜单',
+        ).toHaveCount(0)
 
         // 4. 页头下拉 → 切换角色 → 选 B → 确认
         await page.getByTestId('header-user-dropdown').hover()
@@ -129,64 +163,101 @@ test.describe('角色切换 journey', { tag: '@journey' }, () => {
         await expect(switchModal, '角色切换弹窗没有打开').toBeVisible({ timeout: 15_000 })
 
         const permissionsAfterSwitch = page.waitForResponse(
-          response => response.request().method() === 'GET' && response.url().endsWith(`/api${AuthRoutes.PERMISSIONS}`),
+          (response) =>
+            response.request().method() === 'GET' &&
+            response.url().endsWith(`/api${AuthRoutes.PERMISSIONS}`),
         )
 
         // NModal 把内容 teleport 到 body，testid 容器只包住 WForm 的挂载点 —— 单选在
         // 全局 DOM 里按 w-radio 选项点（本仓 naive-ui 的类前缀是 `w-`：w-radio / w-modal /
         // w-button）。label 文本 = 角色名（唯一生成值，不会与中文文案撞）。
-        await page.locator('.w-radio').filter({ hasText: roleBName }).first().click({ timeout: 10_000 })
+        await page
+          .locator('.w-radio')
+          .filter({ hasText: roleBName })
+          .first()
+          .click({ timeout: 10_000 })
         // 表单弹窗与随后的 confirm 都用 naive 的「确定」（app.base.yes）；页面上有实时图表，
         // 按钮会一直被判 element is not stable —— 对同一个 DOM 目标派发原生 click。
         const confirmButtons = page.getByRole('button', { name: '确定', exact: true })
         await confirmButtons.last().evaluate((element) => {
-          (element as HTMLElement).click()
+          ;(element as HTMLElement).click()
         })
         // 第二步确认：dialog.warning 的内容点名目标角色（等它出现再点，避免点到正在关闭的弹窗）
-        await expect(page.getByText(`确定要切换到角色${roleBName}吗？`)).toBeVisible({ timeout: 15_000 })
+        await expect(page.getByText(`确定要切换到角色${roleBName}吗？`)).toBeVisible({
+          timeout: 15_000,
+        })
         await confirmButtons.last().evaluate((element) => {
-          (element as HTMLElement).click()
+          ;(element as HTMLElement).click()
         })
 
         // 5. `/auth/permissions` 重算：权限串翻转
-        const permissionEnvelope = await (await permissionsAfterSwitch).json() as ServerEnvelope<PermissionsPayload>
+        const permissionEnvelope = (await (
+          await permissionsAfterSwitch
+        ).json()) as ServerEnvelope<PermissionsPayload>
         expect(permissionEnvelope.code).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
-        expect(permissionEnvelope.data.permissionStrings, `切换后应含 ${ROLE_B_PERMISSION}`).toContain(ROLE_B_PERMISSION)
-        expect(permissionEnvelope.data.permissionStrings, `切换后不应再有 ${ROLE_A_PERMISSION}`).not.toContain(ROLE_A_PERMISSION)
+        expect(
+          permissionEnvelope.data.permissionStrings,
+          `切换后应含 ${ROLE_B_PERMISSION}`,
+        ).toContain(ROLE_B_PERMISSION)
+        expect(
+          permissionEnvelope.data.permissionStrings,
+          `切换后不应再有 ${ROLE_A_PERMISSION}`,
+        ).not.toContain(ROLE_A_PERMISSION)
 
         // 6. 本设备权限缓存被覆盖成新角色的串（permission.guard 只认这份缓存）
-        await expect.poll(
-          async () => withRedis(redis => readPermissionsCache(redis, user.userId, session.deviceId)),
-          { timeout: 15_000, message: '切换角色后本设备的 AUTH:PERMISSIONS 缓存没有覆盖成新角色' },
-        ).toEqual(expect.arrayContaining([ROLE_B_PERMISSION]))
-        const cached = await withRedis(redis => readPermissionsCache(redis, user.userId, session.deviceId))
+        await expect
+          .poll(
+            async () =>
+              withRedis((redis) => readPermissionsCache(redis, user.userId, session.deviceId)),
+            {
+              timeout: 15_000,
+              message: '切换角色后本设备的 AUTH:PERMISSIONS 缓存没有覆盖成新角色',
+            },
+          )
+          .toEqual(expect.arrayContaining([ROLE_B_PERMISSION]))
+        const cached = await withRedis((redis) =>
+          readPermissionsCache(redis, user.userId, session.deviceId),
+        )
         expect(cached, '旧角色的权限串仍留在本设备缓存里').not.toContain(ROLE_A_PERMISSION)
 
         // 7. 界面：落在 Role 页（index menu = B 的菜单），create 按钮随权限隐藏，旧菜单消失
-        await page.waitForURL(url => url.pathname === '/system/role', { timeout: 30_000 })
-        await expect(page.getByTestId('role-list-table'), 'B 角色下角色表应挂载').toBeVisible({ timeout: 30_000 })
-        await expect(page.getByTestId('role-create-btn'), '没有 system:role:create 时创建按钮应隐藏').toHaveCount(0)
-        await expect(page.locator('[data-testid="sidebar-menu-item"]').filter({ hasText: '用户管理' }), '切换后用户管理菜单应消失').toHaveCount(0)
+        await page.waitForURL((url) => url.pathname === '/system/role', { timeout: 30_000 })
+        await expect(page.getByTestId('role-list-table'), 'B 角色下角色表应挂载').toBeVisible({
+          timeout: 30_000,
+        })
+        await expect(
+          page.getByTestId('role-create-btn'),
+          '没有 system:role:create 时创建按钮应隐藏',
+        ).toHaveCount(0)
+        await expect(
+          page.locator('[data-testid="sidebar-menu-item"]').filter({ hasText: '用户管理' }),
+          '切换后用户管理菜单应消失',
+        ).toHaveCount(0)
 
         // 8. 旧路由不再注册：应用内导航到 /system/user → 404（不是静默空白）
         await navigateInApp(page, '/system/user')
-        await expect(page.getByRole('heading', { name: /^404/ }), '切换角色后 /system/user 应落到 404（路由已注销）').toBeVisible({ timeout: 20_000 })
+        await expect(
+          page.getByRole('heading', { name: /^404/ }),
+          '切换角色后 /system/user 应落到 404（路由已注销）',
+        ).toBeVisible({ timeout: 20_000 })
 
         // 9. 协议侧「切换后」：同一用户重签 AT 后权限串也翻转（服务端语义，不只浏览器）
         const afterPermissions = await permissionsAfterRefresh(client)
-        expect(afterPermissions, `切换后协议侧应含 ${ROLE_B_PERMISSION}`).toContain(ROLE_B_PERMISSION)
-        expect(afterPermissions, `切换后协议侧不应再有 ${ROLE_A_PERMISSION}`).not.toContain(ROLE_A_PERMISSION)
-      }
-      finally {
+        expect(afterPermissions, `切换后协议侧应含 ${ROLE_B_PERMISSION}`).toContain(
+          ROLE_B_PERMISSION,
+        )
+        expect(afterPermissions, `切换后协议侧不应再有 ${ROLE_A_PERMISSION}`).not.toContain(
+          ROLE_A_PERMISSION,
+        )
+      } finally {
         captured.stop()
         await session.context.close()
         await deleteLoginableUser(user)
       }
-    }
-    finally {
+    } finally {
       for (const id of [roleBId, roleAId]) {
         if (id !== '') {
-          await withPg(pg => deleteRoleById(pg, id)).catch(() => {})
+          await withPg((pg) => deleteRoleById(pg, id)).catch(() => {})
         }
       }
     }

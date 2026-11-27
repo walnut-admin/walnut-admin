@@ -49,7 +49,11 @@ export class SysUserIdentityService {
   }
 
   // Get user identity status (like Figure 1)
-  async getStatus(userId: string, purpose: IWalnutAdminConstSysUserIdentityPurpose, em?: EntityManager) {
+  async getStatus(
+    userId: string,
+    purpose: IWalnutAdminConstSysUserIdentityPurpose,
+    em?: EntityManager,
+  ) {
     return this.identitySharedService.getUserIdentityStatus(userId, purpose, em)
   }
 
@@ -100,15 +104,18 @@ export class SysUserIdentityService {
     const identityValue = this.identitySharedService.prepareIdentityValue(type, identifier)
 
     // Step 5: Create identity
-    const result = await this.userIdentityRepoService.createIdentity({
-      userId,
-      type,
-      purpose,
-      ...identityValue,
-      verified: true,
-      verifiedAt: new Date(),
-      metadata: {},
-    }, em)
+    const result = await this.userIdentityRepoService.createIdentity(
+      {
+        userId,
+        type,
+        purpose,
+        ...identityValue,
+        verified: true,
+        verifiedAt: new Date(),
+        metadata: {},
+      },
+      em,
+    )
 
     // Step 6: Handle security identity if needed
     if (setAsSecurity && purpose === 'login') {
@@ -122,7 +129,7 @@ export class SysUserIdentityService {
   private async handleSecurityIdentity(
     userId: string,
     type: IWalnutAdminConstSysUserIdentityType,
-    identityValue: { value: string, valueHash: string, maskedValue: string },
+    identityValue: { value: string; valueHash: string; maskedValue: string },
     em?: EntityManager,
   ) {
     const existingSecurity = await this.userIdentityRepoService.findByUserIdTypeAndPurpose(
@@ -146,15 +153,17 @@ export class SysUserIdentityService {
         securityPayload,
         em,
       )
-    }
-    else {
-      await this.userIdentityRepoService.createIdentity({
-        userId,
-        type,
-        purpose: WalnutAdminConstSysUserIdentityPurpose.SECURITY,
-        ...securityPayload,
-        metadata: {},
-      }, em)
+    } else {
+      await this.userIdentityRepoService.createIdentity(
+        {
+          userId,
+          type,
+          purpose: WalnutAdminConstSysUserIdentityPurpose.SECURITY,
+          ...securityPayload,
+          metadata: {},
+        },
+        em,
+      )
     }
   }
 
@@ -188,19 +197,18 @@ export class SysUserIdentityService {
 
     // Count other verified and active login methods (excluding current one)
     const otherVerifiedLoginMethods = allIdentities.filter(
-      i => i.type !== type
-        && i.purpose === 'login'
-        && i.verified
-        && i.status,
+      (i) => i.type !== type && i.purpose === 'login' && i.verified && i.status,
     )
 
     // Also check if user has another password set（当前解绑的就是 password 时不算兜底）
-    const hasOtherPassword = type !== 'password'
-      && allIdentities.some(i => i.type === 'password' && i.status)
+    const hasOtherPassword =
+      type !== 'password' && allIdentities.some((i) => i.type === 'password' && i.status)
 
     // If no other verified login methods and no password, deny unbind
     if (otherVerifiedLoginMethods.length === 0 && !hasOtherPassword) {
-      throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.auth.unbindAtLeastOneLoginMethodRequired' })
+      throw new WalnutAdminExceptionBadRequest({
+        errMsg: 'business.auth.unbindAtLeastOneLoginMethodRequired',
+      })
     }
   }
 
@@ -244,11 +252,7 @@ export class SysUserIdentityService {
       updatePayload.status = status
     }
 
-    return this.identityBasicRepo.updateByField(
-      { id: existing.id },
-      updatePayload,
-      em,
-    )
+    return this.identityBasicRepo.updateByField({ id: existing.id }, updatePayload, em)
   }
 
   // Update identity status (enable/disable)
@@ -262,11 +266,7 @@ export class SysUserIdentityService {
     const { status } = dto
     const existing = await this.identitySharedService.getIdentityOrThrow(userId, type, purpose, em)
 
-    return this.identityBasicRepo.updateByField(
-      { id: existing.id },
-      { status },
-      em,
-    )
+    return this.identityBasicRepo.updateByField({ id: existing.id }, { status }, em)
   }
 
   // Send verification code to existing unverified identity
@@ -277,7 +277,11 @@ export class SysUserIdentityService {
     language: LocaleType,
   ) {
     // Get decrypted identifier from DB
-    const identifier = await this.identitySharedService.getDecryptedIdentifier(userId, type, purpose)
+    const identifier = await this.identitySharedService.getDecryptedIdentifier(
+      userId,
+      type,
+      purpose,
+    )
 
     // Send verification code
     const otpType = this.identitySharedService.getOtpType(type)
@@ -296,7 +300,12 @@ export class SysUserIdentityService {
 
     // Step 1: Get identity and decrypt identifier
     const existing = await this.identitySharedService.getIdentityOrThrow(userId, type, purpose, em)
-    const identifier = await this.identitySharedService.getDecryptedIdentifier(userId, type, purpose, em)
+    const identifier = await this.identitySharedService.getDecryptedIdentifier(
+      userId,
+      type,
+      purpose,
+      em,
+    )
 
     // Step 2: Verify the verification code
     await this.identitySharedService.verifyOtpCode(type, identifier, verifyCode, userId)

@@ -54,10 +54,10 @@ export interface JourneyUser {
 export async function createJourneyUser(
   root: WalnutProtocolClient,
   prefix: string,
-  options: { roleName?: string, roleId?: string, bindTotp?: boolean } = {},
+  options: { roleName?: string; roleId?: string; bindTotp?: boolean } = {},
 ): Promise<JourneyUser> {
   const roleName = options.roleName ?? 'admin'
-  const roleId = options.roleId ?? await withPg(pg => findRoleIdByName(pg, roleName))
+  const roleId = options.roleId ?? (await withPg((pg) => findRoleIdByName(pg, roleName)))
   const user = await createLoginableUser(root, { userNamePrefix: prefix, roleId })
   const client = await loginAs(user)
   const totpSecret = options.bindTotp === false ? null : await client.bindTotp()
@@ -92,7 +92,7 @@ export async function loginUntilMfaPage(
   await password.press('Enter')
 
   await settlePostLoginCap(page)
-  await page.waitForURL(url => url.pathname === expected, { timeout: 40_000 })
+  await page.waitForURL((url) => url.pathname === expected, { timeout: 40_000 })
 }
 
 /** 新设备 + 完整 UI 登录（CAP + MFA），返回已登录会话（设备已登记给清理 fixture） */
@@ -127,7 +127,9 @@ export function captureSocketFrames(page: Page): string[] {
 
   page.on('websocket', (socket) => {
     socket.on('framereceived', (event) => {
-      frames.push(typeof event.payload === 'string' ? event.payload : event.payload.toString('utf8'))
+      frames.push(
+        typeof event.payload === 'string' ? event.payload : event.payload.toString('utf8'),
+      )
     })
   })
 
@@ -135,9 +137,12 @@ export function captureSocketFrames(page: Page): string[] {
     if (!response.url().includes('/socket/')) {
       return
     }
-    void response.text().then((body) => {
-      frames.push(body)
-    }).catch(() => {})
+    void response
+      .text()
+      .then((body) => {
+        frames.push(body)
+      })
+      .catch(() => {})
   })
 
   return frames
@@ -169,21 +174,26 @@ export async function waitForSocketEvent(
 ): Promise<string> {
   const started = Date.now()
   for (;;) {
-    const hit = frames.find(frame => frame.includes(needle))
+    const hit = frames.find((frame) => frame.includes(needle))
     if (hit !== undefined) {
       return hit
     }
     if (Date.now() - started > timeoutMs) {
-      const context = page === undefined
-        ? ''
-        : `\n${await describeFailureContext(page, snapshotRecentEnvelopes(12))}`
-      const tail = frames.slice(-20).map(frame => `  ${frame.slice(0, 240)}`).join('\n')
+      const context =
+        page === undefined
+          ? ''
+          : `\n${await describeFailureContext(page, snapshotRecentEnvelopes(12))}`
+      const tail = frames
+        .slice(-20)
+        .map((frame) => `  ${frame.slice(0, 240)}`)
+        .join('\n')
       throw new Error(
-        `[e2e/journey] ${Math.round(timeoutMs / 1000)}s 内没等到 socket 事件 ${needle}（${what}）。`
-        + `\n最近 ${Math.min(frames.length, 20)} 条 socket 帧：\n${tail === '' ? '  <一条都没有采集到 —— captureSocketFrames 是否在登录前挂上？>' : tail}${
-          context}`,
+        `[e2e/journey] ${Math.round(timeoutMs / 1000)}s 内没等到 socket 事件 ${needle}（${what}）。` +
+          `\n最近 ${Math.min(frames.length, 20)} 条 socket 帧：\n${tail === '' ? '  <一条都没有采集到 —— captureSocketFrames 是否在登录前挂上？>' : tail}${
+            context
+          }`,
       )
     }
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise((resolve) => setTimeout(resolve, 100))
   }
 }

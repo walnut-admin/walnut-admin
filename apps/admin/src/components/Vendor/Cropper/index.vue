@@ -5,7 +5,16 @@ import { useDebounceFn } from '@vueuse/core'
 import { base64ToBlob } from '@walnut/client/browser/file/base64'
 import { downloadByUrl } from '@walnut/client/browser/file/download'
 import { useBlob } from '@walnut/client/hooks/web/useBlob'
-import { CropperCanvas, CropperCrosshair, CropperGrid, CropperHandle, CropperImage, CropperSelection, CropperShade, CropperViewer } from 'cropperjs'
+import {
+  CropperCanvas,
+  CropperCrosshair,
+  CropperGrid,
+  CropperHandle,
+  CropperImage,
+  CropperSelection,
+  CropperShade,
+  CropperViewer,
+} from 'cropperjs'
 import { customAlphabet } from 'nanoid'
 import { nextTick, ref, shallowRef, useTemplateRef, watchEffect } from 'vue'
 import { useAppI18n } from '@/locales/index'
@@ -50,10 +59,7 @@ const initSelectionData = ref<{
   height: number
 }>()
 
-const {
-  createBlobUrl: createBlobUrlCropper,
-  tempBlobURL: tempBlobURLCropper,
-} = useBlob()
+const { createBlobUrl: createBlobUrlCropper, tempBlobURL: tempBlobURLCropper } = useBlob()
 
 const onSelectionChange = useDebounceFn(async (e: any) => {
   await onGetCropperValue()
@@ -76,11 +82,9 @@ async function onReset() {
 }
 
 async function onScale(scale: number) {
-  if (scale === 1)
-    cropperImageRef.value!.$scale(-1, 1)
+  if (scale === 1) cropperImageRef.value!.$scale(-1, 1)
 
-  if (scale === 2)
-    cropperImageRef.value!.$scale(1, -1)
+  if (scale === 2) cropperImageRef.value!.$scale(1, -1)
 
   await onGetCropperValue()
 }
@@ -117,8 +121,7 @@ async function onGetCropperValue() {
     blobRef.value = blob
     await createBlobUrlCropper(blob)
     blobURL.value = tempBlobURLCropper.value
-  }
-  catch (error) {
+  } catch (error) {
     console.log(error)
   }
 }
@@ -176,7 +179,9 @@ defineExpose({
   <!-- eslint-disable vue/component-name-in-template-casing -->
   <div class="h-full w-full flex items-start justify-center gap-4 p-4">
     <!-- main -->
-    <div class="h-[60vh] max-h-[700px] max-w-[900px] w-[60vw] flex flex-shrink-0 items-center justify-center bg-black">
+    <div
+      class="h-[60vh] max-h-[700px] max-w-[900px] w-[60vw] flex flex-shrink-0 items-center justify-center bg-black"
+    >
       <cropper-canvas background :disabled="disabled" class="h-full w-full">
         <cropper-image
           v-if="src"

@@ -10,13 +10,17 @@ import { googleJwk } from '../google-jwk'
 
 describe('google JWKS 双源一致性', () => {
   it('lib 编译期快照 ≡ app 公开静态副本（逐 key 逐字段）', () => {
-    const publicCopy = JSON.parse(readFileSync(resolve(process.cwd(), 'apps/api/src/public/json/google-jwk.json'), 'utf8')) as { keys: Array<Record<string, unknown>> }
+    const publicCopy = JSON.parse(
+      readFileSync(resolve(process.cwd(), 'apps/api/src/public/json/google-jwk.json'), 'utf8'),
+    ) as { keys: Array<Record<string, unknown>> }
 
     expect(publicCopy.keys.length).toBe(googleJwk.keys.length)
     for (const [index, key] of googleJwk.keys.entries()) {
       const copy = publicCopy.keys[index]
       for (const field of ['kty', 'n', 'e', 'kid', 'use', 'alg']) {
-        expect(copy[field], `keys[${index}].${field} 两源不一致`).toEqual(key[field as keyof typeof key])
+        expect(copy[field], `keys[${index}].${field} 两源不一致`).toEqual(
+          key[field as keyof typeof key],
+        )
       }
     }
   })

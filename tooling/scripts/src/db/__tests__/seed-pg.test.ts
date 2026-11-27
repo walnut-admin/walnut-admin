@@ -51,7 +51,10 @@ describe('uPSERT 语句', () => {
   })
 
   it('junction 表：复合主键 ON CONFLICT DO NOTHING（只补缺不回收）', () => {
-    const sql = buildJunctionInsertSql('sys_user_role', ['user_id', 'role_id'], 1, ['user_id', 'role_id'])
+    const sql = buildJunctionInsertSql('sys_user_role', ['user_id', 'role_id'], 1, [
+      'user_id',
+      'role_id',
+    ])
     expect(sql).toContain('ON CONFLICT ("user_id", "role_id") DO NOTHING')
   })
 
@@ -62,7 +65,13 @@ describe('uPSERT 语句', () => {
 
 describe('resolveColumns（列集校验）', () => {
   it('逐行列集必须一致（不一致会让多行 VALUES 错位）', () => {
-    expect(() => resolveColumns('t', [{ id: 'a', x: 1 }, { id: 'b' }], meta({ columns: ['id', 'x'], requiredColumns: ['id'] }))).toThrow(/列集与首行不一致/)
+    expect(() =>
+      resolveColumns(
+        't',
+        [{ id: 'a', x: 1 }, { id: 'b' }],
+        meta({ columns: ['id', 'x'], requiredColumns: ['id'] }),
+      ),
+    ).toThrow(/列集与首行不一致/)
   })
 
   it('出现 PG 表里没有的列 → 抛（表结构变了就重新导出）', () => {
@@ -70,11 +79,17 @@ describe('resolveColumns（列集校验）', () => {
   })
 
   it('缺 NOT NULL 列 → 抛（不靠 PG 报错猜）', () => {
-    expect(() => resolveColumns('t', [{ id: 'a' }], meta())).toThrow(/缺 NOT NULL 列：created_at, updated_at/)
+    expect(() => resolveColumns('t', [{ id: 'a' }], meta())).toThrow(
+      /缺 NOT NULL 列：created_at, updated_at/,
+    )
   })
 
   it('合法行原样返回列序', () => {
-    expect(resolveColumns('t', [{ id: 'a', created_at: 'x', updated_at: 'y' }], meta())).toEqual(['id', 'created_at', 'updated_at'])
+    expect(resolveColumns('t', [{ id: 'a', created_at: 'x', updated_at: 'y' }], meta())).toEqual([
+      'id',
+      'created_at',
+      'updated_at',
+    ])
   })
 })
 
@@ -84,11 +99,23 @@ describe('orderTablesByFk（装载顺序 = FK 拓扑序）', () => {
     ['sys_locale', meta({ fkRefs: new Map([['lang_id', 'sys_lang']]) })],
     ['sys_menu', meta({ selfRef: 'pid', fkRefs: new Map([['pid', 'sys_menu']]) })],
     ['sys_role', meta({ fkRefs: new Map([['x_role', 'sys_menu']]) })],
-    ['sys_role_menu', meta({ primaryKey: ['role_id', 'menu_id'], fkRefs: new Map([['role_id', 'sys_role'], ['menu_id', 'sys_menu']]) })],
+    [
+      'sys_role_menu',
+      meta({
+        primaryKey: ['role_id', 'menu_id'],
+        fkRefs: new Map([
+          ['role_id', 'sys_role'],
+          ['menu_id', 'sys_menu'],
+        ]),
+      }),
+    ],
   ])
 
   it('父表先于子表；自引用不算环', () => {
-    const ordered = orderTablesByFk(['sys_role_menu', 'sys_locale', 'sys_menu', 'sys_role', 'sys_lang'], metas)
+    const ordered = orderTablesByFk(
+      ['sys_role_menu', 'sys_locale', 'sys_menu', 'sys_role', 'sys_lang'],
+      metas,
+    )
     expect(ordered.indexOf('sys_lang')).toBeLessThan(ordered.indexOf('sys_locale'))
     expect(ordered.indexOf('sys_menu')).toBeLessThan(ordered.indexOf('sys_role'))
     expect(ordered.indexOf('sys_role')).toBeLessThan(ordered.indexOf('sys_role_menu'))
@@ -119,7 +146,13 @@ describe('sortRowsBySelfRefDepth（pid 自引用 FK 的装载序）', () => {
       row('root-2', null),
       row('child-2', 'root-1'),
     ]
-    expect(sortRowsBySelfRefDepth(rows, 'pid').map(item => item.id)).toEqual(['root-1', 'root-2', 'child-1', 'child-2', 'grandchild'])
+    expect(sortRowsBySelfRefDepth(rows, 'pid').map((item) => item.id)).toEqual([
+      'root-1',
+      'root-2',
+      'child-1',
+      'child-2',
+      'grandchild',
+    ])
     // 不改入参
     expect(rows[0].id).toBe('child-1')
   })
@@ -133,13 +166,21 @@ describe('sortRowsBySelfRefDepth（pid 自引用 FK 的装载序）', () => {
   })
 
   it('深链（>2 级）正确展开', () => {
-    expect(sortRowsBySelfRefDepth([row('l3', 'l2'), row('l2', 'l1'), row('l1', null)], 'pid').map(item => item.id)).toEqual(['l1', 'l2', 'l3'])
+    expect(
+      sortRowsBySelfRefDepth([row('l3', 'l2'), row('l2', 'l1'), row('l1', null)], 'pid').map(
+        (item) => item.id,
+      ),
+    ).toEqual(['l1', 'l2', 'l3'])
   })
 })
 
 describe('参数解析', () => {
   it('默认值：仓内 seed 目录、非 dry-run、造 app_key', () => {
-    expect(parseSeedPgArgs([])).toMatchObject({ seedDir: 'apps/server/db/seed', dryRun: false, skipAppKeys: false })
+    expect(parseSeedPgArgs([])).toMatchObject({
+      seedDir: 'apps/server/db/seed',
+      dryRun: false,
+      skipAppKeys: false,
+    })
   })
 
   it('--only 逗号分隔；未知参数抛', () => {

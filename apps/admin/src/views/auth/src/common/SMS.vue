@@ -44,8 +44,7 @@ async function onSignIn() {
 
     // close demonstrate notification
     appStoreNaive.destroyAllNotiInst()
-  }
-  finally {
+  } finally {
     userStoreAuth.setLoading(false)
   }
 }
@@ -54,8 +53,7 @@ async function onSubmit() {
   // eslint-disable-next-line ts/no-use-before-define
   const valid = await validate()
 
-  if (!valid)
-    return
+  if (!valid) return
 
   if (!SMSFormData.agree) {
     useAppMsgWarning(t('app.auth.service.warning'))
@@ -124,8 +122,7 @@ const [register, { validate }] = useForm<typeof SMSFormData>({
           // valid phoneNumber before count down
           const valid = await validate(['identifier'])
 
-          if (!valid)
-            return false
+          if (!valid) return false
 
           userStoreAuth.setLoading(true)
           try {
@@ -135,16 +132,13 @@ const [register, { validate }] = useForm<typeof SMSFormData>({
             })
             userStoreAuth.setLoading(false)
             return true
-          }
-          catch (error) {
+          } catch (error) {
             console.error(error)
             return false
-          }
-          finally {
+          } finally {
             userStoreAuth.setLoading(false)
           }
         },
-
       },
       transitionProp: {
         transitionName: 'fade-down-big',
@@ -168,11 +162,7 @@ const [register, { validate }] = useForm<typeof SMSFormData>({
                 formData.agree = formData.agree ? '' : 'agree'
               }}
             >
-              <NRadio
-                value="agree"
-                checked={formData.agree === 'agree'}
-                size="small"
-              >
+              <NRadio value="agree" checked={formData.agree === 'agree'} size="small">
                 <span class="ml-2 cursor-pointer break-all text-xs text-gray-500">
                   {t('form.app.auth.continue')}
                   <NText
@@ -185,8 +175,7 @@ const [register, { validate }] = useForm<typeof SMSFormData>({
                     }}
                   >
                     {' '}
-                    {t('form.app.auth.sa')}
-                    {' '}
+                    {t('form.app.auth.sa')}{' '}
                   </NText>
                   、
                   <NText
@@ -199,12 +188,10 @@ const [register, { validate }] = useForm<typeof SMSFormData>({
                     }}
                   >
                     {' '}
-                    {t('form.app.auth.pp')}
-                    {' '}
+                    {t('form.app.auth.pp')}{' '}
                   </NText>
                 </span>
               </NRadio>
-
             </div>
           )
         },
@@ -222,23 +209,17 @@ const [register, { validate }] = useForm<typeof SMSFormData>({
       componentProp: {
         textProp: () => (
           <span class="text-light-800">
-            {t('app.base.signin')}
-            {' '}
-            /
-            {t('app.base.signup')}
+            {t('app.base.signin')} /{t('app.base.signup')}
           </span>
         ),
         loading: computed(() => userStoreAuth.getLoading!),
-        disabled: computed(
-          () => !!SMSFormData.agree && userStoreAuth.getLoading!,
-        ),
+        disabled: computed(() => !!SMSFormData.agree && userStoreAuth.getLoading!),
         style: {
           width: '100%',
           fontSize: '18px',
           fontWeight: '900',
         },
-        class:
-            'm-auto uppercase rounded-full !bg-gradient-to-r !from-cyan-500 !to-blue-500',
+        class: 'm-auto uppercase rounded-full !bg-gradient-to-r !from-cyan-500 !to-blue-500',
         onClick: onSubmit,
       },
       transitionProp: {

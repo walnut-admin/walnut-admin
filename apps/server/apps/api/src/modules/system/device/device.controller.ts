@@ -1,16 +1,39 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Post, Req } from '@nestjs/common'
 import { ApiParam, ApiTags } from '@nestjs/swagger'
 import { WalnutAdminGuardJwtFree } from '@walnut-server/auth'
-import { WalnutAdminConstCookieKeys, WalnutAdminConstDeviceCookieMaxAge } from '@walnut-server/const/app/cookie'
-import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
+import {
+  WalnutAdminConstCookieKeys,
+  WalnutAdminConstDeviceCookieMaxAge,
+} from '@walnut-server/const/app/cookie'
+import {
+  WalnutAdminConstDecoratorLogOperateAction,
+  WalnutAdminConstDecoratorLogOperateTitle,
+  WalnutAdminConstDecoratorLogOperateType,
+} from '@walnut-server/const/decorator/logOperate'
 import { AppTechCookieService } from '@walnut-server/cookie'
 import { WalnutCrudDecorators } from '@walnut-server/crud'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 
 import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorThrottle, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
-import { assembleSysDevice, SysDeviceDTOInitialRequest, SysDeviceDTOInitialResponse, SysDeviceDTOListRequest, SysDeviceDTOListResponse, SysDeviceDTOReadResponse, SysDeviceDTOSafe, SysDeviceService, SysDeviceSettingService } from '@walnut-server/system'
+import {
+  WalnutAdminDecoratorHasPermission,
+  WalnutAdminDecoratorThrottle,
+  WalnutAdminGuardCapFree,
+  WalnutAdminGuardDeviceFree,
+  WalnutAdminGuardSignFree,
+} from '@walnut-server/guards'
+import {
+  assembleSysDevice,
+  SysDeviceDTOInitialRequest,
+  SysDeviceDTOInitialResponse,
+  SysDeviceDTOListRequest,
+  SysDeviceDTOListResponse,
+  SysDeviceDTOReadResponse,
+  SysDeviceDTOSafe,
+  SysDeviceService,
+  SysDeviceSettingService,
+} from '@walnut-server/system'
 import { SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 import { WalnutAdminDecoratorOperateLog } from '@/decorators/walnut/log.operate.decorator'
@@ -28,10 +51,7 @@ const Permissions = {
   UNBANNED: 'system:device:unban',
 } as const
 
-const {
-  WalnutAdminDecoratorRead,
-  WalnutAdminDecoratorList,
-} = WalnutCrudDecorators({
+const { WalnutAdminDecoratorRead, WalnutAdminDecoratorList } = WalnutCrudDecorators({
   title: WalnutAdminConstDecoratorLogOperateTitle.DEVICE,
   DTO: SysDeviceDTOSafe,
   // list 行不是完整 SysDeviceDTOSafe：controller 返回的 SysDeviceDTOListResponse 只 pick
@@ -51,7 +71,7 @@ export class SysDeviceController {
   constructor(
     private readonly deviceService: SysDeviceService,
     private readonly cookieService: AppTechCookieService,
-  ) { }
+  ) {}
 
   @Post('initial')
   @HttpCode(HttpStatus.OK)
@@ -106,7 +126,10 @@ export class SysDeviceController {
     DTO: SysUserDTOReadResponse,
   })
   async getCurrentUser(@WalnutAdminDecoratorParamUuid() id: string) {
-    return plainToInstance(SysUserDTOReadResponse, (await this.deviceService.getCurrentActiveUser(id)) ?? {})
+    return plainToInstance(
+      SysUserDTOReadResponse,
+      (await this.deviceService.getCurrentActiveUser(id)) ?? {},
+    )
   }
 
   @Get(':id/history-users')
@@ -126,7 +149,10 @@ export class SysDeviceController {
     isArray: true,
   })
   async getHistoryUsers(@WalnutAdminDecoratorParamUuid() id: string) {
-    return plainToInstance(SysDeviceDTOHistoryUsersResponse, await this.deviceService.getHistoryUsersByDeviceId(id))
+    return plainToInstance(
+      SysDeviceDTOHistoryUsersResponse,
+      await this.deviceService.getHistoryUsersByDeviceId(id),
+    )
   }
 
   @Patch(':id/lock')
@@ -148,10 +174,7 @@ export class SysDeviceController {
     action: WalnutAdminConstDecoratorLogOperateAction.UPDATE,
     operateType: WalnutAdminConstDecoratorLogOperateType.DEVICE_LOCK,
   })
-  async lock(
-    @WalnutTxSession() ctx: WalnutTxContext,
-    @WalnutAdminDecoratorParamUuid() id: string,
-  ) {
+  async lock(@WalnutTxSession() ctx: WalnutTxContext, @WalnutAdminDecoratorParamUuid() id: string) {
     return this.deviceService.lock(id, ctx.em)
   }
 
@@ -200,10 +223,7 @@ export class SysDeviceController {
     action: WalnutAdminConstDecoratorLogOperateAction.UPDATE,
     operateType: WalnutAdminConstDecoratorLogOperateType.DEVICE_BAN,
   })
-  async ban(
-    @WalnutTxSession() ctx: WalnutTxContext,
-    @WalnutAdminDecoratorParamUuid() id: string,
-  ) {
+  async ban(@WalnutTxSession() ctx: WalnutTxContext, @WalnutAdminDecoratorParamUuid() id: string) {
     return this.deviceService.ban(id, ctx.em)
   }
 
