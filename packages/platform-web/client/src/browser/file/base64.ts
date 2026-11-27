@@ -42,7 +42,7 @@ export function blobToBase64(blob: Blob) {
 export function imgUrlToBase64(url: string, mineType = 'image/png') {
   return new Promise<string>((resolve, reject) => {
     const img = new Image()
-    img.crossOrigin = 'Anonymous'
+    img.crossOrigin = 'anonymous'
     img.src = url
 
     img.onload = function () {
