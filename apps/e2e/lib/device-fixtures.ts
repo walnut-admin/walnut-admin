@@ -40,9 +40,8 @@ export interface DeviceSession {
  *
  * **profile 偏移（P1-6）**：第三段按 profile 的 `ipSlot` 偏移（default 1–2、smoke 11–12、
  * risk 21–22、network 31–32、pages 41–42、journey 51–52），公式在 `scripts/stack-profiles.ts`
- * 的 `localIpFor`。必要性在
- * Redis：`risk:rate:ip:<ip>:<分钟>` 是服务端键（同机共享 Redis），只有跨 profile 的 IP 段
- * 不相交，才不会互相吃 4 次/60s 的额度。
+ * 的 `localIpFor`。它保证**同一台机器上多个 profile 的 device/initial 桶**不共用地址；
+ * **不隔离风控 rate 桶**（`normalizeIp` 把 loopback 归一到 127.0.0.1，见 stack-profiles 头注释）。
  */
 /**
  * 每进程从 **pid 偏移**开始分配，而不是固定从 0 开始。

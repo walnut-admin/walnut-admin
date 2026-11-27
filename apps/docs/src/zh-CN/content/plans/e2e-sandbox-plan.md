@@ -1,6 +1,6 @@
 # E2E 沙盒测试工程：分阶段实施计划
 
-> 状态：【进行中——Phase 1 已完成并通过 review 修复；Phase 2 收尾（CI 接线 / risk 矩阵 U11–U16 / review 暂缓项已落地，nightly 首跑待 GitHub runner）；Phase 3 进行中（R4 落地菜单 / 角色 / 设置模块 spec、auth 面矩阵与 1 个 mobile 设备 profile；i18n / 回收站 / 操作日志与 worker 账号池未做；部署后 smoke 按所有者决定挂起）】2026-11-24 立项。前期设计与可行性结论记录在本文；**前期设计稿本身未入库**（对话产物），本文是它入库后的唯一真源。
+> 状态：【进行中——Phase 1 已完成并通过 review 修复；Phase 2 收尾（CI 接线 / risk 矩阵 U11–U16 / review 暂缓项已落地，nightly 首跑待 GitHub runner）；Phase 3 进行中（R4 落地菜单 / 角色 / 设置模块 spec、auth 面矩阵与 1 个 mobile 设备 profile；E4 落地 pages 页面可达链；E5' 落地 journey J1–J10（锁屏 / socket 强踢 / WebAuthn / 权限 / 角色 / 回收站 / MFA 强制绑定 TOTP）；i18n / 操作日志模块 spec 与 worker 账号池未做；部署后 smoke 按所有者决定挂起）】2026-11-24 立项。前期设计与可行性结论记录在本文；**前期设计稿本身未入库**（对话产物），本文是它入库后的唯一真源。
 > **2026-11-25 追记**：U8 / U9 flake 的核心修复已在提交 `b21ac118` 落地（删 `networkidle` 无超时等待、新增 `waitForDeviceHealSettled`、自愈后识别并关闭 CAP、点击补 30s 上限），即 §8.3 的 P2-7 核心项；其后 `5067b4aa`（契约 bridge、常量收口、knip 清理＝P2-9 / P2-10 / P2-11）、`18dcc9c6`（CAP PoW 上界与静态代理加固＝P2-16 / P2-17）、`d720c0d3`（慢用例 `test.slow()`＝P2-15）也已落地。Phase 2 的 CI 接线、risk 矩阵 U11–U16 与其余项仍未开始，因此状态行不改为「已完成」。工程细化与优先级见 [apps/e2e 改造优化方案](./e2e-optimization-plan.md)。
 > **2026-11-26 追记（Phase 2 收尾）**：§8.2 的 risk 矩阵 U11–U16 已按用例表落地（7 条用例：U11 / U12 / U13 / U13b / U14 / U15 / U16），全量 20 例 229.4s、风险子集 16 例 192.4s、`e2e:network` 2/2 19.1s（均为本机 WSL 栈单次读数）；每条核心断言都有「改坏 → 红 → 还原」的负对照记录。U13 用例表与守卫链有一处口径分歧（40111 与 CAP 对话框分属两条路径），逐条写在 §8.5。Phase 2 仍差 nightly 工作流首跑（需 GitHub runner）。
 > **定位**：把全链路 E2E 从一次性可行性验证推进成一个长期能跑的测试工程 —— 独立 workspace 包、独立数据栈、可复现的测试数据版本，以及后续的 CI 接线与用例矩阵。本篇是执行蓝图，也是 Phase 1 的实施记录。
@@ -91,7 +91,7 @@ PR 的 quality 已经约 30 分钟，且 fork PR 没有 secrets。做法：**nig
 |------|------|------|------------------|------|
 | 1 | 包与数据栈、设备生命周期用例、封板、命令表入口 | 无 | 能（WSL 常驻栈） | 已完成（2026-11-25） |
 | 2 | CI 接线、risk 矩阵补全、review 暂缓项 | 1 | **部分**：nightly 与 artifact 的行为要等 GitHub runner 首跑 | Phase 2 收尾（2026-11-26）：CI 工作流与 nightly artifact 口径已落地、risk 矩阵 U11–U16 已落地、review 的 P2 暂缓项全部关闭（P2-5 的永真断言与 `waitForTimeout` 已清零）；**未完成**：nightly 工作流首跑（需 GitHub runner，本地无法验证） |
-| 3 | 其余模块 spec、设备 profile 矩阵、部署后 smoke | 2 | **部分**：独立 sandbox 部署要主机 / 域名 / 证书 | 未开始 |
+| 3 | 其余模块 spec、设备 profile 矩阵、部署后 smoke | 2 | **部分**：独立 sandbox 部署要主机 / 域名 / 证书 | **进行中**（2026-11-27）：模块 spec（菜单 / 角色 / 设置）、mobile device profile、**pages 页面可达链（E4）**与 **journey J1–J10（E5'：锁屏 / socket 强踢 / WebAuthn / 权限 / 角色 / 回收站 / MFA 强制绑定 TOTP）**已落地；i18n / 操作日志模块 spec 与 worker 账号池未做；部署后 smoke 按所有者决定挂起 |
 
 ## 4. 通用纪律（每个实施 agent 必读）
 
@@ -299,7 +299,9 @@ pnpm walnut build:docs
 ### 改动清单
 
 1. **其余模块 spec**：菜单 / 角色 / 设置 / i18n / 回收站 / 操作日志 —— 每条先问「它能不能在这一层被测」，能就别只补接口测试。
-   **R4 已落地**菜单 / 角色 / 设置（见 §9.1）；i18n / 回收站 / 操作日志未做。
+   **R4 已落地**菜单 / 角色 / 设置（见 §9.1）；**E5' 已落地回收站闭环**（J9：软删进
+   `sys_deleted` → 搜到 → 恢复 → 再删后真删）；i18n / 操作日志模块 spec 未做（i18n 的语言 /
+   字典页在 pages 可达链里只覆盖挂载与首屏数据，不做文案切换语义）。
 2. **auth 面**：MFA（绑定 / 解绑 / 恢复码）、会话（多设备在线 / 踢下线）、登出。
    **R4 已落地**：MFA 未绑定 / 已绑定未验证 / 备用码（恢复码）/ 解绑后重绑、多设备在线 + 踢下线、主动登出（见 §9.1）。
 3. **设备 profile 矩阵**：**1 个 mobile profile 起步**。本仓的 risk 不消费浏览器指纹（设备身份是服务端 cookie，见 1.2），所以**不铺全矩阵** —— 铺了只是给同一条逻辑多跑几遍。
@@ -312,10 +314,12 @@ pnpm walnut build:docs
 > **2026-11-25 追记**：并行 / 账号池的工程前置设计（Phase A「stack-per-project」：profile、端口、锁、CI matrix 与失败隔离）已完成，见 [apps/e2e 改造优化方案](./e2e-optimization-plan.md) 的 P1-6；Phase B（per-worker）仍暂缓、不排期。
 >
 > **2026-11-26 追记（Phase A 已实施）**：P1-6 Phase A 的「stack-per-profile」已落地 ——
-> `E2E_STACK_PROFILE=smoke|risk|network` 各用独立库（`walnut_e2e_<p>`）、偏移端口（3101–3103 /
-> 3011–3013 / 4181–4183）、`.e2e/<p>/` 基线与不相交的 IP 段；nightly 演进为三 job 并行 matrix
-> （`fail-fast: false`）。这是 Phase 3 新增模块用例的**承载方式**：新用例只要落在某个 project，
-> 就自动获得独立的库与端口；但单 project 内的 worker 并发（Phase B / worker 账号池）仍显式暂缓。
+> `E2E_STACK_PROFILE=smoke|risk|network|pages|journey` 各用独立库（`walnut_e2e_<p>`）、偏移端口
+> （3101–3105 / 3011–3015 / 4181–4185）、`.e2e/<p>/` 基线；nightly 演进为 prepare + 五 job 并行
+> matrix（`fail-fast: false`）。这是 Phase 3 新增模块用例的**承载方式**：新用例只要落在某个
+> project，就自动获得独立的库与端口；但**IP 段只隔离 `device/initial` 的节流桶**，风控
+> `risk:rate:ip:*` 因 loopback 归一共享（见优化页 R-D 修正），本地多 profile 仍须串行；
+> 单 project 内的 worker 并发（Phase B / worker 账号池）仍显式暂缓。
 
 ### 验证
 
@@ -423,6 +427,26 @@ M5 踢下线 40101、M6 登出 40101、mobile 视口宽度。
    42900（新增模块 spec 后首次复现）。修法：`uniqueLocalIp` 从 **pid 偏移**起步 +
    `bootstrap` 命中 42900 时**换地址重放**（≤8 次，不 sleep）。见 `apps/e2e/AGENTS.md` 不变量 4。
 9. **部署后 smoke 挂起**：无主机 / 域名 / 证书资源，所有者已拍板不做；本批不产生任何相关设计。
+
+### 9.2 结果记录（2026-11-27，E4 / E5'：页面可达链 + 跨端旅程）
+
+**E4（pages）**：`tests/pages/reachability.spec.ts` 覆盖调研报告 §1.1 的侧边栏业务页全集，
+按路由分 6 条链；每页断言 URL 无重定向 / 组件挂载 / 首屏主数据 `20000`；`/demo/table/base`
+的已知 seed 漂移用 `test.fixme` 留复现。落地与逐例读数见
+[E2E 改造优化方案](./e2e-optimization-plan.md) 的 E4 记录。
+
+**E5'（journey）**：`tests/journey/` 从 1 个 spec 扩到 7 个（J1–J10）——
+锁屏闭环 J1–J4、socket 强踢 J5、WebAuthn J6、权限可见性 J7（J7b 是已知缺陷的 fixme）、
+角色切换 J8、回收站 J9、**MFA 强制绑定 TOTP J10**（新用户 `mfa_setup=false` →
+`/mfa-required` 扫码 → 6 位码绑定 → 备用码 10 枚 → `/auth/mfa/verify` → 进系统）。
+落地、负对照与读数见同一篇的 E5' 记录；J10 补齐了 Top 10 的 #8（此前只有 WebAuthn 的 UI 腿，
+TOTP 的强制绑定弹窗零覆盖）。
+
+**用例数口径**：本页与优化页里的例数都是**当时的运行快照**，不是常量。default 面 =
+`smoke + risk + network + mobile` 四个 project；精确数以 `playwright test --list` 为准。
+
+**提交**：E4 与 E5' 分别见 `git log --grep 'pages'` / `git log --grep 'journey'`；本节的
+事实修正与 R-C/R-D 修复批见同批 `docs` 提交。
 
 ## 10. 相关文档
 

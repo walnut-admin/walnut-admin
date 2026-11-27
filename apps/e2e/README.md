@@ -3,7 +3,9 @@
 真实浏览器 × 真实后端进程（stage 产物）× **独立** PostgreSQL / Redis 栈的跨端测试。
 这一层不测单元逻辑（那是各包 vitest 的事），只测跨端链路：设备身份签发与续期、CAP 挑战、
 签名握手、风控拦截、登录 / 首页 / 用户 CRUD，以及 Phase 3 起的模块链路（菜单 / 角色 / 设置与
-权限生效）、auth 面矩阵（MFA 绑定态 / 会话 / 登出）和 mobile（Pixel 7）布局。
+权限生效）、auth 面矩阵（MFA 绑定态 / 会话 / 登出）和 mobile（Pixel 7）布局。扩面批次另有
+全站页面可达链（`tests/pages/`）与 socket / 锁屏 / 权限 / 角色 / 回收站 / MFA 强制绑定旅程
+（`tests/journey/`，J1–J10）。
 
 数据栈与 dev **物理隔离**：独立端口（5433 / 6380，dev 是 5432 / 6379）+ 独立库（默认
 `walnut_e2e`；`smoke` / `risk` / `network` / `pages` / `journey` profile 各用 `walnut_e2e_<profile>`）。
@@ -28,17 +30,21 @@ fail-fast（退出码 2）。`default` 的值与改造前逐字相同。
 
 - profile 与 Playwright project 同名 1:1（`default` 没有同名 project，它就是本地全量）；
   命名 profile 只允许跑同名 project —— `run.ts` 会机械拒绝 `E2E_STACK_PROFILE=smoke --project=risk`。
-- `pages` / `journey` 是扩面批次（E4 / E5）的 profile：目录 `tests/pages/`、`tests/journey/` 已建。
-  `journey` 已由 L2 落地 `tests/journey/lock.spec.ts`（J1–J4 锁屏闭环）；`pages` 已由 E4 落地
-  `tests/pages/reachability.spec.ts`（18 个侧边栏业务页的可达链，6 条用例；project 依赖
-  `auth-setup → stack-setup`，复用 worker 级 `authedPage`，不产出 storageState）。
-  `pages` 里 `/demo/table/base` 的已知 seed 漂移用 `test.fixme` 留复现，见该目录 README。
+- `pages` / `journey` 是扩面批次（E4 / E5'）的 profile：目录 `tests/pages/`、`tests/journey/` 已落地。
+  `pages` 覆盖调研报告 §1.1 的侧边栏业务页全集（按路由分 6 条链；project 依赖 auth-setup，
+  复用 worker 级 `authedPage`，不产出 storageState）；`journey` 是锁屏（J1–J4）、socket 强踢、
+  WebAuthn、权限可见性、角色切换、回收站、MFA 强制绑定 TOTP（J5–J10）的跨端旅程。
+  用例数不写死：**精确数以 `playwright test --list` 为准**，default 面口径是
+  `smoke + risk + network + mobile` 四个 project。`pages` 里 `/demo/table/base` 的已知 seed
+  漂移用 `test.fixme` 留复现，见该目录 README。
 - **本地多 profile 仍串行**（不变量 6）：`run.ts` 先抢全局锁、再抢 profile 锁；第二个 profile
   在第一步等全局锁，120s 抢不到就报持锁者退出。profile 锁不是并发通行证。
 - **Redis 不加前缀、也不换逻辑库**（设计结论）：键形由 server 拥有；设备清理按 deviceId 精确删；
-  跨 profile 共享的全局键由同一份基线数据派生。同机共享 Redis 时防串桶靠的是 **IP 段不相交**
-  （风控的 `risk:rate:ip:*` 是 Redis 键）。将来要本地并发 profile，先加**每 profile 一个 Redis
-  实例**，不是键前缀。
+  跨 profile 共享的全局键由同一份基线数据派生。**IP 段隔离的真实边界**：它只隔离
+  `device/initial` 的 per-realIp 节流桶；风控的 `risk:rate:ip:*` 与 `risk:ip_blacklist` 会被
+  `normalizeIp` 把所有 loopback 归一成 `127.0.0.1`（同机共享 Redis 时所有 profile 计入同一组桶），
+  **不隔离** —— 所以本地多 profile 仍必须串行；将来要并发，先加**每 profile 一个 Redis 实例**，
+  不是键前缀。
 - `.env.e2e` 固定路径约束：`apps/server/env-local/.env.e2e` 是 typeorm CLI 的固定通道，同一个
   checkout 上不能并发两个 profile 的 prepare —— 本地靠全局锁串行，CI 每个 job 独立 checkout。
 - **`mobile` 不是 stack profile**：它是 Playwright 的 device profile（Pixel 7 视口 / UA），
@@ -172,8 +178,9 @@ docker compose -f apps/e2e/docker-compose.yml down -v
 ## 运行
 
 ```bash
-pnpm walnut e2e         # 全量：preflight → 基线决策（restore / prepare+seal）→ stack-info → 全部 spec（含 @network）
-pnpm walnut e2e:smoke   # 冒烟子集（setup + 首页 / 登录 / 用户 CRUD）
+pnpm walnut e2e         # 全部 5 个 project（default 面 + pages + journey；10 分钟级，启动时会提示）
+pnpm walnut e2e:default # 日常验收：smoke + risk + network + mobile 四 project（不让 pages/journey 拖长反馈）
+pnpm walnut e2e:smoke   # 冒烟子集（setup + 首页 / 菜单 / 角色 / 设置 / 用户 CRUD）
 pnpm walnut e2e:risk    # 设备 ID 全生命周期（不含 @network）
 pnpm walnut e2e:network # 只跑依赖真实外网的用例（当前是 U1b：api.ip.sb 的定位）
 E2E_STACK_PROFILE=smoke pnpm walnut e2e   # 在 smoke profile（独立库 / 端口 / 基线）上跑同名 project
@@ -183,8 +190,11 @@ pnpm walnut e2e:stack:status # 数据栈状态（容器 / PG·Redis 可达 / 当
 pnpm walnut e2e:clean   # 清理 .e2e 调试文件（dry-run 默认，--force 真删；保留各 profile 的基线）
 ```
 
-包脚本只是把参数交给 `scripts/run.ts`（`e2e:smoke` = `node scripts/run.ts --project=smoke`），
+包脚本只是把参数交给 `scripts/run.ts`（`e2e:smoke` = `node scripts/run.ts --project=smoke`，
+`e2e:default` = `--project=smoke --project=risk --project=network --project=mobile`），
 额外参数原样透传给 Playwright，例如 `pnpm --filter @walnut/e2e e2e -g "登录"`。
+**裸 `e2e` 是全量 5 个 project**（含 pages / journey），启动时打印耗时提示；日常用 `e2e:default`。
+用例数以 `pnpm --filter @walnut/e2e exec playwright test --list` 为准，文档不写死。
 
 依赖外网的用例带 `@network` **tag**（写法见下面「标签与选择性执行」）：`risk` project 用
 `grepInvert` 排除它们，`network` project 只收它们。**离线口径（2026-11-25 起成立）**：
@@ -264,9 +274,10 @@ pnpm --filter @walnut/e2e e2e -- --ui      # 等价的包内写法（经 pnpm �
 |-----|------|----------|
 | `@smoke` | 冒烟 | 首页只读、缓存清空、用户 CRUD、菜单 / 角色 / 设置模块 spec |
 | `@risk` | 设备 / 风控 / auth 面 | 设备 ID 生命周期整组、risk 矩阵 U11–U16、auth 面矩阵（MFA / 会话 / 登出） |
-| `@pages` | 页面扩面（pages profile） | 18 个侧边栏业务页的可达链（`tests/pages/`） |
+| `@pages` | 页面扩面（pages profile） | 侧边栏业务页全集的页面可达链（`tests/pages/`，按路由分 6 条链） |
+| `@journey` | 跨端旅程（journey profile） | 锁屏 J1–J4、socket 强踢 J5、WebAuthn J6、权限 J7、角色 J8、回收站 J9、MFA 强制绑定 TOTP J10（`tests/journey/`） |
 | `@mobile` | mobile 设备 profile | Pixel 7 登录页布局（`tests/mobile/`，默认全量跑） |
-| `@slow` | 慢用例（同时有 `test.slow()`） | 两条「回填 created_at」 |
+| `@slow` | 慢用例（同时有 `test.slow()`） | 两条「回填 created_at」+ 敏感验证 S1/S2（共机噪声余量） |
 | `@network` | 依赖真实外网 | U1b（api.ip.sb 定位） |
 | `@quarantine` | 隔离（默认不执行，见下） | `quarantine.json` 里登记的用例 |
 
@@ -329,7 +340,7 @@ git 读取与执行在 `scripts/affected.ts`。
 重新跑对，而且「这一轮用的测试数据是什么版本」没有记录。现在的默认是 **seal 一次、restore 每轮**，
 实现全在 `apps/e2e/scripts/baseline.ts`：
 
-- **seal（封板）**：全量准备（迁移 + seed + 把 admin 提升为 root + 放宽 CAP 节流）跑完后，
+- **seal（封板）**：全量准备（迁移 + seed + 把 admin 提升为 root + 放宽 CAP 节流与难度）跑完后，
   用数据栈容器里的 `pg_dump -Fc` 把**当前 profile 的库**导出成基线文件，随后写封板清单与口令文件。
   三个文件**先各写临时文件，再原子 rename**（提交时先撤旧清单）—— 中途失败 / 被 kill 不会留下
   「新 dump + 旧清单」；留下的「没有清单」状态会被下一轮识别成半成品并拒绝使用；
@@ -445,7 +456,7 @@ E2E_REDIS_GC=0 pnpm walnut e2e      # 关掉 run 流程里的自动对账
 ## 复用已在监听的进程（`E2E_REUSE_SERVER=1`）
 
 默认**不复用**：后端端口上残留的进程里缓存了一份应用设置 memo，而库每轮都会重建（全量 prepare
-或从基线 restore，含放宽后的 CAP 节流读），复用它就会读到上一个库的状态；静态代理端口上残留的
+或从基线 restore，含放宽后的 CAP 节流 / 难度读），复用它就会读到上一个库的状态；静态代理端口上残留的
 服务也可能伺服旧产物。只有明确知道「这些端口上跑的就是本轮产物」时才用 `E2E_REUSE_SERVER=1`
 打开复用。
 
@@ -464,12 +475,13 @@ E2E_REUSE_SERVER=1 pnpm walnut e2e:smoke
 ## CI 形态（nightly）
 
 `.github/workflows/e2e.yml`：每天 UTC 19:00（北京 03:00）+ 手动 dispatch，**不进 PR**。
-**matrix 五 job 并行**（`smoke` / `risk` / `network` / `pages` / `journey`，`fail-fast: false`）：
-每个 job 独立 checkout + 独立 services（PG 18 / Redis 8，端口与凭据同 `scripts/stack-profiles.ts`），
-`E2E_STACK_PROFILE` 决定库 / 端口 / 基线目录，`--project=<profile>` 与 profile 同名 1:1。
-一个 job 红不影响其余 job。**`journey` 与 `pages` 的 spec 都已落地**（L2 锁屏闭环、E4 全站
-页面可达链）；`pages` 的空 project 不再是预期红项。前三个 job 的并集仍是本地全量
-`pnpm walnut e2e` 的覆盖面之一；机器时间约 1× 构建 + 5× 测试，墙钟取最慢 profile + 固定开销。
+**prepare job 构建一次 + matrix 五 job 并行**（`smoke` / `risk` / `network` / `pages` / `journey`，
+`fail-fast: false`）：每个 job 独立 checkout + 独立 services（PG 18 / Redis 8，端口与凭据同
+`scripts/stack-profiles.ts`），`E2E_STACK_PROFILE` 决定库 / 端口 / 基线目录，`--project=<profile>`
+与 profile 同名 1:1。一个 job 红不影响其余 job。**`journey` 与 `pages` 的 spec 都已落地**
+（锁屏 / socket / WebAuthn / 权限 / 角色 / 回收站 / MFA TOTP 旅程、全站页面可达链），空 project
+不再存在。前三个 job 覆盖改造前的 default 面，pages / journey 是扩面批次；机器时间约
+1× 构建 + 5× 测试，墙钟取 prepare + 最慢 profile + 固定开销。
 
 CI 走**基线路径**：每个 profile 的封板三件套由 `actions/cache` 跨 run 缓存，key =
 `e2e-baseline-<profile>-v<清单格式版本>-<dataKey>`（`node apps/e2e/scripts/data-key.ts --cache-key`
@@ -477,9 +489,12 @@ CI 走**基线路径**：每个 profile 的封板三件套由 `actions/cache` �
 ⇒ 全量 prepare + seal，job 成功后缓存自动保存。**`.env.e2e` 固定路径在 CI 无影响**（每个 job 独立
 checkout）；同一 job 内不会并发两个 profile 的 prepare。
 
-artifact 只保留 junit / `results.json` / 脱敏后的 `backend.log` / `stack.json` / 基线清单，名字带
-profile（`e2e-diagnostics-<profile>`）—— trace、截图、HTML 报告不上传（不变量 8）。细节看
-workflow 文件头与优化文档 P1-6 的落地记录。
+**诊断 artifact 只保留五样**：junit / `results.json` / 脱敏后的 `backend.log` / `stack.json` /
+基线清单，名字带 profile（`e2e-diagnostics-<profile>`）—— trace、截图、HTML 报告不上传
+（不变量 8）。上传步骤带 `steps.redact.outcome == 'success'` 闸门：脱敏失败宁可不传（宁可少
+artifact，不可泄露）。另有一个**非诊断** artifact：prepare 的 `e2e-stage-bundle`（前端
+`dist-staging` + 后端 `dist-stage` + 两个 workspace CJS dist），只做跨 job 构建产物中转、
+保留 1 天、不含 `env-local` 与密钥。细节看 workflow 文件头与优化文档 P1-6 的落地记录。
 
 ## 排障
 

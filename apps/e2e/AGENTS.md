@@ -8,6 +8,8 @@
 真实浏览器 × 真实后端进程（stage 产物）× **独立** PostgreSQL / Redis 栈（5433 / 6380）。不测单元逻辑（各包 vitest 的事），只测跨端链路：设备身份签发与续期、CAP、
 签名握手、风控拦截、登录 / 首页 / 用户 CRUD，以及 Phase 3 起的模块链路（菜单 / 角色 / 设置与
 权限生效）、auth 面矩阵（MFA 绑定态 / 会话 / 登出）与 mobile（Pixel 7）布局。
+扩面批次（E4 / E5'）另有：全站页面可达链（`tests/pages/`）、锁屏闭环（J1–J4）、socket 强踢 /
+WebAuthn / 权限可见性 / 角色切换 / 回收站 / **MFA 强制绑定 TOTP**（J5–J10，`tests/journey/`）。
 
 **stack profile（P1-6 Phase A）**：库名 / 后端·socket·静态代理端口 / 基线目录 / IP 段由
 `scripts/stack-profiles.ts` 的 profile 表决定（单一真源，`default` 与改造前逐字相同）：
@@ -24,9 +26,10 @@ project 会被 `run.ts` 拒绝。注意 `mobile` 是 **device profile**（Pixel 
 不是 stack profile —— 它共用 default 栈、不参与 `E2E_STACK_PROFILE` 与 nightly matrix。本地多
 profile 仍串行（全局锁），CI 每个 job 独立 runner / checkout。
 
-编排入口只有一个：`scripts/run.ts`（包脚本 `e2e` / `e2e:smoke` / `e2e:risk` / `e2e:network`
-都走它）。顺序是**硬约束**：抢 run 级锁 → `scripts/preflight.ts` → 基线决策（`ensureTestDatabase`，
-在 `scripts/baseline.ts`：restore 或全量 prepare + seal）→ `stack-info` → `playwright test`。
+编排入口只有一个：`scripts/run.ts`（包脚本 `e2e` / `e2e:default` / `e2e:smoke` / `e2e:risk` /
+`e2e:network` 都走它）。顺序是**硬约束**：抢 run 级锁 → `scripts/preflight.ts` → 基线决策
+（`ensureTestDatabase`，在 `scripts/baseline.ts`：restore 或全量 prepare + seal）→ **Redis 设备键对账**
+（`scripts/redis-gc.ts`，`E2E_REDIS_GC=0` 可关；失败只告警）→ `stack-info` → `playwright test`。
 
 ## 前置命令（缺一项就按退出码 2 失败）
 
@@ -51,8 +54,9 @@ powershell -NoProfile -Command "Start-Process wsl.exe -ArgumentList @('-d','Ubun
 ## 命令
 
 ```bash
-pnpm walnut e2e           # 全量（含 @network）；默认从基线 restore，没有基线时全量 prepare 并封板
-pnpm walnut e2e:smoke     # 冒烟：setup + UI 登录 / 首页 / 用户 CRUD
+pnpm walnut e2e           # 全部 5 个 project（default 面 + pages + journey，10 分钟级；启动时会提示）
+pnpm walnut e2e:default   # 日常验收：smoke + risk + network + mobile 四 project（约 5 分钟级）
+pnpm walnut e2e:smoke     # 冒烟：setup + 首页 / 菜单 / 角色 / 设置 / 用户 CRUD
 pnpm walnut e2e:risk      # 设备生命周期（不含 @network）
 pnpm walnut e2e:network   # 只跑 @network（依赖真实外网）
 E2E_STACK_PROFILE=smoke pnpm walnut e2e   # 在 smoke profile（独立库 / 端口 / 基线）上跑同名 project
@@ -124,8 +128,11 @@ pnpm --filter @walnut/e2e lint && pnpm --filter @walnut/e2e types:check
 4. **`POST /system/device/initial` 是 4 次 / 60 秒 per realIp**：每条用例、每个协议客户端都要一个
    独立的 127/8 地址（`uniqueLocalIp()`）。共用 127.0.0.1 会让第 5 台设备登记撞 42900。
    **每个 profile 用独立的第三段**（`stack-profiles.ts` 的 `localIpFor`：default 1–2、smoke 11–12、
-   risk 21–22、network 31–32、pages 41–42、journey 51–52）—— 风控的 `risk:rate:ip:*` 是 Redis 键，
-   同机共享 Redis 时只有 IP 段不相交才不会串桶。改公式要同时改单测的「跨 profile 不重叠」断言。
+   risk 21–22、network 31–32、pages 41–42、journey 51–52）。**IP 段隔离的真实边界**：它只隔离
+   `device/initial` 的 per-realIp **节流桶**；风控的 `risk:rate:ip:*` 与 `risk:ip_blacklist` 会被
+   `normalizeIp` 把所有 loopback 归一成 `127.0.0.1`（同机共享 Redis 时所有 profile 计入同一组桶），
+   **不隔离**。所以本地多 profile 仍必须串行（不变量 6）；将来要并发先加每 profile 一个 Redis 实例。
+   改公式要同时改单测的「跨 profile 不重叠」断言。
    **同一 profile 内也别假设序号跨文件连续**：Playwright 每个 spec 文件是独立 worker，模块级
    序号会重置。`uniqueLocalIp()` 从 **pid 偏移**起步，`bootstrap()` 命中 42900 会**换地址重放**
    （≤8 次，不 sleep）—— 新增 spec 一律走它，别在用例里手写 IP。
@@ -146,8 +153,9 @@ pnpm --filter @walnut/e2e lint && pnpm --filter @walnut/e2e types:check
    别再加 `auth.setup` 的写盘、别在 project 上挂 `storageState` —— 坏状态会把应用卡在 splash。
 8. **trace / 截图 / HTML 报告含请求头与响应体**（token、cookie）：只留本机，**不许上传任何
    公开位置**。
-9. **CAP 节流与设备目录的「放宽」只改库**：全量 prepare 时把 `capjs.config.throttleLimit` 调大
-   （仅本栈库的设置行），restore 继承快照里的这个值。别把测试专用的放宽写进源码。
+9. **CAP 放宽与设备目录的「放宽」只改库**：全量 prepare 时把 `capjs.config.throttleLimit` 调大、
+   `difficulty` 降到 2（仅本栈库的设置行；生产零影响，E2E 仍完整走 CAP 协议），restore 继承快照里
+   的这个值。别把测试专用的放宽写进源码。
 10. **设备清理归 fixture**（`tests/fixtures.ts` 的两个 auto fixture）：新造的设备要 `trackDevice`，
     别在用例末尾手写 `cleanupDevices(...)` —— 断言失败时那几行根本不会执行。
 11. **非 root 可登录账号只经 `lib/account-fixtures.ts` 造**：管理端没有「建号 + 口令」的单端点

@@ -71,3 +71,6 @@ is the correct chain per industry standard (see [行业调研：测试体系](..
   junit / json / 脱敏后的后端日志 / `stack.json` / 基线清单；trace、截图、HTML 报告不上传
   （`apps/e2e/AGENTS.md` 不变量 8）。分层不变：PR 只放快而可靠的门禁，全量回归由 nightly 与手动
   dispatch 承担。
+  **2026-11-27 追记（形态已演进）**：上面「跑全量 `pnpm walnut e2e`」是当时的单 job 形态；现在
+  是 **prepare job 构建一次 + matrix 五 job**（`smoke` / `risk` / `network` / `pages` / `journey`，
+  各跑 `--project=<profile>`），artifact 上传另加「脱敏成功才传」的闸门。分层结论不变。

@@ -4,8 +4,8 @@
  * 并行单元是 **stack profile**，不是 Playwright worker：每份 profile 有独立的库、后端 / socket /
  * 静态代理端口、IP 段与基线目录。`default` 保持今天的行为逐字不变（库 `walnut_e2e`、
  * 3001 / 3002 / 4173、基线在 `.e2e/` 根）；`smoke` / `risk` / `network` 各用一套偏移端口与
- * `.e2e/<profile>/` 基线目录；`pages` / `journey` 是扩面批次（E4 / E5）的 profile，继承同一套
- * 槽位公式（端口 3104 / 3105 起，IP 槽位 4 / 5），spec 落地前同名 project 为空跑。
+ * `.e2e/<profile>/` 基线目录；`pages` / `journey` 是扩面批次（E4 / E5'）的 profile，继承同一套
+ * 槽位公式（端口 3104 / 3105 起，IP 槽位 4 / 5），对应 spec 已落地。
  *
  * 选择方式只有环境变量 `E2E_STACK_PROFILE`（不设 = `default`），**只选 profile，不开放端口 /
  * 库名的独立覆盖** —— 任意覆盖会让 `assertE2eDatabase` 那层安全闸失去意义。未知值 **fail-fast**
@@ -23,11 +23,17 @@
  * 3. 会跨 profile 共享的只有全局键（`WALNUT_CACHE_APP:SETTING` / `APP:SETTING`），它们的值由同一份
  *    基线数据派生；本地串行、CI 每个 job 独立 Redis service，当前不存在「两个 profile 同时写一个
  *    Redis」的场景。
- * 4. 风控的 `risk:rate:ip:<ip>:<分钟>` 是 Redis 键：同机共享 Redis 时，**只有 IP 段不相交**才不会
- *    串桶 —— 这就是 {@link localIpFor} 按 profile 偏移第三段的原因（每个 profile 两个 /24）。
- *
- * 将来若要本地并发 profile，先加**每 profile 一个 Redis 实例**（端口再分配），而不是键前缀 ——
- * 服务端没有逻辑库配置项（`APP_REDIS_*` 只到 host / port / pass）。
+ * 4. **IP 段隔离的真实边界（R-D 实测修正，别读成「风控桶也隔离」）**：
+ *    - 隔离成立的是 `POST /system/device/initial` 的 **throttler**（4 次 / 60s per **raw**
+ *      realIp，进程内桶）—— 每个 profile 一个后端进程，本就各自计数；{@link localIpFor}
+ *      按 profile 偏移第三段（每个 profile 两个 /24）让**将来**同机多进程也不会撞同一地址。
+ *    - **风控的 `risk:rate:ip:<ip>:<分钟>` 不隔离**：`ip.service.ts` 的 `normalizeIp` 把
+ *      所有 loopback 一律归一成 `127.0.0.1`（实测 Redis 里只有 `risk:rate:ip:127.0.0.1:*`），
+ *      所以同机共享 Redis 时所有 profile 的 RATE 因子都计入同一组桶；`risk:ip_blacklist`
+ *      的临时拉黑同样归一到 127.0.0.1（30 分钟 TTL），本地并发 profile 会互相影响。
+ *    - 结论：本地多 profile **仍必须串行**（全局锁，不变量 6）。将来若要并发，先加
+ *      **每 profile 一个 Redis 实例**（端口再分配），而不是键前缀 —— 服务端没有逻辑库配置项
+ *      （`APP_REDIS_*` 只到 host / port / pass）。
  *
  * ## `.env.e2e` 的固定路径约束
  *
@@ -192,8 +198,9 @@ export const STACK_PROFILE: StackProfile = selectStackProfile(process.env.E2E_ST
  * profile 的 device/initial IP（**纯函数**，单测直击）。
  *
  * 公式来自设计稿：`127.0.<slot × 10 + 1 + floor(seq / 200)>.<10 + seq>`，`seq` 在 0..239 回绕，
- * 即每个 profile 两个 /24、240 个地址。必要性见文件头的 Redis 结论：`risk:rate:ip:*` 是
- * Redis 键，同机共享 Redis 时只有 IP 段不相交才不会串桶。
+ * 即每个 profile 两个 /24、240 个地址。用途是 **device/initial 的 4 次/60s per raw realIp**
+ * 不被同一进程内不同用例互相吃掉；**不要**把它读成「风控 rate 桶也隔离」—— 风控的
+ * `normalizeIp` 把所有 loopback 归一成 `127.0.0.1`，详见文件头第 4 条。
  */
 export function localIpFor(slot: number, seq: number): string {
   if (!Number.isInteger(slot) || slot < 0 || slot > 24) {

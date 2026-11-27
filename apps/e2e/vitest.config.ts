@@ -1,7 +1,8 @@
 import { defineWalnutVitestConfig } from '@walnut/vitest-config'
 
 /**
- * `apps/e2e` 的 **vitest** 配置：只收纯函数的 co-located 单测（当前是 `lib/redact.test.ts`）。
+ * `apps/e2e` 的 **vitest** 配置：只收纯函数的 co-located 单测（`lib/` 与 `scripts/` 下的
+ * `*.test.ts`；数量会随工具增长，别在这里写死）。
  *
  * 与 Playwright 的分工：
  * - 跨端链路仍由 `playwright test` 跑（`tests/` 下的 `*.spec.ts`，单 worker、真实浏览器）；

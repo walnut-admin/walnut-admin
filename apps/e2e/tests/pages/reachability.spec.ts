@@ -1,7 +1,8 @@
 /**
  * 全站页面可达链（E4 的第一批 pages 用例）。
  *
- * 覆盖调研报告（`.tmp-e2e-research/coverage-gap-matrix.md` §1.1）的 **18 个侧边栏业务页**：
+ * 覆盖调研报告（`.tmp-e2e-research/coverage-gap-matrix.md` §1.1）的**侧边栏业务页全集**
+ * （页码不写死：新增业务页按同一判据补进对应链）：
  * 之前的 E2E 只在浏览器里真正断言过 `/home` 与 `/system/device`，其余页面（含 `/me` 之外的
  * 所有 system / app 模块）的 DOM 从未被打开过。admin 的路由是**库里的菜单**经
  * `buildRoutes()` 在运行期把 `component` 字段解析成 `import.meta.glob` 里的异步组件 ——

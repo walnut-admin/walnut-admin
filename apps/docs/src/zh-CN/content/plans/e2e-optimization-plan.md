@@ -7,6 +7,9 @@
 
 **调查基线**：本页的现状证据来自 2026-11-25 的只读调查，行号以提交 `b21ac118` 为准（调查期间 `apps/e2e/lib/ui.ts`、`apps/e2e/tests/risk/device.spec.ts`、`turbo.json` 的未提交改动被提交为 `b21ac118`）。**定稿时 HEAD 已前进到 `d720c0d3`**，其间三个提交已消化一部分改造项（契约 bridge / 常量收口、CAP PoW 上界与静态代理加固、慢用例 `test.slow()`）；相关条目已按现状改写，未消化的仍保留。行号会漂移，引用以文件路径为锚。调查时点套件规模是 5 个 project、15 个用例、单 worker；后续新增用例后数字会变，**判断口径看结构，不看数字**。
 
+**计量口径（全文适用，2026-11-27 补）**：本页所有 `N/N 全绿`、耗时与「X 例」都是**当时的运行快照**，不是常量。当前口径：**default 面 = `smoke + risk + network + mobile` 四个 project**（`e2e:default`），`pages` / `journey` 是独立 profile；精确用例数一律以
+`pnpm --filter @walnut/e2e exec playwright test --list`（可加 `--project=<p>`）为准，别在文档里抄数字。
+
 ---
 
 ## 0. 与计划页的关系与需要先知道的事实漂移
@@ -70,7 +73,7 @@
 
 | 层次 | 内容 | 何时重做 |
 |---|---|---|
-| 快照（库内数据） | 迁移 + seed + 提升 root + CAP 节流放宽 | seal 一次 |
+| 快照（库内数据） | 迁移 + seed + 提升 root + CAP 放宽（节流 + 难度） | seal 一次 |
 | 运行时状态（库外） | `walnut_app` 角色口令、Redis 应用设置缓存、`.auth/credentials.json` | 每轮（restore 或 prepare 都做） |
 | 测试期状态（更外层） | MFA TOTP 绑定（`sys_user_mfa` 行 + `credentials.json` 的 `totpSecret`） | 每轮（seal 发生在 `stack.setup` 之前，快照里没有 MFA） |
 
@@ -80,20 +83,21 @@
 
 ### 1.4 不变量清单（改造的硬边界）
 
-以下十条来自 [`apps/e2e/AGENTS.md`](https://github.com/walnut-admin/walnut-admin/blob/main/apps/e2e/AGENTS.md)。**任何改造项都不得破坏它们**；每个改造项后面会单独写「不碰哪些」。
+以下不变量来自 [`apps/e2e/AGENTS.md`](https://github.com/walnut-admin/walnut-admin/blob/main/apps/e2e/AGENTS.md)（编号与那里一致；条数以 AGENTS 为准，不在这里写死）。**任何改造项都不得破坏它们**；每个改造项后面会单独写「不碰哪些」。
 
 1. **`SIGN_USER_AGENT` 只有一份**（`apps/e2e/lib/protocol/sign.ts`）。`apps/e2e/playwright.config.ts` 的 `use.userAgent` 与 `apps/e2e/lib/device-fixtures.ts` 的 `newBrowserContext` 都必须 import 它；签名原文取 `navigator.userAgent`，请求头必须逐字一致。另抄一份会 40112「签名无效」。
 2. **XFF 只加在同源 `/api/` 请求上**（`installRealIpRoute`）。整包 `extraHTTPHeaders` 会让 cap.js 从 jsDelivr 拉 WASM 的请求也带自定义头 → CORS 预检失败 → cap-widget 进错误态。
 3. **库准备（restore / prepare-db）必须在 `playwright test` 之前**。Playwright 的 webServer 先于 globalSetup 启动，而 webServer 里的后端一连库就要有库；别把建库 / 恢复挪进 globalSetup。
-4. **`POST /system/device/initial` 是 4 次 / 60 秒 per realIp**。每条用例、每个协议客户端都要一个独立的 127/8 地址（`uniqueLocalIp()`）；共用 127.0.0.1 会让第 5 台设备登记撞 42900。
+4. **`POST /system/device/initial` 是 4 次 / 60 秒 per realIp**。每条用例、每个协议客户端都要一个独立的 127/8 地址（`uniqueLocalIp()`）；共用 127.0.0.1 会让第 5 台设备登记撞 42900。**IP 段隔离的真实边界**：只隔离这个 per-realIp 节流桶；风控 `risk:rate:ip:*` 与 `risk:ip_blacklist` 会被 `normalizeIp` 把所有 loopback 归一成 `127.0.0.1`，不隔离（本地多 profile 仍须串行）。
 5. **Redis 只按 deviceId 精确删**（`deleteDeviceScopedKeys`），**绝不 FLUSHDB / FLUSHALL**。键形对齐 `apps/server/libs/const/src/app/cache.ts`；服务端改键形时这里要同步。
 6. **一台机器同一时间一个全量 run**。锁在 `apps/e2e/scripts/pg-lock.ts`，由 `run.ts` 整轮持有；两个 worktree 并发时第二个等锁，120s 抢不到就报持锁者退出。
 7. **storageState 不可复用**（IndexedDB 里的 AES `CryptoKey` 恢复不了，Phase 0 gate 已判死）。别再加 `auth.setup` 的写盘、别在 project 上挂 `storageState`；坏状态会把应用卡在 splash。
 8. **trace / 截图 / HTML 报告含请求头与响应体（token、cookie）**：只留本机，不许上传任何公开位置。
-9. **CAP 节流与设备目录的「放宽」只改库**。全量 prepare 时把 `capjs.config.throttleLimit` 调大（仅本栈库的设置行），restore 继承快照里的这个值；别把测试专用放宽写进源码。
+9. **CAP 放宽与设备目录的「放宽」只改库**。全量 prepare 时把 `capjs.config.throttleLimit` 调大、`difficulty` 降到 2（仅本栈库的设置行；生产零影响，E2E 仍完整走 CAP 协议），restore 继承快照里的这个值；别把测试专用放宽写进源码。
 10. **设备清理归 fixture**（`apps/e2e/tests/fixtures.ts` 的两个 auto fixture）。新造的设备要 `trackDevice`，别在用例末尾手写 `cleanupDevices(...)` —— 断言失败时手写清理不会执行。
+11. **非 root 可登录账号只经 `lib/account-fixtures.ts` 造**（建号 → 真实管理端设初始口令 → 真实协议登录）。不伪造 AT / 会话去换权限断言。
 
-> 这十条不是「风格建议」，是已经用真实故障换来的边界。改造项如果必须碰其中一条，只能走「所有者拍板 + 改 AGENTS.md + 改计划页」三件套，不能在本篇里悄悄放行。
+> 这些不变量不是「风格建议」，是已经用真实故障换来的边界。改造项如果必须碰其中一条，只能走「所有者拍板 + 改 AGENTS.md + 改计划页」三件套，不能在本篇里悄悄放行。
 
 ---
 
@@ -113,6 +117,16 @@
 | [Flaky 治理](../industry-research/08-e2e-and-sandbox-testing.md#metrics)：quarantine、p95 预算、失败归属 | `retries: 0`；`d720c0d3` 已给两条慢用例 `test.slow()`；仍无 quarantine 列表与等待总预算 | 有 flake 时只能人工看日志；没有「隔离—修复—恢复」流程 | P2 |
 | [每 worker 隔离](../industry-research/08-e2e-and-sandbox-testing.md#execution-architecture) | 整库共享、单 Redis、单个后端进程 | 直接开 workers > 1 或 `--shard` 会互相污染 | P1（设计）/ P2（实施） |
 | [环境粒度选择矩阵](../industry-research/08-e2e-and-sandbox-testing.md#sandbox-patterns) | 单机 compose + 一份 dist-stage；无 preview、无 namespace | 对「单体 + 单机 run」这是合理选择；差距不在能力，而在**别把微服务方案照搬进来** | 见第 4 节「不建议做」 |
+
+**按所有者拍板跳过、并在此留档的项（不接受悄悄消失）**：
+
+- **R6-① `default: null` 的 DTO 拆分**：跳过。`SysUserLockPreferenceUpdateDto` 仍用 `default: null`
+  （把「未提供」与「显式 null」在 DTO 层区分开需要改 transformer / 7+ DTO 的公共约定）；
+  `updatePreference` 改为在 service 里同时摘除 `undefined` 与 `null`（两者都视为「本次不改」）。
+  行为正确且已有 J1/J2 覆盖；彻底拆分留到公共 DTO 改造批次。
+- **R6-② smoke 再压一次登录**：跳过。smoke 已是 P0-3 形态（auth-setup 一次 UI 登录 + worker
+  级 `authedPage` 复用 + 其余走协议），再压要把 `auth-setup` 的登录态跨 project 复用，
+  与不变量 7（不落盘、不跨进程）冲突；收益只剩几秒，不值得。
 
 ---
 
@@ -225,8 +239,8 @@ jobs:
 **落地记录（2026-11-25）**：工作流落地为 `.github/workflows/e2e.yml`（`schedule` 每日 UTC 19:00 ≈ 北京 03:00 + `workflow_dispatch`，`concurrency` 固定 group、不取消在途，`ubuntu-latest`、`timeout-minutes: 60`；job 级 `services` 起 `postgres:18-alpine` / `redis:8-alpine`，端口 5433 / 6380、凭据与 `apps/e2e/scripts/env.ts` 逐字一致）。与草案的三处**事实修正**（实施时读代码 / 过 actionlint 才发现，均已写进 workflow 文件头注释）：
 
 1. **services 不支持 `command:`**（GitHub 的 services 只认 image / env / ports / volumes / options，actionlint 判非法）—— 草案里的 `command: ['redis-server', '--requirepass', …]` 用不了，官方 redis 镜像也没有「env 设密码」的入口。做法：多一步 `docker exec <service 容器> redis-cli CONFIG SET requirepass e2e_redis_only`（容器名由 runner 生成，按镜像名定位）；health check 写成 `redis-cli -a … ping || redis-cli ping`，设密码前后都成立。
-2. **CI 上必须 `E2E_SKIP_BASELINE=1`**：封板 / 恢复的 `pg_dump` / `pg_restore` 在本机是 `wsl -e bash -c "docker exec e2e-wsl-postgres …"`（`apps/e2e/scripts/baseline.ts` 的 `PG_CONTAINER`），而 runner 上既没有 WSL、也没有这个容器名。所以「无基线 → 自动全量 prepare + seal」这条路径**在 GitHub 上不成立**：seal 那一步必然失败。工作流显式跳过基线、每轮全量 prepare（测试栈秒级）；把容器名参数化是 P1-1 的范围，本工作流不越界。
-3. **artifact 严格口径**（所有者 2026-11-25 拍板）：只上传 junit / results.json / 脱敏 backend.log / stack.json / 基线清单五样，一个 `upload-artifact@v4` 步骤、`retention-days: 7`、`include-hidden-files: true`（`stack.json` 与基线清单在 `.e2e/` 点目录里，默认会被跳过）；trace / 截图 / HTML 报告**一律不上传**。上传前另有 `apps/e2e/scripts/redact-log.ts` 兜底脱敏（`if: always()`）。
+2. **当时的 CI 跳过基线（已被后续演进取代）**：封板 / 恢复的 `pg_dump` / `pg_restore` 在本机是 `wsl -e bash -c "docker exec e2e-wsl-postgres …"`（`apps/e2e/scripts/baseline.ts` 的 `PG_CONTAINER`），而 runner 上既没有 WSL、也没有这个容器名。首版工作流因此显式 `E2E_SKIP_BASELINE=1`、每轮全量 prepare。**现状**：P1-1 把执行层参数化、P1-6 切回基线缓存路径后，`E2E_SKIP_BASELINE` 已从 workflow 删除（不要再加回来）；这条风险已成历史。
+3. **artifact 严格口径**（所有者 2026-11-25 拍板）：诊断只上传 junit / results.json / 脱敏 backend.log / stack.json / 基线清单五样、`retention-days: 7`、`include-hidden-files: true`（`stack.json` 与基线清单在 `.e2e/` 点目录里，默认会被跳过）；trace / 截图 / HTML 报告**一律不上传**。上传前另有 `apps/e2e/scripts/redact-log.ts` 兜底脱敏，且上传步骤要求 `steps.redact.outcome == 'success'`（脱敏失败宁可不传）。P1-6 之后另有 **prepare 的 `e2e-stage-bundle`**（构建产物中转、保留 1 天、不含 `env-local` / 密钥），与诊断五样是两类 artifact。
 
 步骤顺序按草案：checkout（fetch-depth 0）→ pnpm/action-setup + setup-node 24（cache pnpm）→ `pnpm install --frozen-lockfile` → env 解密（secret 绑 **job 级 env**，step 里 `printf` 写 `.env.keys` → `pnpm setup-env` → 立即 `rm`）→ `pnpm build`（utils / contract 的 CJS dist 是硬前置）→ 两处 stage 构建 → `playwright install --with-deps chromium`（**不缓存**）→ `CONFIG SET` 设 redis 口令 → `pnpm walnut e2e`。`pnpm walnut lint:workflows`（actionlint）与 `lint:workflows-shell`（逐块 `bash -n`）在本地跑绿。**本机没有 GitHub runner，工作流尚未做过真实首跑**；首跑前按可能性排序的已知风险：
 
@@ -367,7 +381,7 @@ jobs:
 
 **CI 切回基线路径的前置条件**（`.github/workflows/e2e.yml` 文件头已写）：删掉 `Run full e2e` 一步的 `E2E_SKIP_BASELINE: '1'` 即可 —— 执行层可移植（容器解析 / 平台判断 / postgres 官方镜像自带 `pg_dump` 与 `pg_restore`）已由本条落地。**注意 `.e2e/` 不跨 run 缓存**：切回后每轮都是「无基线 → 全量 prepare + seal」，想验证 restore 路径要另加 cache / artifact 步骤。本条只把「能切」变成事实；切不切是单独的决策。
 
-**基线跨 run 缓存与切回（2026-11-26，R1 卫生批）**：切回已落地，并补上了当时缺的那一半 —— 缓存。`.github/workflows/e2e.yml` 用 `actions/cache@v4` 缓存封板三件套（`baseline.dump` / `baseline.manifest.json` / `baseline.credentials.json`），key = `e2e-baseline-v<MANIFEST_VERSION>-<dataKey>`：
+**基线跨 run 缓存与切回（2026-11-26，R1 卫生批）**：切回已落地，并补上了当时缺的那一半 —— 缓存。`.github/workflows/e2e.yml` 用 `actions/cache@v4` 缓存封板三件套（`baseline.dump` / `baseline.manifest.json` / `baseline.credentials.json`），key = `e2e-baseline-v<MANIFEST_VERSION>-<dataKey>`（**P1-6 之后**：action 升到 `@v5`，key 增加 `<profile>` 维度 = `e2e-baseline-<profile>-v<清单版本>-<dataKey>` —— profile 维度的基线不能串用）：
 
 - 键由 `node apps/e2e/scripts/data-key.ts --cache-key` 一步算出（默认模式只打印纯 dataKey，供别的自动化消费）；`MANIFEST_VERSION` 并进键里是机械保护 —— 清单格式升级时旧缓存自然失效，不会出现「每晚命中旧格式基线、每晚 restore 拒收」的僵局；
 - **只做精确 key，不做 `dataKey-` 前缀兜底**：dataKey 不匹配的基线 restore 必拒收（P1-1 的 dataKey 校验），前缀兜底只会白占缓存配额；
@@ -505,7 +519,7 @@ jobs:
 
 **不变量兼容性**
 
-- 全部十条不碰。`@walnut/api-types` 是纯类型包，运行时零影响。
+- 全部不变量不碰。`@walnut/api-types` 是纯类型包，运行时零影响。
 
 **工作量级**：S。
 
@@ -633,7 +647,7 @@ jobs:
 - **profile 锁**（`2026112401 + profile 序号`）：拿到全局锁之后再抢，语义是「这个库此刻只有一个 owner」。CI 每个 job 是独立 PG 实例，全局锁天然无竞争，profile 锁的价值是日志归属（报持锁者时能看出是哪个 profile）与同 profile 重入保护。
 - 本地多 profile 仍**串行**：第二个 profile 会在第一步等全局锁，120s 内抢不到就报持锁者退出。profile 锁不是并发通行证；放开本地并行需要所有者拍板改写不变量 6，并且先解决下面 Redis 的全局键共享面。
 
-**IP 段（127/8）**：`uniqueLocalIp()` 的第三段按 profile 偏移 —— 公式 `127.0.<slot × 10 + 1 + floor(seq / 200)>.<10 + seq>`，`seq` 仍在 0..239 回绕，即每个 profile 两个 /24、240 个地址；`default` 的 slot = 0，产出 `127.0.1.10..209` 与 `127.0.2.210..249`，与现状逐字一致。必要性在 **Redis**：`device/initial` 的 4 次 / 60 秒是 `@nestjs/throttler` 的**进程内**桶（每个 profile 一个后端进程，本来就不共享），但风控的 `risk:rate:ip:<ip>:<分钟>` 是 Redis 键（`rate.service` 的 `buildKey`）—— 同机共享 Redis 时，只有 IP 段不相交才不会串桶。per-profile 240 个地址按当前每轮设备量级足够；超出回绕是 P2-3 已记录的既有行为。
+**IP 段（127/8）**：`uniqueLocalIp()` 的第三段按 profile 偏移 —— 公式 `127.0.<slot × 10 + 1 + floor(seq / 200)>.<10 + seq>`，`seq` 仍在 0..239 回绕，即每个 profile 两个 /24、240 个地址；`default` 的 slot = 0，产出 `127.0.1.10..209` 与 `127.0.2.210..249`，与现状逐字一致。**真实边界（2026-11-27 R-D 实测修正）**：它隔离的是 `device/initial` 的 4 次 / 60 秒 **per raw realIp** 节流桶（进程内，每个 profile 一个后端进程）；风控的 `risk:rate:ip:<ip>:<分钟>` **不隔离** —— `ip.service.ts` 的 `normalizeIp` 把所有 loopback 归一成 `127.0.0.1`（实测 Redis 只有 `risk:rate:ip:127.0.0.1:*`），`risk:ip_blacklist` 的临时拉黑同样归一。所以本地多 profile 仍必须串行；将来并发先加每 profile 一个 Redis 实例。per-profile 240 个地址按当前每轮设备量级足够；超出回绕是 P2-3 已记录的既有行为。
 
 **Redis**：结论是**不加 profile 前缀，也不换逻辑库**。理由：
 
@@ -712,7 +726,7 @@ jobs:
 - **库与基线**：`assertE2eDatabase` = 形态正则 `^walnut_e2e(?:_[a-z]+)?$` **且**逐字等于当前 profile 的库名；所有动库连接保留 `SELECT current_database()` 真断言。清单升 **v3**，新增 `profile` / `database`，restore 前断言与当前 profile 一致；v2 不迁移 —— **默认 profile 首次运行需一次 `--rebuild-baseline`**（显式动作，与 v1→v2 同口径），之后 restore 正常。
 - **锁**：全局 `2026112401` → profile `2026112402/03/04`（default 与全局同 key，不重复抢）。本地第二个 profile 在全局锁上等待，profile 锁只提供日志归属与同 profile 重入保护。
 - **IP 段**：`localIpFor(slot, seq)` 按 `slot × 10 + 1 + floor(seq / 200)` 偏移；default 槽位与旧公式逐字一致，单测同时钉住「跨 profile 地址集合不重叠」。
-- **Redis**：**不加前缀、不换逻辑库**（结论与理由在 `stack-profiles.ts` 头注释）。同机共享 Redis 时，`risk:rate:ip:*` 的串桶防护靠 IP 段不相交；将来本地并发 profile 先加每 profile 一个 Redis 实例。
+- **Redis**：**不加前缀、不换逻辑库**（结论与理由在 `stack-profiles.ts` 头注释）。**IP 段不相交不隔离风控桶**：`risk:rate:ip:*` 与 `risk:ip_blacklist` 的 loopback 会被 `normalizeIp` 归一成 `127.0.0.1`（R-D 实测），本地多 profile 仍必须串行；将来并发先加每 profile 一个 Redis 实例。
 - **CI**：`e2e.yml` 演进为 3 job matrix（`smoke` / `risk` / `network`，`fail-fast: false`），每个 job 独立 checkout + services；基线 cache key = `e2e-baseline-<profile>-v<清单版本>-<dataKey>`，artifact 名 `e2e-diagnostics-<profile>`；`E2E_SKIP_BASELINE` 已删、不再作为回退口径。
 - **栈命令 / affected**：`e2e:stack:status` 打印当前 profile（库 / 端口 / 基线目录）与其它 profile 基线存在性；`e2e:clean` 递归保留各 profile 的基线三件套与 stack.json；`e2e:affected --json` 输出机器可读计划（含 `targetProfiles`），映射规则不变，nightly 仍静态三 job。
 - **实测（2026-11-26 本机 WSL 栈，单次读数）**：default `--rebuild-baseline` **20/20、231.9s**，restore 两轮 **20/20、229.8s / 231.2s**；smoke 首轮 **4/4、51.6s**（自动封板）、restore **4/4、50.6s**；risk 修复后 restore **16/16、193.9s**、`--rebuild-baseline` **16/16、191.8s**；network 首轮 **2/2、20.8s**。
@@ -727,14 +741,15 @@ jobs:
   - **affected**：`apps/admin/src/views/**`、`router/**` → `pages`；admin `socket/**`、`App/AppLock`、锁屏 store（`app-lock.ts`）、`api/system/user_lock.ts` 与 admin auth 面 → `journey`（auth 面同时触发 smoke，映射是加法）；server 的 auth / identity / socket 仍走全量安全网（E5 落地前不提前收窄，避免丢掉 risk 的 auth-matrix 覆盖）；`targetProfiles` 的 `all` 变为五个命名 profile。
   - **基建实测（本机 WSL 栈，不跑 playwright）**：`E2E_STACK_PROFILE=pages` prepare 2.6s + seal 2.4s（dump 238139 B）、restore 1.3s；`journey` prepare 2.6s + seal 0.9s（dump 238157 B）、restore 2.0s；两轮锁日志均为全局 `2026112401` + profile `2026112405` / `2026112406`；manifest v3 的 `profile` / `database` 与当前 profile 一致，`walnut_e2e_pages` / `walnut_e2e_journey` 建库成功；IP 段 `127.0.41.10`–`127.0.42.249` / `127.0.51.10`–`127.0.52.249`。
   - **负对照**：`E2E_STACK_PROFILE=pages pnpm walnut e2e --project=smoke` 在动锁 / 动库之前退 2；空 `--project=pages` / `--project=journey` 以「No tests found」退 1。
-  - **default profile 全量**：**35/35 全绿、495.5s**（`--project` 不设，pages / journey 空 project 不产生用例）；E2 记录的 459.4s 是同一台机器的上一轮读数，差值落在测试执行波动内（S1 / S2 各约 90s，与 E2 的 86.9 / 88.6s 同量级）—— E3 没有改 run 路径。首轮 516.3s 曾出现 S2 在 120s 上限超时（当时并发跑了文档门禁），机器闲置单跑 S2 1.5m 通过，判定为接近全局 timeout 的时间边界，非 E3 回归。
+  - **default profile 全量（快照）**：**35/35 全绿、495.5s**（`--project` 不设；当时 pages / journey 还是空 project，不产生用例；用例数不要当常量）；E2 记录的 459.4s 是同一台机器的上一轮读数，差值落在测试执行波动内（S1 / S2 各约 90s，与 E2 的 86.9 / 88.6s 同量级）—— E3 没有改 run 路径。首轮 516.3s 曾出现 S2 在 120s 上限超时（当时并发跑了文档门禁），机器闲置单跑 S2 1.5m 通过，判定为接近全局 timeout 的时间边界，非 E3 回归。
 
 **L2 锁屏闭环落地记录（2026-11-27）**：`tests/journey/lock.spec.ts` J1–J4 落地，journey
 project 补回 `auth-setup → stack-setup` 依赖（不再空 project）。本机 WSL 栈 `E2E_STACK_PROFILE=journey
 --project=journey --rebuild-baseline`：**6/6 全绿、3.1m**，逐例 J1 1.2m / J2 33.0s / J3 28.4s /
-J4 11.9s（J1 的 30s 退避按 PG `lock_pwd_locked_until` 到期轮询，不是固定 sleep）；default 面
-`--project=smoke --project=risk --project=network --project=mobile` **35/35 全绿、6.9m**。首次把
-journey 纳入无 `--project` 的全量会变成 39 例（35 + 4），别把数字当常量。J1 的网络层断言同时
+J4 11.9s（当时的 J1 退避按 PG `lock_pwd_locked_until` 到期轮询；**2026-11-27 时长批已改为
+「退避期正确口令也被拒」+ 回填 `locked_until` + reload**，见后面的 R-C 落地记录）；default 面
+`--project=smoke --project=risk --project=network --project=mobile` **35/35 全绿、6.9m**（这是
+L2 时点的运行快照；用例数随 spec 增长，精确数以 `playwright test --list` 为准）。J1 的网络层断言同时
 固定了两件事：`lockPwdHash` 请求体是 AES-GCM 信封（`enc/key/iv/ct/tag`，不含明文），以及
 `/lock` 的错密码 40000 就地红字不跳首页；J2 的 40115 经 `/mfa-verified` 回 `/lock` 是 D3 回归。
 本轮还修了两个被锁屏用例暴露的既有前端缺陷：`useTableAPI` 漏显式 `import { computed }`（表格
@@ -742,8 +757,8 @@ journey 纳入无 `--project` 的全量会变成 39 例（35 + 4），别把数�
 边界遮罩挡住）。
 
 **E4 全站页面可达链落地记录（2026-11-27）**：`tests/pages/reachability.spec.ts` 落地，pages
-project 补回 `auth-setup → stack-setup` 依赖（不再空 project）。覆盖调研报告 §1.1 的 **18 个
-侧边栏业务页**，按路由结构分成 6 条页面链：静态入口（home / dashboard / about）、system 用户域
+project 补回 `auth-setup → stack-setup` 依赖（不再空 project）。覆盖调研报告 §1.1 的**侧边栏
+业务页全集**（落地当时 18 个；页码不写死，后续新增页按同一判据补链），按路由结构分成 6 条页面链：静态入口（home / dashboard / about）、system 用户域
 （user / role / menu）、system 字典与国际化（dict / lang / locale）、system 设备与审计
 （device / deleted / log-auth / log-operate）、app 域（setting / logger / monitor-cache /
 monitor-user / monitor-server）与 demo 抽样（table-hook / form / echarts）。每页三层断言：
@@ -758,7 +773,7 @@ URL 未被权限守卫重定向、组件挂载（`#<route.name>-content` 有元�
   auth-setup 14.6s）—— 远低于报告估的 195s，单例最长 9.8s（app 域的 8 个监控面板）。
   `smoke` profile 首跑 `--rebuild-baseline` **11/11、72.8s**；最终复跑 **11/11、67.6s**
   （新增缓存清空用例 1.9s）；default 面 `--project=smoke --project=risk --project=network
-  --project=mobile` **36/36、343.6s**（含新缓存用例；E3 的 35 例基线 + 1）。
+  --project=mobile` **36/36、343.6s**（快照；含新缓存用例，比 E3 时点多 1 例）。
 - **E4 抓到的真实产品缺陷（单独修复）**：`/system/locale` 页在 `schemas: computed<…>(…)` 里
   使用了 `computed` 但没有从 `vue` 显式导入 —— 运行时报 `ReferenceError: computed is not
   defined`，整页进错误边界。上一行的 `// @ts-expect-error` 恰好把「Cannot find name」一起
@@ -773,10 +788,14 @@ URL 未被权限守卫重定向、组件挂载（`#<route.name>-content` 有元�
   （证明挂载判据能抓「菜单指向不存在的组件」；也暴露了 `out-in` 过渡期间旧 DOM 残留的假阴性，
   修法是先标记旧根、等它离场再判新页）；(b) 把缓存用例的 `APP:SETTING` 断言从 1 改成 0 ⇒
   `Expected length: 0 / Received length: 1` 红（证明 BUILT_IN 受保护类型的语义被真实断言）。
-- **注意**：`--project` 不设的全量现在会带上 pages（6 + 1 fixme）与 journey（4），总例数
-  不再是 35/36；default 面的读数口径以上面的显式 project 列表为准。
+- **注意**：`--project` 不设的全量现在会带上 pages 与 journey，例数随 spec 增长 —— **不要
+  把这里的历史读数当常量**；精确数以 `pnpm --filter @walnut/e2e exec playwright test --list`
+  为准，default 面的口径是 `smoke + risk + network + mobile` 四个 project 的显式列表。
 
-**E5' journey 收尾批落地记录（2026-11-27）**：调研报告 Top 10 里剩余的五条高价值旅程落地，
+**E5' journey 收尾批落地记录（2026-11-27）**：调研报告 Top 10 里的五条旅程（J5–J9）落地；
+**J10（#8 MFA 强制绑定 TOTP）在同批补上**（`tests/journey/mfa-totp-bind.spec.ts`：新用户
+`mfa_setup=false` → `/mfa-required` 扫码 → 6 位码 → 10 枚备用码 → `/auth/mfa/verify` → 进系统），
+至此 Top 10 全部有 E2E 覆盖。下面按文件说明这五条：
 `tests/journey/` 从 1 个 spec 扩到 6 个（J1–J9，一条旅程一个文件，`journey-support.ts` 抽共享
 fixture）。五个文件与断言落点：
 
@@ -800,7 +819,7 @@ fixture）。五个文件与断言落点：
   **11 passed + 1 skipped、4.5m**（2 setup + J1–J4 + J5–J9；J7b 是 fixme 跳过）。逐例：
   J1 56.5s / J2 23.7s / J3 19.6s / J4 6.5s / J5 20.9s / J6 38.9s / J7 29.3s / J8 21.1s / J9 5.5s
   （setup 2.8 + 14.5s）。default 面（`--project=smoke --project=risk --project=network
-  --project=mobile`）**36/36、5.2m**（用例时间和 282.9s；E4 记的 343.6s 含编排开销，
+  --project=mobile`）**36/36、5.2m**（快照；用例时间和 282.9s；E4 记的 343.6s 含编排开销，
   同量级、无回退）。报告对 journey 的
   「9 例 / 225s」估算偏乐观：单例 UI 登录 15–20s 是主要成本，J1 的 30s 退避是设计内等待。
 - **服务端现状与用例假设的出入（如实记录）**：
@@ -832,6 +851,52 @@ fixture）。五个文件与断言落点：
 - **共享基建小改**：`lib/ui.ts` 的 `navigateToRoute`（从 E4 的 reachability.spec 抽出，页面旅程
   一律复用）、`loginViaUI` 的 driver cookie 改按当前页面 origin 写（WebAuthn 的 localhost context）、
   `captureEnvelopes(page, { origin })`、`newBrowserContext/openDevice` 的 origin 选项与唯一指纹。
+
+**R-C 时长专项落地记录（2026-11-27，四路 review 修复批）**：按 R-C 的 ROI 顺序做三项，
+全部保留或加强原判据：
+
+1. **登录后 CAP 盲等改竞速（O1）**：`performLogin` 提交密码后 `Promise.race`「离开 /auth」
+   与「cap-widget 可见」；导航先到再留 2s 短窗口兜晚到的 40116，两者都没发生 ⇒ 明确报
+   「登录链路卡住」（不当作「不需要 CAP」继续）。抽成 `settlePostLoginCap`，WebAuthn /
+   MFA 强制绑定旅程共用。**负对照**：把 `CAP_WIDGET_SELECTOR` 临时改成不存在的选择器，
+   auth-setup 仍红在「登录提交后 15s 内既没有离开 /auth 也没有出现 CAP」—— 证明没有退化成
+   「不等了」。顺带删除无调用点的 `ensureLoggedIn`。
+2. **封板库 CAP 难度 4 → 2（O2）**：`prepare-db.ts` 的 `relaxCapForTests` 同时改
+   `throttleLimit` 与 `difficulty`（只改本栈库设置行；生产 seed 零影响，E2E 仍完整走
+   challenge → PoW → redeem → 重放）。本机微基准（10 问 / 次，3 次取总）：
+   **difficulty=4 → 4304ms（≈1.4s/次）；difficulty=2 → 13ms（≈4ms/次）**。准备日志
+   `已放宽 app.global.capjs.config：throttleLimit → 10000、difficulty → 2` 可复核。
+3. **J1 退避 30s 硬等（O3 + R-D 风险 1）**：第 5 次失败后用同账号协议设备提交**正确**
+   锁屏密码，断言 40000 + `retryAfterSec>0`（用户级、先于密码比对的反侧信道语义）；
+   测试侧把 `locked_until` 回填到 30s 前（远超 R-D 观测的 ±1.8s 跨时钟摆动），reload
+   重置本地倒计时后 UI 正确解锁。reload 暴露并修复了一个真实前端缺陷：锁定态硬刷新时
+   路由守卫的 `getProfile` 被 40118 拒后未接住（运行时致命遮罩 + store 停在 default）。
+   socket 广播腿改在恢复连接后的 default 免密解锁上断言（reload 重建 socket，第一次
+   UNLOCK 帧必然错过）。**S1/S2 标 `test.slow()`**（R-D 风险 3）。
+4. **自愈 flag 并发（R-D §3.4）**：响应拦截器入口克隆 config，让 cache / throttle / merge
+   去重下的每个消费者各有自己的 `_deviceResetRetried` / `_sensitiveVerifyRetried` /
+   `_capRefreshRetried`，不再出现「第一个消费者自愈、第二个被跳过」。
+
+**实测（本机 WSL 栈；改前为 R-C 同日基线）**：
+
+| 链路 | 改前 | 改后 | 变化 |
+|---|---:|---:|---|
+| default 面（smoke+risk+network+mobile） | 419.6s（同日 372.8–419.6） | **192.8 / 232.3s**（提交后 restore 两次；另一重封轮 176.1s） | **-45% ~ -54%** |
+| risk project | 328s（R-C；所有者口径 261.0s） | **146.3 / 154.3s**（同上两次） | -55% / -44% |
+| auth-setup（单次 UI 登录） | 16.3s | **7.3–9.1s** | ~-50% |
+| journey（全量） | 268–270s | **179.4s（2.9m）**，12 passed + 1 skipped | -33% |
+| J1 | 56.5s | **19.9s** | -65% |
+| pages（全量） | 81.7s | 61.5 / 81.2s（8 passed + 1 skipped） | 落在原基线附近 |
+
+> **读数波动要如实说**：同一台机器上 default 面复跑还出现过 326.6s 与 479.5s 两轮
+> （risk 分项里 U13 / U11 / S1 / S2 同时被放大，随后一轮同代码回到 146.3s）—— 与 R-C
+> 记录的 372.8–419.6s 日间波动同性质，按**结构**看：单次 UI 登录 16.3→7.3s、J1
+> 56.5→19.9s、CAP 单次求解 1.4s→4ms 是稳定收益；整轮墙钟受机器负载影响，不要拿单次
+> 读数当承诺。pages 只有一次 UI 登录，收益本来就有限，本批不把它当时长目标。
+
+**未做**：O4（去掉重复 /auth 导航，~6s）、O5（清理连接复用）、O6（risk 再协议化）、
+O7（trace A/B）按 R-C 的优先级保留为后续项；O4 与 O1 叠加只值 ~6s，且会多改一处登录
+入口，本轮不动。
 
 ---
 
@@ -865,8 +930,9 @@ fixture）。五个文件与断言落点：
 - **quarantine**：新增 `apps/e2e/quarantine.json`（空列表起步；条目为
   `testName` / `issue` / `owner` / `addedAt` / `reviewAt`）。`apps/e2e/scripts/quarantine.ts`
   在 config 加载期校验名单（顶层数组、五字段非空、日期形态、重复 testName），并把标题按字面
-  转义后编译成 `grepInvert`；`playwright.config.ts` 给 smoke / risk / network 三个业务 project
-  挂上，risk 的 `/@network/` 以数组形式与名单并存。`E2E_INCLUDE_QUARANTINE=1` 时名单整体忽略
+  转义后编译成 `grepInvert`；`playwright.config.ts` 给**所有业务 project**挂上（当前是
+  smoke / risk / network / mobile / pages / journey 六个；条数以 config 为准），risk 的
+  `/@network/` 以数组形式与名单并存。`E2E_INCLUDE_QUARANTINE=1` 时名单整体忽略
   （空名单时 `grepInvert` 为 `undefined`，零影响）；`reviewAt` 到期在 config 加载时告警。
 - **写法的取舍**：没有用 `run.ts --grep-invert` —— CLI 参数会**覆盖** config 里 risk 的
   `/@network/`（CLI 优先），等于把外网用例带进离线 run；也没有用用例级 `test.skip()` ——
@@ -882,8 +948,6 @@ fixture）。五个文件与断言落点：
   **不含**该用例，`E2E_INCLUDE_QUARANTINE=1 --list` **包含**（其余用例一个不少）；`--grep @quarantine`
   默认选不中、包含时只选中它（setup project 作为依赖项照常列出）；risk project 在名单生效时仍排除
   U1b（`/@network/` 与名单数组并存）。验完 tag 与名单都已还原。
-- **20 次循环证据**（全量、每轮 restore 口径；第一轮前重新封板一次）：
-
 - **20 次循环证据**（全量、每轮 restore 口径；第一轮前重新封板一次）：
 
 | 轮次 | 结果 | 时长 | 轮次 | 结果 | 时长 |
@@ -1081,7 +1145,7 @@ E2E 侧：`SystemUserListPage` 回到路径级推导（补偿注释删除），`
   新增 11 例自身约 25s，其余是 risk 项目 UI 用例的波动）；`E2E_STACK_PROFILE=smoke` **8/8 56.3s**、
   `risk` **22/22 212.2s**、`network` **2/2 13.2s**；e2e 单测 **240/240**。11 条新用例的核心断言
   全部做过「改坏 → 红 → 还原」的负对照。**E2 落地后补测一轮**（同日）：default 全量
-  **35 例 / 459.4s**（expected 35 / unexpected 0 / flaky 0），其中 S1 86.9s、S2 88.6s；
+  **35 例 / 459.4s**（快照；expected 35 / unexpected 0 / flaky 0），其中 S1 86.9s、S2 88.6s；
   `security.api-spec.ts` 11/11 与 `user-identity.api-spec.ts` 13/13 同轮通过（40119 的 meta
   契约断言在 security spec 里）。
 - **转报服务端的观察**（不在 e2e 改）：~~password identity 明文落库~~（2026-11-26 F2 已改成
@@ -1174,8 +1238,10 @@ E2E 侧：`SystemUserListPage` 回到路径级推导（补偿注释删除），`
 |---|---|---|
 | 单次通过率 | 首次运行通过 / 总运行 | 先记录，nightly 稳定后 ≥ 95% |
 | Flaky 率 | flaky 测试数 / 有运行的测试数（按周） | 新仓库 < 2%，成熟后 < 0.5%；关键旅程 0 容忍 |
-| 全量时长 p50 / p95 | `run.ts` 从抢锁到 playwright 退出 | 先记录 4–7 分钟基线；P0-3 后 p95 ≤ 3 分钟 |
-| smoke 时长 p95 | `e2e:smoke` | ≤ 60 秒 |
+| 全量时长 p50 / p95 | `run.ts` 从抢锁到 playwright 退出 | 先记录 4–7 分钟基线；P0-3 后 p95 ≤ 3 分钟（**仅指当时的 default 面**；现在裸 `e2e` 含 5 project，日常口径用 `e2e:default`） |
+| default 面时长 | `e2e:default`（smoke + risk + network + mobile） | 改前基线 419.6s（R-C 实测）→ ≤ 300s（R-C 建议；R-C 落地记录给实测） |
+| 单次 UI 登录链路 | 登录提交到应用外壳 | 改前 15.6–16.9s（含 10s 盲等）→ ≤ 7s（R-C O1） |
+| smoke 时长 p95 | `e2e:smoke` | ~~≤ 60 秒~~ **该目标已失效**：它是 P0-3 「4 例」时点的口径；E4 扩面（缓存清空 + 菜单 / 角色 / 设置模块 spec）后实测 67.6s 已越线。现在只记录、不设硬上限（回归看趋势；硬红会被机器负载误报，见 R-C §5） |
 | 失败归属 | 产品 / 测试 / 环境 / 基础设施 | 每次失败必须有分类，否则不计入改进 |
 | 基线 restore 时长 | restore 日志 | 1.5–3.5 秒（不是优化目标，是回归哨兵） |
 

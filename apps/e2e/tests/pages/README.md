@@ -7,10 +7,11 @@
 
 - 跑法：`E2E_STACK_PROFILE=pages pnpm walnut e2e --project=pages`（CI 的 `e2e (pages)` job 同一条）。
   首跑（或基线 dataKey 漂移）加 `--rebuild-baseline` 全量 prepare + seal。
-- **E4 已落地**：`reachability.spec.ts` 覆盖调研报告的 **18 个侧边栏业务页**，按路由结构分成
-  6 条页面链（静态入口 / system 用户域 / system 字典与国际化 / system 设备与审计 / app 域 /
-  demo 抽样）。每页断言三层：URL 无重定向、组件挂载（布局内容容器 `#<route.name>-content`
-  有元素子节点）、首屏主数据 `20000`（user/role/deleted 三张表顺带断言 E1 落地的表格 testid）。
+- **E4 已落地**：`reachability.spec.ts` 覆盖调研报告 §1.1 的**侧边栏业务页全集**（按路由结构
+  分成 6 条页面链：静态入口 / system 用户域 / system 字典与国际化 / system 设备与审计 / app 域 /
+  demo 抽样；页码不写死，新增业务页时按同一判据补进对应链）。每页断言三层：URL 无重定向、
+  组件挂载（布局内容容器 `#<route.name>-content` 有元素子节点）、首屏主数据 `20000`
+  （user/role/deleted 三张表顺带断言 E1 落地的表格 testid）。
   登录只做一次：整个文件是一个 worker，用例复用 worker 级共享只读 context（`authedPage`）。
 - **已知 seed 漂移**：`/demo/table/base` 的 `component = demo/table/baseTable` 没有对应文件
   （`views/demo/table/` 只有 `index.vue` / `useTable.vue`，git 历史也从未有过 `baseTable.vue`）。
