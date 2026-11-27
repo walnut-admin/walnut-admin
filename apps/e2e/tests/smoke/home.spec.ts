@@ -2,7 +2,7 @@
  * 冒烟 ②：登录态下的首页 —— 侧边栏渲染、页面标题、一条真实的已登录请求（业务码 20000）。
  *
  * 登录态来自 **worker 级共享只读 context**（`tests/fixtures.ts` 的 `authedPage`）：worker 启动时
- * 走一次完整 UI 登录，本用例不再 `ensureLoggedIn`。这是同一 worker 进程内的内存复用，
+ * 走一次完整 UI 登录，本用例不再自己登录。这是同一 worker 进程内的内存复用，
  * 不落盘、不跨进程、不在 project 上挂 storageState（不变量 7）；共享 context 只挂只读用例。
  */
 import { AuthRoutes, WalnutAdminConstAppResponseCode } from '../../lib/protocol/contract.ts'

@@ -124,7 +124,7 @@ export default defineConfig({
       // **不套包装脚本**（与后端不同）：它的输出只有一行启动日志（伺服目录 / 端口 / 反代目标），
       // 不含请求头与响应体，没有可脱敏的内容；失败时（端口占用 / 缺产物）走 stderr，本来就被
       // Playwright 转给 reporter（下面的 stderr: 'pipe'），CI 的 job 日志里能直接看到。
-      // 给它单独落一份日志只会多一个「要不要上传」的口子 —— 严格 artifact 口径只允许五样文件。
+      // 给它单独落一份日志只会多一个「要不要上传」的口子 —— 诊断 artifact 只允许五样文件。
       command: 'node scripts/static-server.ts',
       cwd: E2E_ROOT,
       url: WEB_ORIGIN,
@@ -160,8 +160,9 @@ export default defineConfig({
       },
       // 刻意**不挂** storageState：`storageState({indexedDB:true})` 恢复不了 IndexedDB 里的
       // AES CryptoKey（Phase 0 gate 已判死：把坏状态灌进 context 会让应用卡在 splash ——
-      // 模块顶层 await 解密抛错、永不 mount）。所以每条冒烟用例自己走 UI 登录（ensureLoggedIn），
-      // 慢但确定；auth.setup 只做「全新设备登录」这条链路的门禁断言，不产出可复用的登录态。
+      // 模块顶层 await 解密抛错、永不 mount）。所以每条冒烟用例自己走 UI 登录（`loginViaUI`
+      // 或 worker 级 `authedContext`），慢但确定；auth.setup 只做「全新设备登录」这条链路的
+      // 门禁断言，不产出可复用的登录态。
     },
     {
       name: 'risk',

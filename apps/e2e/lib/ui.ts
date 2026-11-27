@@ -460,6 +460,68 @@ export async function solveCapWidget(page: Page, options: CapSolveOptions = {}):
 }
 
 /**
+ * 登录提交后的 CAP 等待：**竞速**（离开 `/auth` vs widget 可见），不再盲等固定窗口。
+ *
+ * 为什么改：登录提交后只有两种可能 —— 请求成功（去 MFA / 落地）或登录链吃到 40116
+ * （拦截器弹 cap-widget 并重放，此时 URL 仍停在 `/auth`）。旧实现无条件等 widget 10s，
+ * 而 12/12 次 UI 登录里 widget 都没出现，纯空等 122.5s（R-C 实测）。竞速以「URL 已离开
+ * `/auth`」为**正向证据**，不需要 CAP 的情况下立即继续；需要 CAP 时 widget 先出现，
+ * 仍走完整的点击 + 等消失（timeoutMs 60s 不变）。
+ *
+ * 判据不减：竞速后保留 {@link LOGIN_CAP_GRACE_MS} 的短窗口兜住「导航后才落地的请求吃 40116」
+ * 的晚到形态（旧实现用 10s 窗口兜它）；窗口内出现 widget 仍求解，不会因为「先导航了」就跳过。
+ * 两者都没发生 ⇒ 明确报「登录链路卡住」，而不是继续往下走（负对照的判据就在这里）。
+ *
+ * 两个 promise 都必须各自 `catch`：输掉竞速的那个稍后 reject 会变成 unhandled rejection，
+ * 把整轮 run 弄脏（Node 24 直接报警）。
+ */
+const LOGIN_CAP_APPEAR_MS = 15_000
+const LOGIN_CAP_GRACE_MS = 2_000
+
+export async function settlePostLoginCap(
+  page: Page,
+  options: { budget?: WaitBudget, budgetLabel?: string } = {},
+): Promise<boolean> {
+  const label = options.budgetLabel ?? '登录后 CAP'
+  const appearTimeout = options.budget === undefined
+    ? LOGIN_CAP_APPEAR_MS
+    : stepTimeout(options.budget, `${label}出现`, LOGIN_CAP_APPEAR_MS)
+
+  const widget = page.locator(CAP_WIDGET_SELECTOR).first()
+  const outcome = await Promise.race([
+    page.waitForURL(url => url.pathname !== '/auth', { timeout: appearTimeout })
+      .then(() => 'nav' as const)
+      .catch(() => 'timeout' as const),
+    widget.waitFor({ state: 'visible', timeout: appearTimeout })
+      .then(() => 'cap' as const)
+      .catch(() => 'timeout' as const),
+  ])
+
+  if (outcome === 'timeout') {
+    throw new Error(
+      `[e2e/ui] 登录提交后 ${Math.round(appearTimeout / 1000)}s 内既没有离开 /auth 也没有出现 CAP`
+      + ' —— 登录链路卡住（不当作「不需要 CAP」继续）',
+    )
+  }
+
+  if (outcome === 'cap') {
+    return await solveCapWidget(page, {
+      timeoutMs: 60_000,
+      budget: options.budget,
+      budgetLabel: label,
+    })
+  }
+
+  // 导航先到：保留短窗口兜「晚到 40116」。widget 没出现就是 false（与旧实现同返回值语义）。
+  return await solveCapIfPresent(page, {
+    timeoutMs: 60_000,
+    appearTimeoutMs: LOGIN_CAP_GRACE_MS,
+    budget: options.budget,
+    budgetLabel: label,
+  })
+}
+
+/**
  * 若 cap-widget 出现则点它并等它消失。
  *
  * cap.js 的 standalone widget 是一个需要在 shadow DOM 里点一下的复选框；点完它自己做 PoW
@@ -543,7 +605,7 @@ export interface LoginResult {
 /**
  * 登录链路失败时的统一包装：把 P1-3 的失败现场（URL / 标题 / CAP widget / 设备 id /
  * 最近 12 条 envelope）拼进错误消息，原始错误挂 `cause`（栈不变）。`stage` 只用于标注
- * 是哪一段（loginViaUI / ensureLoggedIn）。
+ * 是哪一段（当前只有 `loginViaUI`）。
  */
 async function withLoginFailureContext(page: Page, error: unknown, stage: string): Promise<Error> {
   const message = error instanceof Error ? error.message : String(error)
@@ -557,8 +619,8 @@ export async function loginViaUI(page: Page, options: { userName?: string, passw
 }
 
 /**
- * 登录链路的统一收口：`budget` 从**链路起点**开始计时（`ensureLoggedIn` 会把它从打开站点
- * 就传进来，这样「打开 → CAP → 竞速 → 登录」共用一份 90s，而不是每段各给一份）。
+ * 登录链路的统一收口：`budget` 从**链路起点**开始计时（`loginViaUI` 在打开 `/auth` 之前
+ * 建立，整条「打开 → CAP → 竞速 → 登录」共用一份 90s，而不是每段各给一份）。
  */
 async function runLoginChain(
   page: Page,
@@ -606,12 +668,8 @@ async function performLogin(
   // Extra:Password 在 Enter 上触发 submit（比找按钮稳：按钮文案来自 DB 语言包）
   await passwordInput.press('Enter', { timeout: stepTimeout(budget, '提交登录', 15_000) })
 
-  const capAfterLogin = await solveCapIfPresent(page, {
-    timeoutMs: 60_000,
-    appearTimeoutMs: 10_000,
-    budget,
-    budgetLabel: '登录后 CAP',
-  })
+  // R-C O1：竞速替代 10s 盲等（见 settlePostLoginCap 头注释）；需要 CAP 时判据不变。
+  const capAfterLogin = await settlePostLoginCap(page, { budget })
   const capSolved = capAfterBoot || capAfterLogin
   const mfaVerified = await verifyMfaIfPresent(page, credentials.totpSecret, budget)
 
@@ -623,47 +681,6 @@ async function performLogin(
   await page.locator(SIDEBAR_MENU_SELECTOR).first().waitFor({ state: 'visible', timeout: stepTimeout(budget, '应用外壳出现', 30_000) })
 
   return { capSolved, mfaVerified, url: page.url() }
-}
-
-/**
- * 保证当前 page 处于登录态：先打开站点；若落到登录页则走 UI 登录。
- *
- * storageState 复用已判死（IndexedDB 里的 AES `CryptoKey` 恢复不了，见 playwright.config.ts），
- * 所以每次都是「打开站点 → 走登录」。保留 shell 分支是防御性的：将来若真有了可复用的登录态，
- * 这里不需要改。
- */
-export async function ensureLoggedIn(page: Page): Promise<LoginResult | null> {
-  // 预算从**打开站点**就起算：启动 CAP、登录表单竞速、随后的 UI 登录共用一份 90s，
-  // 而不是每段各 40–60s（那会叠过全局 120s）。登录态已在的短路径几乎不消耗预算。
-  const budget = startWaitBudget(LOGIN_TOTAL_BUDGET_MS)
-
-  try {
-    await page.goto('/', { timeout: stepTimeout(budget, '打开站点', 30_000) })
-    // 登录页上可能先弹 CAP（bootstrap 请求触发）；它带全屏 mask，会挡住后续交互
-    await solveCapIfPresent(page, { budget, budgetLabel: '打开站点后的 CAP' })
-
-    const shell = page.locator(SIDEBAR_MENU_SELECTOR).first()
-    const loginForm = page.locator(LOGIN_USERNAME_SELECTOR).first()
-
-    // `.catch` 只把「等不到」折成 timeout；预算耗尽（stepTimeout 同步抛）由外层 try 收口，
-    // 两条路都带同一份失败现场。
-    const outcome = await Promise.race([
-      shell.waitFor({ state: 'visible', timeout: stepTimeout(budget, '等待应用外壳', 40_000) }).then(() => 'shell' as const),
-      loginForm.waitFor({ state: 'visible', timeout: stepTimeout(budget, '等待登录表单', 40_000) }).then(() => 'login' as const),
-    ]).catch(() => 'timeout' as const)
-
-    if (outcome === 'shell') {
-      return null
-    }
-    if (outcome === 'timeout') {
-      throw new Error(`[e2e/ui] 打开站点后既没出现登录表单也没出现应用外壳（链路总预算 ${LOGIN_TOTAL_BUDGET_MS / 1000}s）`)
-    }
-  }
-  catch (error) {
-    throw await withLoginFailureContext(page, error, 'ensureLoggedIn')
-  }
-
-  return runLoginChain(page, {}, budget)
 }
 
 /** 断言侧边栏至少渲染出一个菜单项（menus 来自 /auth/permissions 的真实数据） */

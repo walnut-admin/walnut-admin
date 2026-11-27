@@ -34,7 +34,7 @@ export function budgetStep(budget: WaitBudget, step: string, capMs: number, now:
   if (remaining <= 0) {
     throw new Error(
       `[e2e/wait-budget] 已用完 ${Math.round(budget.totalMs / 1000)}s 总预算（在「${step}」之前）；`
-      + '单步超时不再单独计时 —— 现场由外层（loginViaUI / ensureLoggedIn）补齐',
+      + '单步超时不再单独计时 —— 现场由外层（loginViaUI）补齐',
     )
   }
   return Math.max(1, Math.min(capMs, remaining))

@@ -199,15 +199,25 @@ async function promoteAdminToRoot(client: Client, userName: string): Promise<{ u
 }
 
 /**
- * CAP 端点的节流放宽（**只改本栈库里的设置行**，不动源码）。
+ * CAP 在**本栈库**里的测试放宽（只改 `app_setting` 设置行，不动源码，生产零影响）。
  *
- * cap.js 的 challenge/redeem 也挂着 `@WalnutAdminDecoratorThrottle(SecurityCapSettingService)`，
- * seed 的 `app.global.capjs.config` 是 `throttleLimit: 4`（4 次/60s per realIp）。一次 solve
- * 就是 challenge + redeem 两个请求，而设备用例通常要 **两次** solve（bootstrap 一次、登录
- * 触发一次）—— 余量为零，实测会把 cap-widget 打进错误态（"你是人类吗？"）并卡住 60s。
- * 这里只放宽**频率**：count / size / difficulty / ttl 原样保留，PoW 仍然真解。
+ * 两项，都有独立的、可复核的理由（不变量 9「放宽只改库」）：
+ *
+ * 1. **节流频率**：cap.js 的 challenge/redeem 也挂着
+ *    `@WalnutAdminDecoratorThrottle(SecurityCapSettingService)`，seed 的
+ *    `app.global.capjs.config` 是 `throttleLimit: 4`（4 次/60s per realIp）。一次 solve 就是
+ *    challenge + redeem 两个请求，而设备用例通常要 **两次** solve（bootstrap 一次、登录触发
+ *    一次）—— 余量为零，实测会把 cap-widget 打进错误态（"你是人类吗？"）并卡住 60s。
+ * 2. **PoW 难度 4 → 2**（R-C O2，经所有者批准）：`difficulty: 4` 的期望工作量是 16^4 次哈希，
+ *    Node 侧单次 solve 实测 ~1.4s，一轮 default 面 ~54 次 solve 合计 ~60s。难度是**配置**，
+ *    不是 CAP 协议语义：这一层要验的是「challenge → PoW → redeem → 40116 → 交互 → 重放」，
+ *    不是 16^4 的工作量。`difficulty: 2` 时期望 256 次哈希（毫秒级），整轮省 ~60s。
+ *    E2E 仍然**完整走 CAP 协议**（真 challenge、真 WASM 求解、真 token、真重放），
+ *    只是工作量降档；难度相关的性能 / 超时问题属于服务端负载测试的面，不是 E2E 的面。
+ *
+ * 只改这两个键（count / size / ttl 原样）—— 别把测试专用的其它值写进源码。
  */
-async function relaxCapThrottleForTests(client: Client): Promise<void> {
+async function relaxCapForTests(client: Client): Promise<void> {
   const key = 'app.global.capjs.config'
   const { rows } = await client.query<{ setting_value: string }>(
     'SELECT setting_value FROM app_setting WHERE setting_key = $1',
@@ -220,8 +230,9 @@ async function relaxCapThrottleForTests(client: Client): Promise<void> {
 
   const config = JSON.parse(raw) as Record<string, unknown>
   config.throttleLimit = 10000
+  config.difficulty = 2
   await client.query('UPDATE app_setting SET setting_value = $1 WHERE setting_key = $2', [JSON.stringify(config), key])
-  log(`已放宽 ${key}.throttleLimit → 10000（仅本栈库；PoW 难度不变）`)
+  log(`已放宽 ${key}：throttleLimit → 10000、difficulty → 2（仅本栈库；E2E 仍完整走 CAP 协议）`)
 }
 
 /**
@@ -296,7 +307,7 @@ export async function prepareDatabase(options: { lockHeld?: boolean } = {}): Pro
     await db.connect()
     try {
       await promoteAdminToRoot(db, 'admin')
-      await relaxCapThrottleForTests(db)
+      await relaxCapForTests(db)
       // 运行时角色口令不在快照里（角色是集群级的），每轮由这里/restore 重置
       await resetRuntimeRolePassword(db)
     }
@@ -311,7 +322,7 @@ export async function prepareDatabase(options: { lockHeld?: boolean } = {}): Pro
     )
     log(`已写 ${CREDENTIALS_FILE}（口令随机生成、0600；TOTP secret 由 stack.setup 绑定后补上）`)
     await clearAppSettingCache()
-    log(`完成：库已重建、seed 已播、admin 已提升为 root、CAP 节流已放宽（全量 prepare 耗时 ${((Date.now() - started) / 1000).toFixed(1)}s）`)
+    log(`完成：库已重建、seed 已播、admin 已提升为 root、CAP 已放宽（节流 + 难度；全量 prepare 耗时 ${((Date.now() - started) / 1000).toFixed(1)}s）`)
   }
   finally {
     // seed env 含 AUTH_OPAQUE_SECRET、迁移 env 含 DB 口令：正常路径下各自一结束就删了，
