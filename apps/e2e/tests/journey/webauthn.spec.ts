@@ -1,14 +1,13 @@
 import type { CDPSession, Page } from '@playwright/test'
-import type { LoginableUser } from '../../lib/account-fixtures.ts'
 import { deleteLoginableUser } from '../../lib/account-fixtures.ts'
 import { openDevice } from '../../lib/device-fixtures.ts'
 import { findWebauthnMfaRow, readUserMfaSetup, withPg } from '../../lib/pg.ts'
 import { AuthRoutes, SystemEndpointRoutes, WalnutAdminConstAppResponseCode } from '../../lib/protocol/contract.ts'
 import { rootClient } from '../../lib/protocol/root-client.ts'
-import { captureEnvelopes, describeFailureContext, LOGIN_PASSWORD_SELECTOR, LOGIN_USERNAME_SELECTOR, markAppIntroSeen, solveCapWidget } from '../../lib/ui.ts'
+import { captureEnvelopes, describeFailureContext } from '../../lib/ui.ts'
 import { WEBAUTHN_WEB_ORIGIN } from '../../scripts/env.ts'
 import { expect, test } from '../fixtures.ts'
-import { createJourneyUser } from './journey-support.ts'
+import { createJourneyUser, loginUntilMfaPage } from './journey-support.ts'
 
 /**
  * J6 WebAuthn 正向闭环：虚拟认证器注册 → 用同一凭据完成登录 ceremony。
@@ -80,28 +79,6 @@ async function readCredentials(cdp: CDPSession, authenticatorId: string): Promis
  */
 function toBase64Url(base64: string): string {
   return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-}
-
-/**
- * 密码登录到 MFA 页（不处理 MFA 本身）：CAP 两次（启动 + 提交后）→ 等 `/mfa-required`
- * 或 `/mfa-verified`。`expected` 由调用方声明 —— 走错页面是「账号 MFA 状态与预期不符」，
- * 要在这一步说清，而不是后面点不到卡片。
- */
-async function loginUntilMfaPage(page: Page, user: LoginableUser, expected: '/mfa-required' | '/mfa-verified'): Promise<void> {
-  await page.goto('/auth')
-  // 之后会进 default layout（driver.js 全屏引导无法关闭）—— 与 loginViaUI 同口径预置
-  await markAppIntroSeen(page)
-
-  await solveCapWidget(page, { appearTimeoutMs: 6_000 })
-  const userName = page.locator(LOGIN_USERNAME_SELECTOR).first()
-  await userName.waitFor({ state: 'visible', timeout: 30_000 })
-  await userName.fill(user.userName)
-  const password = page.locator(LOGIN_PASSWORD_SELECTOR).first()
-  await password.fill(user.password)
-  await password.press('Enter')
-
-  await solveCapWidget(page, { appearTimeoutMs: 10_000, timeoutMs: 60_000 })
-  await page.waitForURL(url => url.pathname === expected, { timeout: 40_000 })
 }
 
 test.describe('WebAuthn journey', { tag: '@journey' }, () => {

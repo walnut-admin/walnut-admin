@@ -20,7 +20,16 @@ import type { WalnutProtocolClient } from '../../lib/protocol/client.ts'
 import { createLoginableUser, loginAs } from '../../lib/account-fixtures.ts'
 import { openDevice, resolveDeviceId, trackDevice } from '../../lib/device-fixtures.ts'
 import { findRoleIdByName, withPg } from '../../lib/pg.ts'
-import { describeFailureContext, loginViaUI, snapshotRecentEnvelopes } from '../../lib/ui.ts'
+import {
+  describeFailureContext,
+  LOGIN_PASSWORD_SELECTOR,
+  LOGIN_USERNAME_SELECTOR,
+  loginViaUI,
+  markAppIntroSeen,
+  settlePostLoginCap,
+  snapshotRecentEnvelopes,
+  solveCapWidget,
+} from '../../lib/ui.ts'
 
 export interface JourneyUser {
   user: LoginableUser
@@ -54,6 +63,36 @@ export async function createJourneyUser(
   const totpSecret = options.bindTotp === false ? null : await client.bindTotp()
 
   return { user, roleId, totpSecret, client }
+}
+
+/**
+ * 密码登录到 MFA 页（**不处理 MFA 本身**）：启动 CAP → 提交 → 登录后 CAP 竞速
+ * （`settlePostLoginCap`，与 `loginViaUI` 同一口径，不盲等 10s）→ 等 `/mfa-required`
+ * 或 `/mfa-verified`。`expected` 由调用方声明 —— 走错页面是「账号 MFA 状态与预期不符」，
+ * 要在这一步说清，而不是后面点不到卡片。
+ *
+ * J6（WebAuthn）与 J10（强制绑定 TOTP）共用；新用例别再手写一份登录序列
+ * （复制出来的版本会各自漂移 CAP 等待口径）。
+ */
+export async function loginUntilMfaPage(
+  page: Page,
+  user: Pick<LoginableUser, 'userName' | 'password'>,
+  expected: '/mfa-required' | '/mfa-verified',
+): Promise<void> {
+  await page.goto('/auth')
+  // 之后会进 default layout（driver.js 全屏引导无法关闭）—— 与 loginViaUI 同口径预置
+  await markAppIntroSeen(page)
+
+  await solveCapWidget(page, { appearTimeoutMs: 6_000 })
+  const userName = page.locator(LOGIN_USERNAME_SELECTOR).first()
+  await userName.waitFor({ state: 'visible', timeout: 30_000 })
+  await userName.fill(user.userName)
+  const password = page.locator(LOGIN_PASSWORD_SELECTOR).first()
+  await password.fill(user.password)
+  await password.press('Enter')
+
+  await settlePostLoginCap(page)
+  await page.waitForURL(url => url.pathname === expected, { timeout: 40_000 })
 }
 
 /** 新设备 + 完整 UI 登录（CAP + MFA），返回已登录会话（设备已登记给清理 fixture） */
