@@ -48,6 +48,10 @@ async function onBind() {
     currentStep.value = 1
     show.value = true
   }
+  catch {
+    // 拦截器是唯一的 toast 责任方（已提示 + 已做路由级处理）；这里吞掉 rejection，
+    // 否则冒到 `unhandledrejection` 会触发全屏「无法恢复的错误」遮罩（2026-11-27 实测）。
+  }
   finally {
     loading.value = false
   }
@@ -71,6 +75,10 @@ async function bindTotp() {
 
     emits('success')
   }
+  catch {
+    // 同 onBind：错误提示由拦截器完成（如 40000 参数错误 / 验证码错误文案），
+    // 弹窗保持打开让用户改码重试，不往上逃逸。
+  }
   finally {
     loading.value = false
   }
@@ -86,6 +94,9 @@ async function onUnbind() {
       loading.value = true
       await authMfaTotpUnbindAPI()
       emits('success')
+    }
+    catch {
+      // 同 onBind。
     }
     finally {
       loading.value = false

@@ -142,6 +142,14 @@ const useAppStoreUserAuthInside = defineStore(StoreKeys.USER_AUTH, {
           await useAppStoreLock().onInitLockState()
           return
         }
+        // MFA 强制流程（40114）：拦截器已把路由切到 `/mfa-required` 并 reject
+        // `Error('MFA Required')`。这里不能往上抛 —— 刷新落在 `/mfa-required` 时本函数
+        // 会被启动/守卫序列再次调用，再抛就是 `[runtime-fatal] unhandledrejection`
+        // 全屏遮罩挡住绑定表单（2026-11-27 手动回归实测）。绑定/验证成功后流程会重新
+        // 走到此处补全 profile + core init。
+        if (error instanceof Error && error.message === 'MFA Required') {
+          return
+        }
         throw error
       }
 
