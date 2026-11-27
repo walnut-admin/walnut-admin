@@ -148,7 +148,9 @@ export default ({ mode }: ConfigEnv): UserConfig => {
     },
 
     build: {
-      minify: 'esbuild',
+      // 不写 minify：Vite 8 的默认值就是 'oxc'（仓内没有 esbuild 依赖，显式写 'esbuild'
+      // 只会制造第二个真源）。dropConsole / dropDebugger 只在下面 rolldownOptions.output.minify
+      // 这一处表达。
       outDir: processedEnv.build.outDir,
       // 显式声明而不是依赖 Vite 的启发式（outDir 在 root 内才默认清空）：产物目录必须每次
       // 构建都是「本次输出」，不能混入上一版残留的 hash chunk。注意它只罩**真跑构建**这一半；
