@@ -5,11 +5,12 @@ import { openDevice, resolveDeviceId, trackDevice } from '../../lib/device-fixtu
 
 import {
   countLockResetAuditRows,
+  expireLockBackoff,
   findUserDeviceRow,
   findUserLockRow,
-  waitForLockBackoffExpired,
   withPg,
 } from '../../lib/pg.ts'
+import { WalnutProtocolRequestError } from '../../lib/protocol/client.ts'
 import { SystemEndpointRoutes, WalnutAdminConstAppResponseCode } from '../../lib/protocol/contract.ts'
 import { rootClient } from '../../lib/protocol/root-client.ts'
 import {
@@ -20,6 +21,7 @@ import {
 } from '../../lib/redis.ts'
 import { captureEnvelopes, loginViaUI, navigateInApp, verifyMfaIfPresent, waitForEnvelope } from '../../lib/ui.ts'
 import { expect, test } from '../fixtures.ts'
+import { waitForSocketConnected } from './journey-support.ts'
 import {
   createLockTestUser,
   lockDevice,
@@ -182,9 +184,9 @@ function captureSocketFrames(page: Page): string[] {
 }
 
 test.describe('锁屏闭环 journey', { tag: '@journey' }, () => {
-  test('J1 security 全流程：信封设置 → 密码框 → 5 次失败退避 30s → 正确解锁', async ({ browser }) => {
+  test('J1 security 全流程：信封设置 → 密码框 → 5 次失败退避 → 退避期正确口令也拒 → 回填后解锁', async ({ browser }) => {
     const root = await rootClient()
-    const { user, totpSecret } = await createLockTestUser(root, 'e2e-lock-j1')
+    const { user, totpSecret, client: protocolDevice } = await createLockTestUser(root, 'e2e-lock-j1')
 
     // socket 帧监听必须在 login 之前挂：socket 在登录后的 getProfile 里建立，
     // 晚了只能看到「之后新开的」websocket，已连上的那条收不到 UNLOCK。
@@ -235,10 +237,35 @@ test.describe('锁屏闭环 journey', { tag: '@journey' }, () => {
       await expect(page.getByTestId('lock-retry-countdown')).toBeVisible()
       expect(new URL(page.url()).pathname).toBe('/lock')
 
-      // 4. 按服务端退避截止时间等待（DB 时钟），不做固定 sleep
-      await withPg(pg => waitForLockBackoffExpired(pg, user.userId, 60_000))
+      // 4. 退避期内**正确口令也被拒**（R-C O3：用真实语义断言替代 30s 硬等）。
+      //    退避是用户级的、且先于密码比对（服务端 assertNotInUnlockBackoff），所以用同账号
+      //    另一台已登录的协议设备提交正确锁屏密码 —— 40000 + retryAfterSec>0 才能证明
+      //    「拒绝与密码对错无关」（反侧信道语义）；这条比「等 30s 再成功」更强。
+      let backoffError: WalnutProtocolRequestError | null = null
+      try {
+        await unlockDevice(protocolDevice, LOCK_PWD)
+      }
+      catch (error) {
+        if (error instanceof WalnutProtocolRequestError) {
+          backoffError = error
+        }
+        else {
+          throw error
+        }
+      }
+      expect(backoffError, '退避期内正确锁屏密码不应解锁成功').not.toBeNull()
+      expect(backoffError!.code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+      expect(backoffError!.meta?.retryAfterSec, '退避期拒绝必须带剩余秒数').toBeGreaterThan(0)
 
-      // 5. 正确密码 → 解锁 → 回原路由；socket UNLOCK 帧是广播腿的机器证据
+      // 5. 测试侧把退避截止回填到过去（+30s 裕量，消除 Node(Windows)/PG(WSL) 跨时钟竞速），
+      //    再 reload 重置客户端倒计时；服务端设备锁态仍在 ⇒ 页面重新挂载后停在 /lock。
+      await withPg(async (pg) => {
+        expect(await expireLockBackoff(pg, user.userId), '回填应命中唯一的偏好行').toBe(1)
+      })
+      await page.reload()
+      await expectLockPage(page)
+
+      // 6. 正确密码 → 解锁 → 回原路由；socket UNLOCK 帧是广播腿的机器证据
       const successResponse = page.waitForResponse(response => response.request().method() === 'PATCH' && response.url().endsWith(UNLOCK_API_PATH))
       await page.getByTestId('lock-pwd-input').fill(LOCK_PWD)
       await page.getByTestId('lock-unlock-submit').click()
@@ -248,10 +275,9 @@ test.describe('锁屏闭环 journey', { tag: '@journey' }, () => {
       await page.waitForURL(url => url.pathname !== '/lock', { timeout: 30_000 })
       await expect(page.getByTestId('lock-page')).toHaveCount(0)
 
-      await expect.poll(
-        () => socketFrames.some(frame => frame.includes('lock:unlock')),
-        { timeout: 15_000, message: '浏览器 socket 没有收到 UNLOCK 帧' },
-      ).toBe(true)
+      // socket 广播腿的断言放到最后（第 7 步的 default 免密解锁）：重新加载会重建 socket，
+      // 而锁定态的 getProfile 被 40118 拦到解锁成功后才连上 —— 第一次解锁的 UNLOCK 帧必然
+      // 错过，不是产品缺陷。恢复连接后的那一次解锁用同一事件证明广播腿。
 
       await expect.poll(() => readDeviceLocked(user.userId, session.deviceId), { timeout: 10_000 }).toBe(false)
       await expect.poll(() => withRedis(client => readLockCache(client, user.userId, 'global')), { timeout: 10_000 }).toBe(false)
@@ -263,7 +289,9 @@ test.describe('锁屏闭环 journey', { tag: '@journey' }, () => {
       // 也核一下 read 响应确实回来过（保存 / 解锁链路的 envelope 序列）
       await waitForEnvelope(captured.entries, entry => entry.url.includes(SystemEndpointRoutes.USER_LOCK_READ) && entry.code === WalnutAdminConstAppResponseCode.SUCCESS)
 
-      // 6. default 模式：三态里的「免密按钮」腿（E1 的 lock-unlock-btn 必须被消费）
+      // 7. default 模式：三态里的「免密按钮」腿（E1 的 lock-unlock-btn 必须被消费）
+      // 先等 socket 恢复连接，再断言解锁广播（reload 后 socket 在解锁成功后的 getProfile 里重建）
+      await waitForSocketConnected(socketFrames, 15_000)
       await expect(page.getByTestId('lock-settings')).toBeVisible()
       await page.getByTestId('lock-mode-default').click()
 
@@ -281,6 +309,10 @@ test.describe('锁屏闭环 journey', { tag: '@journey' }, () => {
       await page.getByTestId('lock-unlock-btn').click()
       expect((await (await freeUnlock).json() as ServerEnvelope<boolean>).code).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
       await page.waitForURL(url => url.pathname !== '/lock', { timeout: 30_000 })
+      await expect.poll(
+        () => socketFrames.some(frame => frame.includes('lock:unlock')),
+        { timeout: 15_000, message: '浏览器 socket 没有收到 UNLOCK 帧' },
+      ).toBe(true)
       await expect.poll(() => readDeviceLocked(user.userId, session.deviceId), { timeout: 10_000 }).toBe(false)
     }
     finally {

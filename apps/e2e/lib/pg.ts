@@ -5,8 +5,9 @@
  * - 断言：`sys_device` 行是否存在、字段是否被 backfill（created_at）、是否 banned/locked；
  * - fixture：U9 删设备行、新设备用例把 created_at 回填到 1 小时前 / 3 天前。
  *
- * 安全闸：连接参数只从 scripts/env.ts 来（库名恒 walnut_e2e），并在建连前过
- * assertE2eDatabase / assertE2ePgPort —— 这些 helper 会 DELETE / UPDATE，指错库就是事故。
+ * 安全闸：连接参数只从 scripts/env.ts 来（库名按当前 stack profile：`walnut_e2e` 或
+ * `walnut_e2e_<profile>`），并在建连前过 assertE2eDatabase / assertE2ePgPort —— 这些 helper
+ * 会 DELETE / UPDATE，指错库就是事故。
  */
 import type { ClientConfig } from 'pg'
 import { Client } from 'pg'
@@ -72,7 +73,7 @@ const pgConfig: ClientConfig = {
 }
 
 /**
- * 建一个到 walnut_e2e 的连接（调用方负责 end()；setup/spec 里用 withPg 更省事）。
+ * 建一个到**当前 profile 的 E2E 库**的连接（调用方负责 end()；setup/spec 里用 withPg 更省事）。
  *
  * 安全闸分两层：连之前的 `assert*` 在实参来自常量时是**恒真的机械标记**（防将来把常量换成
  * 字面量）；连上之后的 `SELECT current_database()` 才是对**运行态**的断言 —— 端口 / 库名
@@ -242,28 +243,25 @@ export async function findUserLockRow(client: Client, userId: string): Promise<S
 }
 
 /**
- * 等退避截止（用**数据库时钟**判断，不用 Node 墙钟）。
+ * 把锁屏退避截止**回填到过去**（测试侧的时钟注入，替代「等 30s」）。
  *
- * 锁屏用例要等 30s 档退避；按 `meta.retryAfterSec` 直接 `waitForTimeout` 会被
- * 「响应到达 / 服务端写库 / 客户端计时」三段误差叠出假红。这里轮询 DB 的
- * `now() >= lock_pwd_locked_until`，最多等到 `timeoutMs`（默认超出最大档 30s 一截）。
+ * 为什么不再按 DB 时钟轮询到期：`lock_pwd_locked_until` 由服务端 **Node 时钟**写入，
+ * 服务端判定退避是否结束也用 Node 时钟；E2E 的 PG 跑在 WSL、后端跑在 Windows，两钟不同源
+ * （R-D 实测摆动 −0.8s ~ +1.8s）。按 DB `now()` 等到期后立刻提交，若 DB 比 Node 快，请求会
+ * 落进服务端仍视为退避的尾窗（`Math.ceil` 还会把 <1s 放大成 1s）→ 40000 假红。
+ *
+ * 这里直接把截止拨到 30s 前 —— 远超观测到的时钟摆动，让两侧时钟都判「已过期」；退避曲线
+ * 本身由第 5 次失败的 `meta.retryAfterSec` 断言与 `lock-pwd-backoff` 单测覆盖，不靠等待证明。
+ * 回填后调用方必须 reload：客户端倒计时是组件本地 ref，归零后提交按钮才可用。
+ *
+ * @returns 受影响行数（调用方断言为 1，防止 userId 写错时静默通过）
  */
-export async function waitForLockBackoffExpired(client: Client, userId: string, timeoutMs = 45_000): Promise<void> {
-  const started = Date.now()
-  for (;;) {
-    const { rows } = await client.query<{ expired: boolean }>(
-      `SELECT (lock_pwd_locked_until IS NULL OR lock_pwd_locked_until <= now()) AS expired
-         FROM sys_user_lock WHERE user_id = $1`,
-      [userId],
-    )
-    if (rows[0] === undefined || rows[0].expired) {
-      return
-    }
-    if (Date.now() - started > timeoutMs) {
-      throw new Error(`[e2e/pg] ${timeoutMs}ms 内锁屏退避没有到期（userId=${userId}）`)
-    }
-    await new Promise(resolve => setTimeout(resolve, 250))
-  }
+export async function expireLockBackoff(client: Client, userId: string): Promise<number> {
+  const result = await client.query(
+    `UPDATE sys_user_lock SET lock_pwd_locked_until = now() - interval '30 seconds' WHERE user_id = $1`,
+    [userId],
+  )
+  return result.rowCount ?? 0
 }
 
 /** 管理员重置锁屏的审计行数（operation=`user.lock.reset`；url 里带被重置的 userId） */

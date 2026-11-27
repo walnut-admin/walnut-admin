@@ -204,6 +204,11 @@ async function requestUnbindEmailSecurity(page: Page): Promise<void> {
 
 test.describe('敏感操作二次验证（40119）', { tag: '@risk' }, () => {
   test('S1 解绑安全邮箱：40119 → VerifyAuth → 验证后自动重放一次并成功', async ({ browser }) => {
+    // R-D 风险 3：这条链是「造号 + 绑 TOTP/邮箱 + UI 登录 + 两次弹窗交互」，
+    // 8 核满载实测 37–41s（无负载 23–26s），历史 CI 读数见过 ~87s。120s 全局上限
+    // 在共机噪声下余量不足；`test.slow()` 给到 300s，真卡死仍会红（不掩盖问题）。
+    test.slow()
+
     const user = await createSensitiveUser('e2e-sensitive-s1')
     const context = await newBrowserContext(browser)
     const page = await context.newPage()
@@ -284,6 +289,9 @@ test.describe('敏感操作二次验证（40119）', { tag: '@risk' }, () => {
   })
 
   test('S2 负对照：验证码错 → 弹窗不关、原解绑请求不放行；改对后恢复', async ({ browser }) => {
+    // 同 S1：同一套造号 + UI 登录 + 两轮验证码交互，共机噪声下需要 3x 余量。
+    test.slow()
+
     const user = await createSensitiveUser('e2e-sensitive-s2')
     const context = await newBrowserContext(browser)
     const page = await context.newPage()

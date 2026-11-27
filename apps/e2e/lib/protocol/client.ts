@@ -64,16 +64,23 @@ const OPAQUE_SERVER_IDENTIFIER = 'walnut-admin'
 /** device/initial 撞 42900 时最多换几个地址重放（见 bootstrap 注释；每个地址一个 /60s 桶） */
 const BOOTSTRAP_REAL_IP_RETRY_LIMIT = 8
 
-/** 协议请求的业务错误（带 code，供重试 / 分支断言；`request()` 只对非 20000 抛它） */
+/**
+ * 协议请求的业务错误（带 code，供重试 / 分支断言；`request()` 只对非 20000 抛它）。
+ *
+ * `meta` 一并保留：锁屏退避的 40000 用 `meta.retryAfterSec` 表达「退避期内一律拒绝」，
+ * 没有它就只能看到业务码、无法断言拒绝语义（J1 的负向判据需要）。
+ */
 export class WalnutProtocolRequestError extends Error {
   readonly code: number
   readonly status: number
+  readonly meta?: Record<string, unknown>
 
-  constructor(method: string, path: string, status: number, code: number, msg?: string) {
+  constructor(method: string, path: string, status: number, code: number, msg?: string, meta?: Record<string, unknown>) {
     super(`[e2e/protocol] ${method} ${path} 失败：HTTP ${status} code=${code} msg=${msg ?? ''}`)
     this.name = 'WalnutProtocolRequestError'
     this.code = code
     this.status = status
+    this.meta = meta
   }
 }
 
@@ -202,7 +209,7 @@ export class WalnutProtocolClient {
     }
 
     if (body.code !== WalnutAdminConstAppResponseCode.SUCCESS) {
-      throw new WalnutProtocolRequestError(method, path, response.status, body.code, body.msg)
+      throw new WalnutProtocolRequestError(method, path, response.status, body.code, body.msg, body.meta)
     }
 
     return body
