@@ -32,6 +32,7 @@
     "lint": "eslint . --concurrency=4",
     "lint:fix": "eslint . --fix --concurrency=4",
     "types:check": "tsc --noEmit",
+    "types:check:tsrs": "tsrs --noEmit --pretty",
     "test": "pnpm run build && vitest run",
     "test:watch": "vitest",
     "clean": "rimraf dist",
@@ -46,6 +47,7 @@
     "@walnut/vitest-config": "workspace:*",
     "rimraf": "catalog:",
     "tsdown": "catalog:",
+    "tsrs": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },

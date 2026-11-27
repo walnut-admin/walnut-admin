@@ -335,6 +335,16 @@ export const COMMANDS: readonly Command[] = [
     why: '根 tsconfig 覆盖的那几个配置不入 turbo 的图，没有这一步就没人检查它们的类型。',
     argv: ['exec', 'tsc', '-p', 'tsconfig.json'],
   },
+  // tsrs 的**影子入口**（执行计划 §9.1 第 5 条）：影子期只观测，**不进 prepush / 发版电池**。
+  // 判据是「时长 + 诊断 diff」（§9.2），期满后整批转正（§9.3）时删掉本条。
+  {
+    id: 'types:check:tsrs',
+    group: '门禁',
+    label: 'tsrs 类型检查（影子期只观测，不阻断）',
+    why: '检查侧快查的候选实现；影子期只看时长与诊断 diff，期满后再决定是否转正。',
+    argv: ['exec', 'turbo', 'run', 'types:check:tsrs'],
+    budgetMs: 0,
+  },
   {
     id: 'test',
     group: '门禁',

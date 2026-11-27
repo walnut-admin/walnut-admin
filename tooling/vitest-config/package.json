@@ -14,7 +14,8 @@
   "scripts": {
     "lint": "eslint . --concurrency=4",
     "lint:fix": "eslint . --fix --concurrency=4",
-    "types:check": "tsc --noEmit"
+    "types:check": "tsc --noEmit",
+    "types:check:tsrs": "tsrs --noEmit --pretty"
   },
   "peerDependencies": {
     "vitest": "catalog:"
@@ -23,6 +24,7 @@
     "@types/node": "catalog:",
     "@walnut/tsconfig": "workspace:*",
     "eslint": "catalog:",
+    "tsrs": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },

@@ -48,6 +48,7 @@
     "lint": "eslint . --concurrency=4",
     "lint:fix": "eslint . --fix --concurrency=4",
     "types:check": "tsc --noEmit",
+    "types:check:tsrs": "tsrs --noEmit --pretty",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -64,6 +65,7 @@
     "@walnut/tsconfig": "workspace:*",
     "@walnut/vitest-config": "workspace:*",
     "eslint": "catalog:",
+    "tsrs": "catalog:",
     "vitest": "catalog:",
     "yaml": "catalog:"
   },

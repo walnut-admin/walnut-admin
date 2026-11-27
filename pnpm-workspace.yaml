@@ -65,6 +65,12 @@ trustPolicyExclude:
   - langium@3.3.1
   - semver@5.7.2
   - semver@6.3.1
+  # tsrs 是 2026-10 起由 oxc-project 发布的那一个包（0.0.0 的 description 与 repository 就
+  # 指向 oxc-project/tsrs，名字历来属于本项目），但 2026-10 起的版本改用 GitHub Actions OIDC
+  # 发布（`_npmUser` = GitHub Actions，带 SLSA provenance + registry 签名，7.1.0-beta.tsrs5 实测）；
+  # pnpm 的 no-downgrade 把「发布者从个人账号换成 OIDC」判成 `possible package takeover`，
+  # 整包所有版本都被拒。**只豁免要装的那一个精确版本**，策略本身不关（执行计划 §9.1、§11 第 7 行）。
+  - tsrs@7.1.0-beta.tsrs5
   - undici-types@6.21.0
 # 阻止传递依赖走 git / 直连 tarball 等异源，只允许从 registry 解析。
 blockExoticSubdeps: true
@@ -352,6 +358,10 @@ catalog:
   # 共享包（platform-any/{utils-core,contract}）的 lib 打包器，替代 Vite lib 模式 + vite-plugin-dts。
   # 0.x 版本，**精确锁**：0.23 是 breaking 版本，升级要单独成批并跑完全套验收（执行计划 §8.1）。
   tsdown: 0.23.7
+  # 检查侧快查（tsc 的 Rust 移植）。**精确锁、禁用范围**：`tsrsN` 的版本文本排序最多到 tsrs9，
+  # registry 也没有 `next` tag（只有 `latest`），写范围会在跨 N 时排序错乱。
+  # 影子期只接 `types:check:tsrs`（report-only），转正判据见执行计划 §9.2 / §9.3。
+  tsrs: 7.1.0-beta.tsrs5
   turbo: 2.11.2
   typeorm: 1.1.2
   typescript: 6.0.3

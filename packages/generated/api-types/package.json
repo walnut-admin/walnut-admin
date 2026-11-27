@@ -24,6 +24,7 @@
     "lint": "eslint . --concurrency=4",
     "lint:fix": "eslint . --fix --concurrency=4",
     "types:check": "tsc --noEmit",
+    "types:check:tsrs": "tsrs --noEmit --pretty",
     "clean": "rimraf dist",
     "clean:all": "rimraf dist node_modules"
   },
@@ -32,6 +33,7 @@
     "@walnut/tsconfig": "workspace:*",
     "openapi-typescript": "catalog:",
     "rimraf": "catalog:",
+    "tsrs": "catalog:",
     "typescript": "catalog:"
   },
   "walnut": {
