@@ -16,6 +16,7 @@ const {
   minlength = 8,
   progress = false,
   capslock = false,
+  inputProps,
 } = defineProps<ICompExtraPasswordProps>()
 
 const emits = defineEmits<{ submit: [] }>()
@@ -87,6 +88,7 @@ function onKeyup() {
           clearable
           :input-props="{
             autocomplete: 'current-password',
+            ...inputProps,
           }"
           @keyup.enter="onKeyup"
           @focus="onTargetFocus"

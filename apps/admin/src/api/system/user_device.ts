@@ -45,9 +45,14 @@ export function lockUserDeviceAPI(data: IRequestPayload.System.UserDevice.Lock) 
 
 /**
  * @description unlock user device
+ *
+ * security 模式必须带 `lockPwdHash`；与 `lock/unlock` 同一套请求信封（Q10），
+ * 服务端 `@WalnutAdminDecoratorDecryptRequest(['lockPwdHash'])` 负责还原。
  */
 export function unlockUserDeviceAPI(data: IRequestPayload.System.UserDevice.Unlock) {
   return AppAxios.put<boolean>({
     url: `${SystemEndpointRoutes.USER_DEVICE_UNLOCK}/${data.deviceId}`,
+    data: data.lockPwdHash ? { lockPwdHash: data.lockPwdHash } : {},
+    _autoEncryptRequestData: ['lockPwdHash'],
   })
 }

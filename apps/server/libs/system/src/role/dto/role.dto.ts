@@ -202,19 +202,20 @@ export class SysRoleDTOCreateResponse extends SysRoleDTOSafe {}
 // read
 export class SysRoleDTOReadResponse extends SysRoleDTOSafe {}
 
-// update
-export class SysRoleDTOUpdateRequest extends IntersectionType(
+// update —— 全字段可选 + 真 PATCH 语义（preserveAbsent，2026-11 F2）：
+// 未提供的键保持 undefined（menus/dataScope/deptIds 未给 = junction / 列不动）；
+// service 滤掉 undefined 后未给列不进 UPDATE，显式 null 仍是有意的清空。
+export class SysRoleDTOUpdateRequest extends RealPartialType(
   RealPickType(SysRoleDTOSafe, [
     'roleName',
     'description',
     'order',
     'status',
+    'menus',
+    'dataScope',
+    'deptIds',
   ] as const),
-  RealPartialType(RealPickType(SysRoleDTOSafe, ['menus'] as const)),
-  // dataScope 可省略（语义：不修改）；显式传 1..6 才触发失效与重算
-  RealPartialType(RealPickType(SysRoleDTOSafe, ['dataScope'] as const)),
-  // deptIds 可省略（语义：junction 不动）；给了则整组替换并失效该角色成员的 scope 缓存
-  RealPartialType(RealPickType(SysRoleDTOSafe, ['deptIds'] as const)),
+  { preserveAbsent: true },
 ) {}
 export class SysRoleDTOUpdateResponse extends SysRoleDTOSafe {}
 

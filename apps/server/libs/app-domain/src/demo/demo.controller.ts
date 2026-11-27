@@ -42,6 +42,8 @@ const {
 } = WalnutCrudDecorators({
   title: WalnutAdminConstDecoratorLogOperateTitle.APP_DEMO,
   DTO: AppDemoDTOSafe,
+  // list 行是 RealPartialType(AppDemoDTOSafe)：字段集一致、全部可选（P2-6 收尾）。
+  listResponseDTO: AppDemoDTOListResponse,
 })
 
 /**

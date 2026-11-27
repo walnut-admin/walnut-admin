@@ -106,7 +106,7 @@ pnpm exec turbo run build build:stage transit types:check lint test --dry=json
 
 ---
 
-## 四、四条已经修掉的缝（都是实测出来的）
+## 四、已经修掉的缝（都是实测出来的）
 
 ### 4.1 `build:stage` 报成功却一个文件都没产出 ✅ 已修
 
@@ -277,6 +277,52 @@ Turbo 的严格 env 模式会把「没在 `env` / `globalEnv` / `passThroughEnv`
    会报 TS2345。
 
 ---
+
+### 4.8 `build:stage` 缓存命中不清空产物目录（旧 hash chunk 累积）✅ 已修
+
+**现象**（P2-C，2026-11-25）：负对照（改 admin 样式 → 构建 → 还原 → 再构建）之后，
+`apps/admin/dist-staging/static/js/` 里同一路由名有多套 hash（实测同一个名字最多 24 个 hash，
+906 个 JS 里大半是无引用的旧分块）。
+
+**根因**：Vite 的 `emptyOutDir` 本身没问题（默认 outDir 在 root 内即清空；实测直接
+`pnpm --filter @walnut/admin build:stage` 会删掉放进目录的探针文件）。问题在**缓存恢复**：
+turbo 只把缓存里的文件写回去，**不删目录里多出来的文件**（additive restore）。负对照还原后
+第二次构建是 `FULL TURBO` 命中 —— 构建脚本（含 Vite）根本没跑，旧分块原样留着；每还原一次
+就多一套。
+
+**改法**：把「清空」放到缓存边界**之外**，作为 `build:stage` 的同包依赖 `clean:stage`
+（`cache: false`，每次都跑；admin 的实现是 `rimraf dist-staging`）。缓存命中 ⇒ clean 清目录、
+turbo 再恢复 = 精确产物；未命中 ⇒ clean 先清、Vite 再在空目录构建。`apps/admin/vite.config.ts`
+同时显式写 `emptyOutDir: true`，不再依赖 Vite 的启发式。
+
+**实测**（2026-11-26）：往 `dist-staging` 放探针文件 → `pnpm walnut build:stage` 冷跑（2 task，
+1m40s）⇒ 探针消失、1743 个文件 / 448 个 chunk；再放探针 → 热跑（`FULL TURBO`，5.5s）⇒ 探针消失、
+文件清单 sha256 与冷跑**逐字相同**（`f6b7603f…`），没有旧分块。
+
+**追记（2026-11-26，F3）：prod 的 `dist` 同病，但范围只收窄到 admin**。R1 只把「清空」做进
+`build:stage`，prod 的 `build` 仍裸着 —— `apps/admin/dist` 在「缓存命中 + 上一轮产物」时会留下
+同一批旧 hash chunk。照同一套模式补齐：admin 的 `clean:build`（`rimraf dist`）在根 `turbo.json`
+里 `cache: false`、挂进 `build.dependsOn`（与 `build:stage` 的 `clean:stage` 同形态）。
+**刻意不扩到所有包**：hash chunk 是 **Vite** 独有的风险；其余包的 `build` 产物是固定名文件
+（`dist/*.cjs`、`dist-stage/**` 的编译结果），additive 恢复不会「多出一套」，反而让每个包白付
+一次 `rimraf`。判据是「产物里有没有随内容变化的文件名」，不是「这个包也构建」。
+
+**负对照（同日，本机 12 核 Windows；口径 = 同一条缓存条目的冷跑 vs 命中回放）**：
+- 冷跑 `pnpm build`（10 task）**4m6s**，其中 admin#build `built in 2m 6s`；`apps/admin/dist` 1743 个
+  文件（448 个 chunk），文件清单 sha256 `1399f870…`、内容 sha256 `14f6a9b5…`；
+- 往 `dist/static/js/` 放探针 → `pnpm build` 命中缓存（10 task / 9 cached，**4s**）⇒ 探针消失，
+  清单与内容 sha256 与冷跑**逐字相同**；
+- **摘掉依赖边的对照**：临时把 `clean:build` 从 `build.dependsOn` 移除（改后首跑必须有真跑：
+  7 task / 5m38s，填充该配置的缓存），再放探针 → `FULL TURBO`（7/7 cached，250ms）⇒ 探针
+  **残留**（1744 个文件）—— 这就是 additive 恢复本身，也是这条依赖边存在的理由；
+- 恢复依赖边 → 命中原缓存（`clean:build` force 执行，**5s**）⇒ 探针消失、清单 sha256 回到
+  `1399f870…`（与冷跑逐字相同）。
+
+> 口径提醒（2026-11-26 实测）：这条不变量比的是**同一条缓存条目的冷跑输出 vs 命中回放**。两次
+> 独立的真跑之间**不保证逐字一致** —— 连续两次 `--force` 的 `apps/admin/dist` 文件数相同
+> （1743 / 448 chunk），但 chunk 文件名全不同（清单 sha256 `4ce7ed67…` vs `74bb1720…`）。原因未深究，
+> 与本节的 clean 改动无关（两次都走了同一条流水线），但它决定了判据怎么写：**别拿「两次真跑
+> 哈希不同」当回归信号**；要判「产物是否精确」，用「冷跑 vs 同一条缓存回放」，或直接比文件数。
 
 ## 五、交叉对比：调研文档 / 参考仓 Z / 本仓
 

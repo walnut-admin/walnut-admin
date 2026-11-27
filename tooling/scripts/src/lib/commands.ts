@@ -285,21 +285,35 @@ export const COMMANDS: readonly Command[] = [
     group: '门禁',
     label: '全链路 E2E（独立 PG/Redis 栈 + dist-stage 后端 + dist-staging 前端）',
     why: '跨端链路（设备身份、CAP、签名握手、风控）只有真实浏览器 + 真实后端能验；这条命令先查前置、'
-      + '抢 run 级锁、重建独立库（walnut_e2e / 5433 / 6380，绝不碰 dev 库）再跑全部 spec。'
-      + '**前置**：`pnpm setup-env`（apps/server/env-local/.env.stage）、`pnpm walnut build:stage` 与'
-      + '`pnpm --filter @walnut/server build:stage`、`pnpm --filter @walnut/e2e exec playwright install chromium`、'
+      + '抢 run 级锁、重建独立库（默认 walnut_e2e / 5433 / 6380，绝不碰 dev 库）再跑 spec。'
+      + '`E2E_STACK_PROFILE=smoke|risk|network|pages|journey` 切到该 profile 的独立库 / 偏移端口 / `.e2e/<p>/` 基线'
+      + '（不设 = default，本地全量行为不变；profile 与 project 同名 1:1）。'
+      + '**前置**：`pnpm setup-env`（apps/server/env-local/.env.stage）、`pnpm build`（workspace 包的 CJS dist）、'
+      + '`pnpm walnut build:stage` 与 `pnpm --filter @walnut/server build:stage`、'
+      + '`pnpm --filter @walnut/e2e exec playwright install chromium`、'
       + '数据栈在 5433 / 6380 可达（WSL 形态还要一个隐藏会话）。全量含 @network 用例（依赖真实外网，'
       + '离线时改用 e2e:risk）。刻意不进 prepush 与 ci:local：重活不属于推送前门禁。',
-    // 顺序写在 apps/e2e/scripts/run.ts：锁 → preflight → prepare-db → stack-info → playwright test
+    // 顺序写在 apps/e2e/scripts/run.ts：锁 → preflight → 基线决策 → Redis 设备键对账 →
+    // stack-info → playwright test
     argv: ['-C', 'apps/e2e', 'run', 'e2e'],
     budgetMs: 0, // 整套分钟级，且含 webServer 启停（不给入口层套上限）
   },
   {
+    id: 'e2e:default',
+    group: '门禁',
+    label: 'E2E default 面（smoke + risk + network + mobile）',
+    why: '日常验收入口：覆盖设备 / 风控 / 冒烟 / 外网 / mobile 四个 project，不跑 pages 与 journey'
+      + '（它们有独立 stack profile 与基线，CI 里也各自成 job）。'
+      + '前置与 e2e 相同；比裸 `pnpm walnut e2e` 少 2 个 project（约 3–5 分钟）。',
+    argv: ['-C', 'apps/e2e', 'run', 'e2e:default'],
+    budgetMs: 0, // 同 e2e：分钟级 + webServer 启停
+  },
+  {
     id: 'e2e:smoke',
     group: '门禁',
-    label: 'E2E 冒烟子集（setup + UI 登录/首页/用户 CRUD）',
+    label: 'E2E 冒烟子集（setup + 首页 / 菜单 / 角色 / 设置 / 用户 CRUD）',
     why: '改前端或后端引导链后先跑这一组：它含 UI 登录与 MFA，能最快回答「栈还活着吗」。'
-      + '前置与 e2e 相同（setup-env / 两处 build:stage / playwright install / 数据栈），'
+      + '前置与 e2e 相同（setup-env / pnpm build / 两处 build:stage / playwright install / 数据栈），'
       + '但它不碰 @network，离线也能跑。',
     argv: ['-C', 'apps/e2e', 'run', 'e2e:smoke'],
     budgetMs: 0, // 同 e2e：分钟级 + webServer 启停
@@ -465,8 +479,8 @@ export const COMMANDS: readonly Command[] = [
   {
     id: 'lint:dist',
     group: '门禁',
-    label: '产物去密体检（扫 dist 有没有把后端 env 打包进去）',
-    why: '前端产物是公开文件；把后端 env 搬错一行就会被打包进去，而构建 / 类型 / lint / 测试全都不响。它扫的是 dist，所以要在构建之后跑。',
+    label: '产物去密体检（扫 dist / dist-staging 有没有把后端 env 打包进去）',
+    why: '前端产物是公开文件；把后端 env 搬错一行就会被打包进去，而构建 / 类型 / lint / 测试全都不响。两份产物（build 的 dist 与 build:stage 的 dist-staging）都是公开面，缺一不可 —— 缺哪份会显式打印「没验过」，两份都缺才退 2。所以要在构建之后跑。',
     argv: ['exec', 'walnut-check-dist-secrets'],
     budgetMs: 5 * MINUTE,
   },
@@ -608,6 +622,13 @@ export const COMMANDS: readonly Command[] = [
     argv: ['exec', 'walnut-db-seed-pg'],
   },
   {
+    id: 'db:credential-check',
+    group: '数据库',
+    label: '口令凭证探针：密文可解 + valueHash 自洽',
+    why: '凭证绑定面变更（OPAQUE identifiers / ① 的 AES 信封）会让旧行静默 40103；部署后先跑它，比逐账号试登录快且不触发风控。',
+    argv: ['exec', 'walnut-db-credential-check'],
+  },
+  {
     id: 'db:export:pg',
     group: '数据库',
     label: 'PG → 历史导出形态 Extended JSON',
@@ -697,6 +718,29 @@ export const COMMANDS: readonly Command[] = [
 
   // ── 工具 ──
   {
+    id: 'e2e:affected',
+    group: '工具',
+    label: '按改动范围选择 E2E 子集（默认 base=origin/main）',
+    why: '本地与 nightly 的轻量入口：读 `git diff --name-only <base>...HEAD`，admin 登录 → smoke、'
+      + 'server guards/system/ip/middleware → risk、admin views/router → pages、socket/锁屏 → journey、'
+      + 'seed / 迁移 / prepare-db → 重新封板 + 全量、'
+      + '只改文档 → 跳过、**其它任何路径 → 全量**（安全网）。**刻意不进 prepush / PR 门禁**；'
+      + '执行仍经 apps/e2e/scripts/run.ts（抢 run 级锁、基线决策与单 run 不变量不变）。',
+    argv: ['-C', 'apps/e2e', 'run', 'e2e:affected'],
+    // base 可位置参数给（`pnpm walnut e2e:affected origin/main`），也可 `--base=<ref>`
+    positionalArgs: '[base]',
+    budgetMs: 0, // 可能走到全量，分钟级 + webServer 启停
+  },
+  {
+    id: 'e2e:doctor',
+    group: '工具',
+    label: 'E2E 前置自检（打印全部检查与修复命令，不抢锁、不动库）',
+    why: '跑 e2e 前的失败先说清「缺什么、怎么补」：它只跑 preflight（env / workspace CJS dist / '
+      + '两处 stage 产物 / chromium / PG·Redis 可达 / PG 容器可读 / 端口），**不**抢 run 级锁、'
+      + '不重建库、不起服务。环境有问题时仍按退出码 2 收场（与 e2e 的前置口径一致），适合排障时反复跑。',
+    argv: ['-C', 'apps/e2e', 'run', 'e2e:doctor'],
+  },
+  {
     id: 'e2e:report',
     group: '工具',
     label: '打开上一轮 E2E 的 HTML 报告',
@@ -704,6 +748,53 @@ export const COMMANDS: readonly Command[] = [
       + 'Playwright 报告里；产物落在 gitignored 的 playwright-report/（含 token，别上传）。',
     argv: ['-C', 'apps/e2e', 'run', 'e2e:report'],
     budgetMs: 0, // 起本地报告服务，常驻
+  },
+  {
+    id: 'e2e:stack:up',
+    group: '工具',
+    label: '起 E2E 数据栈（独立 PG 5433 / Redis 6380）',
+    why: '按 E2E_PG_EXEC_MODE / 平台自动选 WSL 常驻栈或通用 compose（容器名可用 E2E_PG_CONTAINER 覆盖），'
+      + '然后 `docker compose up -d`。**只起数据栈**：不抢 run 级锁、不重建库、不碰 Playwright 的 webServer —— '
+      + '那些仍由 e2e 自己编排。',
+    argv: ['-C', 'apps/e2e', 'run', 'e2e:stack', 'up'],
+    budgetMs: 5 * MINUTE, // compose up 通常秒级；拉镜像时才会慢，5 分钟收掉卡死
+  },
+  {
+    id: 'e2e:stack:down',
+    group: '工具',
+    label: '停 E2E 数据栈（默认保留数据卷）',
+    why: '与 up 同一个形态探测；默认 `down` 保留数据卷（基线仍可用）。要重置成空实例就在命令后加 '
+      + '`--volumes`（或 `-- -v`）：连卷删掉后旧基线失效，下一次 run 会全量 prepare 并重新封板。',
+    argv: ['-C', 'apps/e2e', 'run', 'e2e:stack', 'down'],
+    budgetMs: 5 * MINUTE,
+  },
+  {
+    id: 'e2e:stack:status',
+    group: '工具',
+    label: 'E2E 数据栈状态（容器 / PG·Redis 可达性 / 端口 / 基线）',
+    why: '一条只读命令回答「现在能不能跑 e2e」：容器是否 running、5433 / 6380 是否可达、'
+      + '3001 / 3002 / 4173 是否空闲、当前基线可用 / 缺失 / 漂移。复用 preflight 的探针与 baseline 的判定，'
+      + '不抢锁、不动库、不启停服务；默认只报告、退出码恒 0，`-- --strict` 时容器 / PG·Redis 任一 FAIL ⇒ 1。',
+    argv: ['-C', 'apps/e2e', 'run', 'e2e:stack', 'status'],
+  },
+  {
+    id: 'e2e:clean',
+    group: '工具',
+    label: '清理 apps/e2e/.e2e 的调试文件（dry-run 默认）',
+    why: '`.e2e/` 是排障现场：log / 临时 json / 截图 / trace 会越堆越多，而基线三件套与 stack.json '
+      + '是下一轮 run 直接消费的。默认只列出将删条目；`--force` 才真删，且路径闸只允许删该目录的直接子项。'
+      + '跑用例期间别清（正在写的日志会被删）。',
+    argv: ['-C', 'apps/e2e', 'run', 'e2e:clean'],
+  },
+  {
+    id: 'e2e:redis-gc',
+    group: '工具',
+    label: 'Redis 设备键对账（按 deviceId 清孤儿，不 FLUSH）',
+    why: '扫描白名单前缀里的设备键，查 `sys_device` 判存在性，只对「设备不存在」的键执行精确 `DEL`。'
+      + 'run 流程默认在库准备之后自动跑（`E2E_REDIS_GC=0` 关）；这条是排障 / 负对照的独立入口，'
+      + '`--dry-run` 只看计划不删。**绝不 FLUSHDB / FLUSHALL**（compose 里已禁用那两个命令）。',
+    argv: ['-C', 'apps/e2e', 'run', 'e2e:redis-gc'],
+    budgetMs: 5 * MINUTE,
   },
   {
     id: 'scaffold:lib',

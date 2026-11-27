@@ -82,6 +82,20 @@ CI（`.github/workflows/ci.yml`）复用同一套加解密流程：
 
 `.env.keys` 本身仍 gitignore、经 1Password 团队共享——secret 与本地文件是同一份内容，轮换密钥后需同步更新。
 
+### 6. E2E（nightly）的 env 绑定
+
+`.github/workflows/e2e.yml` 不进 PR，但同样要 `ENV_KEYS`：admin 的 stage 构建要 `VITE_*`（zod
+fail-fast），后端 stage 要根密钥（OPAQUE / cookie / JWT）。写法与 ci.yml 同源 —— secret 绑到
+**job 级 `env`**，step 里 `printf` 写 `.env.keys` → `pnpm setup-env` → 立即 `rm`（见工作流的
+`Decrypt environment files` 一步，理由与硬约束见上面 §5.2）。
+
+它另有一套**不是 secret** 的固定明文：独立数据栈的端口 / 库名 / 凭据（5433 / 6380；库名默认
+`walnut_e2e`，`E2E_STACK_PROFILE=<profile>`（`smoke` / `risk` / `network` / `pages` / `journey`）
+时为 `walnut_e2e_<profile>`），真源是
+`apps/e2e/scripts/stack-profiles.ts`（profile 表）与 `apps/e2e/scripts/env.ts`（派生常量），
+workflow 的 `services` 与两份 compose 都照它对齐。基线缓存（key 带 profile）/ 切回口径见
+[E2E 优化计划](../plans/e2e-optimization-plan.md) 的 P1-1 / P1-6。
+
 ## 没做什么 / 为什么
 
 ### admin 基础 `.env` 已纳入加密管理（2026-08-09 起）
@@ -110,6 +124,21 @@ admin 的基础 `.env`（无环境后缀）存放构建必填的 `VITE_*` 变量
 它只当过「指纹 → device_id」的单向 HMAC 盐、从没加密过数据，B5 起设备 ID 由服务端随机签发后就是
 0 个消费者 —— 所以不再属于「禁止修改的密钥」，而是根本不存在了。改造前后的来龙去脉见
 `apps/server/libs/system/src/device/device-id.ts` 的注释。
+:::
+
+::: tip 2026-11-26：单文件重加密必须带着 `DOTENV_PUBLIC_KEY_*` 头
+`dotenvx encrypt -f <file> -fk .env.keys` 对**没有** `DOTENV_PUBLIC_KEY_*` 头的明文会生成
+**新的密钥对并追加进 `.env.keys`**（等于悄悄轮换环境主密钥）。只想轮换单个值时，要把原
+密文解出的明文连同 `DOTENV_PUBLIC_KEY_*` 头一起喂回 encrypt（F2 轮换 `APP_COOKIE_SECRET`
+的做法，见 2026-11-26 提交说明）；全量轮换走 `pnpm encrypt-env`。
+:::
+
+::: tip 2026-11-26：值里不要有未加引号的 `#`
+dotenv（`@nestjs/config`）对**未加引号**的值在第一个 `#` 处截断，而仓库里其它自写 env
+解析器（E2E 的 `parseEnvFile`、seed / db 通道）是原样读取 —— 同一个 key 会被两边读成
+不同的值。`APP_COOKIE_SECRET` 曾是一条含 `#` 的随机串（服务端一直用截断后的前缀签名，
+E2E 为复现 40111 还专门复刻了那套截断解析），F2 已换成 64 位十六进制高熵串并删掉
+E2E 的特殊分支。新增 / 轮换的值沿用「无 `#`」的口径，或用引号显式包住。
 :::
 
 ::: info 2026-08-08 修复

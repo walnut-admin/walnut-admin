@@ -581,7 +581,7 @@ const UP_SECTIONS: string[][] = [
       operated_at timestamptz NOT NULL DEFAULT now(),
       CONSTRAINT pk_sys_log_operate PRIMARY KEY (id),
       CONSTRAINT ck_log_operate_action_type CHECK (action_type IN ('OTHER', 'CREATE', 'UPDATE', 'DELETE', 'DELETE_MANY', 'IMPORT', 'EXPORT', 'CLEAR', 'REFRESH', 'AUTH')),
-      CONSTRAINT ck_log_operate_operation CHECK (operation IN ('deleted.recover', 'appMonitorUser.forceQuit', 'user.updatePassword', 'user.clearPassword', 'device.lock', 'device.unlock', 'device.ban', 'device.unban', 'appSetting.refreshCache', 'auth.opaque.changePassword')),
+      CONSTRAINT ck_log_operate_operation CHECK (operation IN ('deleted.recover', 'appMonitorUser.forceQuit', 'user.updatePassword', 'user.clearPassword', 'device.lock', 'device.unlock', 'device.ban', 'device.unban', 'appSetting.refreshCache', 'auth.opaque.changePassword', 'user.lock.reset')),
       CONSTRAINT ck_log_operate_method CHECK (method IN ('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'))
     )`,
     'CREATE INDEX idx_log_operate_at ON sys_log_operate (operated_at DESC)',

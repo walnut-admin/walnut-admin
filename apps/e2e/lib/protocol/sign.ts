@@ -156,11 +156,11 @@ function assertCapChallenge(challenge: { c: number, s: number, d: number }): voi
  * 第 i 问 salt = prng(token+i, s)、target = prng(token+i+'d', d)，
  * 求最小 n 使 sha256(salt + n) 的 hex 以 target 开头。
  *
- * 上界是**异常配置的熔断**，不是正常路径：challenge 的 `c` / `d` / `s` 来自 seed 的
- * `app.global.capjs.config`（当前 count 10 / difficulty 4 ⇒ 每问期望 16^4 ≈ 6.5 万次哈希，
- * 10 问合计约 65 万次，实测在秒级解完）。若配置被改坏（count / difficulty 被放大），没有上界
- * 就会在用例的 120s 超时里挂死、还说不清卡在哪一问 —— 这里主动熔断并报告
- * index / c / s / d / attempts，让失败可读。
+ * 上界是**异常配置的熔断**，不是正常路径：challenge 的 `c` / `d` / `s` 来自
+ * `app.global.capjs.config`（seed 默认 count 10 / difficulty 4 ⇒ 每问期望 16^4 ≈ 6.5 万次哈希；
+ * E2E 封板库由 `scripts/prepare-db.ts` 放宽到 difficulty 2 ⇒ 每问期望 256 次，整轮毫秒级）。
+ * 若配置被改坏（count / difficulty 被放大），没有上界就会在用例的 120s 超时里挂死、还说不清
+ * 卡在哪一问 —— 这里主动熔断并报告 index / c / s / d / attempts，让失败可读。
  */
 export function solveCapChallenge(
   challenge: { c: number, s: number, d: number },

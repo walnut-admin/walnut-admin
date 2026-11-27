@@ -1,6 +1,8 @@
 # E2E 沙盒测试工程：分阶段实施计划
 
-> 状态：【进行中——Phase 1 已完成并通过 review 修复，Phase 2/3 未开始】2026-11-24 立项。前期设计与可行性结论记录在本文；**前期设计稿本身未入库**（对话产物），本文是它入库后的唯一真源。
+> 状态：【进行中——Phase 1 已完成并通过 review 修复；Phase 2 收尾（CI 接线 / risk 矩阵 U11–U16 / review 暂缓项已落地，nightly 首跑待 GitHub runner）；Phase 3 进行中（R4 落地菜单 / 角色 / 设置模块 spec、auth 面矩阵与 1 个 mobile 设备 profile；E4 落地 pages 页面可达链；E5' 落地 journey J1–J10（锁屏 / socket 强踢 / WebAuthn / 权限 / 角色 / 回收站 / MFA 强制绑定 TOTP）；i18n / 操作日志模块 spec 与 worker 账号池未做；部署后 smoke 按所有者决定挂起）】2026-11-24 立项。前期设计与可行性结论记录在本文；**前期设计稿本身未入库**（对话产物），本文是它入库后的唯一真源。
+> **2026-11-25 追记**：U8 / U9 flake 的核心修复已在提交 `b21ac118` 落地（删 `networkidle` 无超时等待、新增 `waitForDeviceHealSettled`、自愈后识别并关闭 CAP、点击补 30s 上限），即 §8.3 的 P2-7 核心项；其后 `5067b4aa`（契约 bridge、常量收口、knip 清理＝P2-9 / P2-10 / P2-11）、`18dcc9c6`（CAP PoW 上界与静态代理加固＝P2-16 / P2-17）、`d720c0d3`（慢用例 `test.slow()`＝P2-15）也已落地。Phase 2 的 CI 接线、risk 矩阵 U11–U16 与其余项仍未开始，因此状态行不改为「已完成」。工程细化与优先级见 [apps/e2e 改造优化方案](./e2e-optimization-plan.md)。
+> **2026-11-26 追记（Phase 2 收尾）**：§8.2 的 risk 矩阵 U11–U16 已按用例表落地（7 条用例：U11 / U12 / U13 / U13b / U14 / U15 / U16），全量 20 例 229.4s、风险子集 16 例 192.4s、`e2e:network` 2/2 19.1s（均为本机 WSL 栈单次读数）；每条核心断言都有「改坏 → 红 → 还原」的负对照记录。U13 用例表与守卫链有一处口径分歧（40111 与 CAP 对话框分属两条路径），逐条写在 §8.5。Phase 2 仍差 nightly 工作流首跑（需 GitHub runner）。
 > **定位**：把全链路 E2E 从一次性可行性验证推进成一个长期能跑的测试工程 —— 独立 workspace 包、独立数据栈、可复现的测试数据版本，以及后续的 CI 接线与用例矩阵。本篇是执行蓝图，也是 Phase 1 的实施记录。
 > **读者**：执行 Phase 2/3 的人与 agent；评审 E2E 设计的人。
 > **权威边界**：**为什么这么定**在第 2 节的决策记录与 [ADR 0009](../adr/0009-ci-quality-gates.md) 的 playwright 退役追记；**现在是什么样、怎么跑**在 [`apps/e2e/AGENTS.md`](https://github.com/walnut-admin/walnut-admin/blob/main/apps/e2e/AGENTS.md) 与 [`apps/e2e/README.md`](https://github.com/walnut-admin/walnut-admin/blob/main/apps/e2e/README.md) —— 本篇**不重复**它们的操作细节与不变量；**怎么验**在本篇。与代码冲突时以代码为准。
@@ -69,6 +71,8 @@
 
 api.ip.sb（定位）与 jsDelivr（CAP 的 WASM）都需要真实外网。用例标题带 `@network` 标记：默认套件不含，`pnpm walnut e2e:network` 单独跑。离线环境里 `e2e:risk` 仍应全绿。
 
+**2026-11-25 追记**：离线口径从「声明」变为事实 —— CAP 的 WASM 改为 admin 自托管（`apps/admin/public/vendor/cap/`，`CAP_CUSTOM_WASM_URL` 指向同源绝对 URL），widget 本体早已由后端自托管；Phase0-4 改用 127/8 的 local IP，后端 `getLocationInfoFromFreeAPI` 对 local IP 直接返回本地定位、不发外网请求。实测断网负对照（浏览器侧 abort `*.jsdelivr.net` / `api.ip.sb`，服务端 `HTTP(S)_PROXY` 指向死端口）下 `e2e:risk` 9/9 全绿，同条件 `e2e:network` 红。现在外网依赖只剩 `@network` 一条（U1b 的真实 geoip 定位）。
+
 ### 2.6 storageState：判死
 
 **不再尝试**保存 / 复用浏览器登录态（证据见 1.3）。不在 project 上挂 `storageState`，不加 `auth.setup` 写盘 —— 坏状态会把应用卡在 splash。代价是每条冒烟用例自己走 UI 登录，慢但确定。
@@ -86,14 +90,14 @@ PR 的 quality 已经约 30 分钟，且 fork PR 没有 secrets。做法：**nig
 | 阶段 | 内容 | 依赖 | 本地能否完整验证 | 状态 |
 |------|------|------|------------------|------|
 | 1 | 包与数据栈、设备生命周期用例、封板、命令表入口 | 无 | 能（WSL 常驻栈） | 已完成（2026-11-25） |
-| 2 | CI 接线、risk 矩阵补全、review 暂缓项 | 1 | **部分**：nightly 与 artifact 的行为要等 GitHub runner 首跑 | 未开始 |
-| 3 | 其余模块 spec、设备 profile 矩阵、部署后 smoke | 2 | **部分**：独立 sandbox 部署要主机 / 域名 / 证书 | 未开始 |
+| 2 | CI 接线、risk 矩阵补全、review 暂缓项 | 1 | **部分**：nightly 与 artifact 的行为要等 GitHub runner 首跑 | Phase 2 收尾（2026-11-26）：CI 工作流与 nightly artifact 口径已落地、risk 矩阵 U11–U16 已落地、review 的 P2 暂缓项全部关闭（P2-5 的永真断言与 `waitForTimeout` 已清零）；**未完成**：nightly 工作流首跑（需 GitHub runner，本地无法验证） |
+| 3 | 其余模块 spec、设备 profile 矩阵、部署后 smoke | 2 | **部分**：独立 sandbox 部署要主机 / 域名 / 证书 | **进行中**（2026-11-27）：模块 spec（菜单 / 角色 / 设置）、mobile device profile、**pages 页面可达链（E4）**与 **journey J1–J10（E5'：锁屏 / socket 强踢 / WebAuthn / 权限 / 角色 / 回收站 / MFA 强制绑定 TOTP）**已落地；i18n / 操作日志模块 spec 与 worker 账号池未做；部署后 smoke 按所有者决定挂起 |
 
 ## 4. 通用纪律（每个实施 agent 必读）
 
 1. **不提交、不推送由仓库所有者掌控。** 实施 agent 只改工作区；提交与推送按所有者的指示执行。
 2. **禁止可见窗口。** WSL 里的进程天然无窗口；Windows 侧的子进程一律 `windowsHide`（`apps/e2e/scripts/pnpm.ts` 已统一设置）。不许 `start` 终端、不许 `cmd start`。
-3. **数据栈只动 `walnut_e2e` / 5433 / 6380。** dev 库（5432 / 6379）与生产**绝不触碰**；破坏性操作之前过 `apps/e2e/scripts/env.ts` 的 `assertE2e*` 安全闸，别绕开它。
+3. **数据栈只动 `walnut_e2e`（及 `E2E_STACK_PROFILE` 派生的 `walnut_e2e_<profile>`）/ 5433 / 6380。** dev 库（5432 / 6379）与生产**绝不触碰**；破坏性操作之前过 `apps/e2e/scripts/env.ts` 的 `assertE2e*` 安全闸（库名必须等于当前 profile 的库），别绕开它。
 4. **E2E 的密钥级文件不上传任何公开位置**：`credentials.json`、`storageState`、trace、截图、HTML 报告里含 token 与 cookie。
 5. **改 server / admin 源码的用例必须能过退出码口径**：0 成功、1 跑起来了但结果不对、2 环境没准备好（详见 README）。「2」不该被写成用例失败。
 6. **Redis 只按 deviceId 精确删**，绝不 FLUSHDB / FLUSHALL；键形对齐 `apps/server/libs/const/src/app/cache.ts`。
@@ -169,12 +173,12 @@ pnpm --filter @walnut/e2e types:check
 
 ## 7. 已知问题与观察项（Phase 2 输入）
 
-1. **U8 / U9 偶发 flake**：自愈后弹出 CAP 对话框（`DEVICE_NEW` / `DEVICE_PRIVATE` 是 critical 因子、CAP token 一次性）撞上 `waitForLoadState('networkidle')` 的**无超时等待** ⇒ 用例在 120s 处超时。修复方向：`networkidle` 加超时 + 自愈后识别 / 关闭 CAP 对话框（review P2-7 一类）。
+1. **U8 / U9 偶发 flake**：自愈后弹出 CAP 对话框（`DEVICE_NEW` / `DEVICE_PRIVATE` 是 critical 因子、CAP token 一次性）撞上 `waitForLoadState('networkidle')` 的**无超时等待** ⇒ 用例在 120s 处超时。修复方向：`networkidle` 加超时 + 自愈后识别 / 关闭 CAP 对话框（review P2-7 一类）。**2026-11-25 已修**（`b21ac118`：`waitForDeviceHealSettled`、删 `networkidle`、CAP 识别 / 关闭、`:visible` 选择器、点击 30s 上限）；**2026-11-25 已补 20 次循环证据**：全量 20/20 绿（每轮 restore 口径，U8 23.5–31.2s / U9 23.2–28.9s，无一次逼近 120s），逐轮时长与汇总见 [E2E 改造优化方案](./e2e-optimization-plan.md) 的 P2-1 落地记录。
 2. **admin 的 eslint / vite 偶发原生崩溃 `0xC0000005`**：Windows 本机、与负载相关、成因未明（[tooling 计划](./tooling-restructure-plan.md) 第 14 节有排查记录）。处置：重跑；E2E 相关任务一律禁可见窗口。
-3. **knip 已让 `apps/e2e` 可见**：`@walnut/contract` 作为 devDep 未被使用（当前 `apps/e2e` 的源码没有 import 它），另有 16 个未使用导出。清理待做（Phase 2 的 P2-10 / P2-11）。
+3. **knip 已让 `apps/e2e` 可见**：`@walnut/contract` 作为 devDep 未被使用（当前 `apps/e2e` 的源码没有 import 它），另有 16 个未使用导出。清理待做（Phase 2 的 P2-10 / P2-11）。**2026-11-25 已消化**：`5067b4aa` 落地契约 bridge（`apps/e2e/lib/protocol/contract.ts` 经该包的 CJS 产物消费），R2 用例批还复用了 `AppRoutes`；knip 的未使用导出清理同批完成。
 4. **`VITE_SERVER_STATIC_PUBLIC_KEY` 修复后 stage / prod 需要重新构建 / 部署**才生效 —— 环境侧的跟进项，不在代码仓内。
 
-## 8. Phase 2：CI 接线、risk 矩阵与 review 暂缓项（未开始）
+## 8. Phase 2：CI 接线、risk 矩阵与 review 暂缓项（收尾；nightly 首跑待 runner）
 
 ### 目标
 
@@ -192,6 +196,7 @@ pnpm --filter @walnut/e2e types:check
   - **浏览器不缓存**：`playwright install chromium` 每次装。缓存它的收益不值得多一条「缓存坏了导致假红」的路径。
   - **`concurrency` 防并行**：同一时间只允许一份 e2e 工作流在跑（group 固定、不取消在途）。
   - 跑全量（`pnpm walnut e2e`，含 `@network`）；失败时上传 `playwright-report/` 与 `test-results/` artifact，**私有仓库保留 7 天**。
+- **2026-11-25 追记（所有者拍板）**：artifact 按**严格模式**执行 —— 只上传 junit / json / **脱敏后的**后端日志 / `stack.json` / 基线清单五样。本段草案里「上传 `playwright-report/` 与 `test-results/`」**作废**：trace / 截图 / HTML 报告含请求头与响应体（token、cookie），只留本机。[`apps/e2e/AGENTS.md`](https://github.com/walnut-admin/walnut-admin/blob/main/apps/e2e/AGENTS.md) 的**不变量 8 维持原文，不改**。实施细节与实测见 [E2E 改造优化方案](./e2e-optimization-plan.md) 的 P0-1 落地记录。
 - **前置**：runner 上怎么起数据栈在实施时定，结论记进结果记录。两种形态都可用：用 job service 容器起 PG / Redis（同版本镜像），或直接在 runner 上跑 compose。**不得**把部署 compose 拿来改。
 - **文档**：`apps/e2e/README.md` 加「CI 上的形态」一节（前置、命令、artifact、怎么复现失败）；ADR 0009 的 CI 表补一行 e2e 工作流（带日期追记，不改原文）。注意 `apps/e2e/README.md` 没有字数预算，但仍守住「一条规则只写一次」。
 
@@ -256,7 +261,36 @@ pnpm walnut build:docs
 - flake 修复后有 **20 次循环无复现**的证据。
 - review 的 P2 暂缓项全部关闭：要么改掉、要么在本文写下「不改」的理由（不接受悄悄消失）。
 
-## 9. Phase 3：其余模块与更远（未开始）
+### 8.5 结果记录（2026-11-26，Phase 2 收尾 / R2 用例批）
+
+**risk 矩阵 U11–U16**：7 条用例落地，全部协议优先（U13 / U16 因「对话框可见」「页面操作」必须走 UI）：
+
+| 用例 | 文件 | 判据落点 |
+|------|------|----------|
+| U11 永久黑名单 | `apps/e2e/tests/risk/ip.spec.ts` | app_setting 行 + 40603 + `/not-allowed?type=ip`；移除后恢复 |
+| U12 失败登录临时拉黑 | 同上 | `risk:ip_blacklist:<归一 IP>` 存在 + TTL + 计数 = 5 + 第 6 次 40603 |
+| U13 CAP 重新武装（UI） | `apps/e2e/tests/risk/cap.spec.ts` | 40116 → cap-widget 可见 → 求解 → 重放 20000；post-auth 腿写 USER_DEVICE_UNTRUSTED handled 标记 |
+| U13b 40111（协议） | 同上 | 签名合法但非 cap.js 形态 → 40111；换真凭据后同一请求 20000 |
+| U14 MFA trusted | `apps/e2e/tests/risk/trust.spec.ts` | DB trusted + 未来过期；trusted 无因子/无标记，untrusted 有因子/有标记 |
+| U15 trust 过期 | 同上 | DB 行（trusted=true + 过期在过去）+ TRUST_EXPIRED 因子 + handled 标记；拨回将来后消失 |
+| U16 设备管理页 | `apps/e2e/tests/risk/device-admin.spec.ts` | 页面可达 + 搜索命中 + UI lock 后 `sys_device.locked=true` |
+
+**实测读数（本机 WSL 栈单次）**：全量 `pnpm walnut e2e` **20 例 / 229.4s**（改造前 13 例 / p50 ≈ 230s，无回退）；`pnpm walnut e2e:risk` **16 例 / 192.4s**（含 stack-setup）；`pnpm walnut e2e:network` **2/2 / 19.1s**。每条用例最核心的那一个断言都做过负对照（临时改坏 → 红 → 还原），逐条记录随 R2 提交的汇报给出。
+
+**用例表与实现的一处分歧（按代码写，不悄悄改口径）**：§8.2 的 U13 把「40111 + CAP 对话框可见 + 重放成功」写成一条，但当前守卫链下这三件事分属两条路径：
+
+- **40111** 只在「CAP cookie **签名合法**、值不是 cap.js token 形态」时抛出（cap.guard 的 `performCapVerification`）。用户端改写 cookie 只会得到未签名值 ⇒ 被当成缺失（40116）；伪造签名需要 `APP_COOKIE_SECRET`（只有服务端持有）。前端把 40111 映射到 `/not-allowed?type=capjsTokenInvalid`，**不弹** CAP 对话框。
+- **CAP 对话框 + 重放成功** 属于 40116。且对话框只能由 **pre-auth 腿**的 critical 因子触发：pre-auth CAP guard 在 shouldChallenge=false 且凭据不可用时回 40117（静默刷新）；凭据有效时 post-auth 腿命中同一份缓存直接放行。因此「只有 USER_DEVICE_* 因子、单靠它在当前请求弹出对话框」不可达。
+- 实现拆成 U13（UI：40116 → 对话框 → 求解 → 重放 20000，并断言重放请求的 **post-auth 腿**写出 USER_DEVICE_UNTRUSTED 标记 —— 该键只有 post-auth 腿写得出来）与 U13b（协议：畸形签名 cookie → 40111 → 换真凭据重放成功）。U14 / U15 同理改用「风险因子 + post-auth handled 标记 + DB 行」作判据，而不是不可达的 post-auth 40116。
+- ~~顺带发现：`.env.stage` 的 `APP_COOKIE_SECRET` 是含 `#` 的未加引号随机串，服务端用的
+  dotenv 会在 `#` 处截断，而 `apps/e2e/scripts/env.ts` 的 `parseEnvFile` 不截断 —— U13b 的
+  签名必须按 dotenv 口径取前缀（`readServerCookieSecret`）。~~（2026-11-26 F2 已修：secret
+  换成不含 `#` 的 64 位十六进制高熵串，两套解析器读到的值一致；`readServerCookieSecret`
+  退化为直读，U13b 照旧可用。旧值作废 ⇒ 本地 dev 已登录会话失效，E2E 栈每轮重建无影响。）
+
+**完成判据状态**：全量含 U11–U16 ✅、`e2e:network` 2/2 ✅、20 次循环证据 ✅（见 P2-1 落地记录）、review P2 暂缓项全部关闭 ✅（P2-5 遗留的两处 `toBeTruthy` 已改为具体判据，`waitForTimeout` 已清零）。**未完成**：nightly 工作流首跑（GitHub runner，本机无法验证）。
+
+## 9. Phase 3：其余模块与更远（进行中）
 
 ### 目标
 
@@ -265,11 +299,27 @@ pnpm walnut build:docs
 ### 改动清单
 
 1. **其余模块 spec**：菜单 / 角色 / 设置 / i18n / 回收站 / 操作日志 —— 每条先问「它能不能在这一层被测」，能就别只补接口测试。
+   **R4 已落地**菜单 / 角色 / 设置（见 §9.1）；**E5' 已落地回收站闭环**（J9：软删进
+   `sys_deleted` → 搜到 → 恢复 → 再删后真删）；i18n / 操作日志模块 spec 未做（i18n 的语言 /
+   字典页在 pages 可达链里只覆盖挂载与首屏数据，不做文案切换语义）。
 2. **auth 面**：MFA（绑定 / 解绑 / 恢复码）、会话（多设备在线 / 踢下线）、登出。
+   **R4 已落地**：MFA 未绑定 / 已绑定未验证 / 备用码（恢复码）/ 解绑后重绑、多设备在线 + 踢下线、主动登出（见 §9.1）。
 3. **设备 profile 矩阵**：**1 个 mobile profile 起步**。本仓的 risk 不消费浏览器指纹（设备身份是服务端 cookie，见 1.2），所以**不铺全矩阵** —— 铺了只是给同一条逻辑多跑几遍。
-4. **worker 账号池**：并发用例的账号分配与回收（Phase 2 的最小形态在 Phase 3 收敛成池）。
+   **R4 已落地**：1 个 Playwright **device profile**（Pixel 7）的响应式布局用例；它与 R3 的 **stack profile** 是不同维度（共用 default 栈、不进 `E2E_STACK_PROFILE` / CI matrix，判据见 §9.1）。
+4. **worker 账号池**：并发用例的账号分配与回收（Phase 2 的最小形态在 Phase 3 收敛成池）。**未做**（Phase B 仍显式暂缓）。
 5. **可选**：L4 独立 sandbox 部署（要主机 / 域名 / 证书）—— 不为它先做任何设计。
-6. **可选**：生产部署后的 runner 侧匿名只读浏览器 smoke（**不做认证写入**）。
+   **挂起**：所有者已拍板（当前无主机 / 域名 / 证书资源），不作为 R4 的阻塞项。
+6. **可选**：生产部署后的 runner 侧匿名只读浏览器 smoke（**不做认证写入**）。**挂起**：依赖第 5 项的资源，同批不做。
+
+> **2026-11-25 追记**：并行 / 账号池的工程前置设计（Phase A「stack-per-project」：profile、端口、锁、CI matrix 与失败隔离）已完成，见 [apps/e2e 改造优化方案](./e2e-optimization-plan.md) 的 P1-6；Phase B（per-worker）仍暂缓、不排期。
+>
+> **2026-11-26 追记（Phase A 已实施）**：P1-6 Phase A 的「stack-per-profile」已落地 ——
+> `E2E_STACK_PROFILE=smoke|risk|network|pages|journey` 各用独立库（`walnut_e2e_<p>`）、偏移端口
+> （3101–3105 / 3011–3015 / 4181–4185）、`.e2e/<p>/` 基线；nightly 演进为 prepare + 五 job 并行
+> matrix（`fail-fast: false`）。这是 Phase 3 新增模块用例的**承载方式**：新用例只要落在某个
+> project，就自动获得独立的库与端口；但**IP 段只隔离 `device/initial` 的节流桶**，风控
+> `risk:rate:ip:*` 因 loopback 归一共享（见优化页 R-D 修正），本地多 profile 仍须串行；
+> 单 project 内的 worker 并发（Phase B / worker 账号池）仍显式暂缓。
 
 ### 验证
 
@@ -287,6 +337,116 @@ pnpm walnut build:docs
 - 新增模块 spec 全绿，且每条都有明确的失败判据（故意破坏被测行为必须红）。
 - 文档同步：`apps/e2e/AGENTS.md` 的不变量、`apps/e2e/README.md` 的操作面、根 `AGENTS.md` 的常用命令（若命令面变化）、`architecture-todo.md` 的 P3 E2E 行。
 - 若做了 profile 矩阵或账号池：写下「为什么是这个规模」的判据，不写用例数。
+
+### 9.1 结果记录（2026-11-26，R4：模块 spec + 设备/auth 矩阵）
+
+**先钉一个用词**：本节的「设备 profile 矩阵」是 **Playwright device profile**（浏览器视口 / UA
+描述符），不是 R3 的 **stack profile**（库 / 端口 / 基线隔离）。两者维度不同：R3 的 profile 隔
+数据栈；device profile 隔浏览器。R4 只做 1 个 mobile（Pixel 7）布局用例，并**共用 default 栈**
+（不进 `E2E_STACK_PROFILE` / CI matrix）—— 判据：唯一需要 mobile 的断言是响应式几何量；业务链路
+的设备身份是服务端签发的 cookie，换浏览器重跑同一条逻辑不产生新信息，为一条秒级用例复制库 /
+端口 / 基线不划算。
+
+**提交**：`test(e2e): 菜单/角色/设置模块 spec——协议优先 CRUD 与权限生效路径`（`756db54f`）、
+`test(e2e): 设备/auth profile 矩阵补格`（`d6b67755`）、`docs(docs): R4 落地记录与 Phase 3 口径同步`
+（docs 这笔在代码两笔之后）。
+
+**模块 spec（`apps/e2e/tests/system/`，落 `smoke` project）**：
+
+| 模块 | 用例 | 核心判据落点 |
+|------|------|--------------|
+| 菜单 | 树形 / seed 权限串只读 → 新建 catalog+element → 改 permission → 列表 / 软删 | `menu/tree` 的 fullTree / treeWithoutTypeElement / menuActiveNamesOptions 形态；`/auth/permissions` 的 permissionStrings 随 permission 列变化；`AUTH:PERMISSIONS:*` 只在 permission 变化时清（F3 收窄，title-only 不清）；软删写 `sys_deleted` 快照 |
+| 角色 | list 行不带 menus/deptIds；详情端点带 `menus` / `deptIds` / `usersCount`；授权 A→B 整组替换；建号挂角色后 usersCount 同步 | 详情端点与 list 行的字段差；junction 整组替换；`usersCount` 的 junction 计数子查询 |
+| 角色（权限生效） | 非 root 用户真实 OPAQUE 登录 → 绑定 TOTP → `/auth/permissions` 初始 A → 角色改授 B → 缓存清空 + 权限串换成 B → 用户换角色 → 权限串换成 C | `AUTH:PERMISSIONS:<userId>:*` 被 `delPermissionsForUser` 清；`/auth/permissions` 按实时 `sys_user_role` 重算（P1-18 / P2-16） |
+| 设置 | public / list 过滤 / create / read / update；已知 key 的 private 自动刷新；`cache/refresh` 仍可用 | 写路径自带 `extractAppSettingIntoCache`（不调手动 refresh，`/app/setting/private` 立即读到新值）；显式 refresh 端点返回 true |
+
+**auth 面矩阵（`apps/e2e/tests/risk/auth-matrix.spec.ts`，`@risk`）**：
+
+| 格 | 覆盖来源 |
+|----|----------|
+| 新设备 + MFA 未绑定（`mfa_setup=false`） | R4 M1：登录成功但受保护端点 40114；无 totp 行、设备行 trusted=false |
+| 新设备 + MFA 已绑定 + 本设备未验证 | R4 M2：40115 → TOTP verify(trusted=false) → 20000 + DB 行 trusted=false |
+| 新设备 + TOTP trusted=true | R2 U14 |
+| trusted 但过期 | R2 U15 |
+| 未 trusted（trusted=false 对照） | R2 U14 的对照臂 |
+| 备用码（恢复码） | R4 M3：bind 返回 10 枚 → 新设备用备用码 verify → 20000；消费后密文数组 10→9；重放 40000 且不再消费 |
+| TOTP 解绑 / 重绑 | R4 M4：unbind 删 `sys_user_mfa` 行；同设备重绑拿到新的一批 10 枚备用码 |
+| 多设备在线 / 踢下线 | R4 M5：device/list 同时可见两台；force-quit B → B 的旧 AT 40101、A 仍 20000；B 的 RT 现役行 0、会话键空 |
+| 主动登出 | R4 M6：signout → 旧 AT 40101；RT 现役行 0、会话键空 |
+| mobile（Pixel 7）响应式 | R4 `tests/mobile/layout.spec.ts`：设备描述符生效（navigator UA 含 Mobile/Android）、登录页无横向溢出、设备真实登记 |
+
+**非 root 用户怎么来的**：`POST /system/user` 不带口令，`/auth/opaque/user/register/*` 又要求
+已登录（鸡生蛋）。`apps/e2e/lib/account-fixtures.ts` 先建号，再用 root 调**真实管理端端点**
+`POST /auth/opaque/admin/password/update/{start,finish}` 设初始口令（2026-11-26 起
+`finishChangePassword` 对无口令用户 upsert 建行；此前 update 未命中静默 no-op，fixture 只能按
+`finishRegister` 口径加密后直写 `sys_user_identity`）。之后全部走真实协议登录，不伪造 AT / 会话。
+
+**实测（本机 WSL 栈，单次读数）**：default 全量 **31 例 / 266.5s**（改造前基线 20 例 / 229.4s；
+新增 11 例自身约 25s，其余为 risk 项目 UI 用例波动）；`E2E_STACK_PROFILE=smoke` **8/8 56.3s**、
+`risk` **22/22 212.2s**、`network` **2/2 13.2s**；`@walnut/e2e` 单测 **240/240**。
+
+**负对照（11/11 红，全部「改坏 → 红 → 还原」后复跑绿）**：菜单缓存清空、角色 list 行字段差、
+角色改授权限串、设置写路径自动刷新、M1 40114、M2 40115、M3 备用码消费、M4 解绑行删除、
+M5 踢下线 40101、M6 登出 40101、mobile 视口宽度。
+
+**与服务端实现 / 任务口径的出入（按代码写，不悄悄改口径）**：
+
+1. **矩阵口径**：任务书把 Phase 3 矩阵猜成「trusted / 过期 / 因子」组合；原文第 3 项是 mobile
+   device profile。R4 两条都落：auth 状态格补在「auth 面」（§9 第 2 项），mobile 按第 3 项落
+   1 个 project。已覆盖 / 新增的对照见上表。
+2. **role / setting 都没有 delete 端点**：角色只有 create/read/update/list（无删除），设置只有
+   create/read/update/list + `cache/refresh`。用例的「删除 / 回收」语义因此落在**撤销授权**
+   （role update menus 整组替换）与 PG 收尾，不假装存在删除 API。
+3. ~~**`treeWithoutTypeElement` 不是递归 element-free**~~（2026-11-26 F1 已修）：服务端改用
+   `@walnut-server/utils` 的递归 `filterTree` —— 命中的 catalog/menu 不豁免子孙，element 在
+   任何层级都被剪；未命中但有命中后代的节点保留为祖先路径。E2E 断言同步升级为全树 element-free。
+4. ~~**menu update 的「全字段可选」不是真正的 partial**~~（2026-11-26 F1 已修）：`SysMenuDTOUpdateRequest`
+   改用 `RealPartialType(..., { preserveAbsent: true })`，未提供的顶层列不写 NULL，显式 null 才是
+   清空（meta 给了仍整体替换，Mongo 子文档语义不变）。E2E 新增「只发 meta.permission，name/title
+   保持原值」用例；整行回传（`menuUpdatePayload`）仍是 admin 表单的真实口径。
+5. ~~**password identity 存明文**~~（2026-11-26 F2 已修）：`AuthOpaqueCoreService` 的
+   `finishRegister` / `finishChangePassword` 改走 `SysUserIdentitySharedService` —— `value` 是
+   AES-GCM 密文（AAD `sys_user_identity`）、`valueHash` 是盐化 HMAC，`startLogin` 读回后解密。
+   **不做存量迁移**（生产未上线）：本地库里 ① 之前的明文行会在下次登录解密失败 ⇒ 40103，
+   重置数据栈（`pnpm walnut db:seed:pg` / E2E 全量 prepare 会重建）或重新补挂口令即可。
+   E2E 的建号 fixture 同步改成加密写入（密钥/盐与后端同取 `.env.stage`）。
+   **另（2026-11-26）**：`finishChangePassword` 此前对**无口令用户**是静默 no-op（update 未
+   命中返回 null、服务仍返回 true）—— 管理端「设初始口令」不生效；已改为与 `finishRegister`
+   同口径的 `upsertIdentity`（无行建行 / 有行替换），E2E 建号 fixture 随之改走真实管理端
+   `admin/password/update/{start,finish}` 端点，不再自行加密直写库。
+6. ~~**TOTP unbind 不回落 `sys_user.mfa_setup`**~~（2026-11-26 F2 已修）：unbind 在删
+   `sys_user_mfa` 行的同一事务里把账号级 `mfa_setup` 置 false（与 `/auth/mfa/verify` 置 true
+   同一条写腿）；cron 仍按 `methodsRequiredCount` 做最终收敛。E2E M4 同步断言 unbind 后
+   标志立即回落、重绑 + verify 后回到 true。
+7. ~~**`GET /system/user/:id` 不回填 `roles`**~~（2026-11-26 F2 已修）：detail 响应现在直出
+   `roles`（uuid 数组，与 `roles_list` 同一 junction 读腿派生）；admin 编辑表单的
+   `Extend:RoleSelect` 直绑该 path。E2E 角色用例不再绕道角色详情 `usersCount`，改为
+   用户详情 `roles` 直断言（`usersCount` 断言保留，各有各的语义）。
+8. **IP 分配的既有缺陷（R4 修掉）**：Playwright 每个 spec 文件是独立 worker，模块级
+   `localIpSeq` 在文件之间重置 —— 多文件都从同一 IP 起步，第 5 台 `device/initial` 撞
+   42900（新增模块 spec 后首次复现）。修法：`uniqueLocalIp` 从 **pid 偏移**起步 +
+   `bootstrap` 命中 42900 时**换地址重放**（≤8 次，不 sleep）。见 `apps/e2e/AGENTS.md` 不变量 4。
+9. **部署后 smoke 挂起**：无主机 / 域名 / 证书资源，所有者已拍板不做；本批不产生任何相关设计。
+
+### 9.2 结果记录（2026-11-27，E4 / E5'：页面可达链 + 跨端旅程）
+
+**E4（pages）**：`tests/pages/reachability.spec.ts` 覆盖调研报告 §1.1 的侧边栏业务页全集，
+按路由分 6 条链；每页断言 URL 无重定向 / 组件挂载 / 首屏主数据 `20000`；`/demo/table/base`
+的已知 seed 漂移用 `test.fixme` 留复现。落地与逐例读数见
+[E2E 改造优化方案](./e2e-optimization-plan.md) 的 E4 记录。
+
+**E5'（journey）**：`tests/journey/` 从 1 个 spec 扩到 7 个（J1–J10）——
+锁屏闭环 J1–J4、socket 强踢 J5、WebAuthn J6、权限可见性 J7（J7b 是已知缺陷的 fixme）、
+角色切换 J8、回收站 J9、**MFA 强制绑定 TOTP J10**（新用户 `mfa_setup=false` →
+`/mfa-required` 扫码 → 6 位码绑定 → 备用码 10 枚 → `/auth/mfa/verify` → 进系统）。
+落地、负对照与读数见同一篇的 E5' 记录；J10 补齐了 Top 10 的 #8（此前只有 WebAuthn 的 UI 腿，
+TOTP 的强制绑定弹窗零覆盖）。
+
+**用例数口径**：本页与优化页里的例数都是**当时的运行快照**，不是常量。default 面 =
+`smoke + risk + network + mobile` 四个 project；精确数以 `playwright test --list` 为准。
+
+**提交**：E4 与 E5' 分别见 `git log --grep 'pages'` / `git log --grep 'journey'`；本节的
+事实修正与 R-C/R-D 修复批见同批 `docs` 提交。
 
 ## 10. 相关文档
 

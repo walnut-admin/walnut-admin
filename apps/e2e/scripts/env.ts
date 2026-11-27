@@ -6,18 +6,33 @@
  * 任何一处手抄都会漂移，而漂移的症状是「连到了 dev 库」或「代理指到了 dev 后端」——
  * 两种都是**不可接受**的事故（本机同时跑着 dev 栈）。
  *
+ * **profile 化（P1-6 Phase A）**：库名 / 三个端口 / 基线目录 / 锁 key / IP 段全部从
+ * `scripts/stack-profiles.ts` 的 {@link STACK_PROFILE} 派生 —— 本文件不自己拼 profile。
+ * `default` profile 的值与改造前逐字相同（零行为变化）；`E2E_STACK_PROFILE=smoke|risk|network`
+ * 才切到偏移端口与 `.e2e/<profile>/`。profile 名是唯一选择方式，端口 / 库名不可单独覆盖。
+ *
  * 安全闸（{@link assertE2eDatabase} 一族）：任何脚本在 DROP / CREATE / 清 Redis 之前都必须先过
- * 这道闸；库名不是 walnut_e2e 或端口不是 5433 / 6380 一律拒跑。**实参是常量时它是恒真的机械
- * 标记**（防将来把常量换成字面量），对运行态真正的断言在 `lib/pg.ts` 的 `SELECT current_database()`。
+ * 这道闸；库名必须是 `walnut_e2e` 或 `walnut_e2e_<小写>` **且等于当前 profile 的库名**，
+ * 端口不是 5433 / 6380 一律拒跑。**实参是常量时它是恒真的机械标记**（防将来把常量换成字面量），
+ * 对运行态真正的断言在 `lib/pg.ts` 的 `SELECT current_database()`。
  */
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { WalnutAdminConstCookieKeys } from '../lib/protocol/contract.ts'
 import { E2ePreconditionError } from './failure.ts'
+import { E2E_DATABASE_PATTERN, STACK_PROFILE } from './stack-profiles.ts'
 
 /** `apps/e2e` 的绝对路径（本文件在 scripts/ 下） */
 export const E2E_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+/**
+ * Playwright 的产物目录（`playwright.config.ts` 的 `outputDir`）。
+ *
+ * 放这里而不是只写在 config 里：backend 日志包装脚本（`scripts/start-backend.ts`）、
+ * CI 的 artifact 上传路径与 `redact-log.ts` 的兜底脱敏都指同一处 —— 三处各写一遍迟早漂移。
+ * 目录 gitignored；其中只有 junit / json / 脱敏后的 backend.log 允许上传（见 apps/e2e/AGENTS.md 不变量 8）。
+ */
+export const TEST_RESULTS_DIR = path.join(E2E_ROOT, 'test-results')
 /** 仓库根（D:/walnut-admin/walnut-admin） */
 export const REPO_ROOT = path.resolve(E2E_ROOT, '../..')
 /** 后端包根 —— 后端的 env 与 dist-stage 都以它为 cwd */
@@ -30,45 +45,88 @@ export const ADMIN_INDEX_FILE = path.join(ADMIN_DIST_DIR, 'index.html')
 export const SERVER_DIST_DIR = path.join(SERVER_ROOT, 'dist-stage')
 /** 后端 stage 入口文件（同上；路径形态由 apps/server 的 build:stage 产出决定） */
 export const SERVER_MAIN_FILE = path.join(SERVER_DIST_DIR, 'apps/api/src/main.js')
+/**
+ * `@walnut/utils` 的 CJS 产物（`pnpm build` 产出）。
+ *
+ * 判据来自 `lib/protocol/sign-raw.ts` 的 `require('@walnut/utils/sign-raw')`：该包
+ * `exports.require` 指向 `dist/*.cjs`。E2E 的 Node 原生执行腿消费的是它与后端**同一份**产物，
+ * 缺了它 webServer 启动时才会报模块找不到（Playwright 表现为 180s 超时）—— preflight 要把
+ * 这类失败提前成退出码 2。
+ */
+export const UTILS_SIGN_RAW_DIST_FILE = path.join(REPO_ROOT, 'packages/platform-any/utils-core/dist/sign-raw.cjs')
+/** `@walnut/contract` 的 CJS 产物（`lib/protocol/contract.ts` 的 require 消费；同上） */
+export const CONTRACT_DIST_FILE = path.join(REPO_ROOT, 'packages/platform-any/contract/dist/index.cjs')
 
-/** 运行态目录：凭据（gitignored）与栈信息 */
-export const AUTH_DIR = path.join(E2E_ROOT, '.auth')
-export const ARTIFACT_DIR = path.join(E2E_ROOT, '.e2e')
+/** 运行态目录：凭据（gitignored）与栈信息；命名 profile 各用子目录（default 保持 `.e2e` / `.auth`） */
+export const AUTH_DIR = path.join(E2E_ROOT, STACK_PROFILE.authDir)
+export const ARTIFACT_DIR = path.join(E2E_ROOT, STACK_PROFILE.artifactDir)
 /** prepare-db 写给 seed 的 env 文件（= .env.stage 的副本 + 独立库覆盖；seed 之后即删） */
 export const E2E_ENV_FILE = path.join(ARTIFACT_DIR, 'e2e.env')
-/** prepare-db 写给 typeorm CLI 的 env 文件（apps/server/env-local/.env.e2e，gitignored） */
+/**
+ * prepare-db 写给 typeorm CLI 的 env 文件（apps/server/env-local/.env.e2e，gitignored）。
+ *
+ * **固定路径**：CLI 用 `process.cwd()/env-local` 定位、没有 `--env-file` 参数，文件里也没有
+ * profile 名的位置 —— 所以同一个 checkout 上不能并发两个 profile 的 prepare。本地由
+ * `run.ts` 的全局锁串行；CI 每个 job 独立 checkout，没有冲突。别在 profile 化的名义下
+ * 猜 CLI 的其它路径。
+ */
 export const SERVER_E2E_ENV_FILE = path.join(SERVER_ROOT, 'env-local/.env.e2e')
 /** 账号凭据 + TOTP secret（stack.setup 写入；所有 spec 只读；0600） */
 export const CREDENTIALS_FILE = path.join(AUTH_DIR, 'credentials.json')
 /** 本轮栈信息 */
 export const STACK_INFO_FILE = path.join(ARTIFACT_DIR, 'stack.json')
+/**
+ * 基线的三个文件。
+ *
+ * 定义在 env.ts（而不是 scripts/baseline.ts）的原因：**测试进程也要读封板清单**——
+ * `tests/fixtures.ts` 在失败现场 attach 它的一份只读投影，而让 fixture import baseline.ts
+ * 会把 pg / redis / prepare-db 整条依赖链拖进每个 worker。路径是「环境事实」，与
+ * 「怎么 dump / restore」分开放更干净。
+ */
+export const BASELINE_DUMP_FILE = path.join(ARTIFACT_DIR, 'baseline.dump')
+/** 封板清单（字段含义见 scripts/baseline.ts 的 BaselineManifest） */
+export const BASELINE_MANIFEST_FILE = path.join(ARTIFACT_DIR, 'baseline.manifest.json')
+/** 封板时的 admin 口令（0600） */
+export const BASELINE_CREDENTIALS_FILE = path.join(ARTIFACT_DIR, 'baseline.credentials.json')
 
 // ─── 独立栈（绝不指向 dev 的 5432 / 6379 / 3000 / 3100）──────────────────────────
 export const E2E_PG_HOST = '127.0.0.1'
-/** 独立 PG 端口（compose 里 5433:5432） */
+/** 独立 PG 端口（compose 里 5433:5432）；**所有 profile 共用同一个实例**，隔离靠库名与 IP 段 */
 export const E2E_PG_PORT = 5433
 /** 管理通道角色（迁移 / seed / 断言；superuser 语义） */
 export const E2E_PG_USER = 'walnut'
 export const E2E_PG_PASS = 'e2e_dev_only'
-/** 独立库名 —— 安全闸的唯一判据 */
-export const E2E_PG_DB = 'walnut_e2e'
+/** 当前 profile 的独立库名 —— 安全闸的判据之一（形态正则 + 逐字相等） */
+export const E2E_PG_DB = STACK_PROFILE.database
 /** 运行时角色（RLS：迁移会 CREATE ROLE ... PASSWORD；prepare-db 之后改成下面这个值） */
 export const E2E_PG_APP_USER = 'walnut_app'
 export const E2E_PG_APP_PASS = 'walnut_app_e2e_only'
 
 export const E2E_REDIS_HOST = '127.0.0.1'
-/** 独立 Redis 端口（compose 里 6380:6379） */
+/** 独立 Redis 端口（compose 里 6380:6379）；所有 profile 共用（不加前缀 / 不换逻辑库，见 stack-profiles.ts） */
 export const E2E_REDIS_PORT = 6380
 export const E2E_REDIS_PASS = 'e2e_redis_only'
 
-/** 后端（dist-stage + NODE_ENV=stage）；刻意避开 dev 的 3000 */
-export const BACKEND_PORT = 3001
+/** 后端（dist-stage + NODE_ENV=stage）；profile 决定端口（default 3001，smoke/risk/network 3101–3103） */
+export const BACKEND_PORT = STACK_PROFILE.backendPort
 export const BACKEND_ORIGIN = `http://127.0.0.1:${BACKEND_PORT}`
 /** 后端自己的 socket.io 监听端口（见 .env.stage 的 SOCKET_SERVER_PORT；E2E 也换一个） */
-export const SOCKET_PORT = 3002
+export const SOCKET_PORT = STACK_PROFILE.socketPort
 /** 测试静态代理（伺服 dist-staging + /api /socket 反代） */
-export const WEB_PORT = 4173
+export const WEB_PORT = STACK_PROFILE.webPort
 export const WEB_ORIGIN = `http://127.0.0.1:${WEB_PORT}`
+/**
+ * WebAuthn 用例专用的浏览器 origin —— 主机名必须是 **hostname**，不能是 IP。
+ *
+ * Chrome 的 RP ID 校验比 WebAuthn 规范的「等于 effective domain」更严：`127.0.0.1` 会被
+ * 判成 `SecurityError: 127.0.0.1 is an invalid domain`（实测，2026-11-27），浏览器在
+ * 调 authenticator 之前就拒了。`localhost` 是唯一既能被 RP ID 接受、又在 http 下算
+ * secure context 的名字（WebAuthn 要求安全上下文）。
+ *
+ * 静态代理监听 127.0.0.1，Windows / Linux 的 `localhost` 会先试 ::1 再回落 IPv4，
+ * 实测可达；只影响 WebAuthn 用例自己的 context，其余用例仍用 {@link WEB_ORIGIN}。
+ */
+export const WEBAUTHN_WEB_ORIGIN = `http://localhost:${WEB_PORT}`
 
 /** 与后端 .env.stage 同源的 API 前缀 / 版本（`/w/v1`） */
 export const API_PREFIX = 'w'
@@ -95,7 +153,10 @@ export const RT_JTI_COOKIE_NAME = WalnutAdminConstCookieKeys.RT_JTI
  */
 
 /**
- * 安全闸：目标库必须**逐字**是 walnut_e2e。
+ * 安全闸：目标库必须**同时**满足两条 ——
+ * 1. 形态是 `walnut_e2e` 或 `walnut_e2e_<小写字母>`（挡住 dev 库 `walnut_pg` 与注入形态）；
+ * 2. 逐字等于**当前 profile** 的库名（挡住 `walnut_e2e_foo` 这类拼错、以及把 risk 的库名塞给
+ *    smoke 的误配）。
  *
  * 它什么时候是真判据：参数来自**解析结果**时 —— `writeSeedEnv` 把 .env.stage 副本解析后的
  * `DATABASE_PG_NAME` 传进来，那条路径真的可能读到 dev 的库名。
@@ -104,10 +165,16 @@ export const RT_JTI_COOKIE_NAME = WalnutAdminConstCookieKeys.RT_JTI
  * `lib/pg.ts` 的 `connectPg`（连上之后 `SELECT current_database()`）。
  */
 export function assertE2eDatabase(database: string): void {
-  if (database !== E2E_PG_DB) {
-    throw new Error(
-      `[e2e/safety] 拒绝对库 \`${database}\` 执行破坏性操作：E2E 只允许 \`${E2E_PG_DB}\`。`
+  if (!E2E_DATABASE_PATTERN.test(database)) {
+    throw new E2ePreconditionError(
+      `[e2e/safety] 拒绝对库 \`${database}\` 执行破坏性操作：库名形态必须是 \`walnut_e2e\` 或 \`walnut_e2e_<小写>\`。`
       + '（dev 的 walnut_pg 与本栈共用一套脚本的话，任何一次误跑都会清掉开发数据）',
+    )
+  }
+  if (database !== E2E_PG_DB) {
+    throw new E2ePreconditionError(
+      `[e2e/safety] 拒绝对库 \`${database}\` 执行破坏性操作：当前 profile \`${STACK_PROFILE.name}\` 只允许 \`${E2E_PG_DB}\`。`
+      + `\n  换 profile 用 E2E_STACK_PROFILE=${STACK_PROFILE.name}（或不设 = default）；不要手工改库名。`,
     )
   }
 }
@@ -161,6 +228,25 @@ export function readServerStageEnv(): Record<string, string> {
 }
 
 /**
+ * 服务端 **cookie 签名密钥**（`APP_COOKIE_SECRET`）。
+ *
+ * ⑤（2026-11）：该值已换成**不含 `#`** 的高熵十六进制串，`parseEnvFile` 与 dotenv
+ * （@nestjs/config，未加引号时在第一个 `#` 处截断）读到的是**同一个值** —— 这条
+ * 函数因此简化为直读，不再为这一条 key 维护第二套「按 # 截断」的解析。
+ *
+ * 只有 U13b 需要它：要造「签名合法、值不是 cap.js token」的 cookie，必须与服务端
+ * 用**同一个 secret** 算 HMAC。将来若再有含 `#` 的值，应当改写 env 值而不是复活
+ * 两套解析（那正是 ⑤ 拔掉的坑）。
+ */
+export function readServerCookieSecret(): string {
+  const value = readServerStageEnv().APP_COOKIE_SECRET
+  if (value === undefined || value === '') {
+    throw new E2ePreconditionError('[e2e] .env.stage 缺 APP_COOKIE_SECRET（cookie 签名密钥）')
+  }
+  return value
+}
+
+/**
  * 注入给后端进程的 env 覆盖：**只覆盖连接目标与端口**，OPAQUE / cookie / JWT 等根密钥
  * 仍取 .env.stage 的那一份（前端构建内嵌的 OPAQUE 公钥与它同源，换一份就登录不上）。
  *
@@ -187,6 +273,15 @@ export function backendEnvOverrides(): Record<string, string> {
     // 不是产品口径 —— 风控的 RATE 因子另有自己的阈值（risk.config 的 rate.ip1m 等），不受这里影响。
     APP_THROTTLE_TTL: '60',
     APP_THROTTLE_LIMIT: '100000',
+    // WebAuthn 的 RP 口径必须与**浏览器实际 origin** 逐字一致：
+    // - `AUTH_WEBAUTHN_ORIGIN` 是服务端 verify 时比对的 expectedOrigin；
+    // - `AUTH_WEBAUTHN_RPID` 还必须等于页面 host（浏览器在 credentials.create/get 前自己先校验）。
+    // `.env.stage` 里是部署机的公网地址（http://47.94.19.5:2025），浏览器在 127.0.0.1 上会直接
+    // 抛 SecurityError（RP ID 不是当前域的后缀）。这里改用 `localhost`（见
+    // {@link WEBAUTHN_WEB_ORIGIN}）：它是 RP ID 能接受的 hostname，且在 http 下仍是
+    // potentially trustworthy 的安全上下文。测试栈配置，不改产品口径。
+    AUTH_WEBAUTHN_RPID: 'localhost',
+    AUTH_WEBAUTHN_ORIGIN: WEBAUTHN_WEB_ORIGIN,
   }
 }
 

@@ -27,6 +27,11 @@
  * 6. 写 `.auth/credentials.json`（口令；TOTP secret 由 stack.setup 绑定后补上）。
  *
  * 不提交、不推送：所有产物都落在 gitignored 的 .e2e/ 与 .auth/（以及 apps/server/env-local）。
+ *
+ * **profile（P1-6 Phase A）**：库名 / 端口 / 凭据 / 基线目录都来自 `scripts/stack-profiles.ts`
+ * （`E2E_STACK_PROFILE` 选择）。`apps/server/env-local/.env.e2e` 是 typeorm CLI 的**固定路径**，
+ * 所以同一个 checkout 上不能并发两个 profile 的 prepare —— 本地由全局锁串行保证，CI 每个 job
+ * 独立 checkout。别为了「并行」去猜 CLI 的其它路径。
  */
 import { randomBytes } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -57,9 +62,10 @@ import {
   SERVER_STAGE_ENV_FILE,
 } from './env.ts'
 import { E2ePreconditionError, reportFailure } from './failure.ts'
-import { acquirePgLock, connectMaintenance, releasePgLock } from './pg-lock.ts'
+import { acquirePgLock, connectMaintenance, E2E_PG_LOCK_KEY, E2E_PROFILE_LOCK_KEY, releasePgLock } from './pg-lock.ts'
 import { runPnpm } from './pnpm.ts'
 import { clearAppSettingCache, resetRuntimeRolePassword } from './runtime-reset.ts'
+import { STACK_PROFILE } from './stack-profiles.ts'
 
 function log(message: string): void {
   console.log(`[e2e/prepare-db] ${message}`)
@@ -69,10 +75,15 @@ function log(message: string): void {
  * 生成传给 typeorm CLI 的 env 文件：只放 DATABASE_PG_*（data-source.cli 只读这 5 个键）。
  * 写到 apps/server/env-local/.env.e2e 是**唯一可行**的通道 —— CLI 用 `process.cwd()/env-local`
  * 定位文件，没有 `--env-file` 参数。
+ *
+ * 这个文件**含数据库口令**：0600 权限（POSIX 上生效；Windows 的 Node 会忽略 mode，见 README），
+ * 文件头写「勿提交」，且迁移一结束就删（{@link prepareDatabase} 的 finally）——
+ * 不让它比必要的生命周期多留在盘上。
  */
 function writeServerMigrationEnv(): void {
   const lines = [
     '# 由 apps/e2e/scripts/prepare-db.ts 生成（gitignored）：E2E 独立库的迁移通道。',
+    '# 含数据库口令，勿提交、勿复制分享；迁移跑完即删（见 prepare-db.ts）。',
     `DATABASE_PG_HOST=${E2E_PG_HOST}`,
     `DATABASE_PG_PORT=${E2E_PG_PORT}`,
     `DATABASE_PG_USER=${E2E_PG_USER}`,
@@ -81,8 +92,8 @@ function writeServerMigrationEnv(): void {
     '',
   ]
   mkdirSync(`${SERVER_ROOT}/env-local`, { recursive: true })
-  writeFileSync(SERVER_E2E_ENV_FILE, lines.join('\n'), 'utf8')
-  log(`已写 ${SERVER_E2E_ENV_FILE}`)
+  writeFileSync(SERVER_E2E_ENV_FILE, lines.join('\n'), { encoding: 'utf8', mode: 0o600 })
+  log(`已写 ${SERVER_E2E_ENV_FILE}（含 DB 口令，0600；迁移结束即删）`)
 }
 
 /**
@@ -188,15 +199,25 @@ async function promoteAdminToRoot(client: Client, userName: string): Promise<{ u
 }
 
 /**
- * CAP 端点的节流放宽（**只改本栈库里的设置行**，不动源码）。
+ * CAP 在**本栈库**里的测试放宽（只改 `app_setting` 设置行，不动源码，生产零影响）。
  *
- * cap.js 的 challenge/redeem 也挂着 `@WalnutAdminDecoratorThrottle(SecurityCapSettingService)`，
- * seed 的 `app.global.capjs.config` 是 `throttleLimit: 4`（4 次/60s per realIp）。一次 solve
- * 就是 challenge + redeem 两个请求，而设备用例通常要 **两次** solve（bootstrap 一次、登录
- * 触发一次）—— 余量为零，实测会把 cap-widget 打进错误态（"你是人类吗？"）并卡住 60s。
- * 这里只放宽**频率**：count / size / difficulty / ttl 原样保留，PoW 仍然真解。
+ * 两项，都有独立的、可复核的理由（不变量 9「放宽只改库」）：
+ *
+ * 1. **节流频率**：cap.js 的 challenge/redeem 也挂着
+ *    `@WalnutAdminDecoratorThrottle(SecurityCapSettingService)`，seed 的
+ *    `app.global.capjs.config` 是 `throttleLimit: 4`（4 次/60s per realIp）。一次 solve 就是
+ *    challenge + redeem 两个请求，而设备用例通常要 **两次** solve（bootstrap 一次、登录触发
+ *    一次）—— 余量为零，实测会把 cap-widget 打进错误态（"你是人类吗？"）并卡住 60s。
+ * 2. **PoW 难度 4 → 2**（R-C O2，经所有者批准）：`difficulty: 4` 的期望工作量是 16^4 次哈希，
+ *    Node 侧单次 solve 实测 ~1.4s，一轮 default 面 ~54 次 solve 合计 ~60s。难度是**配置**，
+ *    不是 CAP 协议语义：这一层要验的是「challenge → PoW → redeem → 40116 → 交互 → 重放」，
+ *    不是 16^4 的工作量。`difficulty: 2` 时期望 256 次哈希（毫秒级），整轮省 ~60s。
+ *    E2E 仍然**完整走 CAP 协议**（真 challenge、真 WASM 求解、真 token、真重放），
+ *    只是工作量降档；难度相关的性能 / 超时问题属于服务端负载测试的面，不是 E2E 的面。
+ *
+ * 只改这两个键（count / size / ttl 原样）—— 别把测试专用的其它值写进源码。
  */
-async function relaxCapThrottleForTests(client: Client): Promise<void> {
+async function relaxCapForTests(client: Client): Promise<void> {
   const key = 'app.global.capjs.config'
   const { rows } = await client.query<{ setting_value: string }>(
     'SELECT setting_value FROM app_setting WHERE setting_key = $1',
@@ -209,8 +230,9 @@ async function relaxCapThrottleForTests(client: Client): Promise<void> {
 
   const config = JSON.parse(raw) as Record<string, unknown>
   config.throttleLimit = 10000
+  config.difficulty = 2
   await client.query('UPDATE app_setting SET setting_value = $1 WHERE setting_key = $2', [JSON.stringify(config), key])
-  log(`已放宽 ${key}.throttleLimit → 10000（仅本栈库；PoW 难度不变）`)
+  log(`已放宽 ${key}：throttleLimit → 10000、difficulty → 2（仅本栈库；E2E 仍完整走 CAP 协议）`)
 }
 
 /**
@@ -238,7 +260,11 @@ export async function prepareDatabase(options: { lockHeld?: boolean } = {}): Pro
 
   try {
     if (ownsLock) {
-      await acquirePgLock(maintenance)
+      // 独立入口：与 run.ts 同一嵌套口径 —— 先全局锁（不变量 6），再 profile 锁
+      await acquirePgLock(maintenance, E2E_PG_LOCK_KEY, 'global')
+      if (E2E_PROFILE_LOCK_KEY !== E2E_PG_LOCK_KEY) {
+        await acquirePgLock(maintenance, E2E_PROFILE_LOCK_KEY, `profile=${STACK_PROFILE.name}`)
+      }
     }
 
     log(`DROP DATABASE IF EXISTS ${E2E_PG_DB} WITH (FORCE)`)
@@ -248,7 +274,13 @@ export async function prepareDatabase(options: { lockHeld?: boolean } = {}): Pro
 
     // 迁移：typeorm CLI 只读 env-local/.env.e2e（见 writeServerMigrationEnv）
     log('跑迁移（NODE_ENV=e2e → apps/server/env-local/.env.e2e）')
-    runPnpm(['run', 'migration:run'], SERVER_ROOT, { ...process.env, NODE_ENV: 'e2e' }, 'migration:run')
+    try {
+      runPnpm(['run', 'migration:run'], SERVER_ROOT, { ...process.env, NODE_ENV: 'e2e' }, 'migration:run')
+    }
+    finally {
+      // 迁移通道文件含 DB 口令：一跑完（无论成败）就删，与 .e2e/e2e.env 同处置
+      rmSync(SERVER_E2E_ENV_FILE, { force: true })
+    }
 
     // seed：--env-file 指向整份拷贝（AUTH_OPAQUE_SECRET 必须与后端同源）。
     // 跑完立刻删掉这份含密钥的副本 —— 它唯一的消费者是 seed 自己。
@@ -275,7 +307,7 @@ export async function prepareDatabase(options: { lockHeld?: boolean } = {}): Pro
     await db.connect()
     try {
       await promoteAdminToRoot(db, 'admin')
-      await relaxCapThrottleForTests(db)
+      await relaxCapForTests(db)
       // 运行时角色口令不在快照里（角色是集群级的），每轮由这里/restore 重置
       await resetRuntimeRolePassword(db)
     }
@@ -290,14 +322,18 @@ export async function prepareDatabase(options: { lockHeld?: boolean } = {}): Pro
     )
     log(`已写 ${CREDENTIALS_FILE}（口令随机生成、0600；TOTP secret 由 stack.setup 绑定后补上）`)
     await clearAppSettingCache()
-    log(`完成：库已重建、seed 已播、admin 已提升为 root、CAP 节流已放宽（全量 prepare 耗时 ${((Date.now() - started) / 1000).toFixed(1)}s）`)
+    log(`完成：库已重建、seed 已播、admin 已提升为 root、CAP 已放宽（节流 + 难度；全量 prepare 耗时 ${((Date.now() - started) / 1000).toFixed(1)}s）`)
   }
   finally {
-    // seed env 含 AUTH_OPAQUE_SECRET：正常路径下 seed 一结束就删了，这里是异常路径
-    // （迁移失败、提前抛错）的兜底 —— 不让这份副本在盘上多留一轮。
+    // seed env 含 AUTH_OPAQUE_SECRET、迁移 env 含 DB 口令：正常路径下各自一结束就删了，
+    // 这里是异常路径（提前抛错）的兜底 —— 不让这两份副本在盘上多留一轮。
     rmSync(E2E_ENV_FILE, { force: true })
+    rmSync(SERVER_E2E_ENV_FILE, { force: true })
     if (ownsLock) {
-      await releasePgLock(maintenance)
+      if (E2E_PROFILE_LOCK_KEY !== E2E_PG_LOCK_KEY) {
+        await releasePgLock(maintenance, E2E_PROFILE_LOCK_KEY)
+      }
+      await releasePgLock(maintenance, E2E_PG_LOCK_KEY)
     }
     await maintenance.end().catch(() => {})
   }

@@ -1380,24 +1380,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/AppMonitorUserDTOListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/AppMonitorUserDTO"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/AppMonitorUserDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -5614,24 +5597,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/AppDemoDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/AppDemoDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/AppDemoDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -5985,24 +5951,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysDeletedDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysDeletedDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SystemDeletedDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -6875,24 +6824,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/AppMonitorCacheDTOListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/AppMonitorCacheDTO"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/AppMonitorCacheDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -8450,24 +8382,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/AppSettingDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/AppSettingDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/AppSettingDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -8693,24 +8608,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/AppLoggerDTOListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/AppLoggerDTO"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/AppLoggerDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -9895,24 +9793,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysDeviceDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysDeviceDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysDeviceDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -10392,24 +10273,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysLangDTOListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysLangDTO"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysLangDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -11407,24 +11271,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysLocaleDTOListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysLocaleDTO"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysLocaleDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -12141,24 +11988,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysDictTypeDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysDictTypeDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysDictTypeDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -12872,24 +12702,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysDictDataDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysDictDataDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysDictDataDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -13834,24 +13647,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysDeptDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysDeptDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysDeptDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -14447,24 +14243,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysPostDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysPostDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysPostDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -15306,24 +15085,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysEmployeeDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysEmployeeDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysEmployeeDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -15677,24 +15439,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysLogAuthDTOListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysLogAuthDTO"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysLogAuthDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -16166,24 +15911,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysLogOperateDTOListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysLogOperateDTO"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysLogOperateDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -16900,24 +16628,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysMenuDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysMenuDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysMenuDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -17397,24 +17108,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysRoleDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysRoleDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysRoleDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -18010,24 +17704,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysUserDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysUserDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysUserDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -20768,6 +20445,359 @@
         ]
       }
     },
+    "/system/user/lock/verify/start": {
+      "post": {
+        "operationId": "SysUserLockController_verifyStart",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysUserLockVerifyStartDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Start login-password verification for unlocking (OPAQUE step 1/2, no token issued)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "number",
+                          "enum": [
+                            20000,
+                            40000,
+                            40001,
+                            40002,
+                            40011,
+                            40012,
+                            40099,
+                            40100,
+                            40101,
+                            40102,
+                            40103,
+                            40104,
+                            40105,
+                            40106,
+                            40107,
+                            40108,
+                            40109,
+                            40110,
+                            40111,
+                            40112,
+                            40113,
+                            40114,
+                            40115,
+                            40116,
+                            40117,
+                            40118,
+                            40119,
+                            40300,
+                            40400,
+                            40401,
+                            40402,
+                            40600,
+                            40601,
+                            40602,
+                            40603,
+                            40604,
+                            40605,
+                            40606,
+                            40607,
+                            40608,
+                            40609,
+                            40610,
+                            40666,
+                            40667,
+                            40800,
+                            42900,
+                            42901,
+                            50000,
+                            50001,
+                            50002,
+                            50003,
+                            50300,
+                            50301,
+                            50302,
+                            50303,
+                            50400,
+                            50500
+                          ],
+                          "default": 20000,
+                          "description": "response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start login-password verification for unlocking (OPAQUE step 1/2, no token issued)",
+        "tags": [
+          "system/user/lock"
+        ]
+      }
+    },
+    "/system/user/lock/verify/finish": {
+      "post": {
+        "operationId": "SysUserLockController_verifyFinish",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysUserLockVerifyFinishDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Finish login-password verification and unlock in place (no token issued)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "boolean"
+                        },
+                        "code": {
+                          "type": "number",
+                          "enum": [
+                            20000,
+                            40000,
+                            40001,
+                            40002,
+                            40011,
+                            40012,
+                            40099,
+                            40100,
+                            40101,
+                            40102,
+                            40103,
+                            40104,
+                            40105,
+                            40106,
+                            40107,
+                            40108,
+                            40109,
+                            40110,
+                            40111,
+                            40112,
+                            40113,
+                            40114,
+                            40115,
+                            40116,
+                            40117,
+                            40118,
+                            40119,
+                            40300,
+                            40400,
+                            40401,
+                            40402,
+                            40600,
+                            40601,
+                            40602,
+                            40603,
+                            40604,
+                            40605,
+                            40606,
+                            40607,
+                            40608,
+                            40609,
+                            40610,
+                            40666,
+                            40667,
+                            40800,
+                            42900,
+                            42901,
+                            50000,
+                            50001,
+                            50002,
+                            50003,
+                            50300,
+                            50301,
+                            50302,
+                            50303,
+                            50400,
+                            50500
+                          ],
+                          "default": 20000,
+                          "description": "response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Finish login-password verification and unlock in place (no token issued)",
+        "tags": [
+          "system/user/lock"
+        ]
+      }
+    },
+    "/system/user/lock/reset/{userId}": {
+      "put": {
+        "operationId": "SysUserLockController_resetUserLock",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reset (unlock) the lock screen state of a user, without reading or changing the lock password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "boolean"
+                        },
+                        "code": {
+                          "type": "number",
+                          "enum": [
+                            20000,
+                            40000,
+                            40001,
+                            40002,
+                            40011,
+                            40012,
+                            40099,
+                            40100,
+                            40101,
+                            40102,
+                            40103,
+                            40104,
+                            40105,
+                            40106,
+                            40107,
+                            40108,
+                            40109,
+                            40110,
+                            40111,
+                            40112,
+                            40113,
+                            40114,
+                            40115,
+                            40116,
+                            40117,
+                            40118,
+                            40119,
+                            40300,
+                            40400,
+                            40401,
+                            40402,
+                            40600,
+                            40601,
+                            40602,
+                            40603,
+                            40604,
+                            40605,
+                            40606,
+                            40607,
+                            40608,
+                            40609,
+                            40610,
+                            40666,
+                            40667,
+                            40800,
+                            42900,
+                            42901,
+                            50000,
+                            50001,
+                            50002,
+                            50003,
+                            50300,
+                            50301,
+                            50302,
+                            50303,
+                            50400,
+                            50500
+                          ],
+                          "default": 20000,
+                          "description": "response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reset (unlock) the lock screen state of a user, without reading or changing the lock password",
+        "tags": [
+          "system/user/lock"
+        ]
+      }
+    },
     "/system/user/mfa/totp/generate": {
       "post": {
         "operationId": "SysUserMfaTotpController_generateTotp",
@@ -23281,7 +23311,8 @@
             "type": "string",
             "default": null,
             "title": "user nick name",
-            "description": "feel free to change"
+            "description": "feel free to change",
+            "nullable": true
           },
           "age": {
             "type": "number",
@@ -23675,6 +23706,101 @@
           "location"
         ]
       },
+      "AppMonitorUserDTOPartial": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "deviceId": {
+            "type": "string",
+            "title": "device id"
+          },
+          "auth": {
+            "type": "boolean",
+            "default": false,
+            "title": "auth or not"
+          },
+          "focus": {
+            "type": "boolean",
+            "default": true,
+            "title": "focus on current page or not"
+          },
+          "left": {
+            "type": "boolean",
+            "default": false,
+            "title": "left page or not"
+          },
+          "currentRouter": {
+            "type": "string",
+            "title": "current page router"
+          },
+          "firstVisitAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "createdAt, used as `firstVisitAt`"
+          },
+          "lastActiveAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "updatedAt, used as `lastActiveAt`"
+          },
+          "user": {
+            "title": "virtual user",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SysUserDTOSafe"
+              }
+            ]
+          },
+          "device": {
+            "title": "virtual device",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SysDeviceDTOSafe"
+              }
+            ]
+          },
+          "id": {
+            "type": "string",
+            "default": null
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true,
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          }
+        }
+      },
+      "AppMonitorUserDTOListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "title": "list response data",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AppMonitorUserDTOPartial"
+            }
+          },
+          "total": {
+            "type": "number",
+            "title": "list total count"
+          }
+        },
+        "required": [
+          "data",
+          "total"
+        ]
+      },
       "AppMonitorUserDTO": {
         "type": "object",
         "properties": {
@@ -23757,26 +23883,6 @@
           "currentRouter",
           "user",
           "device"
-        ]
-      },
-      "AppMonitorUserDTOListResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "title": "list response data",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AppMonitorUserDTO"
-            }
-          },
-          "total": {
-            "type": "number",
-            "title": "list total count"
-          }
-        },
-        "required": [
-          "data",
-          "total"
         ]
       },
       "FilterDTO": {
@@ -25367,6 +25473,14 @@
               }
             ]
           },
+          "deptId": {
+            "type": "string",
+            "default": null,
+            "title": "dept id",
+            "description": "owning dept for department-scoped data permissions; derived on create, update is stripped",
+            "nullable": true,
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
           "demoMongoId": {
             "type": "string",
             "default": null,
@@ -25383,6 +25497,173 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "AppDemoDTOSafePartial": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "demoString": {
+            "type": "string",
+            "default": null,
+            "title": "this is title",
+            "description": "this is description",
+            "example": "this is an example"
+          },
+          "demoPhoneNumber": {
+            "type": "string",
+            "default": null,
+            "title": "this is title",
+            "description": "this is description",
+            "example": "this is an example"
+          },
+          "demoStringArray": {
+            "default": [],
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "this is title",
+            "description": "this is description",
+            "example": [
+              "this is an example",
+              "this is an example",
+              "this is an example"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "demoNumber": {
+            "type": "number",
+            "default": null,
+            "title": "this is title",
+            "description": "this is description",
+            "example": 123
+          },
+          "demoNumberArray": {
+            "default": [],
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "this is title",
+            "description": "this is description",
+            "example": [
+              123,
+              123,
+              123
+            ],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "demoBoolean": {
+            "type": "boolean",
+            "default": false,
+            "title": "this is title",
+            "description": "this is description",
+            "example": true
+          },
+          "demoBooleanArray": {
+            "default": [],
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "this is title",
+            "description": "this is description",
+            "example": [
+              true,
+              false,
+              true
+            ],
+            "type": "array",
+            "items": {
+              "type": "boolean"
+            }
+          },
+          "demoDate": {
+            "format": "date-time",
+            "type": "string",
+            "default": null,
+            "title": "this is title",
+            "description": "this is description",
+            "example": "2023-11-11 00:00:00"
+          },
+          "demoDateArray": {
+            "default": [],
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "this is title",
+            "description": "this is description",
+            "example": [
+              "2023-11-11 00:00:00",
+              "2023-11-11 00:00:00",
+              "2023-11-11 00:00:00"
+            ],
+            "type": "array",
+            "items": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          "demoEnum": {
+            "type": "number",
+            "enum": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "default": 1,
+            "title": "this is title",
+            "description": "this is description",
+            "example": 1
+          },
+          "demoEnumArray": {
+            "type": "array",
+            "default": [],
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "this is title",
+            "description": "this is description",
+            "example": [
+              1,
+              2
+            ],
+            "items": {
+              "type": "number",
+              "enum": [
+                1,
+                2,
+                3,
+                4
+              ]
+            }
+          },
+          "demoObject": {
+            "default": null,
+            "title": "this is title",
+            "description": "this is description",
+            "example": {
+              "o1": "this is an example",
+              "o2": 123,
+              "o3": true
+            },
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DemoObject"
+              }
+            ]
           },
           "deptId": {
             "type": "string",
@@ -25391,33 +25672,38 @@
             "description": "owning dept for department-scoped data permissions; derived on create, update is stripped",
             "nullable": true,
             "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
+          "id": {
+            "type": "string",
+            "default": null
+          },
+          "demoMongoId": {
+            "type": "string",
+            "default": null,
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
+          "demoMongoIdArray": {
+            "default": [],
+            "maxItems": 3,
+            "minItems": 1,
+            "example": [
+              "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
-        },
-        "required": [
-          "demoString",
-          "demoPhoneNumber",
-          "demoStringArray",
-          "demoNumber",
-          "demoNumberArray",
-          "demoBoolean",
-          "demoBooleanArray",
-          "demoDate",
-          "demoDateArray",
-          "demoEnum",
-          "demoEnumArray",
-          "demoObject",
-          "demoMongoId",
-          "demoMongoIdArray"
-        ]
+        }
       },
-      "AppDemoDTOSafeListResponse": {
+      "AppDemoDTOListResponse": {
         "type": "object",
         "properties": {
           "data": {
             "title": "list response data",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/AppDemoDTOSafe"
+              "$ref": "#/components/schemas/AppDemoDTOSafePartial"
             }
           },
           "total": {
@@ -25575,14 +25861,73 @@
           "logOperateId"
         ]
       },
-      "SysDeletedDTOSafeListResponse": {
+      "SysDeletedDTOSafePartialPickIdDeletedIdDeletedByLogOperateIdModelNameCollectionNameDeletedAtCreatedAtUpdatedAtUser": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "modelName": {
+            "type": "string",
+            "title": "Deleted Document Model Name",
+            "description": "use `modelName` to ensure the right model"
+          },
+          "collectionName": {
+            "type": "string",
+            "title": "Deleted Document Collection Name",
+            "description": "use `modelName` to recover, this field is only a record"
+          },
+          "deletedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "Deleted time",
+            "description": "which means `createdAt`"
+          },
+          "user": {
+            "title": "virtual user",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SysUserDTOSafe"
+              }
+            ]
+          },
+          "id": {
+            "type": "string",
+            "default": null
+          },
+          "deletedId": {
+            "type": "string",
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
+          "deletedBy": {
+            "type": "string",
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
+          "logOperateId": {
+            "type": "string",
+            "default": null,
+            "nullable": true,
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          }
+        }
+      },
+      "SystemDeletedDTOListResponse": {
         "type": "object",
         "properties": {
           "data": {
             "title": "list response data",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SysDeletedDTOSafe"
+              "$ref": "#/components/schemas/SysDeletedDTOSafePartialPickIdDeletedIdDeletedByLogOperateIdModelNameCollectionNameDeletedAtCreatedAtUpdatedAtUser"
             }
           },
           "total": {
@@ -25759,6 +26104,42 @@
           "expireTime"
         ]
       },
+      "AppMonitorCacheDTOPartial": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "cache key"
+          },
+          "valueBytes": {
+            "type": "number",
+            "title": "cache value bytes"
+          },
+          "expire": {
+            "type": "number",
+            "title": "cache expire seconds"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "built-in",
+              "auth",
+              "controller",
+              "shared",
+              "system"
+            ],
+            "title": "cache type"
+          },
+          "startTime": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "expireTime": {
+            "format": "date-time",
+            "type": "string"
+          }
+        }
+      },
       "AppMonitorCacheDTOListResponse": {
         "type": "object",
         "properties": {
@@ -25766,7 +26147,7 @@
             "title": "list response data",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/AppMonitorCacheDTO"
+              "$ref": "#/components/schemas/AppMonitorCacheDTOPartial"
             }
           },
           "total": {
@@ -26418,22 +26799,63 @@
             "default": null,
             "title": "setting remark"
           }
-        },
-        "required": [
-          "settingName",
-          "settingKey",
-          "settingValue",
-          "settingType"
-        ]
+        }
       },
-      "AppSettingDTOSafeListResponse": {
+      "AppSettingDTOSafePartial": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "settingName": {
+            "type": "string",
+            "title": "setting name"
+          },
+          "settingKey": {
+            "type": "string",
+            "title": "setting key"
+          },
+          "settingValue": {
+            "type": "string",
+            "title": "setting value"
+          },
+          "settingType": {
+            "type": "string",
+            "enum": [
+              "auth",
+              "global",
+              "functional"
+            ],
+            "title": "setting type"
+          },
+          "remark": {
+            "type": "string",
+            "default": null,
+            "title": "setting remark"
+          },
+          "id": {
+            "type": "string",
+            "default": null
+          }
+        }
+      },
+      "AppSettingDTOListResponse": {
         "type": "object",
         "properties": {
           "data": {
             "title": "list response data",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/AppSettingDTOSafe"
+              "$ref": "#/components/schemas/AppSettingDTOSafePartial"
             }
           },
           "total": {
@@ -26517,6 +26939,56 @@
           "page"
         ]
       },
+      "AppLoggerDTOPartial": {
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "title": "log file name"
+          },
+          "filePath": {
+            "type": "string",
+            "title": "log file path"
+          },
+          "fileSize": {
+            "type": "number",
+            "title": "log file size KB"
+          },
+          "fileMTime": {
+            "format": "date-time",
+            "type": "string",
+            "title": "log file modify time"
+          },
+          "logType": {
+            "type": "string",
+            "enum": [
+              "application",
+              "error"
+            ],
+            "title": "log file type"
+          }
+        }
+      },
+      "AppLoggerDTOListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "title": "list response data",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AppLoggerDTOPartial"
+            }
+          },
+          "total": {
+            "type": "number",
+            "title": "list total count"
+          }
+        },
+        "required": [
+          "data",
+          "total"
+        ]
+      },
       "AppLoggerDTO": {
         "type": "object",
         "properties": {
@@ -26552,26 +27024,6 @@
           "fileSize",
           "fileMTime",
           "logType"
-        ]
-      },
-      "AppLoggerDTOListResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "title": "list response data",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AppLoggerDTO"
-            }
-          },
-          "total": {
-            "type": "number",
-            "title": "list total count"
-          }
-        },
-        "required": [
-          "data",
-          "total"
         ]
       },
       "AppLoggerDTOListRequest": {
@@ -26768,7 +27220,8 @@
             "type": "string",
             "default": null,
             "title": "user nick name",
-            "description": "feel free to change"
+            "description": "feel free to change",
+            "nullable": true
           },
           "age": {
             "type": "number",
@@ -26894,7 +27347,8 @@
             "type": "string",
             "default": null,
             "title": "user nick name",
-            "description": "feel free to change"
+            "description": "feel free to change",
+            "nullable": true
           },
           "id": {
             "type": "string",
@@ -26911,14 +27365,81 @@
           "nickName"
         ]
       },
-      "SysDeviceDTOSafeListResponse": {
+      "SysDeviceDTOSafePartialPickIdActiveBannedLockedDeviceIdRiskScoreDeviceNameSrHardwareInfoDeviceInfoLocationInfo": {
+        "type": "object",
+        "properties": {
+          "deviceName": {
+            "type": "string",
+            "title": "device name, normally cannot change"
+          },
+          "deviceId": {
+            "type": "string",
+            "title": "device id, also maybe known as fingerprint for client"
+          },
+          "deviceInfo": {
+            "title": "device user agent information",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SharedUserAgentDTOPartial"
+              }
+            ]
+          },
+          "hardwareInfo": {
+            "title": "hardware information",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SharedHardwareDTOPartial"
+              }
+            ]
+          },
+          "locationInfo": {
+            "title": "location information",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SharedLocationDTOPartial"
+              }
+            ]
+          },
+          "sr": {
+            "title": "screen resolution",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SharedHeightWidthDTO"
+              }
+            ]
+          },
+          "active": {
+            "type": "boolean",
+            "default": false,
+            "title": "device active status"
+          },
+          "locked": {
+            "type": "boolean",
+            "default": false,
+            "title": "device lock status"
+          },
+          "banned": {
+            "type": "boolean",
+            "default": false,
+            "title": "device ban status"
+          },
+          "riskScore": {
+            "type": "number",
+            "title": "device risk score"
+          },
+          "id": {
+            "type": "string"
+          }
+        }
+      },
+      "SysDeviceDTOListResponse": {
         "type": "object",
         "properties": {
           "data": {
             "title": "list response data",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SysDeviceDTOSafe"
+              "$ref": "#/components/schemas/SysDeviceDTOSafePartialPickIdActiveBannedLockedDeviceIdRiskScoreDeviceNameSrHardwareInfoDeviceInfoLocationInfo"
             }
           },
           "total": {
@@ -27116,13 +27637,61 @@
             "default": true,
             "title": "language is in use or not"
           }
-        },
-        "required": [
-          "lang",
-          "description",
-          "order",
-          "status"
-        ]
+        }
+      },
+      "SysLangDTOSafePartial": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "lang": {
+            "type": "string",
+            "title": "language short"
+          },
+          "description": {
+            "type": "string",
+            "title": "language describe"
+          },
+          "order": {
+            "type": "number",
+            "default": null,
+            "title": "language order",
+            "description": "should be int"
+          },
+          "status": {
+            "type": "boolean",
+            "default": true,
+            "title": "language is in use or not"
+          },
+          "localesTotalCount": {
+            "type": "number",
+            "title": "current lang's locales total count"
+          },
+          "localesFinishedCount": {
+            "type": "number",
+            "title": "current lang's locales finished count"
+          },
+          "id": {
+            "type": "string",
+            "default": null
+          },
+          "process": {
+            "type": "number",
+            "nullable": true,
+            "title": "translate process",
+            "description": "percentage (0-100); null when the lang has zero locales (NaN → null)"
+          }
+        }
       },
       "SysLangDTOListResponse": {
         "type": "object",
@@ -27131,7 +27700,7 @@
             "title": "list response data",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SysLangDTO"
+              "$ref": "#/components/schemas/SysLangDTOSafePartial"
             }
           },
           "total": {
@@ -27287,6 +27856,37 @@
           "langId"
         ]
       },
+      "SysLocaleDTOSafePickGroupKeyKeyProcessCreatedAtUpdatedAtPartial": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "key": {
+            "type": "string",
+            "title": "i18n key"
+          },
+          "groupKey": {
+            "type": "string",
+            "title": "group key",
+            "description": "grouped i18n key (Mongo $group._id); NOT the row primary key"
+          },
+          "process": {
+            "type": "number",
+            "title": "translate process",
+            "description": "fraction (0-1) of finished translations for the key (admin displays × 100)"
+          }
+        }
+      },
       "SysLocaleDTOListResponse": {
         "type": "object",
         "properties": {
@@ -27294,7 +27894,7 @@
             "title": "list response data",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SysLocaleDTO"
+              "$ref": "#/components/schemas/SysLocaleDTOSafePickGroupKeyKeyProcessCreatedAtUpdatedAtPartial"
             }
           },
           "total": {
@@ -27543,21 +28143,65 @@
             "type": "string",
             "title": "description"
           }
-        },
-        "required": [
-          "name",
-          "type",
-          "status"
-        ]
+        }
       },
-      "SysDictTypeDTOSafeListResponse": {
+      "SysDictTypeDTOSafePartial": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "name": {
+            "type": "string",
+            "title": "dict name"
+          },
+          "type": {
+            "type": "string",
+            "title": "dict type or can be treated as dict key"
+          },
+          "status": {
+            "type": "boolean",
+            "title": "dict status"
+          },
+          "description": {
+            "type": "string",
+            "title": "description"
+          },
+          "dictData": {
+            "title": "populated dict data",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SysDictDataDTOPopulatedDictData"
+              }
+            ]
+          },
+          "dictDataCount": {
+            "type": "number",
+            "title": "populated dict data count"
+          },
+          "id": {
+            "type": "string",
+            "default": null
+          }
+        }
+      },
+      "SysDictTypeDTOListResponse": {
         "type": "object",
         "properties": {
           "data": {
             "title": "list response data",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SysDictTypeDTOSafe"
+              "$ref": "#/components/schemas/SysDictTypeDTOSafePartial"
             }
           },
           "total": {
@@ -27795,33 +28439,85 @@
             "default": "primary",
             "title": "dict data render tag type, see more in naive ui tag"
           },
+          "description": {
+            "type": "string",
+            "default": null,
+            "title": "dict data description"
+          },
           "typeId": {
             "type": "string",
             "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          }
+        }
+      },
+      "SysDictDataDTOSafePartial": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "label": {
+            "type": "string",
+            "title": "dict data label"
+          },
+          "value": {
+            "type": "string",
+            "title": "dict data value"
+          },
+          "order": {
+            "type": "number",
+            "default": 0,
+            "title": "dict data order in array"
+          },
+          "status": {
+            "type": "boolean",
+            "default": true,
+            "title": "dict data status, false will not be extracted"
+          },
+          "tagType": {
+            "type": "string",
+            "enum": [
+              "primary",
+              "info",
+              "success",
+              "warning",
+              "error"
+            ],
+            "default": "primary",
+            "title": "dict data render tag type, see more in naive ui tag"
           },
           "description": {
             "type": "string",
             "default": null,
             "title": "dict data description"
+          },
+          "id": {
+            "type": "string",
+            "default": null
+          },
+          "typeId": {
+            "type": "string",
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
           }
-        },
-        "required": [
-          "label",
-          "value",
-          "order",
-          "status",
-          "tagType",
-          "typeId"
-        ]
+        }
       },
-      "SysDictDataDTOSafeListResponse": {
+      "SysDictDataDTOListResponse": {
         "type": "object",
         "properties": {
           "data": {
             "title": "list response data",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SysDictDataDTOSafe"
+              "$ref": "#/components/schemas/SysDictDataDTOSafePartial"
             }
           },
           "total": {
@@ -28180,14 +28876,87 @@
           "status"
         ]
       },
-      "SysDeptDTOSafeListResponse": {
+      "SysDeptDTOSafePartial": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "parentId": {
+            "type": "string",
+            "default": null,
+            "title": "parent dept id",
+            "description": "null => root dept",
+            "nullable": true,
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
+          "deptCode": {
+            "type": "string",
+            "title": "dept code",
+            "description": "unique business key"
+          },
+          "deptName": {
+            "type": "string",
+            "title": "dept name"
+          },
+          "leader": {
+            "type": "string",
+            "default": null,
+            "title": "dept leader",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "default": null,
+            "title": "contact phone",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "default": null,
+            "title": "contact email",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "number",
+            "default": 0,
+            "title": "sort order",
+            "description": "sibling order inside the same parent, should be int"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "default": "enabled",
+            "title": "dept status",
+            "description": "disabled => not selectable in new assignments, existing rows stay",
+            "example": "enabled"
+          },
+          "id": {
+            "type": "string",
+            "default": null
+          }
+        }
+      },
+      "SysDeptDTOListResponse": {
         "type": "object",
         "properties": {
           "data": {
             "title": "list response data",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SysDeptDTOSafe"
+              "$ref": "#/components/schemas/SysDeptDTOSafePartial"
             }
           },
           "total": {
@@ -28415,14 +29184,67 @@
           "status"
         ]
       },
-      "SysPostDTOSafeListResponse": {
+      "SysPostDTOSafePartial": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "postCode": {
+            "type": "string",
+            "title": "post code",
+            "description": "unique business key"
+          },
+          "postName": {
+            "type": "string",
+            "title": "post name"
+          },
+          "sortOrder": {
+            "type": "number",
+            "default": 0,
+            "title": "sort order",
+            "description": "should be int"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "default": "enabled",
+            "title": "post status",
+            "description": "disabled => not selectable in new assignments, existing rows stay",
+            "example": "enabled"
+          },
+          "remark": {
+            "type": "string",
+            "default": null,
+            "title": "remark",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "default": null
+          }
+        }
+      },
+      "SysPostDTOListResponse": {
         "type": "object",
         "properties": {
           "data": {
             "title": "list response data",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SysPostDTOSafe"
+              "$ref": "#/components/schemas/SysPostDTOSafePartial"
             }
           },
           "total": {
@@ -28768,14 +29590,79 @@
           "status"
         ]
       },
-      "SysEmployeeDTOSafeListResponse": {
+      "SysEmployeeDTOSafePartial": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "employeeNo": {
+            "type": "string",
+            "title": "employee no",
+            "description": "unique business key, the payroll number"
+          },
+          "employeeName": {
+            "type": "string",
+            "title": "employee name"
+          },
+          "deptId": {
+            "type": "string",
+            "title": "dept id",
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
+          "postId": {
+            "type": "string",
+            "default": null,
+            "title": "post id",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "default": null,
+            "title": "bound user id",
+            "nullable": true
+          },
+          "entryDate": {
+            "format": "date-time",
+            "type": "string",
+            "title": "entry date",
+            "example": "2026-01-01 00:00:00"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "probation",
+              "active",
+              "resigned"
+            ],
+            "default": "active",
+            "title": "employee status",
+            "description": "probation / active / resigned; resigned does NOT delete or unbind the account",
+            "example": "active"
+          },
+          "id": {
+            "type": "string",
+            "default": null
+          }
+        }
+      },
+      "SysEmployeeDTOListResponse": {
         "type": "object",
         "properties": {
           "data": {
             "title": "list response data",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SysEmployeeDTOSafe"
+              "$ref": "#/components/schemas/SysEmployeeDTOSafePartial"
             }
           },
           "total": {
@@ -28963,6 +29850,97 @@
           "userId"
         ]
       },
+      "SysLogAuthDTOSafePartial": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "ip": {
+            "type": "string",
+            "default": null,
+            "title": "ip address when auth"
+          },
+          "location": {
+            "type": "string",
+            "default": null,
+            "title": "location when auth"
+          },
+          "os": {
+            "type": "string",
+            "default": null,
+            "title": "operating system when auth"
+          },
+          "browser": {
+            "type": "string",
+            "default": null,
+            "title": "browser when auth"
+          },
+          "userName": {
+            "type": "string",
+            "default": null,
+            "title": "user name when auth"
+          },
+          "identifier": {
+            "type": "string",
+            "default": null,
+            "title": "identifier when auth, e.g. email, phone number"
+          },
+          "success": {
+            "type": "boolean",
+            "default": false,
+            "title": "auth success or not"
+          },
+          "msg": {
+            "type": "string",
+            "default": null,
+            "title": "messages returned when auth"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "opaque",
+              "qrcode",
+              "otp",
+              "emailAddress",
+              "phoneNumber",
+              "github",
+              "gitee",
+              "googleFedCM"
+            ],
+            "default": null,
+            "title": "auth type",
+            "example": "opaque"
+          },
+          "deviceId": {
+            "type": "string",
+            "title": "authenticate device id"
+          },
+          "authenticatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "authenticatedAt, also known as createdAt"
+          },
+          "id": {
+            "type": "string",
+            "default": null
+          },
+          "userId": {
+            "type": "string",
+            "default": null,
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          }
+        }
+      },
       "SysLogAuthDTOListResponse": {
         "type": "object",
         "properties": {
@@ -28970,7 +29948,7 @@
             "title": "list response data",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SysLogAuthDTO"
+              "$ref": "#/components/schemas/SysLogAuthDTOSafePartial"
             }
           },
           "total": {
@@ -29265,7 +30243,8 @@
               "device.ban",
               "device.unban",
               "appSetting.refreshCache",
-              "auth.opaque.changePassword"
+              "auth.opaque.changePassword",
+              "user.lock.reset"
             ],
             "title": "operate type"
           },
@@ -29378,6 +30357,134 @@
           "userId"
         ]
       },
+      "SysLogOperateDTOSafePartial": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "title": {
+            "type": "string",
+            "title": "operate title, developer customise"
+          },
+          "actionType": {
+            "type": "string",
+            "enum": [
+              "OTHER",
+              "CREATE",
+              "UPDATE",
+              "DELETE",
+              "DELETE_MANY",
+              "IMPORT",
+              "EXPORT",
+              "CLEAR",
+              "REFRESH",
+              "AUTH"
+            ],
+            "title": "operate action type"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "deleted.recover",
+              "appMonitorUser.forceQuit",
+              "user.updatePassword",
+              "user.clearPassword",
+              "device.lock",
+              "device.unlock",
+              "device.ban",
+              "device.unban",
+              "appSetting.refreshCache",
+              "auth.opaque.changePassword",
+              "user.lock.reset"
+            ],
+            "title": "operate type"
+          },
+          "method": {
+            "type": "string",
+            "title": "http method, like get/post"
+          },
+          "url": {
+            "type": "string",
+            "title": "http url"
+          },
+          "httpVersion": {
+            "type": "string",
+            "title": "http version, like 1.1/2.0"
+          },
+          "location": {
+            "type": "string",
+            "title": "operate location, address string"
+          },
+          "os": {
+            "type": "string",
+            "title": "operate operating system"
+          },
+          "browser": {
+            "type": "string",
+            "title": "operate browser"
+          },
+          "statusCode": {
+            "type": "number",
+            "title": "http status code"
+          },
+          "requestData": {
+            "type": "string",
+            "title": "requset data, stringified"
+          },
+          "responseData": {
+            "type": "string",
+            "title": "response data, stringified"
+          },
+          "durationMs": {
+            "type": "number",
+            "title": "responsed milliseconds"
+          },
+          "userName": {
+            "type": "string",
+            "title": "operater user name"
+          },
+          "deviceId": {
+            "type": "string",
+            "title": "operate device id"
+          },
+          "ip": {
+            "type": "string",
+            "title": "operate ip"
+          },
+          "invokingMethod": {
+            "type": "string",
+            "title": "operate invoked service and method"
+          },
+          "success": {
+            "type": "boolean",
+            "title": "operate success or not"
+          },
+          "operatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "operatedAt, also known as createdAt"
+          },
+          "id": {
+            "type": "string",
+            "default": null
+          },
+          "userId": {
+            "type": "string",
+            "default": null,
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          }
+        }
+      },
       "SysLogOperateDTOListResponse": {
         "type": "object",
         "properties": {
@@ -29385,7 +30492,7 @@
             "title": "list response data",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SysLogOperateDTO"
+              "$ref": "#/components/schemas/SysLogOperateDTOSafePartial"
             }
           },
           "total": {
@@ -29643,14 +30750,91 @@
           }
         }
       },
-      "SysMenuDTOSafeListResponse": {
+      "SysMenuDTOSafePartial": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "catalog",
+              "menu",
+              "element"
+            ],
+            "default": "catalog",
+            "title": "basic menu type, mostly used in front end",
+            "description": "catalog => like folder, can only have child nodes. menu => refer to route. element => front end element permission",
+            "example": "catalog"
+          },
+          "path": {
+            "type": "string",
+            "default": null,
+            "title": "route path",
+            "description": "used for vue router path"
+          },
+          "name": {
+            "type": "string",
+            "default": null,
+            "title": "route name",
+            "description": "used for vue router name, should be unique, also used for keep-alive flags"
+          },
+          "component": {
+            "type": "string",
+            "default": null,
+            "title": "route component file path",
+            "description": "used for vue router to find target file path"
+          },
+          "title": {
+            "type": "string",
+            "default": null,
+            "title": "route title",
+            "description": "used for route page title, mostly is i18n format"
+          },
+          "icon": {
+            "type": "string",
+            "default": null,
+            "title": "route icon",
+            "description": "used for route icon, shown in menus and tabs"
+          },
+          "meta": {
+            "title": "menu meta data, lots of fields",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SysMenuMetaDTOBasePartial"
+              }
+            ]
+          },
+          "id": {
+            "type": "string",
+            "default": null
+          },
+          "pid": {
+            "type": "string",
+            "default": null,
+            "nullable": true,
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          }
+        }
+      },
+      "SysMenuDTOListResponse": {
         "type": "object",
         "properties": {
           "data": {
             "title": "list response data",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SysMenuDTOSafe"
+              "$ref": "#/components/schemas/SysMenuDTOSafePartial"
             }
           },
           "total": {
@@ -29831,6 +31015,20 @@
             "title": "role status",
             "description": "false => users wont retrieve current role menus(permissions)"
           },
+          "dataScope": {
+            "type": "number",
+            "enum": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "default": 1,
+            "title": "role data scope",
+            "description": "1=ALL 2=CUSTOM(dept list via sys_role_dept) 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF"
+          },
           "menus": {
             "default": [],
             "example": [
@@ -29840,6 +31038,58 @@
             "items": {
               "type": "string"
             }
+          },
+          "deptIds": {
+            "default": [],
+            "maxItems": 200,
+            "example": [
+              "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "SysRoleDTOSafeWithoutMenusPartial": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "roleName": {
+            "type": "string",
+            "default": null,
+            "title": "role name",
+            "description": "unique string"
+          },
+          "description": {
+            "type": "string",
+            "default": null,
+            "title": "role description",
+            "description": "short describe"
+          },
+          "order": {
+            "type": "number",
+            "default": null,
+            "title": "role order",
+            "description": "should be int"
+          },
+          "status": {
+            "type": "boolean",
+            "default": true,
+            "title": "role status",
+            "description": "false => users wont retrieve current role menus(permissions)"
           },
           "dataScope": {
             "type": "number",
@@ -29855,33 +31105,31 @@
             "title": "role data scope",
             "description": "1=ALL 2=CUSTOM(dept list via sys_role_dept) 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF"
           },
-          "deptIds": {
-            "default": [],
-            "maxItems": 200,
-            "example": [
-              "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-            ],
+          "usersCount": {
+            "type": "number",
+            "title": "current role's user count"
+          },
+          "menusList": {
+            "title": "populated menus list",
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/SysMenuDTOSafe"
             }
+          },
+          "id": {
+            "type": "string",
+            "default": null
           }
-        },
-        "required": [
-          "roleName",
-          "description",
-          "order",
-          "status"
-        ]
+        }
       },
-      "SysRoleDTOSafeListResponse": {
+      "SysRoleDTOListResponse": {
         "type": "object",
         "properties": {
           "data": {
             "title": "list response data",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SysRoleDTOSafe"
+              "$ref": "#/components/schemas/SysRoleDTOSafeWithoutMenusPartial"
             }
           },
           "total": {
@@ -30020,6 +31268,14 @@
             "title": "user status",
             "description": "false => user cannot sign in anymore, also should ban tokens as well"
           },
+          "deptId": {
+            "type": "string",
+            "default": null,
+            "title": "dept id",
+            "description": "owning dept for department-scoped data permissions; null => no dept",
+            "nullable": true,
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
           "roles": {
             "default": [],
             "example": [
@@ -30029,30 +31285,61 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "SysUserDTOSafePartialPickIdUserNameNickNameStatusCreatedAtUpdatedAtRoles_count": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
           },
-          "deptId": {
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "userName": {
             "type": "string",
             "default": null,
-            "title": "dept id",
-            "description": "owning dept for department-scoped data permissions; null => no dept",
-            "nullable": true,
-            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+            "title": "user name",
+            "description": "should be unique, used for normal password sign in"
+          },
+          "nickName": {
+            "type": "string",
+            "default": null,
+            "title": "user nick name",
+            "description": "feel free to change",
+            "nullable": true
+          },
+          "status": {
+            "type": "boolean",
+            "default": true,
+            "title": "user status",
+            "description": "false => user cannot sign in anymore, also should ban tokens as well"
+          },
+          "roles_count": {
+            "type": "number",
+            "title": "virtual roles count"
+          },
+          "id": {
+            "type": "string",
+            "default": null
           }
-        },
-        "required": [
-          "userName",
-          "status",
-          "roles"
-        ]
+        }
       },
-      "SysUserDTOSafeListResponse": {
+      "SysUserDTOListResponse": {
         "type": "object",
         "properties": {
           "data": {
             "title": "list response data",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SysUserDTOSafe"
+              "$ref": "#/components/schemas/SysUserDTOSafePartialPickIdUserNameNickNameStatusCreatedAtUpdatedAtRoles_count"
             }
           },
           "total": {
@@ -30149,7 +31436,8 @@
             "type": "string",
             "default": null,
             "title": "user nick name",
-            "description": "feel free to change"
+            "description": "feel free to change",
+            "nullable": true
           },
           "gender": {
             "type": "number",
@@ -30701,6 +31989,11 @@
             "type": "boolean",
             "default": true,
             "title": "lock cross device?"
+          },
+          "lockPwdSet": {
+            "type": "boolean",
+            "default": false,
+            "title": "whether a lock password has been set"
           }
         },
         "required": [
@@ -30709,7 +32002,8 @@
           "lockMode",
           "lockIdleSec",
           "lockSecuritySec",
-          "lockCrossDevice"
+          "lockCrossDevice",
+          "lockPwdSet"
         ]
       },
       "SysUserLockPreferenceUpdateDto": {
@@ -30760,6 +32054,30 @@
             ]
           }
         }
+      },
+      "SysUserLockVerifyStartDto": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "title": "opaque start login request"
+          }
+        },
+        "required": [
+          "start"
+        ]
+      },
+      "SysUserLockVerifyFinishDto": {
+        "type": "object",
+        "properties": {
+          "finish": {
+            "type": "string",
+            "title": "opaque finish login request"
+          }
+        },
+        "required": [
+          "finish"
+        ]
       },
       "SysUserMfaGenerateTotpResponseDTO": {
         "type": "object",

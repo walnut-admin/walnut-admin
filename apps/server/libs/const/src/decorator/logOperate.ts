@@ -34,6 +34,9 @@ export const WalnutAdminConstDecoratorLogOperateType = {
   APP_SETTING_REFRESH_CACHE: 'appSetting.refreshCache',
 
   AUTH_OPAQUE_CHANGE_PASSWORD: 'auth.opaque.changePassword',
+
+  // L1（2026-11-27）：管理员重置某用户的锁屏（Q6，只解锁 + 清计次，不读不碰 hash）
+  USER_LOCK_RESET: 'user.lock.reset',
 }
 
 export type IWalnutAdminConstDecoratorLogOperateType = ValueOf<

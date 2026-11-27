@@ -43,6 +43,19 @@ export class SysUserLockEntity {
   @Column({ type: 'boolean', name: 'lock_cross_device', default: true })
   lockCrossDevice: boolean
 
+  // L1（2026-11-27）：锁屏密码计次 / 退避 / 最近变更（DDL 在 1793400000000-UserLockPwdAttempts）
+  // 连续失败次数：security 密码解锁与 fallback OPAQUE 验证共用一套计数，成功即清零
+  @Column({ type: 'integer', name: 'lock_pwd_fail_count', default: 0 })
+  lockPwdFailCount: number
+
+  // 退避截止时间：非空且晚于 now() ⇒ 一律拒绝（与密码对错无关，避免计时侧信道）
+  @Column({ type: 'timestamptz', name: 'lock_pwd_locked_until', nullable: true })
+  lockPwdLockedUntil: Date | null
+
+  // 最近设置/变更锁屏密码的时间（审计 + UI 展示；bcrypt cost 不在列里）
+  @Column({ type: 'timestamptz', name: 'lock_pwd_updated_at', nullable: true })
+  lockPwdUpdatedAt: Date | null
+
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
   createdAt: Date
 

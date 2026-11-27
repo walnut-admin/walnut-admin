@@ -7,6 +7,7 @@ import { WalnutAdminConstDataScope } from '@walnut-server/const/app/dataScope'
 
 import { runAfterCommit } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
+import { omitUndefined } from '@walnut-server/utils'
 import { Role } from '@walnut/contract'
 import { DataScopeService } from '../data-scope/data-scope.service'
 import {
@@ -112,7 +113,9 @@ export class SysRoleService {
       ? await this.roleRepoService.findUserIdsByRoleId(id, em)
       : []
 
-    const updated = await this.roleBasicRepo.update(id, dto, em)
+    // 真 PATCH（2026-11 F2）：preserveAbsent 让未提供的键保持 undefined，这里再滤掉
+    // —— 未给列 / junction 不动；显式 null 仍是有意的清空。
+    const updated = await this.roleBasicRepo.update(id, omitUndefined(dto), em)
 
     // 批 7 / L7（P3-35 收口）：把 menus/deptIds 并入操作日志的 ALS 快照（行快照由
     // 基类写入，这里合并而不覆盖）。四个授权敏感面 dataScope/status/deptIds/menus

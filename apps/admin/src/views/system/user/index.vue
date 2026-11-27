@@ -3,6 +3,7 @@ import type { SystemUser } from '@walnut/api-types'
 import { useState } from '@walnut/client/hooks/core/useState'
 import { computed } from 'vue'
 import { clearPasswordAPI, userAPI } from '@/api/system/user'
+import { resetUserLockAPI } from '@/api/system/user_lock'
 import { useCRUD } from '@/components/Advanced/CRUD'
 import { useForm } from '@/components/UI/Form'
 import { WTablePresetCreatedAtColumn, WTablePresetStatusColumn, WTablePresetUpdatedAtColumn } from '@/components/UI/Table/src/utils/presetColumns'
@@ -92,6 +93,8 @@ const [
   safeFormUnwantedFields: ['status'],
 
   tableProps: {
+    // E2E：`user-list-table` 供权限可见性用例判「列表已挂载 / 门禁后为空」；`user-create-btn` 判无 create 权限时隐藏
+    testId: 'user-list-table',
     localeUniqueKey: key,
     rowKey: row => row[keyField]!,
     striped: true,
@@ -101,12 +104,14 @@ const [
     headerLeftBuiltInActions: [
       {
         _builtInType: 'create',
+        testId: 'user-create-btn',
         onPresetClick() {
           onOpenCreateForm()
         },
       },
       {
         _builtInType: 'delete',
+        testId: 'user-delete-many-btn',
         onPresetClick() {
           onDeleteManyConfirm()
         },
@@ -213,12 +218,14 @@ const [
 
       {
         key: 'action',
-        width: 100,
+        width: 140,
         extendType: 'action',
         fixed: 'right',
         columnBuiltInActions: [
           {
             _builtInType: 'read',
+            // E2E：编辑抽屉触发器（权限可见性用例同时验证行内按钮随 read 权限显隐）
+            testId: 'user-edit-btn',
             _show: row => !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.ROOT) && !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.DEVELOPER),
             async onPresetClick(rowData) {
               await onReadAndOpenUpdateForm(rowData[keyField]!)
@@ -234,6 +241,29 @@ const [
           },
         ],
         columnExtraActions: [
+          {
+            // Q6 / L2：管理员重置某用户的锁屏（只解锁 + 清计次，不读不碰锁屏密码）。
+            // 权限点 `system:user:lock:reset` 由 seed 提供；root 短路放行，其它角色需显式授予。
+            // 行内普通按钮（不进 dropdown）：旅程 J3 的「轻 UI」有稳定落点。
+            _builtInType: 'resetLock',
+            _show: row => !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.ROOT) && !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.DEVELOPER),
+            confirm: true,
+            testId: 'user-reset-lock-btn',
+            async onPresetClick(rowData) {
+              await resetUserLockAPI(rowData[keyField]!)
+              useAppMsgSuccess()
+              await onApiList()
+            },
+            buttonProps: {
+              textProp: () => t('app.security.lock.reset'),
+              type: 'warning',
+              size: 'small',
+              auth: 'system:user:lock:reset',
+            },
+            iconProps: {
+              icon: 'mdi:lock-open-variant-outline',
+            },
+          },
           {
             _builtInType: 'updatePass',
             _dropdown: true,

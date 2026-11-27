@@ -62,6 +62,10 @@ const {
 } = WalnutCrudDecorators({
   title: WalnutAdminConstDecoratorLogOperateTitle.LOCALE,
   DTO: SysLocaleDTO,
+  // list 行不是完整 SysLocaleDTO：controller 返回的 SysLocaleDTOListResponse 只含
+  // RealPartialType(RealPickType(SysLocaleDTOSafe, [groupKey, key, process, createdAt, updatedAt]))
+  // —— 分组聚合行，没有 value / langId（P2-6 收尾）。
+  listResponseDTO: SysLocaleDTOListResponse,
 })
 
 const RawBody = createParamDecorator(

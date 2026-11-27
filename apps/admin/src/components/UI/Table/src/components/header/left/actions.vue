@@ -31,6 +31,7 @@ const options = computed<{
   icon: string
   disabled?: boolean
   auth?: string
+  testId?: string
 }[]>(() =>
   sortBy(
     [
@@ -67,7 +68,13 @@ const options = computed<{
       },
     ],
     i => tableProps.value.headerLeftBuiltInActions?.map(i => i._builtInType).indexOf(i.type),
-  ).filter(i => isShow(i.type)),
+  )
+    .filter(i => isShow(i.type))
+    // E2E 稳定选择器由页面配置透传（未配置时不产生属性）
+    .map(item => ({
+      ...item,
+      testId: tableProps.value.headerLeftBuiltInActions?.find(i => i._builtInType === item.type)?.testId,
+    })),
 )
 
 function onButtonClick(key: WTable.HeaderLeftBulitInActionType) {
@@ -89,6 +96,7 @@ function onButtonClick(key: WTable.HeaderLeftBulitInActionType) {
       "
       :confirm="item.type === 'delete'"
       :auth="item.auth"
+      :test-id="item.testId"
       @click="onButtonClick(item.type)"
     />
 

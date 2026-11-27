@@ -64,6 +64,15 @@ import { REPO_ROOT } from '../lib/repo-root.ts'
 export const DEFAULT_DIST_DIR = 'apps/admin/dist'
 /** 机密值的来源（相对仓库根）—— **只有后端这一份**，见文件头 */
 export const DEFAULT_SECRET_ENV_DIR = 'apps/server/env-local'
+/**
+ * 默认体检对象（相对仓库根）：**两份产物**。
+ *
+ * `apps/admin/dist` 是 `build` 的产物，`apps/admin/dist-staging` 是 `build:stage`
+ * （E2E 的 static-server 伺服的目录）的产物 —— 两者都是交付给浏览器的公开文件，
+ * 只扫其中一份等于给另一种构建形态留后门（F3 的 bundle 正是 dist-staging）。
+ * 任一份缺省时跳过并**明确打印**（缺产物是没验过，不是通过；两份都缺才退 2）。
+ */
+export const DEFAULT_DIST_DIRS = ['apps/admin/dist', 'apps/admin/dist-staging'] as const
 
 /** 会被当文本读的产物后缀（其余按二进制跳过） */
 export const TEXT_FILE = /\.(?:js|mjs|cjs|jsx|css|html|htm|json|json5|map|txt|xml|svg)$/i
@@ -253,6 +262,14 @@ function walk(dir: string): string[] {
 /** 体检整棵产物树。路径均可注入，便于用例喂夹具。 */
 export function scanDist(distDir: string, secretEnvDir: string): ScanResult {
   const secrets = collectSecretValues(secretEnvDir)
+  return scanDistWithSecrets(distDir, secrets)
+}
+
+/**
+ * 同 {@link scanDist}，但机密值由调用方统一喂入 —— 多份产物共用一个机密集，
+ * 不重复读 env、也不把 secretCount 重复累加。
+ */
+export function scanDistWithSecrets(distDir: string, secrets: readonly SecretValue[]): ScanResult {
   const findings: Finding[] = []
   const stats: ScanStats = { files: 0, textFiles: 0, skippedBinary: 0, bytes: 0 }
 
@@ -300,18 +317,74 @@ export function collectFindings(distDir = join(REPO_ROOT, DEFAULT_DIST_DIR)): Sc
   return scanDist(distDir, join(REPO_ROOT, DEFAULT_SECRET_ENV_DIR))
 }
 
-export function main(argv: string[] = []): void {
-  // 允许显式传产物目录（本地对着别处的产物跑），默认仓库里那份
-  const distDir = argv[0] === undefined
-    ? join(REPO_ROOT, DEFAULT_DIST_DIR)
-    : (isAbsolute(argv[0]) ? argv[0] : join(REPO_ROOT, argv[0]))
+export interface MultiScanResult extends ScanResult {
+  /** 实际扫过的产物目录（相对仓库根）—— 打印用 */
+  scannedDirs: string[]
+  /** 不存在而跳过的产物目录（相对仓库根）—— 是漏报面，必须显式打印 */
+  missingDirs: string[]
+  precondition?: string
+}
 
-  const result = collectFindings(distDir)
+/**
+ * 扫**多份**产物（默认 `dist` + `dist-staging`）。
+ *
+ * 判据：两份都是交付给浏览器的公开文件，只扫一份等于给另一种构建形态留后门。
+ * 缺哪份就跳过哪份并记进 `missingDirs`（显式打印，不静默）；两份都缺才是前置条件失败。
+ */
+export function collectFindingsForDists(
+  distDirs: readonly string[],
+  secretEnvDir = join(REPO_ROOT, DEFAULT_SECRET_ENV_DIR),
+): MultiScanResult {
+  const secrets = collectSecretValues(secretEnvDir)
+  const findings: Finding[] = []
+  const stats: ScanStats = { files: 0, textFiles: 0, skippedBinary: 0, bytes: 0 }
+  const scannedDirs: string[] = []
+  const missingDirs: string[] = []
+
+  for (const distDir of distDirs) {
+    const rel = relative(REPO_ROOT, distDir).split('\\').join('/')
+    if (!existsSync(distDir)) {
+      missingDirs.push(rel)
+      continue
+    }
+    const part = scanDistWithSecrets(distDir, secrets)
+    scannedDirs.push(rel)
+    findings.push(...part.findings)
+    stats.files += part.stats.files
+    stats.textFiles += part.stats.textFiles
+    stats.skippedBinary += part.stats.skippedBinary
+    stats.bytes += part.stats.bytes
+  }
+
+  if (scannedDirs.length === 0) {
+    return {
+      findings: [],
+      stats,
+      secretCount: secrets.length,
+      scannedDirs,
+      missingDirs,
+      precondition: `产物目录都不存在：${missingDirs.join(' / ')}\n  体检的前提是先构建：\`pnpm exec turbo run build --filter=@walnut/admin\`（dist）/ \`pnpm --filter @walnut/admin build:stage\`（dist-staging，E2E 用）。`,
+    }
+  }
+
+  return { findings, stats, secretCount: secrets.length, scannedDirs, missingDirs }
+}
+
+export function main(argv: string[] = []): void {
+  // 允许显式传产物目录（本地对着别处的产物跑），默认仓库里的两份
+  const distDirs = argv.length > 0
+    ? argv.map(arg => (isAbsolute(arg) ? arg : join(REPO_ROOT, arg)))
+    : DEFAULT_DIST_DIRS.map(dir => join(REPO_ROOT, dir))
+
+  const result = collectFindingsForDists(distDirs)
   if (result.precondition !== undefined)
     throw new PreconditionError(result.precondition)
 
   const mb = (result.stats.bytes / 1024 / 1024).toFixed(2)
-  line('ok', `产物去密体检：${DEFAULT_DIST_DIR}（${result.stats.files} 个文件 / ${mb} MB；扫文本 ${result.stats.textFiles}，跳过压缩/二进制 ${result.stats.skippedBinary}）`)
+  line('ok', `产物去密体检：${result.scannedDirs.join(' + ')}（${result.stats.files} 个文件 / ${mb} MB；扫文本 ${result.stats.textFiles}，跳过压缩/二进制 ${result.stats.skippedBinary}）`)
+  if (result.missingDirs.length > 0) {
+    lineErr('warning', ` 跳过的产物目录：${result.missingDirs.join(' / ')}（不存在；该形态**没验过**，不是通过）`)
+  }
   if (result.secretCount === 0) {
     lineErr('warning', ` ${DEFAULT_SECRET_ENV_DIR}/ 不存在（没解密？）⇒ **跳过 env 真值比对**，只跑了形状规则。形状规则拦不住「恰好不像任何形状」的机密，这是漏报面不是通过面。`)
   }

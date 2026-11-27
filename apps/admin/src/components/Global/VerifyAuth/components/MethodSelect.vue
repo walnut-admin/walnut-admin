@@ -178,6 +178,7 @@ onMounted(onInit)
               :bordered="true"
               hoverable
               class="cursor-pointer transition-all duration-300 hover:shadow-md"
+              :data-testid="`verify-auth-method-${method.type}`"
               @click="onMethodClick(method)"
             >
               <div class="flex items-center gap-4">

@@ -182,7 +182,7 @@ pnpm release
 | `exports` | `pnpm walnut lint:exports`（包 `exports` 形态：目标存在 / 通配命中 / `types` 条件在前 / 与顶层 `main`·`types` 不矛盾） |
 | `pre-hooks` | `pnpm walnut lint:pre-hooks`（有生成物的包，其跑 `vite` / `vue-tsc` 的脚本必须接 `pre<script>` 生成步骤；`vite preview` 除外）。⚠️ 发版面**必须**有它 —— 发版要构建，而这条守的正是「脚本没接生成 ⇒ 构建期报一串找不到全局名」 |
 | `build` | ⏭️ **默认暂缓**：镜像由 `release.yml` 的 images job 真正构建；要跑就删掉表里那行的 `skip` |
-| `dist-secrets` | `pnpm walnut lint:dist`（产物去密体检：机密形态 + 后端 env 真值 + 凭据文件）⏭️ **默认暂缓，与 `build` 是一对** —— 它扫的就是 `apps/admin/dist`，本地没构建时只会报「前置条件未满足」（退出码 2）。解冻时两条一起解冻 |
+| `dist-secrets` | `pnpm walnut lint:dist`（产物去密体检：机密形态 + 后端 env 真值 + 凭据文件）⏭️ **默认暂缓，与 `build` 是一对** —— 它扫 `apps/admin/dist` + `dist-staging` 两份产物，本地都没构建时只会报「前置条件未满足」（退出码 2）。解冻时两条一起解冻 |
 
 > **这张表与 `tooling/release/src/release/steps.ts` 的 `RELEASE_BATTERY` 必须一致** ——
 > `steps.test.ts` 逐行钉住了它。加一段门禁时**两边都要改**：`RELEASE_BATTERY` 与本页表格

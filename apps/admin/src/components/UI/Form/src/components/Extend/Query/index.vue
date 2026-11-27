@@ -55,6 +55,7 @@ onMounted(() => {
     <n-button
       size="small"
       type="primary"
+      data-testid="table-query-search"
       :disabled="getProps.disabled"
       :loading="getProps.disabled"
       @click="onQuery"
@@ -70,6 +71,7 @@ onMounted(() => {
     <n-button
       size="small"
       type="info"
+      data-testid="table-query-reset"
       :disabled="getProps.disabled"
       @click="onFormReset"
     >

@@ -74,6 +74,11 @@ async function onInit() {
   status.value = Object.assign(status.value, res)
 }
 
+// E2E 稳定选择器的短后缀（contract 枚举值是 phoneNumber / emailAddress，不适合直接进 testid）
+function getIdentityTestId(type: SystemUserIdentityType) {
+  return type === 'phoneNumber' ? 'phone' : 'email'
+}
+
 function dropdownOptions(type: SystemUserIdentityType): DropdownOption[] {
   return [
     {
@@ -95,7 +100,8 @@ function dropdownOptions(type: SystemUserIdentityType): DropdownOption[] {
       icon: () => <WIcon icon="mdi:link-variant"></WIcon>,
     },
     {
-      label: t('app.base.unbind'),
+      // data-testid：40119 二次验证旅程点「解绑」（文案来自语言包，testid 落在 dropdown 选项 label 内）
+      label: () => <span data-testid={`me-security-${getIdentityTestId(type)}-unbind`}>{t('app.base.unbind')}</span>,
       key: 3,
       disabled: !status.value[type]?.bound && status.value[type]?.verified,
       icon: () => <WIcon icon="mdi:backup-restore"></WIcon>,
@@ -165,7 +171,8 @@ onBeforeMount(onInit)
           placement="top"
           @select="(key: number) => onDropdownSelect(key, 'phoneNumber')"
         >
-          <n-button type="info" size="small">
+          <!-- data-testid：40119 旅程先点开手机号的操作菜单 -->
+          <n-button type="info" size="small" data-testid="me-security-phone-action">
             {{ $t('app.base.action') }}
           </n-button>
         </n-dropdown>
@@ -212,7 +219,8 @@ onBeforeMount(onInit)
           placement="top"
           @select="(key: number) => onDropdownSelect(key, 'emailAddress')"
         >
-          <n-button type="info" size="small">
+          <!-- data-testid：40119 旅程先点开邮箱的操作菜单 -->
+          <n-button type="info" size="small" data-testid="me-security-email-action">
             {{ $t('app.base.action') }}
           </n-button>
         </n-dropdown>

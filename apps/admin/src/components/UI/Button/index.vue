@@ -7,7 +7,7 @@ defineOptions({
   name: 'WCompUIButton',
 })
 
-const { debounce = 100, textProp } = defineProps<ICompUIButtonProps>()
+const { debounce = 100, textProp, testId } = defineProps<ICompUIButtonProps>()
 
 const emits = defineEmits<{ click: [e: MouseEvent] }>()
 
@@ -25,7 +25,7 @@ const ButtonText = () => textProp && (typeof textProp === 'string' ? textProp : 
 </script>
 
 <template>
-  <n-button v-if="!auth || auth && userStorePermission.hasPermission(auth)" @click="onFinalClick">
+  <n-button v-if="!auth || auth && userStorePermission.hasPermission(auth)" :data-testid="testId" @click="onFinalClick">
     <template #default>
       <ButtonText v-if="textProp" />
       <slot v-else name="default" />

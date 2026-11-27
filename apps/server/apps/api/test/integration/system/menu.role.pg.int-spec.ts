@@ -273,11 +273,13 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
       expect(menuNode!.title).toBe('b5.tree.menu')
       expect(menuNode!.meta.transition).toBe('fade')
 
-      // treeWithoutTypeElement 沿用 Mongo 版同款 easy-fns filterTree 语义：命中节点整棵
-      // 保留（不深滤子孙），仅「回调为假的叶子」被剪 —— 断言钉住的是现状形态而非理想语义
+      // treeWithoutTypeElement 是**递归**过滤（2026-11 F1，替换 easy-fns filterTree 的
+      // 「命中节点整棵保留」）：命中的 catalog/menu 不豁免其后代，element 在任何层级都被剪；
+      // 未命中的 catalog 因有命中后代而保留为祖先路径
       const withoutElement = JSON.stringify(res.treeWithoutTypeElement)
       expect(withoutElement).toContain(branch.id)
       expect(withoutElement).toContain(menuChild.id)
+      expect(withoutElement).not.toContain(elementChild.id)
 
       // menuActiveNamesOptions 只收 type=menu
       const options = res.menuActiveNamesOptions.filter(i => i.title === 'b5.tree.menu')

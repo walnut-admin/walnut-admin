@@ -41,6 +41,10 @@ export async function resetRuntimeRolePassword(client: Client): Promise<void> {
  * 清掉应用设置的 Redis 缓存（**只删这两个键，不 FLUSHDB** —— compose 里 FLUSH 已被禁用）。
  *
  * 键形对齐 apps/server/libs/const/src/app/cache.ts；服务端改键形时这里要同步。
+ *
+ * **profile 化后仍然不加前缀、不换逻辑库**（P1-6 设计结论，见 scripts/stack-profiles.ts 头注释）：
+ * 这两个全局键的值由同一份基线数据派生，本地多 profile 串行、CI 每个 job 独立 Redis service；
+ * 设备作用域键则按 deviceId 精确删，跨 profile 撞不上。
  */
 export async function clearAppSettingCache(): Promise<void> {
   assertE2eRedisPort(E2E_REDIS_PORT)

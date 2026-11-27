@@ -18,6 +18,38 @@ import 'animate.css'
 // custom scss
 import './assets/styles/main.scss'
 
+/**
+ * 请求被路由切换取消（`_cancelOnRouteChange`）不是运行时致命错误。
+ *
+ * 锁屏 `logicAfterLock` 会 push `/lock`，取消当前页在途请求；axios 的 CanceledError
+ * 从 adapter promise 冒到 `unhandledrejection`，旧实现直接弹「页面遇到无法恢复的错误」
+ * 全屏遮罩 —— 锁屏/切页越快越容易命中（E2E J1 的 default 免密腿实测复现）。
+ */
+function isRequestCanceled(reason: unknown): boolean {
+  if (typeof reason !== 'object' || reason === null) {
+    return false
+  }
+  const value = reason as { name?: unknown, code?: unknown }
+  return value.name === 'CanceledError' || value.code === 'ERR_CANCELED'
+}
+
+/**
+ * 认证流程控制信号不是运行时致命错误。
+ *
+ * 响应拦截器对 40114 / 40115 / 40118 / not-allowed 的处理是「切路由 + reject 一个
+ * 固定文案的 Error」—— 该 rejection 是给**当前调用方**的流程信号（路由已经切走），
+ * 但同一时刻页面上往往还有别的后台调用（profile / state / read…）在 await 同类请求，
+ * 它们没全被 catch ⇒ 冒到 `unhandledrejection`，把「本来已经优雅切走的流程」糊成
+ * 「页面遇到无法恢复的错误」全屏遮罩（2026-11-27：刷新落在 `/mfa-required` 时
+ * `Error('MFA Required')` 实测复现，挡住整个绑定表单）。
+ * 拦截器在 reject 前已完成它该做的事（路由切换 + toast），这里只兜「没人 catch」的尾巴。
+ */
+const AUTH_FLOW_SIGNAL_MESSAGES = new Set(['MFA Required', 'MFA Verified', 'User Locked', 'Not Allowed'])
+
+function isAuthFlowSignal(reason: unknown): boolean {
+  return reason instanceof Error && AUTH_FLOW_SIGNAL_MESSAGES.has(reason.message)
+}
+
 (async () => {
   const app = createApp(App)
 
@@ -37,6 +69,10 @@ import './assets/styles/main.scss'
   app.config.errorHandler = (err, _instance, info) => reportRuntimeFatal(err, `vue:${info}`)
 
   window.addEventListener('unhandledrejection', (event) => {
+    if (isRequestCanceled(event.reason) || isAuthFlowSignal(event.reason)) {
+      event.preventDefault()
+      return
+    }
     reportRuntimeFatal(event.reason, 'unhandledrejection')
   })
 

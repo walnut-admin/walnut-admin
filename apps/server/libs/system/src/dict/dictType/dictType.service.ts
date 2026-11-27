@@ -1,5 +1,6 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
+import { omitUndefined } from '@walnut-server/utils'
 
 import { SysDictDataBasicRepository } from '../dictData/dictData.basic.repository'
 import { SysDictDataEntity } from '../dictData/entity/dict-data.entity'
@@ -27,7 +28,9 @@ export class SysDictTypeService {
   }
 
   async update(id: string, dto: SysDictTypeDTOUpdateRequest) {
-    return this.dictTypeBasicRepo.update(id, dto)
+    // 真 PATCH（2026-11 F2）：preserveAbsent 让未提供的键保持 undefined，这里再滤掉
+    // —— 未给列不进 UPDATE，显式 null 仍按清空处理。
+    return this.dictTypeBasicRepo.update(id, omitUndefined(dto))
   }
 
   /**

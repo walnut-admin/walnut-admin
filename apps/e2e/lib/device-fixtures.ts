@@ -11,11 +11,14 @@
  * 会被跳过，而 fixture 的 teardown 照样执行。
  */
 import type { Browser, BrowserContext, Page, TestInfo } from '@playwright/test'
+import { randomBytes } from 'node:crypto'
+import process from 'node:process'
 import { DEVICE_COOKIE_NAME, WEB_ORIGIN } from '../scripts/env.ts'
+import { localIpFor, STACK_PROFILE } from '../scripts/stack-profiles.ts'
 import { deleteDeviceRow, withPg } from './pg.ts'
 import { SIGN_USER_AGENT } from './protocol/sign.ts'
 import { deleteDeviceScopedKeys, deleteRiskDeviceState, withRedis } from './redis.ts'
-import { DEVICE_LOCAL_STORAGE_KEY, loginViaUI, readDeviceCookie, readLocalDeviceId } from './ui.ts'
+import { DEVICE_LOCAL_STORAGE_KEY, FINGERPRINT_LOCAL_STORAGE_KEY, loginViaUI, readDeviceCookie, readLocalDeviceId } from './ui.ts'
 
 export interface DeviceSession {
   context: BrowserContext
@@ -34,41 +37,103 @@ export interface DeviceSession {
  * 都经静态代理过来，若 XFF 一律是 127.0.0.1，同一分钟内第 5 台设备登记就会 42900
  * （前端跳 /not-allowed?type=tooManyRequests，后续用例全挂）。
  * 127/8 既是 local（`is-localhost-ip` 判 true ⇒ getLocalLocation、零外网），又各自独立计数。
+ *
+ * **profile 偏移（P1-6）**：第三段按 profile 的 `ipSlot` 偏移（default 1–2、smoke 11–12、
+ * risk 21–22、network 31–32、pages 41–42、journey 51–52），公式在 `scripts/stack-profiles.ts`
+ * 的 `localIpFor`。它保证**同一台机器上多个 profile 的 device/initial 桶**不共用地址；
+ * **不隔离风控 rate 桶**（`normalizeIp` 把 loopback 归一到 127.0.0.1，见 stack-profiles 头注释）。
  */
-let localIpSeq = 0
+/**
+ * 每进程从 **pid 偏移**开始分配，而不是固定从 0 开始。
+ *
+ * R4 实测：Playwright 每个 spec 文件是独立的 worker 进程，模块级序号在文件之间重置 ——
+ * 固定从 seq=0 起步会让每个文件的第一个客户端都拿 `127.0.<slot>.11`，叠加起来撞上
+ * `device/initial` 的 4 次 / 60 秒 per realIp 桶（新增模块 spec 后 smoke 全跑首次复现）。
+ * pid 偏移让同一轮的多个 worker 各自落在不同的地址窗口；仍限制在 profile 的两个 /24 内
+ * （`localIpFor` 不变，跨 profile 不重叠的性质不变）。`bootstrap()` 另有 42900 换地址重放兜底。
+ */
+let localIpSeq = process.pid % 240
 export function uniqueLocalIp(): string {
   localIpSeq = (localIpSeq + 1) % 240
-  return `127.0.${1 + Math.floor(localIpSeq / 200)}.${10 + localIpSeq}`
+  return localIpFor(STACK_PROFILE.ipSlot, localIpSeq)
 }
-
 /**
  * 只给**同源 /api 请求**加 `X-Forwarded-For`（= 后端 req.realIp），不能整包 extraHTTPHeaders：
- * 那个选项对**所有**请求生效，包括 cap.js 从 jsDelivr 拉的 WASM —— 自定义头会触发 CORS
- * 预检，jsDelivr 的 ACAO 不放行 `x-forwarded-for`，WASM 加载失败 ⇒ cap-widget 直接进错误态
- * （截图里的「你是人类吗？」）并把用例卡在 60s。静态资源与第三方请求不需要这个头。
+ * 那个选项对**所有**请求生效，包括第三方跨域资源（例如 CDN 上的 WASM）—— 自定义头会触发
+ * CORS 预检，对方通常不放行 `x-forwarded-for`，资源加载失败 ⇒ 依赖它的组件直接进错误态
+ * （CAP 场景的截图是「你是人类吗？」）并把用例卡住。静态资源与第三方请求不需要这个头。
+ *
+ * `origin` 默认 {@link WEB_ORIGIN}；WebAuthn 用例用 `localhost` 变体（见 env.ts 的
+ * WEBAUTHN_WEB_ORIGIN —— Chrome 拒绝 IP 作 RP ID），判据必须跟着 context 的 origin 走，
+ * 否则该用例的 /api 请求不带 XFF（共用 127.0.0.1 的 device/initial 计数桶）。
  */
-export async function installRealIpRoute(context: BrowserContext, realIp: string): Promise<void> {
+export async function installRealIpRoute(context: BrowserContext, realIp: string, origin: string = WEB_ORIGIN): Promise<void> {
   await context.route(
-    url => url.origin === WEB_ORIGIN && url.pathname.startsWith('/api/'),
+    url => url.origin === origin && url.pathname.startsWith('/api/'),
     route => route.continue({
       headers: { ...route.request().headers(), 'x-forwarded-for': realIp },
     }),
   )
 }
 
-export async function newBrowserContext(browser: Browser, options: { realIp?: string } = {}): Promise<BrowserContext> {
+export async function newBrowserContext(
+  browser: Browser,
+  options: { realIp?: string, origin?: string } = {},
+): Promise<BrowserContext> {
   const realIp = options.realIp ?? uniqueLocalIp()
+  const origin = options.origin ?? WEB_ORIGIN
   const context = await browser.newContext({
     // 显式给 baseURL：测试里 `browser.newContext()` 会继承 test 的 use，但独立脚本
     // （排障用）不会 —— 让 context 自包含，两条腿都用相对路径。
-    baseURL: WEB_ORIGIN,
+    baseURL: origin,
     userAgent: SIGN_USER_AGENT,
     locale: 'zh-CN',
     timezoneId: 'Asia/Shanghai',
     viewport: { width: 1600, height: 900 },
   })
-  await installRealIpRoute(context, realIp)
+  await installRealIpRoute(context, realIp, origin)
+  await seedFingerprint(context)
+
+  // 首访的「Star on GitHub」通知（duration 60s，右上角）会盖住 header 右侧控件 / 弹层，
+  // Playwright 的 click/fill 会因此等到它自动消失（60s），把用例拖到超时。
+  // 这是产品提示，不是被测行为 —— 与 driver intro 同口径预置成「不再显示」。
+  await context.addCookies([{ name: 'dont-show-star', value: 'true', url: origin }])
+
   return context
+}
+
+/**
+ * 给 context 预置一枚**唯一**的浏览器指纹（`WA__FINGERPRINT`，superjson + base64 外壳）。
+ *
+ * 为什么必须唯一：产品用 FingerprintJS 现算指纹（真机上是「浏览器安装级」的稳定值），
+ * 而 `app_monitor_user.visitor_id` 有 **UNIQUE** 约束、行键却是服务端签发的 deviceId ——
+ * E2E 每个 context 都是新设备但同机同浏览器，真实指纹**完全相同**，第二个 context 的心跳
+ * upsert（按 deviceId 找不到行 → INSERT）必然撞唯一约束（表现为心跳 40000、monitor 行缺失
+ * ⇒ 在线监控 / socket 强踢 / 锁屏广播都送不到那台设备）。实测：单独跑 J5（本 context 第一个
+ * 写指纹）能过，整批跑（前面的 context 已写过同一指纹）必挂。
+ *
+ * 预置成随机 32 hex 与 FingerprintJS 的输出同形；`setupFingerprint` 见值非空即短路，
+ * 不会覆写。`addInitScript` 在页面脚本之前跑，但 about:blank 下 localStorage 不可访问 ——
+ * 包 try/catch 只影响空白页。
+ */
+async function seedFingerprint(context: BrowserContext): Promise<void> {
+  const fingerprint = randomBytes(16).toString('hex')
+  // 落盘形态 = `superjson.stringify({ v, e: null, _v })`：superjson 2.x 会包一层
+  // `{"json":{...}}`（**不是**裸对象）。写裸对象时 `superjson.parse` 返回 undefined，
+  // `useAppStorageSync.read()` 把它当坏值 remove 掉并现算真机指纹（实测）。
+  // `enhancedBase64LocalStorage()` 未开 forceEncrypt ⇒ 无 base64 外壳，直接写这段 JSON。
+  const encoded = JSON.stringify({ json: { v: fingerprint, e: null, _v: 'e2e' } })
+
+  await context.addInitScript(({ key, value }) => {
+    try {
+      if (window.localStorage.getItem(key) === null) {
+        window.localStorage.setItem(key, value)
+      }
+    }
+    catch {
+      // about:blank / 沙箱页面没有 localStorage —— 真正的 origin 页面上再写
+    }
+  }, { key: FINGERPRINT_LOCAL_STORAGE_KEY, value: encoded })
 }
 
 /** 从 Cookie（stage 无前缀）解出设备 id；cookie 没有时回落 localStorage */
@@ -90,14 +155,26 @@ export async function resolveDeviceId(page: Page): Promise<string> {
 }
 
 /** 打开站点（默认落在登录页）→ 等 bootstrap 完成设备登记 → 返回 deviceId */
-export async function openDevice(browser: Browser, startAt = '/auth', options: { realIp?: string } = {}): Promise<DeviceSession> {
+export async function openDevice(browser: Browser, startAt = '/auth', options: { realIp?: string, origin?: string } = {}): Promise<DeviceSession> {
   const realIp = options.realIp ?? uniqueLocalIp()
-  const context = await newBrowserContext(browser, { realIp })
+  const context = await newBrowserContext(browser, { realIp, origin: options.origin })
   const page = await context.newPage()
   await page.goto(startAt)
-  // bootstrap 的 device-id 步骤是 degraded（失败也会进页面）——判据必须是「localStorage 里
-  // 已经是服务端签发的 d1_ id」，不是「键存在」：store 初始化时会先写一份 {v:null} 占位，
-  // 只等键会让后面读 id 的断言撞 null。
+  const deviceId = await waitForRegisteredDevice(page)
+  trackDevice(deviceId)
+  return { context, page, deviceId, realIp }
+}
+
+/**
+ * 等页面完成设备登记，返回服务端签发的 deviceId（**不**登记给清理 fixture —— 调用方决定）。
+ *
+ * 拆出来给两个消费方：{@link openDevice}（自建 context）与 mobile 布局用例（用 project 的
+ * `page` 以便继承设备描述符，不能走 `newBrowserContext` 的 1600×900 覆盖）。
+ *
+ * 判据是「localStorage 里已经是服务端签发的 d1_ id」，不是「键存在」：store 初始化会先写
+ * 一份 `{v:null}` 占位，只等键会让后面读 id 的断言撞 null。
+ */
+export async function waitForRegisteredDevice(page: Page): Promise<string> {
   await page.waitForFunction(
     (localKey) => {
       const raw = window.localStorage.getItem(localKey)
@@ -116,13 +193,11 @@ export async function openDevice(browser: Browser, startAt = '/auth', options: {
     DEVICE_LOCAL_STORAGE_KEY,
     { timeout: 30_000 },
   )
-  const deviceId = await resolveDeviceId(page)
-  trackDevice(deviceId)
-  return { context, page, deviceId, realIp }
+  return resolveDeviceId(page)
 }
 
 /** 开一台设备并完成 UI 登录（CAP + MFA），返回已登录会话 */
-export async function loginDevice(browser: Browser, options: { realIp?: string } = {}): Promise<DeviceSession> {
+export async function loginDevice(browser: Browser, options: { realIp?: string, origin?: string } = {}): Promise<DeviceSession> {
   const session = await openDevice(browser, '/auth', options)
   await loginViaUI(session.page)
   session.deviceId = await resolveDeviceId(session.page)
@@ -130,8 +205,17 @@ export async function loginDevice(browser: Browser, options: { realIp?: string }
   return session
 }
 
-/** 本 worker 里已登记、还没清理的设备（Set 天然去重） */
+/** 本用例里已登记、还没清理的设备（Set 天然去重） */
 const trackedDeviceIds = new Set<string>()
+/**
+ * 本 worker 生命周期内复用的设备（当前只有 `tests/fixtures.ts` 的共享只读 context）。
+ *
+ * 与上面分开的理由：test 作用域的 auto fixture 每条用例结束都会清一次 `trackedDeviceIds`，
+ * 把 worker 级共享设备混进去会在第一条用例结束时就被删掉 —— 共享 context 随后的请求会
+ * 40605 自愈成一台新设备，后续只读用例就测不到原来的登录态了。两个集合都由 fixture 清理
+ * （test 作用域清前者，worker 作用域清后者），仍然不违反「设备清理归 fixture」。
+ */
+const workerTrackedDeviceIds = new Set<string>()
 
 /**
  * 登记一台**本用例造出来**的设备，交给 `tests/fixtures.ts` 的 auto fixture 收尾。
@@ -147,14 +231,35 @@ export function trackDevice(deviceId: string | null | undefined): void {
 }
 
 /**
+ * 登记一台**跨用例复用**的设备（worker 作用域），由 worker 级 auto fixture 在进程退出时清理。
+ *
+ * 只给共享只读 context 用：它的登录态要在同一 worker 的多条用例间存活，不能被某条用例的
+ * test 作用域清理顺手删掉（见 {@link workerTrackedDeviceIds} 的注释）。
+ */
+export function trackWorkerDevice(deviceId: string | null | undefined): void {
+  if (typeof deviceId === 'string' && deviceId !== '') {
+    workerTrackedDeviceIds.add(deviceId)
+  }
+}
+
+/**
  * 清掉目前已登记的设备（PG 行 + 该设备的全部 Redis 键）。
  *
  * **不抛错**：清理失败只 `console.warn`，并把 id 重新登记（worker 级兜底会再试一次）——
  * 清理是收尾动作，绝不能让它的失败掩盖真正的断言失败。
  */
 export async function flushTrackedDevices(options: { testInfo?: TestInfo } = {}): Promise<void> {
-  const ids = [...trackedDeviceIds]
-  trackedDeviceIds.clear()
+  await flushDeviceSet(trackedDeviceIds, options)
+}
+
+/** worker 作用域设备的清理（与 {@link flushTrackedDevices} 同口径，失败不抛错） */
+export async function flushWorkerTrackedDevices(options: { testInfo?: TestInfo } = {}): Promise<void> {
+  await flushDeviceSet(workerTrackedDeviceIds, options)
+}
+
+async function flushDeviceSet(idsSet: Set<string>, options: { testInfo?: TestInfo }): Promise<void> {
+  const ids = [...idsSet]
+  idsSet.clear()
   if (ids.length === 0) {
     return
   }
@@ -166,7 +271,7 @@ export async function flushTrackedDevices(options: { testInfo?: TestInfo } = {})
     const message = error instanceof Error ? error.message : String(error)
     console.warn(`[e2e/fixtures] 设备清理失败（不影响断言结果；worker 退出时再试一次）：${ids.join(', ')} —— ${message}`)
     for (const id of ids) {
-      trackedDeviceIds.add(id)
+      idsSet.add(id)
     }
     if (options.testInfo !== undefined) {
       await options.testInfo.attach('device-cleanup-failure', {

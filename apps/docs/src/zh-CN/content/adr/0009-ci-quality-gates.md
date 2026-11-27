@@ -65,3 +65,12 @@ is the correct chain per industry standard (see [行业调研：测试体系](..
 - **2026-11-25 追记**：`apps/server/playwright` 那套手写沙盒 demo 已退役（零消费方、CSV 资产不在仓、
   脚本跑不完整；手写数据不迁移，需要时可从合并提交 `b63ec42a` 取回）。将来 risk / 浏览器侧测试统一走
   `apps/e2e`（`@playwright/test`），`@walnut/server` 不再自带 playwright 依赖。
+- **2026-11-25 追记（nightly E2E 工作流）**：新增 `.github/workflows/e2e.yml` —— 触发只有
+  `schedule`（每日 UTC 19:00 ≈ 北京 03:00）与 `workflow_dispatch`，**不进 PR**，跑全量
+  `pnpm walnut e2e`（job 级 services 起 PostgreSQL / Redis）。artifact 按**严格口径**只传
+  junit / json / 脱敏后的后端日志 / `stack.json` / 基线清单；trace、截图、HTML 报告不上传
+  （`apps/e2e/AGENTS.md` 不变量 8）。分层不变：PR 只放快而可靠的门禁，全量回归由 nightly 与手动
+  dispatch 承担。
+  **2026-11-27 追记（形态已演进）**：上面「跑全量 `pnpm walnut e2e`」是当时的单 job 形态；现在
+  是 **prepare job 构建一次 + matrix 五 job**（`smoke` / `risk` / `network` / `pages` / `journey`，
+  各跑 `--project=<profile>`），artifact 上传另加「脱敏成功才传」的闸门。分层结论不变。

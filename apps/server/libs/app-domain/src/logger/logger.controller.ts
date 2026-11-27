@@ -23,7 +23,11 @@ export class AppLoggerController {
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
   @WalnutAdminDecoratorList({
-    swagger: { DTO: AppLoggerDTO },
+    swagger: {
+      DTO: AppLoggerDTO,
+      // list 行是 RealPartialType(AppLoggerDTO)：字段集一致、全部可选（P2-6 收尾）。
+      listResponseDTO: AppLoggerDTOListResponse,
+    },
     operateLog: { title: WalnutAdminConstDecoratorLogOperateTitle.APP_LOGGER },
   })
   async list(@Body() payload: AppLoggerDTOListRequest) {

@@ -9,7 +9,7 @@ import { getBoolean } from '@walnut/client/browser/shared'
 import { useAppI18n } from '@/locales/index'
 import { useAppStoreLocale } from '@/store/modules/app/app-locale'
 
-export const extendedTablePropKeys: (keyof WTable.Props)[] = ['localeUniqueKey', 'auths', 'apiProps', 'queryFormProps', 'headerLeftBuiltInActions', 'headerLeftExtraActions', 'polling', 'columnSetting']
+export const extendedTablePropKeys: (keyof WTable.Props)[] = ['testId', 'localeUniqueKey', 'auths', 'apiProps', 'queryFormProps', 'headerLeftBuiltInActions', 'headerLeftExtraActions', 'polling', 'columnSetting']
 
 export function generateDefaultSortParams<T>(columns: WTable.Column<T>[]) {
   return columns

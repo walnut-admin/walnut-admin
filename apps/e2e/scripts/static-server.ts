@@ -34,6 +34,7 @@ import {
   WEB_PORT,
 } from './env.ts'
 import { E2ePreconditionError, EXIT_FAILURE, EXIT_PRECONDITION, reportFailure } from './failure.ts'
+import { STACK_PROFILE } from './stack-profiles.ts'
 
 const API_UPSTREAM_PREFIX = `/${API_PREFIX}/v${API_VERSION}`
 const SOCKET_PATH = (() => {
@@ -292,14 +293,14 @@ function main(): void {
   server.on('error', (error: NodeJS.ErrnoException) => {
     const precondition = error.code === 'EADDRINUSE' || error.code === 'EACCES'
     const hint = error.code === 'EADDRINUSE'
-      ? ' —— 4173 被残留进程占着？见 apps/e2e/README.md 的「排障」'
+      ? ` —— ${WEB_PORT} 被残留进程占着？见 apps/e2e/README.md 的「排障」`
       : ''
     console.error(`[e2e/static-server] 监听 ${WEB_PORT} 失败（${error.code ?? error.message}）${hint}`)
     process.exitCode = precondition ? EXIT_PRECONDITION : EXIT_FAILURE
   })
 
   server.listen(WEB_PORT, '127.0.0.1', () => {
-    console.log(`[e2e/static-server] ${ADMIN_DIST_DIR} @ http://127.0.0.1:${WEB_PORT} → api :${BACKEND_PORT}${API_UPSTREAM_PREFIX}, socket :${SOCKET_PORT}${SOCKET_PATH}`)
+    console.log(`[e2e/static-server] profile=${STACK_PROFILE.name}  ${ADMIN_DIST_DIR} @ http://127.0.0.1:${WEB_PORT} → api :${BACKEND_PORT}${API_UPSTREAM_PREFIX}, socket :${SOCKET_PORT}${SOCKET_PATH}`)
   })
 }
 

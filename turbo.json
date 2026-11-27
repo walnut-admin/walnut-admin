@@ -126,6 +126,26 @@
     // 两者只决定这一轮怎么准备库，不改变任何 task 产物 —— 只需可见、不进哈希。
     "E2E_SKIP_BASELINE",
     "E2E_REBUILD_BASELINE",
+    // 全链路 E2E 的 Redis 设备键对账开关（`apps/e2e/scripts/run.ts` + `scripts/redis-gc.ts`，P2-2）：
+    // 置 `0` 跳过「库准备之后、按 deviceId 清孤儿键」那一步（默认开）。它只决定这一轮清不清残留键，
+    // 不改变任何 task 产物 —— 只需可见、不进哈希。
+    "E2E_REDIS_GC",
+    // 全链路 E2E 的 flaky 隔离名单开关（`apps/e2e/playwright.config.ts` + `scripts/quarantine.ts`，P2-1）：
+    // 置 `1` 时忽略 `quarantine.json`（默认把名单条目从各 project 的 grepInvert 里排除）。
+    // 它只决定这一轮跑不跑隔离用例，不改变任何 task 产物 —— 只需可见、不进哈希。
+    "E2E_INCLUDE_QUARANTINE",
+    // 基线 dump / restore 的执行层（`apps/e2e/scripts/pg-container.ts`，P1-1）：
+    //   · `E2E_PG_CONTAINER` —— 数据栈容器名（默认 e2e-wsl-postgres；通用 compose 是 e2e-postgres；
+    //     CI 上不设时按镜像 postgres:18-alpine 解析 service 容器）；
+    //   · `E2E_PG_EXEC_MODE` —— 投递形态覆盖（auto / wsl / docker；Windows + Docker Desktop 用 docker）。
+    // 两者只决定「怎么连容器」，不改变任何 task 产物 —— 只需可见、不进哈希。
+    "E2E_PG_CONTAINER",
+    "E2E_PG_EXEC_MODE",
+    // 全链路 E2E 的 **stack profile** 选择（`apps/e2e/scripts/stack-profiles.ts`，P1-6 Phase A）：
+    // `default`（不设）/ `smoke` / `risk` / `network`。它决定库名、后端 / socket / 静态代理端口、
+    // 基线目录与 IP 段 —— 只影响「这一轮连哪套栈」，不改变 task 产物，因此只需可见、不进哈希。
+    // **只接受 profile 名**：不开放端口 / 库名的单独覆盖（任意覆盖会让 assertE2eDatabase 失去意义）。
+    "E2E_STACK_PROFILE",
     // 全链路 E2E 自愈用例的**负对照开关**（`apps/e2e/lib/ui.ts` 的 `waitForDeviceHealSettled`）：
     // 置 `1` 时跳过 CAP 求解、收到 40116 立刻带上下文抛错 —— 只用来验证「失败是快速可读的，
     // 而不是挂到 120s 超时」。只决定这一轮怎么等待，不改变任何 task 产物 —— 只需可见、不进哈希。
@@ -186,7 +206,10 @@
       "cache": true
     },
     "build": {
-      "dependsOn": ["^build"],
+      // `clean:build` 的同包依赖：缓存命中时也先清产物目录（additive 恢复的补丁，见下方 clean:* 注释）。
+      // 只有 admin 定义这个脚本；其余包缺脚本时 turbo 报 `<NONEXISTENT>` 并跳过（与 build:stage 的
+      // clean:stage 同形态，不是错误）。
+      "dependsOn": ["^build", "clean:build"],
       "outputs": ["dist/**", ".vitepress/dist/**"],
       // `env-local/**` 必须显式写：Vite 的 `envDir` 就是它（apps/admin/build/constant.ts），
       // 但它**被 gitignore**，所以 `$TURBO_DEFAULT$` 看不见它 —— 也就不进哈希。
@@ -204,8 +227,29 @@
       "env": ["VITE_*", "MODE"],
       "cache": true
     },
+    // 产物目录的「清空」必须发生在缓存边界**之外**：turbo 的缓存恢复是 additive 的 ——
+    // 只把缓存里的文件写回去，**不删**目录里多出来的旧文件；而 Vite 的 emptyOutDir 只在真跑
+    // 构建时生效。于是「改样式 → 构建 → 还原 → 再构建（缓存命中）」会在产物目录里留下
+    // 两套 hash chunk（P2-C 的「旧分块累积」就是这个）。
+    //
+    // 两条 clean 都设 cache:false（每次都跑）、并作为**同包构建任务的依赖**先执行：缓存命中时它
+    // 清目录、turbo 再恢复 = 精确产物；未命中时它先清、Vite 再空目录构建。
+    //   · clean:stage —— build:stage 的依赖，清 `dist-staging`（2026-11-25，见 turbo-cache-boundary §4.8）；
+    //   · clean:build —— build 的依赖，清 prod 的 `dist`（2026-11-26 收尾）。
+    // **范围只收窄到 admin**：hash chunk 是 **Vite** 独有的风险；其余包的 build 产物是固定名文件
+    // （`dist/*.cjs`、`dist-stage/**` 的编译结果），增量恢复不会多出一套，反而白付一次 rimraf。
+    // 判据是「产物里有没有随内容变化的文件名」，不是「这个包也构建」。clean:* 只有真需要清产物的
+    // 包才定义（目前只有 admin）。
+    "clean:stage": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "clean:build": {
+      "dependsOn": [],
+      "cache": false
+    },
     "build:stage": {
-      "dependsOn": ["^build:stage"],
+      "dependsOn": ["^build:stage", "clean:stage"],
       // 两个 staging 产物目录都要在这儿：admin 的由 `VITE_BUILD_OUT_DIR` 决定、实际值是
       // `dist-staging`；server 的由 `infra/nest/stage.json` 的 `compilerOptions.outDir` 决定、
       // 实际值是 `dist-stage`（里面再套一层 `apps/api/src`，那是 Nest monorepo 的 root 决定的）。

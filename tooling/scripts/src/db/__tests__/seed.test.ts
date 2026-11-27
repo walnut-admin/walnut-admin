@@ -154,9 +154,12 @@ describe('口令凭证（OPAQUE 注册 + 登录验证）', () => {
   // 用**真实**的 OPAQUE 协议在进程内跑：注册 → 入库形状 → 用同一套 serverSetup 验证登录握手。
   // 这条用例是"播种后能登录"的最小判据（不需要起后端与 HTTP）。
   const serverSetup = server.createSetup()
+  // ①：入库 value/valueHash 走 AES + 盐化 HMAC（与后端 USER_ID_* 同源）
+  const encKey = Buffer.alloc(32, 9).toString('base64')
+  const hashSalt = 'seed-spec-identity-salt'
 
-  it('注册记录的形状与服务端 finishRegister 一致（value 与 valueHash 都放记录本身）', () => {
-    const identity = buildPasswordIdentity('u1', 'visitor', 'pw-123456', serverSetup)
+  it('注册记录的形状与服务端 finishRegister 一致（value 是密文、valueHash 是盐化哈希）', () => {
+    const identity = buildPasswordIdentity('u1', 'visitor', 'pw-123456', serverSetup, encKey, hashSalt)
     expect(identity).toMatchObject({
       userId: 'u1',
       type: 'password',
@@ -168,27 +171,29 @@ describe('口令凭证（OPAQUE 注册 + 登录验证）', () => {
       metadata: {},
     })
     expect(identity.value.length).toBeGreaterThan(100)
-    expect(identity.valueHash).toBe(identity.value)
+    expect(identity.valueHash).toMatch(/^[0-9a-f]{64}$/)
+    expect(identity.valueHash).not.toBe(identity.value)
+    expect(identity.valueHash).not.toBe(identity.registrationRecord)
     expect(identity.verifiedAt).toBeInstanceOf(Date)
   })
 
   it('同一份 serverSetup 下能完成完整登录握手（拿到会话密钥）', () => {
-    const identity = buildPasswordIdentity('u1', 'visitor', 'pw-123456', serverSetup)
-    const proof = verifyPasswordIdentity('visitor', 'pw-123456', identity.value, serverSetup)
+    const identity = buildPasswordIdentity('u1', 'visitor', 'pw-123456', serverSetup, encKey, hashSalt)
+    const proof = verifyPasswordIdentity('visitor', 'pw-123456', identity.registrationRecord, serverSetup)
     expect(proof.ok).toBe(true)
     expect(proof.sessionKeyLength).toBeGreaterThan(0)
   })
 
   it('口令不对 ⇒ 握手失败（判据不是"写进去了就算"）', () => {
-    const identity = buildPasswordIdentity('u1', 'visitor', 'pw-123456', serverSetup)
-    const proof = verifyPasswordIdentity('visitor', 'another-password', identity.value, serverSetup)
+    const identity = buildPasswordIdentity('u1', 'visitor', 'pw-123456', serverSetup, encKey, hashSalt)
+    const proof = verifyPasswordIdentity('visitor', 'another-password', identity.registrationRecord, serverSetup)
     expect(proof.ok).toBe(false)
   })
 
   it('serverSetup 换一份（等价于换了 AUTH_OPAQUE_SECRET） ⇒ 握手失败', () => {
     // 这条钉住的是"凭证不可跨环境搬运"这个**协议性质**：正因如此，seed 里不能发凭证
-    const identity = buildPasswordIdentity('u1', 'visitor', 'pw-123456', serverSetup)
-    const proof = verifyPasswordIdentity('visitor', 'pw-123456', identity.value, server.createSetup())
+    const identity = buildPasswordIdentity('u1', 'visitor', 'pw-123456', serverSetup, encKey, hashSalt)
+    const proof = verifyPasswordIdentity('visitor', 'pw-123456', identity.registrationRecord, server.createSetup())
     expect(proof.ok).toBe(false)
   })
 })

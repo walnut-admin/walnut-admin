@@ -155,9 +155,9 @@ describe('B7c auth login chain (on real PG)', () => {
   }
 
   async function readIdentity(userId: string, type: string, purpose: string) {
-    const rows: Array<{ id: string, value_hash: string, masked_value: string, verified: boolean, status: boolean }>
+    const rows: Array<{ id: string, value: string, value_hash: string, masked_value: string, verified: boolean, status: boolean }>
       = await pgDataSource.query(
-        'SELECT id, value_hash, masked_value, verified, status FROM sys_user_identity WHERE user_id = $1 AND type = $2 AND purpose = $3',
+        'SELECT id, value, value_hash, masked_value, verified, status FROM sys_user_identity WHERE user_id = $1 AND type = $2 AND purpose = $3',
         [userId, type, purpose],
       )
     return rows[0]
@@ -315,7 +315,7 @@ describe('B7c auth login chain (on real PG)', () => {
   describe('opaque 补挂口令/登录（真实 crypto 栈，B7 核心验收：identity 腿事务）', () => {
     const password = `pwd-${seed.slice(0, 8)}-42`
 
-    it('finishRegister：按 userId 补挂 password identity（value 存注册记录本体，maskedValue 兜底）', async () => {
+    it('finishRegister：按 userId 补挂 password identity（①：value 密文、valueHash 盐化哈希）', async () => {
       const userName = unique('b7c-opaque-reg')
       const registrationRecord = await clientRegister(userName, password)
       const user = await userShared.createForAuthUser({ userName }, pgDataSource.manager)
@@ -325,7 +325,10 @@ describe('B7c auth login chain (on real PG)', () => {
 
       const identity = await readIdentity(user.id, 'password', 'login')
       expect(identity).toBeTruthy()
-      expect(identity.value_hash).toBe(registrationRecord)
+      // ①（2026-11）：不再裸存 record —— 落库 value 可解密回 record、valueHash 是盐化哈希
+      expect(identity.value_hash).toBe(identityShared.generateValueHash(registrationRecord))
+      expect(identity.value_hash).not.toBe(registrationRecord)
+      expect(identityShared.decryptValue(identity.value)).toBe(registrationRecord)
       expect(identity.masked_value).toBe('********')
       expect(identity.verified).toBe(true)
     })
@@ -342,8 +345,8 @@ describe('B7c auth login chain (on real PG)', () => {
         throw new Error('force-rollback')
       })).rejects.toThrow('force-rollback')
 
-      // identity 腿必须被回滚清空（opaque 的 value_hash 即 registrationRecord）
-      expect(await countPg('sys_user_identity', 'value_hash = $1', [registrationRecord])).toBe(0)
+      // identity 腿必须被回滚清空（①：opaque 的 value_hash = 盐化哈希，不是 record 本体）
+      expect(await countPg('sys_user_identity', 'value_hash = $1', [identityShared.generateValueHash(registrationRecord)])).toBe(0)
     })
 
     it('重复补挂：finishRegister 对同一 userId upsert 替换 value/valueHash（不再 DataExists）', async () => {
@@ -357,7 +360,7 @@ describe('B7c auth login chain (on real PG)', () => {
       await expect(opaqueCore.finishRegister(user.id, secondRecord, pgDataSource.manager)).resolves.toBe(true)
 
       const identity = await readIdentity(user.id, 'password', 'login')
-      expect(identity.value_hash).toBe(secondRecord)
+      expect(identity.value_hash).toBe(identityShared.generateValueHash(secondRecord))
       expect(await countPg('sys_user_identity', 'user_id = $1 AND type = $2 AND purpose = $3', [user.id, 'password', 'login'])).toBe(1)
     })
 

@@ -44,6 +44,21 @@ export interface VerifyAuthMethod {
 }
 
 /**
+ * 40119（敏感操作需要二次验证）的挑战上下文。
+ *
+ * 两个字段都来自服务端 40119 响应的 `meta`，**不要在前端写死**：`level` 决定授权键落在
+ * 哪一档（`sensitive_op:<userId>:<deviceId>:<level>`），`operationType` 决定服务端的
+ * 可用方式策略并按 verify 端点的必填项校验。设置它 = 「这次验证是为敏感操作放行」：
+ * 组件会先发码、并把码交给 `POST /security/sensitive/verify`，而不是只做身份 verify。
+ */
+export interface VerifyAuthSensitiveChallenge {
+  /** 服务端安全等级（basic / account_critical / financial / admin_critical） */
+  level: string
+  /** 敏感操作类型（identity_manage / email_status_toggle / …） */
+  operationType: string
+}
+
+/**
  * TODO need to optimise this type
  * Options for opening the secondary auth modal
  */
@@ -60,6 +75,8 @@ export interface VerifyAuthOptions {
   purpose?: SystemUserIdentityPurpose
   /** Whether to show "set as security" option (for bind mode) - defaults to false */
   showSetAsSecurity?: boolean
+  /** 40119 挑战上下文；给了它就走敏感操作验证（发码 + /security/sensitive/verify） */
+  sensitive?: VerifyAuthSensitiveChallenge
 }
 
 /**

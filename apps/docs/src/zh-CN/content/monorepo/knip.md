@@ -173,6 +173,29 @@ knip 的核心原理是**从入口文件出发，沿 import 链追踪**。因此
 },
 ```
 
+### 全链路 E2E（apps/e2e，2026-11-25 进分析面）
+
+```jsonc
+"apps/e2e": {
+  entry: ["scripts/**/*.ts", "tests/**/*.ts"],
+  project: ["**/*.ts"],
+},
+```
+
+`entry` 必须手写：这个包没有 bin / exports，入口不是「谁 import 它」——
+
+- `scripts/**` 由包脚本（`node scripts/run.ts` 等）与 Playwright 的 webServer 命令执行；
+- `tests/**` 由 Playwright 按 project 的 `testMatch` 加载；setup 项目的文件名是 `*.setup.ts` 而不是
+  `*.spec.ts`，靠「测试文件」的约定推不出来（Playwright 插件只认 spec 与 `playwright.config.ts`，
+  后者因此不写进 entry —— 写了会变成冗余条目）。
+
+`project` 收全包 `.ts`：只写 `entry` 时非入口文件（`lib/**`、fixture、断言工具）死掉也不会被看见。
+运行态目录（`.auth/` `.e2e/` `test-results/` `playwright-report/`）不用写 `ignore`：knip 的 glob
+默认跳过点目录，另外两个里面没有 `.ts`（只有 JSON / trace 压缩包）。
+
+判据：改包脚本或新增 spec 目录时，`pnpm walnut knip` 里 `apps/e2e` 的读数要能解释每一条 ——
+「入口没人走」与「真死代码」的分法见上面的三步。
+
 ---
 
 ## 为什么 apps 有大量文件被忽略

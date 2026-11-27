@@ -41,6 +41,8 @@ const Permissions = {
 const { WalnutAdminDecoratorList, WalnutAdminDecoratorRead } = WalnutCrudDecorators({
   title: WalnutAdminConstDecoratorLogOperateTitle.APP_MONITOR_USER,
   DTO: AppMonitorUserDTO,
+  // list 行是 RealPartialType(AppMonitorUserDTO)：字段集一致、全部可选（P2-6 收尾）。
+  listResponseDTO: AppMonitorUserDTOListResponse,
 })
 
 /**

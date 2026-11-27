@@ -28,6 +28,52 @@ export function deviceCookieRenewKey(deviceId: string): string {
   return `${CACHE_PREFIX}_${SYS_DEVICE_COOKIE_RENEW}:${deviceId}`
 }
 
+/**
+ * 锁屏缓存键（`AppTechCacheLockService` 的唯一拼法）：
+ * `lockCrossDevice=true` 写 `<uid>:global`，false 写 `<uid>:<deviceId>`。
+ */
+export function lockCacheKey(userId: string, deviceId = 'global'): string {
+  return `${CACHE_PREFIX}_SECURITY:LOCK:${userId}:${deviceId}`
+}
+
+/**
+ * 读锁屏缓存值（`AppTechCacheService` 落的是 `{"v":true,...}` JSON；键不存在返回 null）。
+ * 只用于「锁定 / 解锁后缓存是否跟随」的断言；安全判定仍以 PG 为准。
+ */
+export async function readLockCache(client: E2eRedisClient, userId: string, deviceId = 'global'): Promise<boolean | null> {
+  const raw = await client.get(lockCacheKey(userId, deviceId))
+  if (raw === null) {
+    return null
+  }
+  try {
+    const parsed = JSON.parse(raw) as { v?: unknown }
+    return typeof parsed.v === 'boolean' ? parsed.v : null
+  }
+  catch {
+    return null
+  }
+}
+
+/** 设备级 MFA 已验证缓存键（`mfa.cache`；D3 的 40115 回归要把它删掉） */
+export function mfaVerifiedKey(userId: string, deviceId: string): string {
+  return `${CACHE_PREFIX}_AUTH:MFA:VERIFIED:${userId}:${deviceId}`
+}
+
+/** 删设备级 MFA 已验证缓存（模拟「本设备尚未完成 MFA」；不碰其它键） */
+export async function deleteMfaVerifiedCache(client: E2eRedisClient, userId: string, deviceId: string): Promise<number> {
+  return client.del(mfaVerifiedKey(userId, deviceId))
+}
+
+/**
+ * 清掉某用户全部锁屏缓存（`SECURITY:LOCK:<uid>:*`）。
+ *
+ * 仅用于用例收尾：锁屏用例造的测试用户会被硬删，但 `<uid>:global` 键不带 deviceId，
+ * 设备清理不会命中它 —— 留着就是跨轮孤儿。按 userId 精确扫，不碰其它键。
+ */
+export async function deleteUserLockCache(client: E2eRedisClient, userId: string): Promise<number> {
+  return deleteByPatterns(client, [`${lockCacheKey(userId, '*')}`])
+}
+
 export type E2eRedisClient = RedisClientType
 
 async function connectRedis(): Promise<E2eRedisClient> {
@@ -76,19 +122,98 @@ export async function readRiskDevice(client: E2eRedisClient, deviceId: string): 
   return raw === null ? null : JSON.parse(raw) as { factors?: string[], score?: number, level?: string }
 }
 
+/** user-device 作用域的评估缓存（键形 `risk:user_device:<userId>:<deviceId>`；TTL 10 分钟） */
+export function riskUserDeviceKey(userId: string, deviceId: string): string {
+  return `risk:user_device:${userId}:${deviceId}`
+}
+
+/** 读 user-device 风险评估结果（U14 / U15 的 Redis 判据：factors 里有没有 USER_DEVICE_*） */
+export async function readRiskUserDevice(client: E2eRedisClient, userId: string, deviceId: string): Promise<{ factors?: string[], score?: number, level?: string } | null> {
+  const raw = await client.get(riskUserDeviceKey(userId, deviceId))
+  return raw === null ? null : JSON.parse(raw) as { factors?: string[], score?: number, level?: string }
+}
+
 /**
- * 清掉该设备的**风控状态**：评估缓存 + 所有已处理的 critical factor 标记
- * （`risk:challenge:device:<deviceId>:<FACTOR>`）。
+ * USER_DEVICE_* critical factor 的处理标记键（`challenge.service` 的 user-device scope）。
+ * 与 {@link riskChallengeKeyPattern} 的 device scope 区分开：U13–U15 只清这一族，
+ * 保住 DEVICE_NEW 等 pre-auth 因子的已处理标记（否则 40116 可能由 pre-auth 触发，
+ * 证明不了 post-auth CAP 重武装）。
+ */
+export function riskChallengeUserDeviceKey(userId: string, deviceId: string, factor: string): string {
+  return `risk:challenge:user-device:${userId}:${deviceId}:${factor}`
+}
+
+/** 失败登录计数键（`failedLogin.service` 的 getInfoKey：`risk:failed_login:<identifier>:<deviceId>`） */
+export function riskFailedLoginKey(identifier: string, deviceId: string): string {
+  return `risk:failed_login:${identifier}:${deviceId}`
+}
+
+/**
+ * 临时 IP 黑名单键（`SharedIpService.getTempBlackListRedisKey`）。
+ *
+ * **入参是归一化后的 IP**：服务端 `normalizeIp` 把所有 localhost（127/8、::1）统一成
+ * `127.0.0.1`，所以 E2E 的每个 127/8 客户端在临时名单上共享同一个键 —— 这正是 U12
+ * 必须「用完立刻精确删」的原因（workers=1 时窗口内没有并发用例）。
+ */
+export function ipTempBlacklistKey(normalizedIp: string): string {
+  return `risk:ip_blacklist:${normalizedIp}`
+}
+
+/** 精确删该设备的 CAP token 校验缓存（`SECURITY:CAP_TOKEN:<deviceId>:*`；不 FLUSH） */
+export async function deleteCapTokenCache(client: E2eRedisClient, deviceId: string): Promise<number> {
+  return deleteByPatterns(client, [`${CACHE_PREFIX}_SECURITY:CAP_TOKEN:${deviceId}:*`])
+}
+
+/**
+ * 只清 **user-device 作用域**的风控状态：评估缓存 + `USER_DEVICE_*` 挑战标记。
+ *
+ * 与 {@link deleteRiskDeviceState} 的区别见 {@link riskChallengeUserDeviceKey}：U13–U15
+ * 要证明的是 post-auth CAP（USER_DEVICE_UNTRUSTED / TRUST_EXPIRED），不能被 pre-auth 的
+ * DEVICE_NEW 重新武装干扰；设备级标记与 `risk:device` 缓存保持登录链路里的原状。
+ */
+export async function deleteUserDeviceRiskState(client: E2eRedisClient, userId: string, deviceId: string): Promise<number> {
+  return deleteByPatterns(client, [
+    riskUserDeviceKey(userId, deviceId),
+    `risk:challenge:user-device:${userId}:${deviceId}:*`,
+  ])
+}
+
+/**
+ * 该设备的**风控状态**键模式（全族，逐条对齐 `scripts/redis-gc.ts` 的 `DEVICE_KEY_FAMILIES`
+ * 里 `risk:*` 那几条，以及各服务的键拼法）：
+ *
+ * - `risk:device:<deviceId>`（device.service，TTL 10min）
+ * - `risk:user_device:<userId>:<deviceId>`（user_device.service，TTL 10min）
+ * - `risk:failed_login:<identifier>:<deviceId>`（failedLogin.service，末段 = deviceId）
+ * - `risk:rate:device:<deviceId>:<minuteKey>`（rate.service 的 `buildKey('device', …)`）
+ * - `risk:challenge:device:<deviceId>:<FACTOR>`（challenge.service，DEVICE_ 前缀因子）
+ * - `risk:challenge:user-device:<userId>:<deviceId>:<FACTOR>`（challenge.service，USER_DEVICE_ 前缀因子）
+ *
+ * 后两族（`rate:device` / `challenge:user-device`）是 P2-B 实测的跨轮残留来源：旧清理只认
+ * `risk:device` 与 `risk:challenge:device`，它们每轮都会按新 deviceId 重新长出来。
+ */
+export function riskDeviceStatePatterns(deviceId: string): string[] {
+  return [
+    riskDeviceKey(deviceId),
+    `risk:user_device:*:${deviceId}`,
+    `risk:failed_login:*:${deviceId}`,
+    `risk:rate:device:${deviceId}:*`,
+    riskChallengeKeyPattern(deviceId),
+    `risk:challenge:user-device:*:${deviceId}:*`,
+  ]
+}
+
+/**
+ * 清掉该设备的**风控状态**：评估缓存（device / user_device）、失败登录计数、rate 计数、
+ * 以及所有已处理的 critical factor 标记（device 与 user-device 两个 scope）。
  *
  * 为什么必须清：DEVICE_NEW / DEVICE_RECENT 的挑战标记一旦写入（CAP 解完就写），下一次
  * 请求即使风险因子仍在也会被判「已处理」；回填 created_at 后不清标记，cap-widget 不会出现。
+ * rate 计数与 user-device 评估缓存同理：它们是「按 deviceId 生长、TTL 5–10 分钟」的键，
+ * 留着就会跨轮占内存，也让「这个设备到底清干净没有」无从判断。
  */
 export async function deleteRiskDeviceState(client: E2eRedisClient, deviceId: string): Promise<number> {
-  const keys: string[] = [riskDeviceKey(deviceId)]
-  for await (const key of client.scanIterator({ MATCH: riskChallengeKeyPattern(deviceId), COUNT: 100 })) {
-    keys.push(...(Array.isArray(key) ? key : [key]))
-  }
-  return client.del(keys)
+  return deleteByPatterns(client, riskDeviceStatePatterns(deviceId))
 }
 
 /** 按精确前缀扫键（只用于断言/清理本设备范围，不做全库扫描写入） */
@@ -106,36 +231,111 @@ export async function deleteAuthSessionsForDevice(client: E2eRedisClient, device
 }
 
 /**
- * 删掉该设备上的**全部** Redis 键（用例收尾的自清理用）。**不 FLUSHDB**。
+ * 该设备的**会话键** SCAN 模式（`AUTH:SESSIONS:<userId>:<deviceId>:<sid>`）。
+ * 踢下线 / 登出后应为空 —— 与 {@link deleteAuthSessionsForDevice} 同一键形。
+ */
+export function authSessionKeyPattern(deviceId: string): string {
+  return `${CACHE_PREFIX}_AUTH:SESSIONS:*:${deviceId}:*`
+}
+
+/**
+ * 某用户**全部设备**的权限缓存 SCAN 模式（`AUTH:PERMISSIONS:<userId>:<deviceId>`）。
  *
- * 键形逐条对齐服务端的 `WalnutAdminConstAppCacheKeys`（apps/server/libs/const/src/app/cache.ts）
- * 与各 `*.cache.ts` 的拼法 —— 服务端改键形时这里要同步：
+ * 角色授权/停用、用户角色整组替换都会经 `delPermissionsForUser` 按这个前缀清；菜单的
+ * permission/status 变更与删除走全量前缀清。用例用它做「缓存失效」的直接判据 ——
+ * 该键由 `/auth/permissions` 调用时服务端写入，不需要 fixture 伪造。
+ */
+export function permissionsCachePattern(userId: string): string {
+  return `${CACHE_PREFIX}_AUTH:PERMISSIONS:${userId}:*`
+}
+
+/**
+ * 读某设备的权限缓存值（`AUTH:PERMISSIONS:<userId>:<deviceId>`，缓存服务包了一层 `{v}`）。
+ *
+ * 角色切换旅程的判据：切换后应用会重拉 `/auth/permissions`，服务端按新 currentRole 重算并
+ * **覆盖**该设备的缓存 —— 旧角色的权限串必须消失（permission.guard 只认这份缓存，留着旧值
+ * 就等于授权没变）。
+ */
+export async function readPermissionsCache(client: E2eRedisClient, userId: string, deviceId: string): Promise<string[] | null> {
+  const keys = await scanKeys(client, permissionsCachePattern(userId))
+  const key = keys.find(candidate => candidate.endsWith(`:${deviceId}`))
+  if (key === undefined) {
+    return null
+  }
+  const raw = await client.get(key)
+  if (raw === null) {
+    return null
+  }
+  try {
+    const parsed = JSON.parse(raw) as { v?: unknown }
+    return Array.isArray(parsed.v) ? parsed.v.filter((item): item is string => typeof item === 'string') : null
+  }
+  catch {
+    return null
+  }
+}
+
+/**
+ * 该设备的**应用缓存**键模式（全族，逐条对齐 `scripts/redis-gc.ts` 的 `DEVICE_KEY_FAMILIES`
+ * 里 `cache:*` / `murlock:*` 那几条，以及服务端的 `WalnutAdminConstAppCacheKeys` 拼法）：
  *
  * - `SYSTEM:DEVICE:<deviceId>` / `SYSTEM:DEVICE:COOKIE_RENEW:<deviceId>`（device.cache）
  * - `AUTH:SESSIONS:<userId>:<deviceId>:<sid>`（session.service）
  * - `AUTH:PERMISSIONS:<userId>:<deviceId>`（permissions.cache）
- * - `AUTH:MFA:VERIFIED:<userId>:<deviceId>` / `AUTH:MFA:TOTP:<userId>:<deviceId>`（mfa.cache）
+ * - `AUTH:MFA:VERIFIED:<userId>:<deviceId>` / `AUTH:MFA:TOTP:<userId>:<deviceId>`
+ *   / `AUTH:MFA:WEBAUTN:<userId>:<deviceId>:<type>`（mfa.cache）
  * - `AUTH:OPAQUE_STATE:<userName>:<deviceId>:SERVER_STATE|SESSION_KEY`（opaque.cache）
  * - `SECURITY:SIGN:TICKET:<deviceId>` / `SECURITY:SIGN:AES_KEY:<deviceId>`（sign.cache）
  * - `SECURITY:CAP_TOKEN:<deviceId>:<tokenFingerprint>`（cap.cache）
+ * - `SECURITY:RSA:PUB_KEY:<deviceId>`（cache.rsa）
+ * - `sensitive_op:<userId>:<deviceId>:<level>`（SecuritySensitiveService 的敏感操作授权键；
+ *   裸 Redis 键，无 `WALNUT_CACHE_` 前缀，TTL 15 分钟）
+ * - `SECURITY:LOCK:<userId>:<deviceId>`（lock cache）
+ * - `APP:MURLOCK:CAP:<deviceId>` / `APP:MURLOCK:SIGN:<deviceId>` /
+ *   `APP:MURLOCK:DEVICE:IP_CHANGE:<deviceId>` / `APP:MURLOCK:LOCK_GUARD:<userId>:<deviceId>` /
+ *   `APP:MURLOCK:RISK:FAILED_LOGIN:<deviceId>:<identifier>` /
+ *   `APP:MURLOCK:RISK:DEVICE:<deviceId>` / `APP:MURLOCK:RISK:USER_DEVICE:<userId>:<deviceId>`
+ *   （各 guard 与 risk 评估的分布式锁；请求级、正常即释，崩溃才残留）
  *
  * 存在的意义：断言失败时用例末尾的手写清理会被跳过，这些键会跨轮存活（例如 TOTP 的 30s 窗口
  * 键、CAP token 的指纹键），下一轮同 deviceId 不会复现（deviceId 随机），但它们会一直占着栈的
  * 内存与「这个设备到底清干净没有」的判断面。fixture 统一调这里兜底。
  */
-export async function deleteDeviceScopedKeys(client: E2eRedisClient, deviceId: string): Promise<number> {
-  return deleteByPatterns(client, [
+export function deviceScopedKeyPatterns(deviceId: string): string[] {
+  return [
     deviceCacheKey(deviceId),
     deviceCookieRenewKey(deviceId),
     `${CACHE_PREFIX}_AUTH:SESSIONS:*:${deviceId}:*`,
     `${CACHE_PREFIX}_AUTH:PERMISSIONS:*:${deviceId}`,
     `${CACHE_PREFIX}_AUTH:MFA:VERIFIED:*:${deviceId}`,
     `${CACHE_PREFIX}_AUTH:MFA:TOTP:*:${deviceId}`,
+    `${CACHE_PREFIX}_AUTH:MFA:WEBAUTN:*:${deviceId}:*`,
     `${CACHE_PREFIX}_AUTH:OPAQUE_STATE:*:${deviceId}:*`,
     `${CACHE_PREFIX}_SECURITY:SIGN:TICKET:${deviceId}`,
     `${CACHE_PREFIX}_SECURITY:SIGN:AES_KEY:${deviceId}`,
     `${CACHE_PREFIX}_SECURITY:CAP_TOKEN:${deviceId}:*`,
-  ])
+    `${CACHE_PREFIX}_SECURITY:RSA:PUB_KEY:${deviceId}`,
+    `${CACHE_PREFIX}_SECURITY:LOCK:*:${deviceId}`,
+    // 敏感操作二次验证授权键（SecuritySensitiveService，裸 Redis 键，TTL 15 分钟）
+    `sensitive_op:*:${deviceId}:*`,
+    `APP:MURLOCK:CAP:${deviceId}`,
+    `APP:MURLOCK:DEVICE:IP_CHANGE:${deviceId}`,
+    `APP:MURLOCK:LOCK_GUARD:*:${deviceId}`,
+    `APP:MURLOCK:SIGN:${deviceId}`,
+    `APP:MURLOCK:RISK:FAILED_LOGIN:${deviceId}:*`,
+    `APP:MURLOCK:RISK:DEVICE:${deviceId}`,
+    `APP:MURLOCK:RISK:USER_DEVICE:*:${deviceId}`,
+  ]
+}
+
+/**
+ * 删掉该设备上的**全部** Redis 键（用例收尾的自清理用）。**不 FLUSHDB**。
+ *
+ * 键形见 {@link deviceScopedKeyPatterns}；风控状态见 {@link riskDeviceStatePatterns}
+ * （fixture 两处都调，见 `lib/device-fixtures.ts` 的 `cleanupDevices`）。
+ */
+export async function deleteDeviceScopedKeys(client: E2eRedisClient, deviceId: string): Promise<number> {
+  return deleteByPatterns(client, deviceScopedKeyPatterns(deviceId))
 }
 
 /** 按一组精确键 / 模式扫键并删掉命中项（SCAN 不阻塞，命中为 0 时不发 DEL） */

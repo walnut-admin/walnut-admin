@@ -5,7 +5,7 @@ import type { MessageReactive, NotificationPlacement, NotificationReactive, Wate
 import type { CSSProperties, Ref } from 'vue'
 import type { RouteMeta, RouteRecordNameGeneric } from 'vue-router'
 import type { IRequestPayload } from '@/api/request'
-import type { VerifyAuthOptions } from '@/components/Global/VerifyAuth/types'
+import type { VerifyAuthOptions, VerifyAuthResult } from '@/components/Global/VerifyAuth/types'
 import type { ValueOfAppConstBasicMode, ValueOfAppConstCollapseMode, ValueOfAppConstColorMode, ValueOfAppConstDevice, ValueOfAppConstLayoutMode, ValueOfAppConstLocale, ValueOfAppConstTabAffixMode, ValueOfAppConstTabCloseMode, ValueOfAppConstTabStyleMode, ValueOfAppConstTabUtilsShowMode, ValueOfAppConstTransitionName, ValueOfAppCVD } from '@/const'
 
 export namespace IStoreApp {
@@ -265,6 +265,11 @@ export namespace IStoreComp {
   export interface VerifyAuth {
     show: boolean
     options?: VerifyAuthOptions
+    /**
+     * 挂起的打开方（40119 接线）的 resolve：弹窗验证成功 / 用户取消时结清。
+     * 不能进持久化（是函数），本 store 也刻意不持久化。
+     */
+    resolvePending: ((result: VerifyAuthResult) => void) | null
   }
 }
 

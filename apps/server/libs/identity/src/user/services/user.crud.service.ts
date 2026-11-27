@@ -5,6 +5,7 @@ import { AppTechCacheAppSettingsService, AppTechCachePermissionsService } from '
 import { WalnutAdminConstSafeRoleId, WalnutAdminConstSafeUserId } from '@walnut-server/const/role'
 import { runAfterCommit } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
+import { omitUndefined } from '@walnut-server/utils'
 import { IIdentityDataScopeInvalidator, WALNUT_ADMIN_IDENTITY_DATA_SCOPE_INVALIDATOR } from '../../identity.ports'
 import { SysUserEntity } from '../entity/user.entity'
 import { SysUserRepositoryService } from '../repo/user.repo.service'
@@ -46,7 +47,13 @@ export class SysUserCrudService {
 
   async read(id: string, em?: EntityManager) {
     const user = await this.sysUserBasicRepo.readById(id, em)
-    return this.sysUserRepoService.attachPopulatedRoles(user, em)
+    const populated = await this.sysUserRepoService.attachPopulatedRoles(user, em)
+
+    // ③（2026-11）：detail 响应补 `roles`（uuid 数组，与 create/update 回显同型）。
+    // `attachPopulatedRoles` 只给 roles_list / roles_count；admin 用户编辑表单的
+    // `Extend:RoleSelect` 直接绑 path `roles`，此前编辑时角色回显为空。
+    // 同一 junction 读腿派生，不额外查库。
+    return Object.assign(populated, { roles: populated.roles_list.map(role => role.id) })
   }
 
   /**
@@ -60,7 +67,9 @@ export class SysUserCrudService {
    * 用户部门（deptId）变更同理只影响本人。
    */
   async update(id: string, dto: Partial<SysUserEntity> & { roles?: string[] }, em?: EntityManager) {
-    const updated = await this.sysUserBasicRepo.update(id, dto, em)
+    // 真 PATCH（2026-11 F2）：preserveAbsent 让未提供的键保持 undefined，这里再滤掉
+    // —— 未给列不进 UPDATE；`dto.roles !== undefined` 的判据仍按原 dto 走（滤掉不影响）。
+    const updated = await this.sysUserBasicRepo.update(id, omitUndefined(dto), em)
 
     if (dto.roles !== undefined || dto.deptId !== undefined) {
       await runAfterCommit(async () => {

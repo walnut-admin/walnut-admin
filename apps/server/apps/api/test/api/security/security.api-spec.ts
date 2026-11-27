@@ -257,6 +257,24 @@ describe('D 段：security rsa/public-key + cap challenge/redeem + sensitive che
     })
     expect(bodyOf(denied).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_SENSITIVE_VERIFICATION_REQUIRED)
 
+    // ①' 挑战描述符完整性（前端 40119 接线的 wire 契约）：verify 端点的两个必填入参
+    //     level / operationType 必须随 meta 下发 —— 客户端推导不出它们（level/type 只在服务端
+    //     装饰器元数据里），猜错就是「验证通过了但授权键落在别的 level，原请求仍 40119」。
+    //     availableMethods / preferredMethod 同属描述符，一并钉住。
+    const challenge = bodyOf<null>(denied).meta as {
+      needsVerification?: boolean
+      availableMethods?: string[]
+      preferredMethod?: string
+      level?: string
+      operationType?: string
+    }
+
+    expect(challenge.needsVerification).toBe(true)
+    expect(challenge.availableMethods).toEqual(['email'])
+    expect(challenge.preferredMethod).toBe('email')
+    expect(challenge.level).toBe('account_critical')
+    expect(challenge.operationType).toBe('email_status_toggle')
+
     // ② verify account_critical（email 对码）→ 授权键落在 account_critical 级
     await verifyCodeService.setVerifyCodeForAuthUserCache(fixture!.userId, securityEmail, 667788, 300)
     const verifyRes = await api.root('POST', api.apiPath('/security/sensitive/verify'), {

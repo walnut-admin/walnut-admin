@@ -99,15 +99,12 @@ export class SysUserDTOCreateResponse extends SysUserDTOSafe {}
 // read
 export class SysUserDTOReadResponse extends SysUserDTOSafe {}
 
-// update
-export class SysUserDTOUpdateRequest extends IntersectionType(
-  RealPickType(SysUserDTOSafe, [
-    'userName',
-    'status',
-    'roles',
-  ] as const),
-  // 部门可省略（语义：不修改）；显式给值（含 null）才触发数据权限缓存失效
-  RealPartialType(RealPickType(SysUserDTOSafe, ['deptId'] as const)),
+// update —— 全字段可选 + 真 PATCH 语义（preserveAbsent，2026-11 F2）：
+// 未提供的键保持 undefined（roles 未给 = junction 不动；deptId 未给 = 部门不动），
+// service 滤掉 undefined 后未给列不进 UPDATE；显式 null 仍是有意的清空。
+export class SysUserDTOUpdateRequest extends RealPartialType(
+  RealPickType(SysUserDTOSafe, ['userName', 'status', 'roles', 'deptId'] as const),
+  { preserveAbsent: true },
 ) {}
 export class SysUserDTOUpdateResponse extends SysUserDTOSafe {}
 

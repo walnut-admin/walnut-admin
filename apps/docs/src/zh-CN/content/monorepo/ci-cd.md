@@ -10,6 +10,7 @@
 |----------|------|------|----------------|
 | `ci.yml` | push `main`、PR | 门禁步骤一律调入口（`pnpm walnut <id>`）：boundaries → affected lint/types:check/test → 根级配置 lint（`pnpm walnut lint:root`，不进 affected 图）→ affected 自检 → syncpack → `pnpm change check` → server 构建（+ 有 secret 时 admin 构建） | ❌ |
 | `workflow-lint.yml` | `.github/**` 变更 | actionlint 校验所有 workflow 与本地 composite action | ❌ |
+| `e2e.yml` | `schedule`（每日 UTC 19:00 ≈ 北京 03:00）、`workflow_dispatch` | 全链路 E2E：**prepare job** 解密 env → 全量构建 + 两处 stage 产物 → 上传 `e2e-stage-bundle`；**matrix 五 job**（`smoke` / `risk` / `network` / `pages` / `journey`）各自 install / 解密 / 下载产物，跑 `pnpm walnut e2e --project=<profile>`。**不进 PR** | ❌ |
 | `release.yml` | tag `v*.*.*`，或 `workflow_dispatch`（**ref 选那个 tag**） | verify ∥ images → GitHub Release → 自动部署；手动补跑时可勾 `skip_deploy` —— **只验证镜像构建、不碰生产** | ✅ 仅此一处 |
 | `deploy.yml` | `workflow_call`（被 release 复用）/ `workflow_dispatch`（回滚重发） | 纯部署：校验镜像存在 → 生成 env → scp → `compose pull && up -d --wait` → 健康检查 → **部署后验证（post-verify）**。入参 `image_tag`（必填）+ `environment`（默认 `prod`，目前只有 `prod`） | ❌ |
 
@@ -28,6 +29,12 @@
 > 完整取舍与实测数字见 [Turbo 缓存边界](./turbo-cache-boundary) 第七节。
 
 GitHub Release 的**正文不是 CI 生成的**：`pnpm release` 在打 tag 前把本次发版的整仓段落写进根 `changelog-latest.md`，并**随 release commit 一起提交**；`release.yml` 的 release job checkout 到该 tag 后直接 `body_path: changelog-latest.md`（所以发版机不需要任何能改远端内容的凭据，旧 tag 重跑也能复现同一份正文）。
+
+### E2E 不进 PR：nightly + 手动 dispatch
+
+全链路 E2E（`apps/e2e`）**刻意不进 PR 门禁**：PR 的 quality 已约半小时，再叠 install / 两次 stage 构建 / 浏览器安装会把反馈时间推得不可接受；fork PR 没有 `ENV_KEYS` secret，也构建不出 admin 产物。它承担的是「周期性证据 + 真实链路」：`.github/workflows/e2e.yml` 每天 UTC 19:00（北京 03:00）跑一次，也可以在 Actions 页手动 dispatch；`concurrency` 固定 group、不取消在途（与本地「一台机器一个全量 run」同义）。**2026-11-26 起是 prepare job + matrix 五 job 并行**（`smoke` / `risk` / `network` / `pages` / `journey`，`fail-fast: false`）：prepare 只做一次 install / 解密 / 全量构建 / 两处 stage，产物经 `e2e-stage-bundle` 广播；每个 job 独立 checkout + services，`E2E_STACK_PROFILE` 决定库 / 端口 / 基线目录，`--project=<profile>` 与 profile 同名 1:1。前三个 job 覆盖改造前的 default 面，`pages` / `journey` 是扩面批次（E4 / E5'）—— 两边的 spec 均已落地（页面可达链、锁屏 / WebAuthn / 权限 / 角色 / 回收站 / MFA 强制绑定旅程），不再有「No tests found」空跑项。机器时间约 1× 构建 + 5× 测试，墙钟取 prepare + 最慢 profile + 固定开销。
+
+两个实施口径值得记住：**CI 走基线路径、按 profile 分开缓存** —— 封板三件套由 `actions/cache` 缓存，key = `e2e-baseline-<profile>-v<清单版本>-<dataKey>`（执行层 P1-1 已可移植，`E2E_SKIP_BASELINE` 已从 workflow 删除，不要再加回来）；缓存未命中（含首跑）走全量 prepare + seal 兜底。**artifact 严格模式** —— 诊断只上传 junit / results.json / 脱敏后的后端日志 / `stack.json` / 基线清单（名字带 profile），上传步骤要求脱敏成功（`steps.redact.outcome == 'success'`，失败宁可不传）；trace、截图、HTML 报告含 token 与 cookie，一律不上传（`apps/e2e/AGENTS.md` 不变量 8）。另有非诊断的 `e2e-stage-bundle`（prepare 的构建产物中转，保留 1 天，不含 `env-local` / 密钥）。细节与首跑前的已知风险见 [E2E 改造优化方案](../plans/e2e-optimization-plan.md) 的 P0-1 / P1-6 落地记录。
 
 ### 为什么拆成两个 workflow 文件
 
@@ -171,6 +178,8 @@ remote:       —— Tencent Cloud Secret ID ——
 
 `ci.yml` 的 build job 里它紧跟 `Build admin`（扫的就是 `dist`，没有构建就没有体检对象），CI 之外也可以在本地对着已有的 `dist` 直接跑。
 
+体检对象是**两份产物**：`apps/admin/dist`（`build`）与 `apps/admin/dist-staging`（`build:stage`，E2E static-server 伺服的目录）。两者都是交付给浏览器的公开文件 —— 2026-11 F2 起 `dist-staging` 也纳入（F3 的 bundle 正是它）。缺哪份会显式打印「该形态没验过」（不是通过），**两份都缺**才报「前置条件未满足」（退出码 2）。也可以显式传目录：`walnut-check-dist-secrets <dir>...`（bin 已转发 argv）。
+
 **机密源只有 `apps/server/env-local/`**：`apps/admin/env-local/` 里全是 `VITE_*`，它们**本来就该进产物**（Vite 在构建时把这些键替换成字面量 —— 实测产物里连 `VITE_` 这个词都搜不到，0 个）。拿前端 env 当机密源等于 100% 误报。
 
 判据与**被否掉的规则**都写在 `check-dist-secrets.ts` 顶部那张表里，这里只留结论 —— 因为"为什么不要某条规则"比规则本身更容易被后人改回去：
@@ -184,7 +193,7 @@ remote:       —— Tencent Cloud Secret ID ——
 ```bash
 pnpm walnut lint:workflows    # actionlint（未安装则跳过并提示；CI 中强制执行）
 pnpm walnut lint:secrets      # 源码密钥形态（**推送前就该跑** —— 服务端的 push protection 比 CI 更早）
-pnpm walnut lint:dist         # 产物去密体检（先构建出 apps/admin/dist；没有产物会以「前置条件未满足」退出 2）
+pnpm walnut lint:dist         # 产物去密体检（先构建出 apps/admin/dist 与 dist-staging；两份都不存在才以「前置条件未满足」退出 2）
 pnpm walnut images:print      # 只解析 docker-bake.hcl，不构建
 pnpm walnut images:build      # 本地构建 backend + frontend（先按 deploy/README.md 准备 staging）
 ```

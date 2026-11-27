@@ -69,6 +69,38 @@ export class SysUserUpdateDTO extends RealPartialType(SysUserCreateDTO) {
 字段会被静默地从响应里过滤掉 —— 表现为接口 200 但字段凭空消失，极难排查。
 项目包装正是在这里补 `@Expose()`（`RealPartialType` 还会给每个键补 `@IsOptional({ always: true })`）。
 
+#### Update DTO 必须用 `{ preserveAbsent: true }`
+
+**规则**：所有 PATCH / update DTO 写成 `RealPartialType(CreateDTO, { preserveAbsent: true })`。
+
+```typescript
+export class SysUserUpdateDTO extends RealPartialType(SysUserCreateDTO, { preserveAbsent: true }) {
+  constructor(partial: Partial<SysUserUpdateDTO>) {
+    super()
+    Object.assign(this, partial)
+  }
+}
+```
+
+**不加会怎样**：字段装饰器（`@walnut-server/decorators/field`）在 `toClassOnly` 阶段会把 nil
+落成 `null`（给 create 的默认值兜底），而 `plainToClass` 会对**所有** `@Expose` 键跑 Transform。
+于是请求体里没出现的键也被写成 `null`，service 把整个 DTO 交给 repo 时变成
+`UPDATE … SET col = NULL` —— 「只改 title 却清掉 name」就是这种坑（menu update 的历史 bug）。
+`preserveAbsent` 在派生类上装一道收尾 Transform：源对象里没有该键 ⇒ 值变回 `undefined`
+（ValidationPipe 的 `exposeUnsetFields: false` 不会把它落到实例上）。
+
+**三条配套口径**：
+
+- **显式 `null` 才是清空**：`{ name: null }` 保留 `null`，service 照常写 NULL；
+  `{ name: undefined }` 与「键不存在」等价，都表示不改。
+- **service 侧仍要 `omitUndefined`**：repo / `save` 不应收到 `undefined` 键（不同写路径行为不一致）；
+  update 前统一 `omitUndefined(dto)`，与 `preserveAbsent` 是两道独立防线，别只留一道。
+- **`meta` 这类子对象仍是整体替换**：JSON 子文档没有「子键不存在 ⇒ 不改」的语义；
+  要改其中一个子键就把整个 `meta` 回传（admin 表单的真实口径）。
+
+已采用的 update DTO：dictType / dictData / setting / demo / role / lang / user / menu
+（新写 update DTO 照此办理，别再退回不带 options 的 `RealPartialType`）。
+
 ### 用项目自己的字段装饰器
 
 字段一律用 `@walnut-server/decorators/field` 的装饰器，不要裸写 class-validator：

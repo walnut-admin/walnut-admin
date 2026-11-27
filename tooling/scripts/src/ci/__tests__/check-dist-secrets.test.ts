@@ -15,6 +15,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   collectFindings,
+  collectFindingsForDists,
   collectSecretValues,
   findLeakedValues,
   lineOf,
@@ -193,5 +194,53 @@ describe('collectFindings —— 前置条件', () => {
     const result = collectFindings(join(tmpdir(), 'no-such-dist-4c1d2e'))
     expect(result.precondition).toBeDefined()
     expect(result.findings).toEqual([])
+  })
+})
+
+/**
+ * ⑥（2026-11 F2）：`dist` 与 `dist-staging` 都要扫。
+ *
+ * F3 的 bundle 落在 `dist-staging`（E2E static-server 的产物）—— 只扫 `dist` 等于
+ * 给另一种构建形态留后门。缺一份要显式记进 missingDirs（漏报面），两份都缺才是前置条件。
+ */
+describe('collectFindingsForDists —— 多产物（dist + dist-staging）', () => {
+  it('两份都扫、缺的一份进 missingDirs、findings 合并', () => {
+    const root = mkdtempSync(join(tmpdir(), 'dist-multi-'))
+    const dist = join(root, 'dist')
+    const staging = join(root, 'dist-staging')
+    mkdirSync(dist)
+    mkdirSync(staging)
+    writeFileSync(join(dist, 'app.js'), `var ak='${fakeAwsAk}'`)
+    writeFileSync(join(staging, 'app.js'), 'var a=1')
+
+    const result = collectFindingsForDists([dist, staging, join(root, 'missing')], join(root, 'no-env'))
+
+    expect(result.scannedDirs).toHaveLength(2)
+    expect(result.missingDirs).toHaveLength(1)
+    expect(result.findings.map(f => f.rule)).toEqual(['cloud-access-key'])
+    expect(result.precondition).toBeUndefined()
+  })
+
+  it('只有 staging 有假密文 ⇒ 同样红（不是只扫 dist 才拦）', () => {
+    const root = mkdtempSync(join(tmpdir(), 'dist-multi-'))
+    const dist = join(root, 'dist')
+    const staging = join(root, 'dist-staging')
+    mkdirSync(dist)
+    mkdirSync(staging)
+    writeFileSync(join(dist, 'app.js'), 'var a=1')
+    writeFileSync(join(staging, 'app.js'), `var j='${fakeJwt}'`)
+
+    const result = collectFindingsForDists([dist, staging], join(root, 'no-env'))
+
+    expect(result.findings.map(f => f.rule)).toEqual(['jwt'])
+  })
+
+  it('两份都不存在 → 前置条件失败（不是"通过"）', () => {
+    const root = mkdtempSync(join(tmpdir(), 'dist-multi-'))
+
+    const result = collectFindingsForDists([join(root, 'dist'), join(root, 'dist-staging')], join(root, 'no-env'))
+
+    expect(result.precondition).toBeDefined()
+    expect(result.missingDirs).toHaveLength(2)
   })
 })

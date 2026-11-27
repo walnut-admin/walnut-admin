@@ -37,8 +37,22 @@ export function createBeforeEachGuard(router: Router) {
     // Get user info
     const userStoreProfile = useAppStoreUserProfile()
     if (isNil(userStoreProfile.profile?.id)) {
-      // fetch profile
-      await userStoreProfile.getProfile()
+      try {
+        // fetch profile
+        await userStoreProfile.getProfile()
+      }
+      catch (error) {
+        // 锁定态**硬刷新 / 新标签页**：`getProfile` 被 Lock guard 拦成 40118，响应拦截器
+        // 已注册 `/lock` 路由并 replace 过去。这里必须接住并补读一次 LockFree 的锁状态 ——
+        // 否则 app-lock store 停在默认值（`lockMode=default`），`/lock` 渲染成免密按钮，
+        // 用户点不动也看不到密码框（J1 的 reload 腿实测：还会因未接住的 rejection 弹
+        // 「页面遇到无法恢复的错误」全屏遮罩）。与 `ExecuteCoreFnAfterAuth` 的 D3 收口同一写法。
+        if (error instanceof Error && error.message === 'User Locked') {
+          await useAppStoreLock().onInitLockState()
+          return to.fullPath
+        }
+        throw error
+      }
       // LINK https://router.vuejs.org/guide/advanced/dynamic-routing.html#adding-routes-inside-navigation-guards
       return to.fullPath
     }

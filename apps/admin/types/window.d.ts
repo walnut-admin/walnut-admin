@@ -28,6 +28,9 @@ declare global {
 
     // capjs
     Cap: ICapInst
+    // cap-widget 在 blob: worker 里 import() 这个地址 ⇒ 必须是**绝对 URL**（同源即可）。
+    // 由 comp-capjs 的 loadCap() 指向自托管的 `/vendor/cap/cap_wasm.js`（文件说明见
+    // apps/admin/public/vendor/cap/README.md）。
     CAP_CUSTOM_WASM_URL: string
 
     // naive relative

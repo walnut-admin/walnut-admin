@@ -102,7 +102,7 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
     await app.close()
   })
 
-  it('create 带 roles → junction 落行 + currentRole 首角色；read 回 roles_list', async () => {
+  it('create 带 roles → junction 落行 + currentRole 首角色；read 回 roles + roles_list', async () => {
     const created = await createUser('R1', [bizRoleId])
     expect(created.id).toMatch(UUID_RE)
     expect(created.roles).toEqual([bizRoleId])
@@ -112,8 +112,8 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
     expectOk(readRes, 'user read')
     const row = bodyOf<UserRow>(readRes).data
     expect(row.userName).toBe(`${userPrefix}-R1`)
-    // read 出参不带 roles 数组（那是 create/update 响应的回显）—— 读腿是 roles_list
-    expect(row.roles).toBeUndefined()
+    // ③（2026-11）：read 出参补 roles（uuid 数组，admin 编辑表单 path 直绑）—— 与 roles_list 同源
+    expect(row.roles).toEqual([bizRoleId])
     expect(row.roles_count).toBe(1)
     expect(row.roles_list?.[0]?.id).toBe(bizRoleId)
   })
@@ -126,6 +126,7 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
 
     const readRes = await api.root('GET', api.apiPath(`/system/user/${created.id}`))
     const row = bodyOf<UserRow>(readRes).data
+    expect(row.roles).toEqual([])
     expect(row.roles_count).toBe(0)
     expect(row.currentRole).toBeNull()
 
@@ -167,6 +168,21 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
     expectOk(enableRes, 'user update enable')
     expect(bodyOf<UserRow>(enableRes).data.status).toBe(true)
     expect(bodyOf<UserRow>(enableRes).data.currentRole).toBe(bizRoleId)
+  })
+
+  it('④：只发 status（真 PATCH）→ userName / roles junction 原样不动', async () => {
+    const created = await createUser('PT', [bizRoleId])
+
+    const updateRes = await api.root('PUT', api.apiPath(`/system/user/${created.id}`), { status: false })
+    expectOk(updateRes, 'user partial update')
+
+    const readRes = await api.root('GET', api.apiPath(`/system/user/${created.id}`))
+    const row = bodyOf<UserRow>(readRes).data
+    expect(row.status).toBe(false)
+    expect(row.userName).toBe(`${userPrefix}-PT`)
+    expect(row.roles).toEqual([bizRoleId])
+    expect(row.roles_count).toBe(1)
+    expect(row.currentRole).toBe(bizRoleId)
   })
 
   it('P1-18：移除 current 角色后 currentRole 重置为新集合首角色（不再沿用已移出角色）', async () => {

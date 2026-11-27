@@ -26,6 +26,7 @@ interface LockStatus {
   lockMode: string
   lockIdleSec: number
   lockSecuritySec: number
+  lockPwdSet: boolean
 }
 
 describe('C 段：system/user/lock read + lock/unlock me（真实 HTTP 全链）', () => {
@@ -87,6 +88,7 @@ describe('C 段：system/user/lock read + lock/unlock me（真实 HTTP 全链）
       lockMode: 'default',
       lockIdleSec: 300,
       lockSecuritySec: 60,
+      lockPwdSet: false,
     })
   })
 

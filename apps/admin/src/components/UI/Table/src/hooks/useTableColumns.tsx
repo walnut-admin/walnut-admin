@@ -251,6 +251,8 @@ export function useTableColumns<T>(propsCtx: IHooksUseProps<WTable.Props<T>>, ap
                 <WIconButton
                   button-props={{
                     ...i.buttonProps,
+                    // E2E 稳定选择器：页面在操作项顶层配 `testId`（同页多行会重复，用例按行作用域取）
+                    testId: i.testId,
                     disabled: isDisabled(i),
                     onClick: !i.confirm ? () => handleButtonClick(i, inDropdown) : null,
                   }}

@@ -17,21 +17,84 @@
  * ## 存储形状与服务端逐字对齐
  *
  * `opaque.core.service.ts` 的 `finishRegister()` 往 `sys_user_identity` 里写的是：
- * `type: 'password'` / `purpose: 'login'` / `value` 与 `valueHash` **都放注册记录本身**
- * （服务端注释：Use registration record itself as hash since it's unique）/ `maskedValue: '********'` /
- * `verified: true`。这里照抄 —— 凭证是**原样存储、不加密**的，所以这条命令不需要碰
- * `USER_ID_ENCRYPTION_KEY` 那套加密。
+ * `type: 'password'` / `purpose: 'login'` / `value` = **AES-GCM 密文**（AAD
+ * `sys_user_identity`）/ `valueHash` = **盐化 HMAC**（`USER_ID_HASH_SALT`）/
+ * `maskedValue: '********'` / `verified: true`（①，2026-11 起；之前是记录本身裸存）。
+ * 这里照抄同一套加密与哈希 —— 写明文的话登录链在 `startLogin` 解密阶段就会 40103。
  *
  * ## 自带一道验证
  *
  * 写完立刻用同一个 `serverSetup` 跑一遍**完整的登录握手**（server.startLogin → client.finishLogin
  * → server.finishLogin）。跑通了才说明「这份凭证在本环境真能用」—— 这正是"播种后能登录"的判据，
- * 也是这条命令与"随便插一条记录"的区别。
+ * 也是这条命令与"随便插一条记录"的区别。验证用**明文** registration record（解密后的形态）。
  */
+import { Buffer } from 'node:buffer'
+import { createCipheriv, createDecipheriv, createHmac, randomBytes } from 'node:crypto'
 import { client, server } from '@serenity-kit/opaque'
 
 /** 口令身份的固定形状（与服务端 `finishRegister` 一致） */
 export const PASSWORD_IDENTITY = { type: 'password', purpose: 'login' } as const
+
+/**
+ * 身份值的加密/哈希口径 —— 与服务端 `SysUserIdentitySharedService` / `AppTechCryptoService`
+ * 逐字对齐（真源：`libs/identity/src/user_identity/shared/user_identity.shared.service.ts`）。
+ * 这里不能用服务端的 Nest 服务（tooling 不起 app），所以常量抄一份；漂移会以登录 40103 暴露。
+ */
+const IDENTITY_AAD = 'sys_user_identity'
+/** AES_GCM_WIRE.IV_LENGTH（`@walnut/contract/crypto-wire`）；authTag 由 getAuthTag() 产出 */
+const AES_GCM_IV_LENGTH = 12
+
+/** AES-256-GCM：iv || ciphertext || authTag，base64（与 AppTechCryptoService.encrypt 同序） */
+export function encryptIdentityValue(plain: string, keyBase64: string): string {
+  const key = Buffer.from(keyBase64, 'base64')
+  if (key.length !== 32) {
+    throw new Error(`USER_ID_ENCRYPTION_KEY 必须是 32 字节的 base64（实际解出 ${key.length} 字节）`)
+  }
+  const iv = randomBytes(AES_GCM_IV_LENGTH)
+  const cipher = createCipheriv('aes-256-gcm', key, iv)
+  cipher.setAAD(Buffer.from(IDENTITY_AAD, 'utf8'))
+  const encrypted = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()])
+  return Buffer.concat([iv, encrypted, cipher.getAuthTag()]).toString('base64')
+}
+
+/** AES-GCM auth tag 长度（16 字节，Node `cipher.getAuthTag()` 的固定输出） */
+const AES_GCM_TAG_LENGTH = 16
+
+/**
+ * `encryptIdentityValue` 的**镜像**：按服务端 `AppTechCryptoService.decrypt` 的口径
+ * 还原口令身份的明文 registration record（iv || ciphertext || authTag，base64；
+ * AAD `sys_user_identity`；key = `USER_ID_ENCRYPTION_KEY`）。
+ *
+ * 真源同 `encryptIdentityValue`：`libs/identity/.../user_identity.shared.service.ts` +
+ * `libs/crypto`。`db:credential-check` 用它判断库存行是「当前信封」还是「旧明文 / 换过密钥」。
+ * 解密失败一律抛错（调用方负责分类），不返回空串 —— 空串会被误判成合法记录。
+ */
+export function decryptIdentityValue(encrypted: string, keyBase64: string): string {
+  const key = Buffer.from(keyBase64, 'base64')
+  if (key.length !== 32) {
+    throw new Error(`USER_ID_ENCRYPTION_KEY 必须是 32 字节的 base64（实际解出 ${key.length} 字节）`)
+  }
+
+  const data = Buffer.from(encrypted, 'base64')
+  if (data.length < AES_GCM_IV_LENGTH + AES_GCM_TAG_LENGTH) {
+    throw new Error(
+      `身份密文长度不足（实际 ${data.length} 字节，至少 ${AES_GCM_IV_LENGTH + AES_GCM_TAG_LENGTH}）—— 不是 AES-GCM 信封`,
+    )
+  }
+
+  const iv = data.subarray(0, AES_GCM_IV_LENGTH)
+  const authTag = data.subarray(data.length - AES_GCM_TAG_LENGTH)
+  const ciphertext = data.subarray(AES_GCM_IV_LENGTH, data.length - AES_GCM_TAG_LENGTH)
+  const decipher = createDecipheriv('aes-256-gcm', key, iv)
+  decipher.setAAD(Buffer.from(IDENTITY_AAD, 'utf8'))
+  decipher.setAuthTag(authTag)
+  return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8')
+}
+
+/** HMAC-SHA256(盐=USER_ID_HASH_SALT, 明文 record) → hex（与 generateValueHash 一致） */
+export function hashIdentityValue(plain: string, salt: string): string {
+  return createHmac('sha256', salt).update(plain).digest('hex')
+}
 
 /**
  * OPAQUE 的 `server` identifier —— 必须与 UI 登录**逐字一致**。
@@ -57,7 +120,9 @@ export interface PasswordIdentity {
   userId: string
   type: 'password'
   purpose: 'login'
+  /** 入库列：registrationRecord 的 AES-GCM 密文（base64，iv||ciphertext||authTag） */
   value: string
+  /** 入库列：registrationRecord 的盐化 HMAC（hex） */
   valueHash: string
   maskedValue: string
   verified: boolean
@@ -65,19 +130,27 @@ export interface PasswordIdentity {
   isPrimary: boolean
   status: boolean
   metadata: Record<string, unknown>
+  /**
+   * **明文** registration record —— 只用于 seed 写完后的登录握手自验（不入库）。
+   * 单独留一份，避免为了验证再去解密一遍。
+   */
+  registrationRecord: string
 }
 
 /**
- * 跑一遍 OPAQUE 注册，产出可入库的口令身份行。
+ * 跑一遍 OPAQUE 注册，产出可入库的口令身份行（value/valueHash 已加密/盐化）。
  *
  * `serverSetup` 必须是**本环境**的 `AUTH_OPAQUE_SECRET`（不是随便一个字符串）——
  * 传错了这条记录在本环境登不进去（而下面的验证会当场发现）。
+ * `encryptionKey` / `hashSalt` 必须与后端 `USER_ID_ENCRYPTION_KEY` / `USER_ID_HASH_SALT` 同源。
  */
 export function buildPasswordIdentity(
   userId: string,
   userName: string,
   password: string,
   serverSetup: string,
+  encryptionKey: string,
+  hashSalt: string,
   now = new Date(),
 ): PasswordIdentity {
   const { clientRegistrationState, registrationRequest } = client.startRegistration({ password })
@@ -96,14 +169,16 @@ export function buildPasswordIdentity(
   return {
     userId,
     ...PASSWORD_IDENTITY,
-    value: registrationRecord,
-    valueHash: registrationRecord,
+    // ①（2026-11）：与 AuthOpaqueCoreService.finishRegister 同口径 —— 密文 + 盐化哈希
+    value: encryptIdentityValue(registrationRecord, encryptionKey),
+    valueHash: hashIdentityValue(registrationRecord, hashSalt),
     maskedValue: '********',
     verified: true,
     verifiedAt: now,
     isPrimary: true,
     status: true,
     metadata: {},
+    registrationRecord,
   }
 }
 

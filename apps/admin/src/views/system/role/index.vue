@@ -102,6 +102,8 @@ const [
   safeFormUnwantedFields: ['status'],
 
   tableProps: {
+    // E2E：`role-list-table` 供「只有 list 权限的角色」验证列表可读；`role-create-btn` 验证无 create 权限时隐藏
+    testId: 'role-list-table',
     localeUniqueKey: key,
     rowKey: row => row[keyField]!,
     striped: true,
@@ -111,6 +113,7 @@ const [
     headerLeftBuiltInActions: [
       {
         _builtInType: 'create',
+        testId: 'role-create-btn',
         onPresetClick() {
           onOpenCreateForm()
         },

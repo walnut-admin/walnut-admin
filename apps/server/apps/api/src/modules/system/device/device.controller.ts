@@ -34,6 +34,10 @@ const {
 } = WalnutCrudDecorators({
   title: WalnutAdminConstDecoratorLogOperateTitle.DEVICE,
   DTO: SysDeviceDTOSafe,
+  // list 行不是完整 SysDeviceDTOSafe：controller 返回的 SysDeviceDTOListResponse 只 pick
+  // id/active/banned/locked/deviceId/riskScore/deviceName/sr/hardwareInfo/deviceInfo/locationInfo
+  // （P2-6 收尾）。把真实响应类交给 list 装饰器，swagger 行 schema 才与 wire 一致。
+  listResponseDTO: SysDeviceDTOListResponse,
 })
 
 /**

@@ -143,6 +143,7 @@ const getTableHeight = computed(() => `calc(${appStoreSettingDev.getCalcContentH
     <n-data-table
       ref="tableRef"
       v-bind="getTableProps"
+      :data-testid="getProps.testId"
       :min-height="getProps?.minHeight ?? getTableHeight"
       :max-height="getProps?.maxHeight ?? getTableHeight"
       :columns="tableColumns.filter(i => i._internalShow) as DataTableColumn<T>[]"

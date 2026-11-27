@@ -155,18 +155,19 @@ export class SysDictDataDTOCreateResponse extends SysDictDataDTOSafe { }
 // read
 export class SysDictDataDTOReadResponse extends SysDictDataDTOSafe { }
 
-// update
-export class SysDictDataDTOUpdateRequest extends IntersectionType(RealPickType(
-  SysDictDataDTOSafe,
-  [
+// update —— 白名单同 create 的可选形态 + 真 PATCH 语义（preserveAbsent，2026-11 F2）
+export class SysDictDataDTOUpdateRequest extends RealPartialType(
+  RealPickType(SysDictDataDTOSafe, [
     'typeId',
     'label',
     'value',
     'tagType',
     'order',
     'status',
-  ] as const,
-), RealPartialType(RealPickType(SysDictDataDTOSafe, ['description'] as const))) { }
+    'description',
+  ] as const),
+  { preserveAbsent: true },
+) { }
 export class SysDictDataDTOUpdateResponse extends SysDictDataDTOSafe { }
 
 // delete

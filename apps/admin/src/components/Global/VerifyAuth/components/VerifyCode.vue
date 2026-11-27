@@ -68,10 +68,17 @@ async function onVerify() {
   const code = formData.value.verifyCode.join('')
   emit('verify', code)
 }
+
+/**
+ * 给弹窗底部「验证」按钮的显式提交入口（E1 发现该按钮此前没有 click handler，
+ * 只能靠 6 位输满的 onFinish 提交）。未输满时 no-op —— 与 onFinish 同一判据。
+ */
+defineExpose({ submit: onVerify })
 </script>
 
 <template>
-  <div>
+  <!-- data-testid：二次验证弹窗的验证码步骤（40119 旅程填完 6 位码即由 onFinish 自动提交） -->
+  <div data-testid="verify-auth-code">
     <!-- @vue-generic {typeof formData.value} -->
     <WForm :model="formData" @hook="register">
       <template #description>

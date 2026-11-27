@@ -30,6 +30,8 @@ const {
 } = WalnutCrudDecorators({
   title: WalnutAdminConstDecoratorLogOperateTitle.DEPT,
   DTO: SysDeptDTOSafe,
+  // list 行是 RealPartialType(SysDeptDTOSafe)：字段集一致、全部可选（P2-6 收尾）。
+  listResponseDTO: SysDeptDTOListResponse,
 })
 
 // children 的 parentId 是可选 query（缺省 = 根层）：与路由参数的必填 pipe 不同，

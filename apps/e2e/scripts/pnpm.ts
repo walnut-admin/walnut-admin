@@ -20,7 +20,11 @@ interface PnpmInvocation {
   shell: boolean
 }
 
-function resolvePnpm(): PnpmInvocation {
+/**
+ * 解析「怎么调 pnpm」。导出的唯一外部消费者是 `scripts/start-backend.ts` —— 它要**流式**
+ * 读取后端输出（tee + 脱敏），不能用下面的同步入口（`stdio: 'inherit'` 拿不到管道）。
+ */
+export function resolvePnpm(): PnpmInvocation {
   const execpath = process.env.npm_execpath
 
   if (execpath !== undefined && /\.[cm]?js$/i.test(execpath)) {

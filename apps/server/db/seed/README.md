@@ -6,7 +6,12 @@
 pnpm walnut db:seed:pg              # 按 id 幂等 upsert 进 PostgreSQL（重复跑安全）
 pnpm walnut db:seed:pg --dry-run    # 只看会写什么，不落库
 pnpm walnut db:seed:pg --admin <userName> --password <口令>   # 现生成 admin 口令凭证（见下）
+pnpm walnut db:credential-check                    # 只读探针：库存口令行能否解密 + valueHash 自洽
 ```
+
+凭证探针（`db:credential-check`）读 `sys_user_identity` 的 `type='password'` 行，按当前 env 的
+`USER_ID_ENCRYPTION_KEY` / `USER_ID_HASH_SALT` 判定 `ok` / `stale-format` / `missing-identity`；
+任一行不可用 ⇒ 退出码 1，并给 `db:seed:pg --admin <账号>` 修复命令。改过凭证格式或密钥后先跑它。
 
 正源与再生成：**仓库为本目录的唯一真源**，且数据不是"某次手工导出的快照"，而是**可以机械再生的产物**：
 

@@ -1,5 +1,6 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
+import { omitUndefined } from '@walnut-server/utils'
 import { AppDemoBasicRepository } from './demo.basic.repository'
 import {
   AppDemoDTOCreateRequest,
@@ -24,7 +25,8 @@ export class AppDemoService {
   }
 
   async update(id: string, payload: AppDemoDTOUpdateRequest) {
-    return this.demoBasicRepo.update(id, payload)
+    // 真 PATCH（2026-11 F2）：未提供的键保持 undefined 且不进 UPDATE
+    return this.demoBasicRepo.update(id, omitUndefined(payload))
   }
 
   async delete(id: string, userId: string, em?: EntityManager) {

@@ -127,7 +127,31 @@ const useAppStoreUserAuthInside = defineStore(StoreKeys.USER_AUTH, {
       this.setAccessToken(at)
 
       // get user profile
-      await userStoreProfile.getProfile()
+      //
+      // D3 续（L2 实测）：锁定态下 `getProfile` 会被服务端 Lock guard 拦成 40118，
+      // 响应拦截器把路由切到 `/lock` 后 reject `Error('User Locked')`。此前的调用点
+      // （MFA 验证页 / 登录漏斗）没有接住它 ⇒ `[runtime-fatal] unhandledrejection`
+      // 把整个应用打进「页面遇到无法恢复的错误」遮罩，锁屏 watchdog 反而被自己挡住。
+      // 锁定不是异常终止：读一次 LockFree 的锁状态（`onInitLockState` 会 push `/lock`）
+      // 后返回即可；解锁成功后 `logicAfterUnlock` 会重新走完整的 profile + core init。
+      try {
+        await userStoreProfile.getProfile()
+      }
+      catch (error) {
+        if (error instanceof Error && error.message === 'User Locked') {
+          await useAppStoreLock().onInitLockState()
+          return
+        }
+        // MFA 强制流程（40114）：拦截器已把路由切到 `/mfa-required` 并 reject
+        // `Error('MFA Required')`。这里不能往上抛 —— 刷新落在 `/mfa-required` 时本函数
+        // 会被启动/守卫序列再次调用，再抛就是 `[runtime-fatal] unhandledrejection`
+        // 全屏遮罩挡住绑定表单（2026-11-27 手动回归实测）。绑定/验证成功后流程会重新
+        // 走到此处补全 profile + core init。
+        if (error instanceof Error && error.message === 'MFA Required') {
+          return
+        }
+        throw error
+      }
 
       // get menus/permissions/keys etc
       await AppCoreFn1()

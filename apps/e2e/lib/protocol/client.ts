@@ -12,6 +12,7 @@
  * 里现算；页面上下文里拿不到 AppAxios 实例，而重放在页面里签又会绕过「协议客户端」这层
  * 可断言的真源。Node 侧走同一份 sign-raw 纯函数（@walnut/utils/sign-raw）才有意义。
  */
+import type { EndpointData, HttpMethod } from './api-types.ts'
 import { randomUUID } from 'node:crypto'
 import * as opaque from '@serenity-kit/opaque'
 import { generateSync } from 'otplib'
@@ -19,6 +20,7 @@ import {
   BACKEND_API_BASE,
   BACKEND_ORIGIN,
 } from '../../scripts/env.ts'
+import { uniqueLocalIp } from '../device-fixtures.ts'
 import {
   AuthRoutes,
   SecurityRoutes,
@@ -59,6 +61,29 @@ interface RequestOptions {
 
 const OPAQUE_SERVER_IDENTIFIER = 'walnut-admin'
 
+/** device/initial 撞 42900 时最多换几个地址重放（见 bootstrap 注释；每个地址一个 /60s 桶） */
+const BOOTSTRAP_REAL_IP_RETRY_LIMIT = 8
+
+/**
+ * 协议请求的业务错误（带 code，供重试 / 分支断言；`request()` 只对非 20000 抛它）。
+ *
+ * `meta` 一并保留：锁屏退避的 40000 用 `meta.retryAfterSec` 表达「退避期内一律拒绝」，
+ * 没有它就只能看到业务码、无法断言拒绝语义（J1 的负向判据需要）。
+ */
+export class WalnutProtocolRequestError extends Error {
+  readonly code: number
+  readonly status: number
+  readonly meta?: Record<string, unknown>
+
+  constructor(method: string, path: string, status: number, code: number, msg?: string, meta?: Record<string, unknown>) {
+    super(`[e2e/protocol] ${method} ${path} 失败：HTTP ${status} code=${code} msg=${msg ?? ''}`)
+    this.name = 'WalnutProtocolRequestError'
+    this.code = code
+    this.status = status
+    this.meta = meta
+  }
+}
+
 /** 等 OPAQUE 的 wasm 模块就绪（Node 侧第一次调用前必须 await；否则 server.getPublicKey 之类会炸） */
 async function ensureOpaqueReady(): Promise<void> {
   await opaque.ready
@@ -82,8 +107,13 @@ export class WalnutProtocolClient {
    * （SysDeviceSettingService），而协议客户端每次 bootstrap 都要登记一台设备；
    * 全套用例共用 127.0.0.1 会在第 5 台设备登记时 42900。给每个客户端一个 127/8 的
    * local IP，既保持「本地定位、零外网」，又各自独立计数。
+   *
+   * 可变：`bootstrap()` 命中 42900 时会换下一个地址重试（见该方法注释）—— R4 实测
+   * Playwright 每个 spec 文件是独立 worker 进程，`uniqueLocalIp` 的模块级序号会在文件
+   * 之间重置；只靠序号会从同一地址起步、多文件叠加后撞桶。`device-fixtures.ts` 用
+   * pid 偏移起步，这里再做一次「换地址重放」兜底。
    */
-  private readonly realIp: string | null
+  private realIp: string | null
 
   constructor(options: { apiBase?: string, realIp?: string } = {}) {
     this.apiBase = options.apiBase ?? BACKEND_API_BASE
@@ -116,8 +146,20 @@ export class WalnutProtocolClient {
     return [...this.cookies.entries()].map(([key, value]) => `${key}=${value}`).join('; ')
   }
 
+  /**
+   * 清掉客户端侧的登录态（模拟「服务端已登出 / RT 已删」后的第一次请求）。
+   *
+   * 为什么需要：签名模式由 `this.auth` 决定 —— 有 auth 时发**双因子**签名；而 `login/start`
+   * 是 JWT-free 端点，服务端按**单因子**校验。旧 AT 留着再登录会 40112（Invalid Signature）。
+   * 服务端的 RT / 会话残留由调用方用 `clearRefreshTokensForDevice` +
+   * `deleteAuthSessionsForDevice` 清（与 `seedLoggedInDevice` 的「登出」口径一致）。
+   */
+  clearAuth(): void {
+    this.auth = null
+  }
+
   /** 裸 fetch（不带签名头）。XFF / UA 等完全由调用方决定 */
-  async rawFetch(method: string, path: string, options: { body?: unknown, headers?: Record<string, string> } = {}): Promise<Response> {
+  async rawFetch(method: HttpMethod, path: string, options: { body?: unknown, headers?: Record<string, string> } = {}): Promise<Response> {
     const response = await fetch(`${this.apiBase}${path}`, {
       method,
       headers: {
@@ -133,9 +175,26 @@ export class WalnutProtocolClient {
     return response
   }
 
-  /** 统一请求：签名头按登录状态现算；Set-Cookie 回写 jar；返回业务壳 */
+  /**
+   * 统一请求：签名头按登录状态现算；Set-Cookie 回写 jar；返回业务壳。
+   *
+   * 泛型默认值来自 `@walnut/api-types` 的生成物（`paths[路径][方法]` 的 200 响应 `data`）：
+   * 路径是契约里的字面量常量时，响应字段改名 / 改嵌套会让 `types:check` 直接指出调用点。
+   * 调用点仍可显式覆盖（`request<string>` / `request<{ ... }>`）—— 动态拼接的路径（含运行时 id）
+   * 在类型层对不上生成物，本来就只能靠调用方声明。
+   */
+  request<P extends string, M extends HttpMethod>(
+    method: M,
+    path: P,
+    options?: RequestOptions,
+  ): Promise<WalnutEnvelope<EndpointData<P, M>>>
+  request<T>(
+    method: HttpMethod,
+    path: string,
+    options?: RequestOptions,
+  ): Promise<WalnutEnvelope<T>>
   async request<T = Record<string, unknown>>(
-    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    method: HttpMethod,
     path: string,
     options: RequestOptions = {},
   ): Promise<WalnutEnvelope<T>> {
@@ -150,7 +209,7 @@ export class WalnutProtocolClient {
     }
 
     if (body.code !== WalnutAdminConstAppResponseCode.SUCCESS) {
-      throw new Error(`[e2e/protocol] ${method} ${path} 失败：HTTP ${response.status} code=${body.code} msg=${body.msg ?? ''}`)
+      throw new WalnutProtocolRequestError(method, path, response.status, body.code, body.msg, body.meta)
     }
 
     return body
@@ -161,7 +220,7 @@ export class WalnutProtocolClient {
    * `@WalnutAdminDecoratorFreeResponse`）—— 仍走签名规则与 cookie jar。
    */
   async requestFree<T>(
-    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    method: HttpMethod,
     path: string,
     options: RequestOptions = {},
   ): Promise<T> {
@@ -177,7 +236,7 @@ export class WalnutProtocolClient {
 
   /** 真正发请求：签名头 / cookie / UA 都在这里装配 */
   private async signedFetch(
-    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    method: HttpMethod,
     path: string,
     options: RequestOptions,
   ): Promise<Response> {
@@ -244,9 +303,26 @@ export class WalnutProtocolClient {
     }
   }
 
-  /** 便捷：已登录请求（Authorization + 双因子签名） */
+  /**
+   * 便捷：已登录请求（Authorization + 双因子签名）。
+   *
+   * 与 {@link request} 同一套泛型规则：默认返回 200 响应壳里的 `data`（生成物推导），
+   * 调用点可用显式泛型覆盖（手写形状或 `@walnut/api-types` 的别名）。
+   */
+  root<P extends string, M extends HttpMethod>(
+    method: M,
+    path: P,
+    body?: unknown,
+    headers?: Record<string, string>,
+  ): Promise<EndpointData<P, M>>
+  root<T>(
+    method: HttpMethod,
+    path: string,
+    body?: unknown,
+    headers?: Record<string, string>,
+  ): Promise<T>
   async root<T = Record<string, unknown>>(
-    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    method: HttpMethod,
     path: string,
     body?: unknown,
     headers: Record<string, string> = {},
@@ -269,14 +345,59 @@ export class WalnutProtocolClient {
    */
   async bootstrap(options: { headers?: Record<string, string> } = {}): Promise<void> {
     // 1. 设备登记（sign-free / cap-free / device-free）：服务端签发 DEVICE_ID cookie
-    const device = await this.request<{ deviceId: string }>('POST', SystemEndpointRoutes.DEVICE_INITIAL, {
-      sign: false,
-      headers: options.headers,
-      body: { deviceInfo: {}, hardwareInfo: {}, sr: { height: 1080, width: 1920 }, vp: { height: 900, width: 1600 }, private: false },
-    })
-    this._deviceId = device.data.deviceId
+    //
+    // 42900 = device/initial 的 4 次 / 60 秒 per realIp 桶命中。正常路径每个客户端一个
+    // 独立地址（pid 偏移起步），这里是**兜底**：撞桶时换下一个地址立即重放，不做 sleep。
+    // 其他错误（40099 / 50000 / 网络）不重试 —— 换地址也救不了。
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const device = await this.request('POST', SystemEndpointRoutes.DEVICE_INITIAL, {
+          sign: false,
+          headers: options.headers,
+          body: { deviceInfo: {}, hardwareInfo: {}, sr: { height: 1080, width: 1920 }, vp: { height: 900, width: 1600 }, private: false },
+        })
+        // 字段级判据（P1-4）：生成类型已把这里的 `deviceId` 钉成 string；运行时再确认一次，
+        // 缺字段 / 改名时错误消息直接说明是响应形态漂移，而不是后面某个用例拿到 undefined 才炸。
+        if (typeof device.data.deviceId !== 'string' || device.data.deviceId === '') {
+          throw new Error(`[e2e/protocol] device/initial 响应缺 deviceId（生成类型与运行时不一致？）：${JSON.stringify(device.data)}`)
+        }
+        this._deviceId = device.data.deviceId
+        break
+      }
+      catch (error) {
+        if (
+          attempt < BOOTSTRAP_REAL_IP_RETRY_LIMIT
+          && error instanceof WalnutProtocolRequestError
+          && error.code === WalnutAdminConstAppResponseCode.TOO_MANY_REQUESTS
+        ) {
+          this.realIp = uniqueLocalIp()
+          continue
+        }
+        throw error
+      }
+    }
 
     // 2. CAP：challenge → 本地 PoW 求解 → redeem（服务端种 CAPJS_TOKEN cookie）
+    await this.refreshCapToken()
+
+    // 3. 签名握手：提交客户端 RSA 公钥 → 拿被加密的 aesKey → 本地私钥解密
+    await this.request('POST', SecurityRoutes.SIGN_INITIAL, {
+      sign: false,
+      body: { rsaPubKey: this.rsa.publicKeyPem, force: false },
+    })
+    const aesKeyBody = await this.request('POST', SecurityRoutes.SIGN_AES_KEY, { sign: false })
+    this.aesKey = decryptAesKeyEnvelope(this.rsa.privateKeyPem, aesKeyBody.data.aesKey)
+    this.hkdfInfo = aesKeyBody.data.hkdfInfo
+  }
+
+  /**
+   * 重新领一枚 CAP token：challenge → 本地 PoW 求解 → redeem。
+   *
+   * 从 {@link bootstrap} 拆出来的原因：U13 的 40111 分支要证明「伪造凭据被拒之后，
+   * 换一枚真凭据重放同一请求能成功」—— 那一步需要单独刷新 CAP 而不重走设备登记 / 握手。
+   * 服务端在 redeem 里用 Set-Cookie 种新的 `CAPJS_TOKEN`（signed），本方法靠 cookie jar 自动接住。
+   */
+  async refreshCapToken(): Promise<void> {
     const challenge = await this.requestFree<{ challenge: { c: number, s: number, d: number }, token: string }>(
       'POST',
       SecurityRoutes.CAP_CHALLENGE,
@@ -290,15 +411,6 @@ export class WalnutProtocolClient {
     if (redeem.success !== true) {
       throw new Error(`[e2e/protocol] CAP redeem 失败：${JSON.stringify(redeem)}`)
     }
-
-    // 3. 签名握手：提交客户端 RSA 公钥 → 拿被加密的 aesKey → 本地私钥解密
-    await this.request('POST', SecurityRoutes.SIGN_INITIAL, {
-      sign: false,
-      body: { rsaPubKey: this.rsa.publicKeyPem, force: false },
-    })
-    const aesKeyBody = await this.request<{ aesKey: string, hkdfInfo: string }>('POST', SecurityRoutes.SIGN_AES_KEY, { sign: false })
-    this.aesKey = decryptAesKeyEnvelope(this.rsa.privateKeyPem, aesKeyBody.data.aesKey)
-    this.hkdfInfo = aesKeyBody.data.hkdfInfo
   }
 
   /**
@@ -344,14 +456,29 @@ export class WalnutProtocolClient {
    * 幂等：库里已有该用户的 totp 行时 generate 会 40001（DataExists）——stack.setup 会先清行。
    */
   async bindTotp(): Promise<string> {
+    const { secret } = await this.bindTotpWithBackupCodes()
+    return secret
+  }
+
+  /**
+   * 同 {@link bindTotp}，但把 bind 响应里的**备用码**一并返回（恢复码矩阵用例需要）。
+   *
+   * 备用码只在 bind 响应里出现一次（服务端只存哈希后的密文，没有回读通道）——
+   * 需要一次性验证的用例必须在这里接住，不能事后再取。
+   */
+  async bindTotpWithBackupCodes(): Promise<{ secret: string, backupCodes: string[] }> {
     const generated = await this.root<{ totpId: string, secret: string }>('POST', SystemEndpointRoutes.USER_MFA_TOTP_GENERATE)
     const code = generateSync({ secret: generated.secret })
 
-    await this.root('POST', SystemEndpointRoutes.USER_MFA_TOTP_BIND, {
+    const bound = await this.root<{ backupCodes: string[] }>('POST', SystemEndpointRoutes.USER_MFA_TOTP_BIND, {
       name: 'e2e-totp',
       code,
       tempTotpId: generated.totpId,
     })
+
+    if (!Array.isArray(bound.backupCodes) || bound.backupCodes.length === 0) {
+      throw new Error(`[e2e/protocol] totp/bind 响应缺 backupCodes（生成类型与运行时不一致？）：${JSON.stringify(bound)}`)
+    }
 
     const verified = await this.root<{ accessToken: string }>('POST', AuthRoutes.MFA_VERIFY, { trusted: true })
     if (this.auth !== null && verified.accessToken !== undefined) {
@@ -359,20 +486,35 @@ export class WalnutProtocolClient {
       this.auth = { ...this.auth, accessToken: verified.accessToken }
     }
 
-    return generated.secret
+    return { secret: generated.secret, backupCodes: bound.backupCodes }
   }
 
   /**
    * 已绑定 MFA 的**新设备**登录后的第二步：用 TOTP 完成设备级验证（trusted=true ⇒ 写
    * 设备级 verified 缓存，后续请求不再被 mfa.guard 拦）。
    *
+   * `options.trusted` 默认 true（既有调用方口径不变）；U14 的「未 trusted 设备」对照
+   * 显式传 false —— 那正是 `sys_user_device.trusted=false` 的产生路径（admin 的 MFA 页面
+   * 复选框默认也是未勾选）。
+   *
    * 与 {@link bindTotp} 的 `/auth/mfa/verify` 不是同一条：那是「刚绑完、确认状态」；
    * 这条是日常登录链上的 `/system/user/mfa/totp/verify`（revoke-and-insert 轮换 RT）。
    */
-  async verifyTotpForDevice(totpSecret: string): Promise<void> {
+  async verifyTotpForDevice(totpSecret: string, options: { trusted?: boolean } = {}): Promise<void> {
+    return this.verifyMfaCode(generateSync({ secret: totpSecret }), options)
+  }
+
+  /**
+   * 用**任意** MFA 码完成设备级验证：TOTP 六位码或备用码（恢复码）都走同一端点
+   * （服务端先 TOTP、失败回落备用码，见 P3-23）。
+   *
+   * 与 {@link verifyTotpForDevice} 分开的原因：备用码不是由 secret 现算的，只能从 bind
+   * 响应里拿到（一次性，见 {@link bindTotpWithBackupCodes}）。
+   */
+  async verifyMfaCode(code: string, options: { trusted?: boolean } = {}): Promise<void> {
     const verified = await this.root<{ accessToken: string }>('POST', SystemEndpointRoutes.USER_MFA_TOTP_VERIFY, {
-      code: generateSync({ secret: totpSecret }),
-      trusted: true,
+      code,
+      trusted: options.trusted ?? true,
     })
     if (this.auth !== null && verified.accessToken !== undefined) {
       this.auth = { ...this.auth, accessToken: verified.accessToken }

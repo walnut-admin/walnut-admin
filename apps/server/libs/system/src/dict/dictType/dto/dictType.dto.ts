@@ -123,14 +123,13 @@ export class SysDictTypeDTOCreateResponse extends SysDictTypeDTOSafe { }
 // read
 export class SysDictTypeDTOReadResponse extends SysDictTypeDTOSafe { }
 
-// update
-export class SysDictTypeDTOUpdateRequest extends IntersectionType(RealPickType(
-  SysDictTypeDTOSafe,
-  ['type', 'name', 'status'] as const,
-), RealPartialType(RealPickType(
-  SysDictTypeDTOSafe,
-  ['description'] as const,
-))) { }
+// update —— 白名单同 create 的可选形态 + 真 PATCH 语义（preserveAbsent，2026-11 F2）：
+// 请求里没出现的键保持 undefined（不被字段装饰器的 nil→null 伪造），service 滤掉后
+// 未给列不进 UPDATE；显式 null 仍是有意的清空。
+export class SysDictTypeDTOUpdateRequest extends RealPartialType(
+  RealPickType(SysDictTypeDTOSafe, ['type', 'name', 'status', 'description'] as const),
+  { preserveAbsent: true },
+) { }
 export class SysDictTypeDTOUpdateResponse extends SysDictTypeDTOSafe { }
 
 // delete

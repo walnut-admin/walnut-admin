@@ -5,9 +5,11 @@ import { computed, ref } from 'vue'
 import { forceQuitUserDeviceAPI, listUserDevicesAPI, lockUserDeviceAPI, unlockUserDeviceAPI, updateUserDeviceNameAPI } from '@/api/system/user_device'
 import { useForm } from '@/components/UI/Form'
 import { useTable } from '@/components/UI/Table'
+import { AppConstLockMode } from '@/const/app'
 import { useAppMsgSuccess } from '@/hooks/component/useMessage'
 
 import { useAppI18n } from '@/locales/index'
+import { useAppStoreLock } from '@/store/modules/app/app-lock'
 
 defineOptions({
   name: 'WAccountSettingsTabSecurityTab3Device',
@@ -15,6 +17,7 @@ defineOptions({
 })
 
 const { t } = useAppI18n()
+const appStoreLock = useAppStoreLock()
 const visible = ref(false)
 
 const { stateRef: updateDeviceNameData, resetState: resetUpdateDeviceNameFormData } = useState({ deviceId: '', deviceName: '' })
@@ -47,6 +50,77 @@ const [registerUpdatePassword, { onOpen: onOpenUpdateDeviceNameModal }] = useFor
     },
   ],
 })
+
+/**
+ * security 模式解除某台已登录设备的锁屏需要锁屏密码（服务端 `SysUserLockUnLockDto`）。
+ * default / idle 仍然免密直接解 —— 只在该用户当前偏好是 security 时弹这一步。
+ */
+const { stateRef: unlockDeviceData, resetState: resetUnlockDeviceFormData } = useState({ deviceId: '', deviceName: '', lockPwdHash: '' })
+
+const [registerUnlockDevice, { onOpen: onOpenUnlockDeviceModal }] = useForm<typeof unlockDeviceData.value>({
+  dialogPreset: 'modal',
+  baseRules: true,
+  labelWidth: 120,
+  xGap: 0,
+
+  dialogProps: {
+    title: computed(() => t('app.security.lock.unlockDevice')),
+    width: '40%',
+    onYes: onUnlockDeviceYes,
+    onNo: (done) => {
+      resetUnlockDeviceFormData()
+      done()
+    },
+  },
+
+  schemas: [
+    {
+      type: 'Extra:Password',
+      formProp: {
+        path: 'lockPwdHash',
+        label: computed(() => t('app.security.lock.pwd')),
+        first: true,
+        rule: [
+          {
+            key: 'lockPwdHash',
+            type: 'string',
+            min: 6,
+            max: 64,
+            required: true,
+            message: t('app.security.lock.invalidPwd'),
+          },
+        ],
+      },
+      componentProp: {
+        capslock: true,
+      },
+    },
+  ],
+})
+
+async function onUnlockDevice(rowData: SystemUserDeviceListItem) {
+  const deviceId = rowData.deviceId!
+
+  if (appStoreLock.getLockMode !== AppConstLockMode.SECURITY) {
+    await doUnlockDevice(deviceId, '')
+    return
+  }
+
+  unlockDeviceData.value.deviceId = deviceId
+  unlockDeviceData.value.deviceName = rowData.deviceName ?? ''
+  unlockDeviceData.value.lockPwdHash = ''
+  onOpenUnlockDeviceModal()
+}
+
+async function onUnlockDeviceYes(_: any, done: () => void) {
+  try {
+    await doUnlockDevice(unlockDeviceData.value.deviceId, unlockDeviceData.value.lockPwdHash)
+    resetUnlockDeviceFormData()
+  }
+  finally {
+    done()
+  }
+}
 
 const [register, { onApiList }] = useTable<SystemUserDeviceListItem>({
   bordered: true,
@@ -230,12 +304,7 @@ const [register, { onApiList }] = useTable<SystemUserDeviceListItem>({
             textProp: () => t('app.base.unlockDevice'),
           },
           async onPresetClick(rowData) {
-            await unlockUserDeviceAPI({ deviceId: rowData.deviceId! })
-            useAppMsgSuccess()
-            const timeId = setTimeout(async () => {
-              await onApiList()
-              clearTimeout(timeId)
-            }, 1000)
+            await onUnlockDevice(rowData)
           },
         },
         {
@@ -265,6 +334,15 @@ const [register, { onApiList }] = useTable<SystemUserDeviceListItem>({
     },
   ],
 })
+
+async function doUnlockDevice(deviceId: string, lockPwdHash: string) {
+  await unlockUserDeviceAPI({ deviceId, lockPwdHash })
+  useAppMsgSuccess()
+  const timeId = setTimeout(async () => {
+    await onApiList()
+    clearTimeout(timeId)
+  }, 1000)
+}
 
 async function onUpdateDeviceNameYes(_: any, done: () => void) {
   try {
@@ -296,5 +374,7 @@ defineExpose({
     <WTable @hook="register" />
 
     <WForm :model="updateDeviceNameData" @hook="registerUpdatePassword" />
+
+    <WForm :model="unlockDeviceData" @hook="registerUnlockDevice" />
   </WModal>
 </template>

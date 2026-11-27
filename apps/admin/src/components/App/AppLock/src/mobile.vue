@@ -3,7 +3,7 @@ import { useNow } from '@vueuse/core'
 import { useSharedBattery } from '@walnut/client/hooks/vueuse/useBattery'
 import { computed } from 'vue'
 import Network from './components/Network.vue'
-import UnlockButton from './components/UnlockButton.vue'
+import UnlockPanel from './components/UnlockPanel.vue'
 
 const { level, charging } = useSharedBattery()
 const now = useNow()
@@ -12,7 +12,7 @@ const getPercentLevel = computed(() => level.value * 100)
 
 <template>
   <div class="relative m-auto h-full w-full overflow-hidden">
-    <UnlockButton class="z-20" />
+    <UnlockPanel />
 
     <div class="absolute left-1/2 top-16 z-20 -translate-x-1/2">
       <div class="flex flex-col items-center gap-y-8">

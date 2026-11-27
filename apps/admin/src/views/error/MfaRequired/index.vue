@@ -133,6 +133,7 @@ onBeforeMount(async () => {
         :bordered="true"
         class="relative cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-lg"
         :class="method.recommended ? 'ring-2 ring-blue-400' : ''"
+        :data-testid="`mfa-required-method-${method.key}`"
         @click="() => method.enabled ? noop : method.onBind!()"
       >
         <n-tag
@@ -210,6 +211,7 @@ onBeforeMount(async () => {
         class="w-32 tracking-widest"
         :disabled="!getButtonCanClick || loading"
         round
+        test-id="mfa-required-verify-btn"
         @click="onVerifyMfa"
       >
         {{ $t('app.base.verify') }}

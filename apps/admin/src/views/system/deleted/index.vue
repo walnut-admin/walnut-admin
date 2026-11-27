@@ -65,6 +65,8 @@ const [
   baseAPI: deletedAPI,
 
   tableProps: {
+    // E2E：回收站闭环用表格定位待恢复行；详情/恢复按钮按行作用域取，批量真删走表头
+    testId: 'deleted-list-table',
     localeUniqueKey: localeKey,
     rowKey: row => row[keyField]!,
     striped: true,
@@ -74,6 +76,7 @@ const [
     headerLeftBuiltInActions: [
       {
         _builtInType: 'delete',
+        testId: 'deleted-delete-many-btn',
         onPresetClick() {
           onDeleteManyConfirm()
         },
@@ -223,6 +226,7 @@ const [
         columnBuiltInActions: [
           {
             _builtInType: 'detail',
+            testId: 'deleted-detail-btn',
             async onPresetClick(rowData) {
               await onReadAndOpenUpdateForm(rowData[keyField]!)
             },
@@ -231,6 +235,7 @@ const [
         columnExtraActions: [
           {
             _builtInType: 'recover',
+            testId: 'deleted-recover-btn',
             confirm: true,
             buttonProps: {
               textProp: () => t('table.deleted.recover'),
