@@ -50,11 +50,11 @@ services:
       # 任一依赖挂 → 503。镜像内是 Node，用 fetch 断言 r.ok —— wget/curl 只看「有响应」，
       # 对状态码 / body 不敏感。探针在 nginx 上被挡（/health/ → 404），只走编排内网。
       test:
-          - CMD
-          - node
-          - -e
-          - "fetch('http://127.0.0.1:3000/health/ready', { signal: AbortSignal.timeout(5000) }).then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
-        
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/health/ready', { signal: AbortSignal.timeout(5000) }).then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+
       interval: 30s
       timeout: 5s
       retries: 3
