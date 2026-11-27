@@ -139,7 +139,7 @@ jobs:
           printf '%s\n' "$ENV_KEYS" > .env.keys
           pnpm setup-env
           rm -f .env.keys
-          echo "env-local 解密完成：admin $(ls apps/admin/env-local | wc -l) 项、server $(ls apps/server/env-local | wc -l) 项"
+          echo "env-local 解密完成：admin $(find apps/admin/env-local -maxdepth 1 -type f | wc -l) 项、server $(find apps/server/env-local -maxdepth 1 -type f | wc -l) 项"
 
       # `@walnut/utils` / `@walnut/contract` 的 CJS dist 是 E2E 的硬前置（sign-raw / contract bridge
       # 走 require），也是 dataKey 计算的隐式前置。先全量构建，再产出两处 stage 产物 —— 顺序即依赖。
@@ -271,7 +271,7 @@ jobs:
           printf '%s\n' "$ENV_KEYS" > .env.keys
           pnpm setup-env
           rm -f .env.keys
-          echo "env-local 解密完成：admin $(ls apps/admin/env-local | wc -l) 项、server $(ls apps/server/env-local | wc -l) 项"
+          echo "env-local 解密完成：admin $(find apps/admin/env-local -maxdepth 1 -type f | wc -l) 项、server $(find apps/server/env-local -maxdepth 1 -type f | wc -l) 项"
 
       # 下载 prepare 打好的产物，解到 workspace 根：bundle 内的路径与仓库相对路径一致
       # （upload 侧多路径取最近公共祖先后保留结构，见 prepare 的 Upload stage bundle）。
