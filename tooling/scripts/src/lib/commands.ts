@@ -622,6 +622,13 @@ export const COMMANDS: readonly Command[] = [
     argv: ['exec', 'walnut-db-seed-pg'],
   },
   {
+    id: 'db:credential-check',
+    group: '数据库',
+    label: '口令凭证探针：密文可解 + valueHash 自洽',
+    why: '凭证绑定面变更（OPAQUE identifiers / ① 的 AES 信封）会让旧行静默 40103；部署后先跑它，比逐账号试登录快且不触发风控。',
+    argv: ['exec', 'walnut-db-credential-check'],
+  },
+  {
     id: 'db:export:pg',
     group: '数据库',
     label: 'PG → 历史导出形态 Extended JSON',

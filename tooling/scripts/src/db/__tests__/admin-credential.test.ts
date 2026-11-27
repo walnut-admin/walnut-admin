@@ -19,6 +19,8 @@ import { REPO_ROOT } from '../../lib/repo-root.ts'
 import {
   buildOpaqueIdentifiers,
   buildPasswordIdentity,
+  decryptIdentityValue,
+  encryptIdentityValue,
   OPAQUE_SERVER_IDENTIFIER,
   verifyPasswordIdentity,
 } from '../admin-credential.ts'
@@ -123,6 +125,29 @@ describe('buildPasswordIdentity（--admin 注册侧）', () => {
 
     // 明文仍单独留一份给登录自验（不入库）
     expect(identity.registrationRecord).toBe('registration-record')
+  })
+})
+
+describe('decryptIdentityValue（encryptIdentityValue 的镜像，供 db:credential-check 用）', () => {
+  const plain = 'spec-registration-record-用于探针往返'
+
+  it('encrypt → decrypt 往返还原明文（iv || ciphertext || authTag + AAD 同口径）', () => {
+    const encrypted = encryptIdentityValue(plain, ENC_KEY)
+    expect(decryptIdentityValue(encrypted, ENC_KEY)).toBe(plain)
+  })
+
+  it('换一把密钥 ⇒ 解密抛错（AES-GCM auth tag 失败，不返回半截明文）', () => {
+    const encrypted = encryptIdentityValue(plain, ENC_KEY)
+    const otherKey = Buffer.alloc(32, 9).toString('base64')
+    expect(() => decryptIdentityValue(encrypted, otherKey)).toThrowError(/unable to authenticate|Unsupported state/)
+  })
+
+  it('① 之前的旧明文行（不是信封）⇒ 解密抛错，供探针判 stale-format', () => {
+    expect(() => decryptIdentityValue('this-is-a-plain-registration-record', ENC_KEY)).toThrowError(/长度不足|unable to authenticate|Unsupported state/)
+  })
+
+  it('密钥不是 32 字节 ⇒ 明确报错（不静默解出空串）', () => {
+    expect(() => decryptIdentityValue('AAAA', Buffer.alloc(16, 1).toString('base64'))).toThrowError(/32 字节/)
   })
 })
 

@@ -19,6 +19,7 @@
 | `walnut-check-git-hooks` | `pnpm walnut hooks:check` | 断言 git 钩子由 lefthook 托管（防门禁静默消失） |
 | `walnut-ci-local` | `pnpm walnut ci:local` | 本地复刻 CI 的构建类步骤（顺序执行，四态退出码） |
 | `walnut-db-seed-pg` | `pnpm walnut db:seed:pg` | 仓内 seed **行数组** → PG（按主键 upsert，幂等可重放；CI/部署通道） |
+| `walnut-db-credential-check` | `pnpm walnut db:credential-check` | 只读探针：口令身份行密文可解 + valueHash 自洽（stale ⇒ 退出码 1） |
 | `walnut-db-export-pg` | `pnpm walnut db:export:pg` | PG → **历史导出**形态 Extended JSON（uuid 本体；消费方是 reshape / 人工 review） |
 | `walnut-db-seed-reshape` | `pnpm walnut db:seed:reshape` | 历史导出 → **PG 行形态** seed 目录（`{ id, … }` + junction 独立文件） |
 | `walnut-db-verify-seed` | `pnpm walnut db:seed:verify` | 双库对拍：旧 seed + 旧管线 与 新 seed 各灌一个空库，逐表逐列 + 导出文件比 |

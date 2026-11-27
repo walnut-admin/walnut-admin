@@ -45,7 +45,12 @@ pnpm walnut db:seed:pg --only sys_role    # 只播某几个集合
 ```bash
 pnpm walnut lint:seed                                   # 形态门禁：必需/禁入表、体积、凭据形状、引用完整性、无 EJSON 残留
 pnpm walnut db:seed:pg --admin <账号> --password <口令>   # 在**本环境**给某账号建口令凭证并当场验证登录
+pnpm walnut db:credential-check                         # 只读探针：库存口令行能否被当前 env 解密、valueHash 是否自洽
 ```
+
+`db:credential-check` 是凭证绑定面（OPAQUE identifiers / ① 的 AES 信封 / `USER_ID_*` 密钥）
+变更后的第一道排查：逐行列出 `ok` / `stale-format` / `missing-identity` 与修复命令，任一行
+不可用即退出码 1，可直接进自动化；它只读，不触发登录失败计数与风控。
 
 **再生成真源是两步、不手写任何一行**：
 

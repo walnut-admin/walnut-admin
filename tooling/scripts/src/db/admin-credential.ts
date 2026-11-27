@@ -29,7 +29,7 @@
  * 也是这条命令与"随便插一条记录"的区别。验证用**明文** registration record（解密后的形态）。
  */
 import { Buffer } from 'node:buffer'
-import { createCipheriv, createHmac, randomBytes } from 'node:crypto'
+import { createCipheriv, createDecipheriv, createHmac, randomBytes } from 'node:crypto'
 import { client, server } from '@serenity-kit/opaque'
 
 /** 口令身份的固定形状（与服务端 `finishRegister` 一致） */
@@ -55,6 +55,40 @@ export function encryptIdentityValue(plain: string, keyBase64: string): string {
   cipher.setAAD(Buffer.from(IDENTITY_AAD, 'utf8'))
   const encrypted = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()])
   return Buffer.concat([iv, encrypted, cipher.getAuthTag()]).toString('base64')
+}
+
+/** AES-GCM auth tag 长度（16 字节，Node `cipher.getAuthTag()` 的固定输出） */
+const AES_GCM_TAG_LENGTH = 16
+
+/**
+ * `encryptIdentityValue` 的**镜像**：按服务端 `AppTechCryptoService.decrypt` 的口径
+ * 还原口令身份的明文 registration record（iv || ciphertext || authTag，base64；
+ * AAD `sys_user_identity`；key = `USER_ID_ENCRYPTION_KEY`）。
+ *
+ * 真源同 `encryptIdentityValue`：`libs/identity/.../user_identity.shared.service.ts` +
+ * `libs/crypto`。`db:credential-check` 用它判断库存行是「当前信封」还是「旧明文 / 换过密钥」。
+ * 解密失败一律抛错（调用方负责分类），不返回空串 —— 空串会被误判成合法记录。
+ */
+export function decryptIdentityValue(encrypted: string, keyBase64: string): string {
+  const key = Buffer.from(keyBase64, 'base64')
+  if (key.length !== 32) {
+    throw new Error(`USER_ID_ENCRYPTION_KEY 必须是 32 字节的 base64（实际解出 ${key.length} 字节）`)
+  }
+
+  const data = Buffer.from(encrypted, 'base64')
+  if (data.length < AES_GCM_IV_LENGTH + AES_GCM_TAG_LENGTH) {
+    throw new Error(
+      `身份密文长度不足（实际 ${data.length} 字节，至少 ${AES_GCM_IV_LENGTH + AES_GCM_TAG_LENGTH}）—— 不是 AES-GCM 信封`,
+    )
+  }
+
+  const iv = data.subarray(0, AES_GCM_IV_LENGTH)
+  const authTag = data.subarray(data.length - AES_GCM_TAG_LENGTH)
+  const ciphertext = data.subarray(AES_GCM_IV_LENGTH, data.length - AES_GCM_TAG_LENGTH)
+  const decipher = createDecipheriv('aes-256-gcm', key, iv)
+  decipher.setAAD(Buffer.from(IDENTITY_AAD, 'utf8'))
+  decipher.setAuthTag(authTag)
+  return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8')
 }
 
 /** HMAC-SHA256(盐=USER_ID_HASH_SALT, 明文 record) → hex（与 generateValueHash 一致） */
