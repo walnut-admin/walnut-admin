@@ -117,23 +117,7 @@ export namespace IRequestPayload {
     }
   }
 
-  export namespace Security {
-    export namespace Sensitive {
-      /**
-       * `POST /security/sensitive/verify` 的请求体（server 的 `SecuritySensitiveVerifyRequestDTO`）。
-       *
-       * 四项都必填：`level` / `operationType` 来自 40119 响应的 `meta`（守卫装饰器元数据，
-       * 客户端推导不出来）；`method` 是服务端口径（password/sms/mfa/email），组件那套
-       * sms/email/totp/webauthn 的映射在 `utils/axios/interceptors/response/sensitiveVerify.ts`。
-       */
-      export interface Verify {
-        level: string
-        operationType: string
-        method: string
-        credential: string
-      }
-    }
-  }
+  export namespace Security {}
 
   export namespace Shared {}
 

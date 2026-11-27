@@ -9,11 +9,11 @@ name: E2E (nightly)
 #
 # **矩阵：stack-per-profile（P1-6 Phase A，2026-11-26）**
 # - 五个 job 并行，每个 job 一个 profile（`smoke` / `risk` / `network` / `pages` / `journey`），
-#   `fail-fast: false`：一个 profile 红，其余 job 照跑（失败隔离）。前三个 job 的并集是改造前
-#   `pnpm walnut e2e` 的覆盖面（`@network` 只由 network job 跑；risk 的 grepInvert 不变）；
-#   `pages` / `journey` 是扩面批次（E4 / E5）的 profile —— **spec 落地前这两个 job 预期红**
-#   （Playwright 对空 project 报 "No tests found" 并退出非零）。这是诚实状态：不要用
-#   `if: false` / 空 spec 把它洗成绿，E4 / E5 会分别把 `tests/pages/`、`tests/journey/` 填上。
+#   `fail-fast: false`：一个 profile 红，其余 job 照跑（失败隔离）。前三个 job 覆盖改造前的
+#   default 面（`@network` 只由 network job 跑；risk 的 grepInvert 不变）；`pages` / `journey`
+#   是扩面批次（E4 / E5'）的 profile —— **spec 已落地**（`tests/pages/` 与 `tests/journey/`
+#   的 J1–J10），五个 job 现在是**预期绿**。历史说明保留：不要用 `if: false` / 空 spec
+#   把空 project 洗成绿；落地前那段时间它们确实以 "No tests found" 红过，那是诚实状态。
 # - 每个 job 独立 checkout + 独立 services（PG / Redis），天然隔离；`E2E_STACK_PROFILE` 决定库名、
 #   后端 / socket / 静态代理端口与基线目录（见 apps/e2e/scripts/stack-profiles.ts，单一真源）。
 #   五套 profile 的端口 / 库名 / IP 段 / 锁 key 互不重叠（单测钉住）。
@@ -200,8 +200,8 @@ jobs:
       # 失败隔离：一个 profile 红，其余 job 照跑（设计稿 P1-6 的验收）
       fail-fast: false
       matrix:
-        # pages / journey 是扩面批次（E4 / E5）的 profile：spec 落地前这两个 job 预期红
-        # （见文件头「矩阵」一节）。五个 job 的基线缓存首轮均 miss → 各自全量 prepare + seal。
+        # pages / journey 是扩面批次（E4 / E5'）的 profile，spec 已落地（预期绿）。
+        # 五个 job 的基线缓存首轮均 miss → 各自全量 prepare + seal（见文件头「矩阵」一节）。
         profile: [smoke, risk, network, pages, journey]
     env:
       # secrets 上下文不能出现在 `if` 里 → 绑到 job 级 env，在 step 的 shell 里判断（见文件头硬约束 1）
@@ -344,14 +344,22 @@ jobs:
 
       # 兜底脱敏：主路径已在 scripts/start-backend.ts 的写入处脱敏；这里防「包装脚本没跑成 /
       # 文件被别的路径写脏」。artifact 一旦上传就不可收回，多跑一遍是毫秒级成本。
+      # `id: redact` 是下一步上传闸门的判据：脱敏失败 ⇒ outcome != success ⇒ 不传 artifact
+      # （口径「宁可少 artifact，不可泄露」—— 见下面 upload 步骤的 if）。
       - name: Redact backend log (defense in depth)
+        id: redact
         if: always()
         run: node apps/e2e/scripts/redact-log.ts apps/e2e/test-results/backend.log
 
       # **严格口径**：只这五样，文件名带 profile（每个 job 独立 checkout，路径不冲突）。
       # `include-hidden-files` 是为 `.e2e/`（点目录）里的 stack.json 与基线清单 —— 默认会跳过。
+      #
+      # **脱敏失败宁可少 artifact，不可泄露**：redact 步骤是 `if: always()` 的兜底，它失败时
+      # `backend.log` 可能仍是明文（含 lockPwdHash / credential / token）。上传步骤因此也必须显式
+      # 要求 `steps.redact.outcome == 'success'` —— 不能只靠 `always()`（那会在 redact 退出 1 时
+      # 照传）；其余四样不含请求体，但整份 artifact 宁可不传也不冒险。
       - name: Upload diagnostics (strict allow-list)
-        if: always()
+        if: always() && steps.redact.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: e2e-diagnostics-${{ matrix.profile }}

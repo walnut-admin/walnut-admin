@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import type { components } from '@walnut/api-types'
 import type { VerifyAuthMethod, VerifyAuthMethodType, VerifyAuthOptions, VerifyAuthSensitiveChallenge, VerifyAuthStep } from './types'
 import { WalnutAdminConstSysUserMfaType } from '@walnut/contract/mfa'
 import { computed, provide, ref, useTemplateRef, watch } from 'vue'
@@ -125,9 +126,13 @@ async function onVerifyCode(code: string) {
     if (sensitive) {
       // 40119：把码交给敏感验证端点（授权写 Redis，原请求由拦截器重放）。
       // 注意服务端的 method 词表是 password/sms/mfa/email —— 组件的 totp 对应 mfa。
+      //
+      // `level` / `operationType` 是 40119 `meta` 里的运行时字符串（服务端守卫装饰器的枚举），
+      // 这里按生成类型收口；非法值由服务端 controller 校验拒绝（40099），不在前端复制枚举表。
+      type SensitiveVerifyPayload = components['schemas']['SecuritySensitiveVerifyRequestDTO']
       await verifySensitiveAPI({
-        level: sensitive.level,
-        operationType: sensitive.operationType,
+        level: sensitive.level as SensitiveVerifyPayload['level'],
+        operationType: sensitive.operationType as SensitiveVerifyPayload['operationType'],
         method: toServerVerifyMethod(method.type),
         credential: code,
       })
@@ -180,7 +185,7 @@ async function onVerifyCode(code: string) {
  * 组件方法 → 服务端 `WalnutAdminConstVerifyMethod`。
  * totp/webauthn 在服务端同属 `mfa`（webauthn 不在敏感验证的可用方式里，这里只做穷举收口）。
  */
-function toServerVerifyMethod(type: VerifyAuthMethodType): string {
+function toServerVerifyMethod(type: VerifyAuthMethodType): components['schemas']['SecuritySensitiveVerifyRequestDTO']['method'] {
   if (type === 'sms' || type === 'email')
     return type
   return 'mfa'
