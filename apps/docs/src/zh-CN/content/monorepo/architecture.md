@@ -19,7 +19,7 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm
 | 任务编排 | Turborepo 2.9（任务拓扑 + 缓存 + 架构边界） |
 | 类型系统 | TypeScript 6.0（前端 ESM + 后端 CJS，双轨 toolchain） |
 | 代码检查 | ESLint 10.3 flat config + `@antfu/eslint-config` + `@walnut/eslint-config` |
-| 格式化 | ESLint stylistic（无 Prettier，`lint:fix` / lint-staged 即格式化入口） |
+| 格式化 | oxfmt（`oxfmt --check` 是唯一真源；ESLint 已 `stylistic: false`、`eslint-config-prettier` 兜底） |
 | 版本管理 | pnpm 原生 release management（`versioning.fixed` 单一组：**全部 workspace 包**永远同版本，组成员数由 `versioning-config.test.ts` 机械拦） |
 | 变更日志 | git-cliff 逐包渲染 `CHANGELOG.md`（PR 链接 + 贡献者）；`pnpm release` 另生成根 `changelog-latest.md` |
 | 死代码检测 | Knip 6.29（**当前是红的且有意维持**，见 [Knip](./knip.md)） |

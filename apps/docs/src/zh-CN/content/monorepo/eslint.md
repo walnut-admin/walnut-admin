@@ -2,7 +2,7 @@
 
 ## 概述
 
-Walnut Admin 使用 **ESLint 10.3 flat config** + `@antfu/eslint-config` 作为统一的代码检查方案。配置通过 `@walnut/eslint-config` 共享包分发给所有 workspace 成员。
+Walnut Admin 使用 **ESLint 10.3 flat config** + `@antfu/eslint-config` 作为统一的代码检查方案。配置通过 `@walnut/eslint-config` 共享包分发给所有 workspace 成员。**格式化已从 ESLint 拆出**，由 oxfmt 承担（见第 4 节）。
 
 ## 我们做了什么
 
@@ -65,9 +65,16 @@ export default nestConfig()
 
 ESLint 的类型感知规则（`ts/no-unsafe-*`）在 NestJS 中做了降级处理（`error` → `warn`）。原因：pnpm workspace symlink 下，TypeScript 的 ESLint 插件无法解析 `@walnut/contract` 中 `as const` 对象的字面类型。`tsc --noEmit` 本身零报错——这些 ESLint 告警是已知误报，见 [ADR-0012](/content/adr/0012-toolchain-divergence.md)。
 
-### 4. 格式化由 ESLint 承担
+### 4. 格式化由 oxfmt 承担（ESLint 退出格式职责）
 
-项目不使用 Prettier：没有 `.prettierrc`、没有 `eslint-config-prettier`、没有 `format` 脚本，`prettier` 也不在 catalog（此前仅作为 `@changesets/cli` 的传递依赖存在，该依赖已随 pnpm 原生发版迁移移除）。格式化规则由 ESLint（`@antfu/eslint-config` 内置的 stylistic 规则）统一承担，`lint:fix` 和 lint-staged 就是格式化入口。
+**格式的唯一真源是 oxfmt**（catalog 精确锁 `0.80.0`），ESLint 只留非格式规则：
+
+- 三个预设（`base` / `vue` / `nest`）的 `@antfu/eslint-config` 选项都是 `stylistic: false`，末尾再接 `eslint-config-prettier`（`eslint-config-prettier/flat`）兜底 —— 防止任何残留的格式类规则与 oxfmt 打架。`perfectionist` 的 import / export 排序不受 `stylistic: false` 影响，暂留 ESLint。决策沿革见 [ADR 0014](/content/adr/0014-eslint-config-strategy)。
+- oxfmt 配置在根 [`.oxfmtrc.json`](https://github.com/walnut-admin/walnut-admin/blob/main/.oxfmtrc.json)：`semi: false` / `singleQuote: true` / `tabWidth: 2` / `printWidth: 100` / `trailingComma: 'all'`。`sortPackageJson` 与 `sortImports` 刻意关闭（package.json 顺序归 catalog 规则、import 排序暂留 ESLint）；`*.md` 与生成物（`openapi.json` / `packages/generated/**` / `.changeset/ledger.yaml` 等）在 `ignorePatterns` 里不碰。
+- 命令：`pnpm walnut format:check`（`oxfmt --check .`）进推送前门禁表的 `format` 段与 CI；本地改完用 `pnpm walnut format:fix`（`oxfmt --write .`），改完仍要再跑一次 check。
+- lint-staged 顺序固定为 `oxfmt --write` → `oxlint --fix` → `eslint --fix`：先格式化、再做快速扫描、最后由 ESLint 处理它独有的面（`oxlint` 的位次就在 `oxfmt` 与 `eslint` 之间）。
+
+没有 `.prettierrc`，也没有独立的 prettier 依赖；`prettier` 不在 catalog（历史上仅作为 `@changesets/cli` 的传递依赖存在，该依赖已随 pnpm 原生发版迁移移除）。
 
 ### 5. Git Hooks 门禁
 
@@ -89,13 +96,17 @@ pre-push:
       run: pnpm --silent prepush        # 推送前门禁表（并行），见下
 ```
 
-staged 文件的匹配规则仍在根 `package.json` 的 `lint-staged` 块：
+staged 文件的匹配规则仍在根 `package.json` 的 `lint-staged` 块（数组形态，**顺序即语义**：先格式化再 lint，避免刚被 lint 过的文件又被改格式）：
 
 ```jsonc
 // package.json
 {
   "lint-staged": {
-    "*.{ts,vue,js}": "eslint --fix --concurrency=auto"
+    "*.{ts,vue,js}": [
+      "oxfmt --write",
+      "oxlint --fix",
+      "eslint --fix --concurrency=4"
+    ]
   }
 }
 ```
@@ -103,21 +114,22 @@ staged 文件的匹配规则仍在根 `package.json` 的 `lint-staged` 块：
 > 2026-08-08 起：pre-push 增加了 `turbo boundaries`（tag 架构边界检查）；lint-staged 移除了无效的 `*.md` 条目（ESLint preset 关闭 markdown 处理器后该条目静默无效）。
 > 2026-09-23 起：钩子改由 lefthook 托管，pre-push 收敛为单条 `pnpm --silent prepush`，并新增 `pnpm walnut hooks:check` 机械核对钩子是否真的装上。
 > 2026-09-23 起：仓库级文件全部 `.mjs` → `.ts`，`prepush` 增加 `pnpm walnut lint:root`（glob 从 `*.mjs *.json *.yaml` 改为 `*.ts *.json *.yaml`）——根级配置此前不被任何门禁覆盖；lint-staged 的模式同步改为 `*.{ts,vue,js}`。
+> 2026-11-27 起：格式化职责从 ESLint 拆到 oxfmt（三预设 `stylistic: false` + `eslint-config-prettier` 兜底），lint-staged 改成数组、把 `oxfmt --write` 放在 `eslint --fix` 之前（`oxlint` 的位次也钉在这两者之间）；推送前门禁表新增 `format` 段（`pnpm walnut format:check`）。
 
 分层策略：
 
 | 时机 | 做什么 | 耗时 |
 |------|--------|------|
-| pre-commit | ESLint fix on staged files | 秒级 |
+| pre-commit | `oxfmt --write` → `oxlint --fix` → `eslint --fix` on staged files | 秒级 |
 | commit-msg | commitlint 提交信息规范检查 | 秒级 |
-| pre-push | 架构边界 + 根级文件 lint（`pnpm walnut lint:root`）+ 全仓库类型检查 + syncpack 依赖一致性 + actionlint + `pnpm change check`（fixed 组锁步） | 十秒级 |
+| pre-push | 架构边界 + 根级文件 lint（`pnpm walnut lint:root`）+ 格式检查（`format` 段，`oxfmt --check`）+ 全仓库类型检查 + syncpack 依赖一致性 + actionlint + `pnpm change check`（fixed 组锁步） | 十秒级 |
 | CI | boundaries + affected lint/typecheck/test + affected 自检 + syncpack + `pnpm change check` + build | 分钟级 |
 
 ## 没做什么 / 为什么
 
-### 不用 oxlint / biome
+### oxlint / biome 的边界
 
-oxlint 和 biome（Rust 写的极速 linter）都不支持 Vue SFC（`.vue` 文件）。Walnut Admin 的前端是 Vue 3，这是 blocker。将来如果它们支持 Vue SFC，可以作为 ESLint 之前的第一道快速扫描层。
+oxlint 与 biome（Rust 写的极速 linter）对 Vue SFC（`.vue`）的支持仍不完整，所以**都不可能取代 ESLint**。本仓的用法是双轨：**oxlint 进 lint-staged 做第一道快速扫描**（位次在 `oxfmt --write` 与 `eslint --fix` 之间），Vue 模板、本地规则（`nest-local-rules` / `script-rules`）与类型感知规则继续留在 ESLint。biome 不用。配置形态见迁移评估文档。
 
 ### 不用 legacy `.eslintrc`
 
@@ -135,4 +147,5 @@ oxlint 和 biome（Rust 写的极速 linter）都不支持 Vue SFC（`.vue` 文�
 | [tooling/eslint-config/nest-local-rules.ts](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/eslint-config/nest-local-rules.ts) | NestJS 装饰器排序等本地规则插件 |
 | [tooling/eslint-config/script-rules.ts](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/eslint-config/script-rules.ts) | 脚本入口的两条本地规则（文件头 / 退出码四态），只作用于 `**/bin/*.ts` |
 | [tooling/eslint-config/base.ts](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/eslint-config/base.ts) | 平台无关基线预设（根入口 + 10 个 TS-only 包）；显式开 `pnpm: true` 以保住 catalog 规则 |
+| [.oxfmtrc.json](https://github.com/walnut-admin/walnut-admin/blob/main/.oxfmtrc.json) | oxfmt 配置（格式的唯一真源：缩进 / 引号 / 打印宽度 / 尾逗号 + `ignorePatterns`） |
 | [lefthook.yml](https://github.com/walnut-admin/walnut-admin/blob/main/lefthook.yml) | git 钩子唯一真源（pre-commit / commit-msg / pre-push） |

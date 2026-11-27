@@ -65,7 +65,7 @@ pnpm install          # 安装（pnpm 专用，由 packageManager 字段 + corep
 pnpm walnut           # 仓库级命令入口：不带参数进多选，带 id 直接执行，--list 查全部
 pnpm dev              # 前端 + 后端（前端 3100；后端需 PostgreSQL + Redis）
 pnpm build            # 全量构建（packages → apps）
-pnpm lint / lint:fix  # ESLint（stylistic 承担格式化，无 Prettier）
+pnpm lint / lint:fix  # ESLint（只查不格式化；格式化归 oxfmt，见纪律 12）
 pnpm lint:root        # 只 lint 根级配置（`turbo run lint:root` 的根任务要跑根上这个脚本）
 pnpm types:check      # 全仓类型检查（admin 用 vue-tsc、server 用 tsc strict、其余 tsc；docs 目前是跳过的）
 pnpm test             # vitest（哪些包有 test 任务以各包 package.json 为准）
@@ -103,6 +103,7 @@ pnpm setup-env        # 解密 env-encrypted/ → env-local/（需根 .env.keys�
 9. **存储迁移**：改动持久化结构时同步 `src/utils/persistent/migrate.ts`（admin 侧）。
 10. **不许新建 `.mjs` / `.cjs`**：配置、ESLint 预设、bin、构建脚本一律 `.ts`；所有 `.ts` 入口都由 Node 24 原生类型剥离执行（**仓库内已无任何 `tsx` 依赖** —— 连 `apps/admin` 的 `predev` 也改走 `node`），该约束由 `ts.json` 的 `erasableSyntaxOnly` 在编译期保证（ADR 0019）。
 11. **改文档要过门禁**：`pnpm walnut lint:docs-refs` 校验正文里引用的包名与仓库路径；`pnpm walnut lint:adr` 校验 ADR 形态（形状约定见 [`adr/index.md`](./apps/docs/src/zh-CN/content/adr/index.md)）；`pnpm walnut lint:doc-ts` 校验标成 `ts` 的代码块能按 TypeScript 解析（**JSON 别标成 `ts`**，有意伪代码写 `// @pseudo`）；`pnpm walnut lint:doc-budget` 校验常驻文件没膨胀；`pnpm walnut build:docs` 会因死链失败。**别在正文里写原始 `${{ }}`**（VitePress 当 Vue 插值，构建直接炸 —— 见 [`apps/docs/AGENTS.md`](./apps/docs/AGENTS.md)）。**也别写会腐烂的计数**（包数 / bin 数 / 依赖条目数）—— 那类数字没有门禁拦得住；优先写判据。细节见同一个文件的重要约定 8 / 9。
+12. **格式化**：唯一真源是 oxfmt（配置在根 `.oxfmtrc.json`，门禁 `pnpm walnut format:check`）；ESLint 已 `stylistic: false`、只用 `eslint-config-prettier` 兜底，lint-staged 顺序 `oxfmt --write` → `oxlint --fix` → `eslint --fix`（先格式化、再快速扫描、最后 ESLint）。别加回 Prettier，别手改格式。
 
 ## 资源
 
