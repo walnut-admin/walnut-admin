@@ -135,6 +135,12 @@ versioning:
       - '@walnut/scripts'
       - '@walnut/release'
 
+# 批次 8（P5c）实验态：catalog 换成 TNB 之后，**还要**用 overrides 强制传递依赖走同一包面。
+# 只改 catalog 时，未在 package.json 直接声明 typescript 的包仍会解析到 stock TS
+# （catalog 只管显式写 `catalog:` 的声明）；nest CLI 从仓库根解析，必须拿到 TNB 外壳。
+overrides:
+  typescript: npm:typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2
+
 catalog:
   '@alicloud/dypnsapi20170525': 2.0.0
   '@alicloud/openapi-client': 0.4.15
@@ -354,7 +360,6 @@ catalog:
   tencentcloud-sdk-nodejs: 4.1.204
   tinyglobby: 0.2.16
   tinymce: 8.5.0
-  ts-json-schema-generator: 2.9.1-next.18
   # 共享包（platform-any/{utils-core,contract}）的 lib 打包器，替代 Vite lib 模式 + vite-plugin-dts。
   # 0.x 版本，**精确锁**：0.23 是 breaking 版本，升级要单独成批并跑完全套验收（执行计划 §8.1）。
   tsdown: 0.23.7
@@ -364,7 +369,11 @@ catalog:
   tsrs: 7.1.0-beta.tsrs5
   turbo: 2.11.2
   typeorm: 1.1.2
-  typescript: 6.0.3
+  # 批次 8（P5c）实验态：typescript 包面换成 TNB（classic 6.0.3 API 外壳 + 进程内 tsgo 7.0.2 引擎）。
+  # 消费者仍 require('typescript')，拿到的却是 tsgo 引擎；nest CLI 的守卫按 API 形状判
+  # （`typeof ts.getParsedCommandLineOfConfigFile !== 'function'` 才抛，与包版本号无关）。
+  # 精确锁：桥接串本身自带 tsgo 版本，写范围会在跨 N 时误升到另一版 tsgo。
+  typescript: npm:typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2
   ua-parser-js: 2.0.9
   unocss: 66.6.8
   unplugin-info: 1.3.2
