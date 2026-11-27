@@ -374,6 +374,10 @@ const sidebar: DefaultTheme.Sidebar = {
           text: '0030 admin 构建配置抽出为 tooling 包',
           link: '/content/adr/0030-admin-build-config-as-tooling-package',
         },
+        {
+          text: '0031 工具链 Rust 化',
+          link: '/content/adr/0031-rust-toolchain-migration',
+        },
         { text: 'Zod vs class-validator 评估', link: '/content/adr/zod-evaluation' },
       ],
     },

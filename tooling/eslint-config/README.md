@@ -3,7 +3,10 @@
 > flat config（`eslint.config.ts`）的三个预设，构建在 `@antfu/eslint-config` 之上。
 > `eslint` 是 `peerDependencies`，插件住本包 `dependencies` —— 消费方只挑预设，不自己装插件
 > （[ADR 0014](../../apps/docs/src/zh-CN/content/adr/0014-eslint-config-strategy.md)）。
-> 本仓**没有 Prettier**：格式化由 ESLint 的 stylistic 规则承担。
+> 本仓**没有 Prettier**：格式的唯一真源是 **oxfmt**（根 `.oxfmtrc.json`）—— 三个预设都是
+> `stylistic: false`，末尾接 `eslint-config-prettier/flat` 兜底；ESLint 只留非格式规则
+> （[ADR 0031](../../apps/docs/src/zh-CN/content/adr/0031-rust-toolchain-migration.md)）。
+> `perfectionist` 的 import / export 排序暂留 ESLint。
 
 ## 三个预设：按**运行环境**分
 

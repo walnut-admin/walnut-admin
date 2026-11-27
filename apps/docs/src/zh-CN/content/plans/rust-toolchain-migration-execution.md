@@ -1,10 +1,22 @@
 # Rust 化工具链迁移：执行计划
 
-> 状态：【待执行】2026-11-27 立项，批次 1–8 均未开始；分支 `feat/rust-toolchain-migration`。
+> 状态：【已执行】2026-11-27 立项，2026-11-28 收尾：批次 1–8 全部落地；批次 7 的 P5a 影子仍在观察期、P5b 待期满。分支 `feat/rust-toolchain-migration`。
 > **定位**：把[阶段性迁移计划（草案）](./rust-toolchain-migration-plan.md)（下称「阶段计划」）的每个阶段翻译成**一个 agent 领一个批次、照做、回报**的作业单：精确到文件、命令、验收与回退。**为什么做、风险多大**在[迁移考量与风险评估](../industry-research/rust-toolchain-migration-assessment.md)（下称「评估」），本篇不重复判定。
 > **读者**：执行单个批次的实施 agent；复核各批产出并在最后统一提交的主对话。
 > **权威边界**：仓库事实以代码为准。写这份文档时实测到五处「文档与代码不一致」，已单列在 §1.3 —— 执行时按代码，并在回报里写明。
 > **本篇不写 git 操作**：所有批次**都不许** `git add` / `git commit` / `git push` / `git stash` / `git tag` / 切分支（§1.2 第 1 条）。
+>
+> **执行结果（2026-11-28 收尾补记，正文作业单不改）**：8 个批次全部落地 ——
+> 批次 1 P0 `dc93c473`；批次 2 P1 `736c5f90`；批次 3 P5-pre `671ccd91` + `82c39f21`
+> （base64 真 bug 与 `baseUrl` 清理分开提交）；批次 4 P2 `396320b4` + `5f761523`（首轮格式化）
+> + 收尾 `5b5b595f` / `1cc5c72f` / `edf5acf7`；批次 5 P3 `6ee45d62` + `04ca519d`；
+> 批次 6 P4 `55258b80`；批次 7 P5a（影子）`60860886`（P5b 尚未开始）；批次 8 P5c `fc786d47`。
+> **两处计划外大发现**：① 批次 4 的 lint-staged 回滚试验留下两处未被格式化器看过的文件
+> （`deploy/docker-compose.yml`、`.github/workflows/deploy.yml`），首轮「全仓通过」并不完整，
+> 由两个补充提交收尾 —— 教训是「全仓格式化过一次」不等于「每个文件都过了一遍」；
+> ② TNB 的 project-mode 缺陷（`getSourceFiles()` 返回空壳、`emit()` 静默写 0 个文件）让 admin
+> 生成链原本的 `ts-json-schema-generator` 直接断掉，改用 `tsrs/sync` 的 checker 重写生成器后
+> 产物逐字节不变（归因与终局状态见评估 §5.4 与 [ADR 0031](../adr/0031-rust-toolchain-migration.md)）。
 
 ## 1. 执行口径
 

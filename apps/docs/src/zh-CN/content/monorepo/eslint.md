@@ -131,6 +131,22 @@ staged 文件的匹配规则仍在根 `package.json` 的 `lint-staged` 块（数
 
 oxlint 与 biome（Rust 写的极速 linter）对 Vue SFC（`.vue`）的支持仍不完整，所以**都不可能取代 ESLint**。本仓的用法是双轨：**oxlint 进 lint-staged 做第一道快速扫描**（位次在 `oxfmt --write` 与 `eslint --fix` 之间），Vue 模板、本地规则（`nest-local-rules` / `script-rules`）与类型感知规则继续留在 ESLint。biome 不用。配置形态见迁移评估文档。
 
+#### `eslint-disable` 归属约定
+
+双轨期一条规则**只有一个 owner**（Kibana 的原话是 "each rule runs in exactly one linter"）：
+oxlint 已覆盖、ESLint 侧被 `off` 掉的规则，豁免注释写 `oxlint-disable-next-line`；
+ESLint 独占的规则（Vue 模板、本地规则、nest 的类型感知与分层、`ts/*` 变体、`unused-imports/*`）
+继续写 `eslint-disable*`。写反的后果不是「两边都不报」，而是**非 owner 那侧把指令判成未使用** ——
+`eslint --fix` 会直接删掉它，删完 oxlint 立刻报红。
+
+当前有三条规则**刻意留在 ESLint**：`no-control-regex`、`no-empty-pattern`、
+`no-misleading-character-class`。现有代码里它们已有带理由的 `eslint-disable-next-line`
+（`apps/e2e/tests/fixtures.ts`、`apps/server/apps/api/test/integration/helpers/seed-layer.ts`、
+`tooling/eslint-config/comment-rules.ts`）；把 owner 换到 oxlint 会让 ESLint 先删指令、oxlint
+随即报红 —— 这是双轨期唯一会「自动修复反而制造失败」的组合。同理，`no-unused-expressions` 与
+`no-unused-vars` 的 owner 是 ESLint：它的 `ts/*` / `unused-imports/*` 变体看得见 TS 语义与
+`.vue` 模板里的引用，oxlint 只 lint script 块。
+
 ### 不用 legacy `.eslintrc`
 
 已全量迁移到 flat config。ESLint v10 将彻底移除对旧格式的支持。

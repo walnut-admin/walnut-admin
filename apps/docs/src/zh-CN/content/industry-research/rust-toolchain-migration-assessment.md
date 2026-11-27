@@ -164,6 +164,20 @@ admin 另有 `tsconfig.dts.json`（`skipLibCheck: false`）专门查手写 d.ts�
 - **nest-on-TNB 是最大未知**。TNB 的官方支持矩阵只验证了 tsc / vue-tsc / tsserver / ESLint，**没有验证 `nest build` 与 `nest start --watch`**。因此 P5c 的第一个动作是 PoC：`nest build` 跑通、`nest start --watch` 跑通、`createProgram` 路径验证，以及 ADR 0007 的装饰器元数据冒烟（断言 tsc 产 dist 的 `design:paramtypes` 与 SWC 等价）—— **PoC 失败只把 nest 侧单独回退到 stock TS6（恢复一条 catalog 条目），其余部分仍是 TS7 引擎**。
 - **其它事实**：#3479 里 cr4ftx（2026-07-24）报告的 2726 文件 507ms 是 TNB 类方案的实战先例，其两个破坏点是 Swagger / GraphQL 的 plugin metadata 与 `nest-cli.json` 的 `typeCheck` —— **本仓 `apps/server/infra/nest/*.json` 里两者都没有**（已核实无 `plugins`、无 `typeCheck`）。周下载：`@typescript/typescript6` 15.3M、`tsrs` 10.3M（2026-11 末），说明「stock TS6 兜底」与「tsrs 快查」两条边都有现成供给。破坏性变更（升级时必须先改）：strict 默认开、module 默认 esnext、target 默认 es2025、types 默认 `[]`、**移除 `baseUrl`**、**移除 `moduleResolution: node/node10/classic`**。`experimentalDecorators` + `emitDecoratorMetadata` 的 **emit 已被 7 支持**（PR #2343，产出与旧 tsc 相同的 helpers）。
 - **对本仓影响**：最终格局是**引擎全面 7.x**（tsgo 7.0.2 经 TNB + tsrs 7.1-beta 做快查），API 外壳按消费者分层：`tsc` / `vue-tsc` / ESLint 走 TNB 壳，Nest 在 PoC 通过后也走 TNB 壳；tsrs 是独立 CLI，不进任何外壳。admin 的检查链在 TNB 转正后一并升级（5.7）。装饰器元数据验证按 ADR 0007 在 nest-on-TNB PoC 里做，错的症状是接口 200 但字段消失的静默错。**原「catalog 双别名」备选方案作废**：TNB 全局接入后它失去意义，唯一还需要等上游的是「裸 `typescript@7` 直装」。
+- **终局状态（2026-11-28，迁移收尾时补记）**：
+  - **已转正**：`typescript` 在 catalog 与 `overrides` 双处解析到
+    `typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2`（只改 catalog 时，从仓库根解析的
+    nest CLI 仍会拿到 stock TS，所以 `overrides` 是必需的一半）。
+  - **nest-on-TNB PoC 五项全绿**：`nest build`、`nest start --watch`、`createProgram` 路径、
+    tsc 产物的 `design:paramtypes` 与 SWC 逐文件比对、`openapi:check:export` 导出零 diff；
+    HTTP 冒烟无 500。ADR 0007 的装饰器元数据冒烟因此不再是未知项。
+  - **TNB 的 project-mode 缺陷已知**：设置 `configFilePath` 时 `program.getSourceFiles()` 返回
+    空壳 SourceFile、`program.emit()` 静默写 0 个文件（classic 路径正常）。admin 生成链的
+    `ts-json-schema-generator` 因此改走 `tsrs/sync` 的 checker，产物与迁移前基线**逐字节一致**；
+    缺陷本身留给上游桥接层修。
+  - **admin / vue-tsc 保留 3.2.8**：3.3.14 会引入 **1 条真实诊断**
+    （`JSONEditor/index.vue` 的 TS2322，stock TS6 + vue-tsc 3.3.14 下同样复现，与 TNB 无关），
+    单独修掉源码后可升；不要在迁移收尾里顺手带上。
 - 来源：[announcing-typescript-7-0](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0)、[announcing-typescript-7-1-beta](https://devblogs.microsoft.com/typescript/announcing-typescript-7-1-beta)、[nestjs/nest-cli#3479](https://github.com/nestjs/nest-cli/issues/3479)、[nestjs/nest-cli#3554](https://github.com/nestjs/nest-cli/pull/3554)、[johnsoncodehk/typescript-native-bridge](https://github.com/johnsoncodehk/typescript-native-bridge)、[language-tools PR #6129](https://github.com/vuejs/language-tools/pull/6129)（访问日期 2026-11-27）。
 
 ### 5.5 tsrs（`tsrs@7.1.0-beta.tsrs5`，2026-11-23）—— 优先路线，但必须先影子期
@@ -173,7 +187,7 @@ admin 另有 `tsconfig.dts.json`（`skipLibCheck: false`）专门查手写 d.ts�
   - **生态位**：`oxc-project/tsrs`，TS 7 编译器 / LSP / JS API 的 Rust 移植；oxlint 1.92+ 的类型感知后端之一；同时是能独立当 `tsc` 用的 CLI（`tsrs -p` / `tsrs --build`），这一点比「当 lint 后端」更有价值。
   - **新硬风险 #1114（2026-11-26 open）**：同一项目 1,240 次运行里 12 次失败（约 1%）—— 随机段错误或假类型错误（假 TS2307），在 tsrs5 的复现范围内，maintainer 未回复。结论：**tsrs 不能立即当唯一阻断门禁，必须先影子期**。**团队决策（2026-11-27）：不为此加「同 commit 双跑」门禁**（判断为报告者环境问题）；影子期保留「时长 + 诊断 diff」两条判据；若影子期或转正后出现可复现的随机失败模式，再复评此决策。
   - **版本节奏**：tsrs2 → 5 的间隔是 2 / 2 / 3 天，无 RC；TS 7.1 的 RC 按官方 iteration plan 排在 2026-12-01、stable 待定；tsrs 的 stable 只会在其后且无日期；packaged-release validation 仍 pending；`tsrsN` 的版本文本排序最多到 tsrs9 → **锁精确版本、禁用范围**；registry 没有 `next` tag。
-  - **退出码与 Windows**：诊断失败 = 1（与 tsc 一致）；Windows 下 watch 报 NotImplemented = **5**（此前记录的 2 是错的，本轮订正）。Windows 的 named pipes 已实现（`docs/DEFAULTS.md` 对应行是过期文档），真正缺的是 fswatch 后端与 LSP watchdog，**无跟踪 issue、无 ETA**。
+  - **退出码与 Windows**：诊断失败 = **2**（tsc 是 1，tsrs 不同 —— 此前写的 1 是笔误，2026-11-28 实测订正）；Windows 下 watch 报 NotImplemented = **5**（此前记录的 2 是错的，本轮订正）。Windows 的 named pipes 已实现（`docs/DEFAULTS.md` 对应行是过期文档），真正缺的是 fswatch 后端与 LSP watchdog，**无跟踪 issue、无 ETA**。
   - **真实采用**：Sentry（`typecheck = tsrs --build ... --builders 2`，CI 唯一检查器，TS6 别名留给其它工具）；Cloudflare agents（逐 tsconfig `tsrs -p`，失败重试 3 次）；**Zerion 就是我们要的模式**（`typecheck: tsrs -p . --noEmit` + `typecheck:watch: tsc --noEmit --pretty --watch`）；sxzz/rolldown-plugin-dts（`tsrs --fast`）；rnw-community（tsrs 优先 + `@typescript/native` 兜底）；Vite+ 的 PR #3352 已把 type-aware 后端从 oxlint-tsgolint 换成 tsrs；Effect-TS/tsgo 提供 tsrs 的 LSP 封装；**公开的 NestJS 仓库零采用** —— 我们是早期采用者，唯一证据就是本仓实测（5.6）。
   - **JS API**：tsrs 暴露 TS7.1 形态的 `tsrs/sync|async|fs|ast`（SDK suite 968/968、170/177 方法），**不兼容 classic `createProgram`** → vue-tsc（`@volar/typescript` 的 peer 是 `typescript < 7`）、TNB（搜 tsrs 命中 0）、Nest CLI 都不能跑在它上面；admin 脱离 TS6 的现实路径是 **TNB 外壳（短期）与 content-mapper（中期）**，而不是换 vue-tsc 的后端。
   - **治理**：2026-10-01 建仓，3 个活跃维护者（Max Schwenk / Boshen / Cameron），外部 PR 一律关闭（48 个 open PR），文档落后 2 个 release；Cloudflare + VoidZero + Owner.com 赞助，Apache-2.0。
