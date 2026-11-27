@@ -356,6 +356,7 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: 'E2E 沙盒测试计划', link: '/content/plans/e2e-sandbox-plan' },
         { text: 'apps/e2e 改造优化方案', link: '/content/plans/e2e-optimization-plan' },
         { text: 'Rust 化工具链迁移计划', link: '/content/plans/rust-toolchain-migration-plan' },
+        { text: 'Rust 化工具链迁移执行计划', link: '/content/plans/rust-toolchain-migration-execution' },
       ],
     },
     {
