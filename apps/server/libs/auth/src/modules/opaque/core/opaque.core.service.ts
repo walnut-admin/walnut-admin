@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import * as opaque from '@serenity-kit/opaque'
 import { AppTechCacheOpaqueService, IOpaqueCacheScope } from '@walnut-server/cache'
+import { WalnutAdminConstAppEnv } from '@walnut-server/const/app/env'
 import { WalnutAdminExceptionInvalidCredential } from '@walnut-server/exceptions/business/auth'
 import { SysUserIdentityRepositoryService, SysUserIdentitySharedService, SysUserRepositoryService } from '@walnut-server/identity'
 import { isNil } from 'lodash'
@@ -14,6 +15,43 @@ import { AuthSharedService } from '../../shared/shared.service'
  * 永远不会与它相撞。
  */
 const OPAQUE_DUMMY_USER_ID = '00000000-0000-0000-0000-000000000000'
+
+/**
+ * `startLogin` 的失败分类（2026-11-27，方案 a）。
+ *
+ * 只用于 **server 日志** 与**非生产环境**的 `meta.hint`；响应语义（HTTP 401 / 40103）
+ * 与匿名调用者看到的通用文案零变化 —— 用户枚举红线见方法内注释。
+ *
+ * - `credential-format-stale`：库里 value 解不开。两类来源：① 之前的明文行；
+ *   换过 `USER_ID_ENCRYPTION_KEY`。这是**当前唯一会让登录静默变砖的确定性原因**。
+ * - `credential-handshake-undefined`：OPAQUE 计算没有产出 loginResponse（库返回 undefined，
+ *   正常类型下不可达，防御 wasm 边界）。与 identifiers 旧口径最接近的服务端可观测形态。
+ * - `credential-opaque-incompatible`：value 能解开但 OPAQUE 不认（记录损坏 / 与当前
+ *   `serverSetup` 不兼容）。**注意**：identifiers 不一致主要暴露在客户端
+ *   `client.finishLogin` 返回 undefined，服务端在 startLogin 阶段拿不到信号。
+ * - `credential-missing`：用户存在但没有 password 身份行。
+ * - `user-not-found`：用户不存在（不附提示 —— 开发环境也不把枚举面重新打开）。
+ * - `client-request-invalid` / `cache-write-failed`：与凭证无关的输入 / 基建失败。
+ */
+const OPAQUE_LOGIN_FAILURE = {
+  CREDENTIAL_FORMAT_STALE: 'credential-format-stale',
+  CREDENTIAL_HANDSHAKE_UNDEFINED: 'credential-handshake-undefined',
+  CREDENTIAL_OPAQUE_INCOMPATIBLE: 'credential-opaque-incompatible',
+  CREDENTIAL_MISSING: 'credential-missing',
+  USER_NOT_FOUND: 'user-not-found',
+  CLIENT_REQUEST_INVALID: 'client-request-invalid',
+  CACHE_WRITE_FAILED: 'cache-write-failed',
+} as const
+
+type OpaqueLoginFailureReason = typeof OPAQUE_LOGIN_FAILURE[keyof typeof OPAQUE_LOGIN_FAILURE]
+
+/** 需要给出「修复命令」的凭证类失败（都是重跑 `db:seed:pg --admin` 能解决的） */
+const SEEDABLE_CREDENTIAL_FAILURES: ReadonlySet<OpaqueLoginFailureReason> = new Set([
+  OPAQUE_LOGIN_FAILURE.CREDENTIAL_FORMAT_STALE,
+  OPAQUE_LOGIN_FAILURE.CREDENTIAL_HANDSHAKE_UNDEFINED,
+  OPAQUE_LOGIN_FAILURE.CREDENTIAL_OPAQUE_INCOMPATIBLE,
+  OPAQUE_LOGIN_FAILURE.CREDENTIAL_MISSING,
+])
 
 /**
  * OPAQUE (Oblivious Pseudorandom Function) authentication service
@@ -112,15 +150,35 @@ export class AuthOpaqueCoreService {
         )
 
     let passwordIdentity: string | null = null
-    let loginResponse: string
+    let loginResponse: string | undefined
+    /** 已识别出的凭证类失败（在等量计算**之前**判定，但**不提前返回**） */
+    let credentialFailure: OpaqueLoginFailureReason | null = null
+    let credentialFailureDetail: string | undefined
+    let opaqueComputed = false
 
     try {
       // ①（2026-11）：password 身份的 value 是 AES-GCM 密文（与 email/phone 同口径），
       // 交给 opaque 前必须解密。解密失败（本地库里 ① 之前的明文行 / 密钥不匹配）
-      // 与「凭据无效」同义，统一收敛到 40103 —— 下面是同一个 catch。
-      passwordIdentity = isNil(encryptedPasswordIdentity)
-        ? null
-        : this.userIdentitySharedService.decryptValue(encryptedPasswordIdentity)
+      // 与「凭据无效」同义，统一收敛到 40103。
+      //
+      // 2026-11-27（方案 a）：解密失败**不再当场 throw** —— 那样会跳过下面的 OPAQUE
+      // 计算与缓存写，让「凭证陈旧」与「用户不存在」在结构上可区分（F-45 的侧信道会
+      // 原样回来）。这里只记下失败原因，`registrationRecord` 保持 null 走 fake 记录，
+      // 等量计算 + 等量写跑完之后再判失败（见方法末尾）。
+      if (isNil(encryptedPasswordIdentity)) {
+        credentialFailure = user === null
+          ? OPAQUE_LOGIN_FAILURE.USER_NOT_FOUND
+          : OPAQUE_LOGIN_FAILURE.CREDENTIAL_MISSING
+      }
+      else {
+        try {
+          passwordIdentity = this.userIdentitySharedService.decryptValue(encryptedPasswordIdentity)
+        }
+        catch (error) {
+          credentialFailure = OPAQUE_LOGIN_FAILURE.CREDENTIAL_FORMAT_STALE
+          credentialFailureDetail = error instanceof Error ? error.message : String(error)
+        }
+      }
 
       // Server creates login response using stored registration record（null ⇒ fake record）
       const { loginResponse: computedLoginResponse, serverLoginState } = opaque.server.startLogin({
@@ -134,6 +192,7 @@ export class AuthOpaqueCoreService {
         },
       })
 
+      opaqueComputed = true
       loginResponse = computedLoginResponse
 
       // Cache server login state temporarily (30 seconds TTL)
@@ -142,17 +201,93 @@ export class AuthOpaqueCoreService {
       await this.opaqueCacheService.setOpaqueServerStateCache(userName, deviceId, serverLoginState, scope)
     }
     catch (error: any) {
-      this.logger.error(`OPAQUE login start failed, userName: ${userName}, error: ${error}`)
-      throw new WalnutAdminExceptionInvalidCredential()
+      // OPAQUE 计算 / 缓存写本身失败。分类只影响日志与（非生产）提示，响应仍是 40103。
+      const reason: OpaqueLoginFailureReason = opaqueComputed
+        ? OPAQUE_LOGIN_FAILURE.CACHE_WRITE_FAILED
+        : (passwordIdentity === null
+            ? OPAQUE_LOGIN_FAILURE.CLIENT_REQUEST_INVALID
+            : OPAQUE_LOGIN_FAILURE.CREDENTIAL_OPAQUE_INCOMPATIBLE)
+      const detail = error instanceof Error ? error.message : String(error)
+
+      if (reason === OPAQUE_LOGIN_FAILURE.CREDENTIAL_OPAQUE_INCOMPATIBLE) {
+        this.warnCredentialProblem(userName, reason, detail)
+      }
+      else {
+        this.logger.error(`OPAQUE login start failed, userName: ${userName}, reason: ${reason}, error: ${detail}`)
+      }
+
+      throw new WalnutAdminExceptionInvalidCredential(this.buildCredentialHintPayload(userName, reason))
     }
 
     // 失败判定必须留在等量计算与等量写之后（提前到这里侧信道就回来了）
-    if (user === null || isNil(passwordIdentity)) {
+    if (user === null) {
+      // 拼错用户名不值得刷 warn，也**不附 hint**：开发环境同样不把「账号是否存在」
+      // 变成可行动信息（枚举红线）。
       throw new WalnutAdminExceptionInvalidCredential()
+    }
+
+    // OPAQUE 没产出 loginResponse（类型上不可达，防御 wasm 边界）—— 与「握手 undefined」
+    // （identifiers 旧口径在客户端的表现）归为一类。
+    if (typeof loginResponse !== 'string' || loginResponse.length === 0) {
+      const reason = credentialFailure ?? OPAQUE_LOGIN_FAILURE.CREDENTIAL_HANDSHAKE_UNDEFINED
+      this.warnCredentialProblem(userName, reason, credentialFailureDetail)
+      throw new WalnutAdminExceptionInvalidCredential(this.buildCredentialHintPayload(userName, reason))
+    }
+
+    if (credentialFailure !== null || isNil(passwordIdentity)) {
+      const reason = credentialFailure ?? OPAQUE_LOGIN_FAILURE.CREDENTIAL_MISSING
+      this.warnCredentialProblem(userName, reason, credentialFailureDetail)
+      throw new WalnutAdminExceptionInvalidCredential(this.buildCredentialHintPayload(userName, reason))
     }
 
     // Return login response to be sent back to client
     return loginResponse
+  }
+
+  /**
+   * 凭证类失败的 warn 日志（方案 a：**可行动**但只落在服务端日志里）。
+   *
+   * 不含口令 / 密文 / 明文记录 —— 只有 userName、原因分类与修复命令。
+   */
+  private warnCredentialProblem(userName: string, reason: OpaqueLoginFailureReason, detail?: string): void {
+    const fix = `pnpm walnut db:seed:pg --admin ${userName} --password <新口令>`
+    const detailPart = detail === undefined || detail === '' ? '' : `, detail: ${detail}`
+    this.logger.warn(
+      `OPAQUE login start rejected, userName: ${userName}, reason: ${reason}${detailPart}`
+      + ` —— 该账号的口令凭据在本环境不可用，修复命令：${fix}`,
+    )
+  }
+
+  /**
+   * 非生产环境（development / stage）才附带的 `meta` 提示。生产环境返回 undefined，
+   * 响应壳与改动前逐字节一致（JSON 序列化会丢掉 undefined 的 meta）。
+   *
+   * 判断走 ConfigService（`NODE_ENV`），不用 `libs/const` 的模块求值常量 —— 后者在
+   * 单测 / 多进程装配里不可注入，而这里需要按环境分别断言。
+   */
+  private buildCredentialHintPayload(userName: string, reason: OpaqueLoginFailureReason): { meta: Record<string, string> } | undefined {
+    const env = this.configService.get<string>('NODE_ENV')
+    const isNonProduction = env === WalnutAdminConstAppEnv.DEV || env === WalnutAdminConstAppEnv.STAGE
+    if (!isNonProduction || !SEEDABLE_CREDENTIAL_FAILURES.has(reason))
+      return undefined
+
+    const fix = `pnpm walnut db:seed:pg --admin ${userName} --password <新口令>`
+    const explanations: Record<typeof reason, string> = {
+      [OPAQUE_LOGIN_FAILURE.CREDENTIAL_FORMAT_STALE]: '口令凭据格式陈旧（旧明文行或换过 USER_ID_ENCRYPTION_KEY），当前登录链无法解密',
+      [OPAQUE_LOGIN_FAILURE.CREDENTIAL_HANDSHAKE_UNDEFINED]: '口令凭据与当前 OPAQUE 协议参数不兼容（identifiers / AUTH_OPAQUE_SECRET 口径变化）',
+      [OPAQUE_LOGIN_FAILURE.CREDENTIAL_OPAQUE_INCOMPATIBLE]: '口令凭据记录无法被当前 OPAQUE 参数解析',
+      [OPAQUE_LOGIN_FAILURE.CREDENTIAL_MISSING]: '该账号没有可用的 password 身份行',
+      [OPAQUE_LOGIN_FAILURE.USER_NOT_FOUND]: '',
+      [OPAQUE_LOGIN_FAILURE.CLIENT_REQUEST_INVALID]: '',
+      [OPAQUE_LOGIN_FAILURE.CACHE_WRITE_FAILED]: '',
+    }
+
+    return {
+      meta: {
+        reason,
+        hint: `${explanations[reason]}；本次登录必然 40103。修复：${fix}`,
+      },
+    }
   }
 
   /**

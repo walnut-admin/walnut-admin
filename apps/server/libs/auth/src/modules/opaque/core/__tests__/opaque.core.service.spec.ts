@@ -1,8 +1,9 @@
 import type { EntityManager } from 'typeorm'
 import { Buffer } from 'node:buffer'
+import { Logger } from '@nestjs/common'
 import * as opaque from '@serenity-kit/opaque'
 import { WalnutAdminExceptionInvalidCredential } from '@walnut-server/exceptions/business/auth'
-import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthOpaqueCoreService } from '../opaque.core.service'
 
 /**
@@ -29,6 +30,9 @@ const DEVICE_ID = 'spec-device'
 let serverSetup = ''
 let registrationRecord = ''
 
+/** 方案 a 的 warn 日志断言面（Nest Logger 是实例方法，按原型 spy 能抓到服务里的那一个） */
+const warnSpy = vi.spyOn(Logger.prototype, 'warn')
+
 /** 造一份**真实**的 registration record（等价于用户注册时落库的那一条） */
 function createRegistrationRecord(password: string) {
   const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({ password })
@@ -52,11 +56,17 @@ beforeAll(async () => {
   registrationRecord = createRegistrationRecord(PASSWORD)
 })
 
+beforeEach(() => {
+  warnSpy.mockClear()
+})
+
 const EM = { marker: 'entity-manager' } as unknown as EntityManager
 
 interface IServiceOptions {
   user: { id: string, userName: string } | null
   identity: string | null
+  /** ConfigService 可见的 NODE_ENV（方案 a：meta hint 只在 development / stage 出现） */
+  nodeEnv?: string
 }
 
 /**
@@ -136,7 +146,13 @@ function createService(options: IServiceOptions) {
 
   const configService = {
     get: (key: string) =>
-      key === 'jwt.opaque.secret' ? serverSetup : key === 'app.name' ? APP_NAME : undefined,
+      key === 'jwt.opaque.secret'
+        ? serverSetup
+        : key === 'app.name'
+          ? APP_NAME
+          : key === 'NODE_ENV'
+            ? (options.nodeEnv ?? 'production')
+            : undefined,
   }
 
   const service = new AuthOpaqueCoreService(
@@ -376,6 +392,124 @@ describe('opaque.core：password 身份加密落库与读回（①）', () => {
     await expect(service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM))
       .rejects
       .toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
-    expect(setOpaqueServerStateCache).not.toHaveBeenCalled()
+    // 方案 a：解密失败也走完 fake 等量计算 + 一次 SERVER_STATE 写（F-45 的结构等价）
+    expect(setOpaqueServerStateCache).toHaveBeenCalledOnce()
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('reason: credential-format-stale'))
+  })
+})
+
+/**
+ * 方案 a（2026-11-27）：凭证静默变砖的**可诊断化**。
+ *
+ * 三条硬约束：
+ * 1) 日志分类可执行（reason 分类 + userName + 修复命令）；
+ * 2) `meta.hint` 只在 development / stage 出现，production 响应零变化；
+ * 3) 等时性不退化 —— 解密失败路径同样跑完 OPAQUE 计算并写一次 SERVER_STATE。
+ */
+describe('opaque.core.startLogin：凭证陈旧的可诊断化（方案 a）', () => {
+  /** 断言异常响应壳里的 meta（Nest HttpException 的 getResponse） */
+  function metaOf(error: unknown): Record<string, string> | undefined {
+    return (error as { getResponse: () => { meta?: Record<string, string> } }).getResponse().meta
+  }
+
+  /** 造一个「value 是旧明文（非 enc: 信封）」的服务：读腿 mock 成 registrationRecord 原文 */
+  function createStaleFormatService(nodeEnv: string) {
+    const ctx = createService({ user: { id: USER_ID, userName: USER_NAME }, identity: registrationRecord, nodeEnv })
+    ctx.getValueByUserIdTypeAndPurpose.mockResolvedValueOnce(registrationRecord)
+    return ctx
+  }
+
+  it('解密失败（格式陈旧）：fake 计算 + 一次 SERVER_STATE 写，warn 带 reason/修复命令，dev 附 hint', async () => {
+    const ctx = createStaleFormatService('development')
+
+    const caught = await ctx.service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM).catch((e: unknown) => e)
+
+    expect(caught).toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
+    expect(ctx.setOpaqueServerStateCache).toHaveBeenCalledOnce()
+    const meta = metaOf(caught)!
+    expect(meta.reason).toBe('credential-format-stale')
+    expect(meta.hint).toContain(`pnpm walnut db:seed:pg --admin ${USER_NAME}`)
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('reason: credential-format-stale'))
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining(`userName: ${USER_NAME}`))
+  })
+
+  it('解密失败：production 响应没有 meta（生产零变化），日志仍然给出修复命令', async () => {
+    const ctx = createStaleFormatService('production')
+
+    const caught = await ctx.service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM).catch((e: unknown) => e)
+
+    expect(caught).toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
+    expect(metaOf(caught)).toBeUndefined()
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('credential-format-stale'))
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('db:seed:pg --admin alice'))
+  })
+
+  it('记录不存在（用户存在但没有 password 身份行）：fake 计算 + 一次写，reason=credential-missing', async () => {
+    const ctx = createService({ user: { id: USER_ID, userName: USER_NAME }, identity: null, nodeEnv: 'development' })
+
+    const caught = await ctx.service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM).catch((e: unknown) => e)
+
+    expect(caught).toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
+    expect(ctx.setOpaqueServerStateCache).toHaveBeenCalledOnce()
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('reason: credential-missing'))
+    expect(metaOf(caught)).toMatchObject({ reason: 'credential-missing' })
+  })
+
+  it('用户不存在：不附 hint（开发环境也不把枚举面变成可行动信息）', async () => {
+    const ctx = createService({ user: null, identity: null, nodeEnv: 'development' })
+
+    const caught = await ctx.service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM).catch((e: unknown) => e)
+
+    expect(caught).toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
+    expect(ctx.setOpaqueServerStateCache).toHaveBeenCalledOnce()
+    expect(metaOf(caught)).toBeUndefined()
+    expect(warnSpy).not.toHaveBeenCalled()
+  })
+
+  it('value 能解开但 OPAQUE 不认记录（握手抛错）：reason=credential-opaque-incompatible，dev 附 hint', async () => {
+    const ctx = createService({
+      user: { id: USER_ID, userName: USER_NAME },
+      // 能过 decrypt stub，但不是合法的 OPAQUE registration record ⇒ server.startLogin 抛
+      identity: 'not-a-valid-opaque-record',
+      nodeEnv: 'development',
+    })
+
+    const caught = await ctx.service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM).catch((e: unknown) => e)
+
+    expect(caught).toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('reason: credential-opaque-incompatible'))
+    expect(metaOf(caught)).toMatchObject({ reason: 'credential-opaque-incompatible' })
+  })
+
+  // 「OPAQUE 握手返回 undefined」这一支在真实库里类型上不可达，必须 mock 整个包才能
+  // 触发 —— 单独一份文件的 `vi.mock` 不会污染本文件其余的真实密码学用例。
+  // 见 __tests__/opaque.core.service.handshake-undefined.spec.ts。
+
+  it('格式陈旧 / 记录缺失与成功路径的 SERVER_STATE 写次数一致（各 1 次，F-45 结构断言）', async () => {
+    const scenarios = [
+      // 格式陈旧：读腿返回旧明文 ⇒ decrypt 抛，但仍走 fake 等量计算 + 写缓存
+      { identity: registrationRecord, plaintext: true, throws: true },
+      // 记录缺失：fake 等量计算 + 写缓存
+      { identity: null, plaintext: false, throws: true },
+      // 正常凭证：对照组
+      { identity: registrationRecord, plaintext: false, throws: false },
+    ]
+
+    for (const scenario of scenarios) {
+      const ctx = createService({ user: { id: USER_ID, userName: USER_NAME }, identity: scenario.identity, nodeEnv: 'development' })
+      if (scenario.plaintext)
+        ctx.getValueByUserIdTypeAndPurpose.mockResolvedValueOnce(registrationRecord)
+
+      if (scenario.throws) {
+        await expect(ctx.service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM))
+          .rejects
+          .toBeInstanceOf(WalnutAdminExceptionInvalidCredential)
+      }
+      else {
+        await expect(ctx.service.startLogin(USER_NAME, startLoginRequest(), DEVICE_ID, EM)).resolves.toEqual(expect.any(String))
+      }
+
+      expect(ctx.setOpaqueServerStateCache).toHaveBeenCalledTimes(1)
+    }
   })
 })
