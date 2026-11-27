@@ -1,7 +1,6 @@
 {
   "extends": "@walnut/tsconfig/base.json",
   "compilerOptions": {
-    "baseUrl": ".",
     "types": ["node"]
   },
   // 仓库根只覆盖「根目录下由工具加载的配置」：eslint.config.ts / commitlint.config.ts / knip.config.ts。

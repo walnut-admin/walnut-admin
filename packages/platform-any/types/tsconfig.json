@@ -1,8 +1,6 @@
 {
   "extends": "@walnut/tsconfig/ts.json",
-  "compilerOptions": {
-    "baseUrl": "."
-  },
+  "compilerOptions": {},
   "include": ["src/**/*.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

@@ -1,7 +1,6 @@
 {
   "extends": "@walnut/tsconfig/ts.json",
   "compilerOptions": {
-    "baseUrl": ".",
     "types": ["node"]
   },
   // bin 也进类型检查：它们由 Node 原生执行（浏览器包与工具包之外唯一被 `node` 直接拉起的东西），

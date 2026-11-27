@@ -1,7 +1,6 @@
 {
   "extends": "@walnut/tsconfig/base.json",
   "compilerOptions": {
-    "baseUrl": ".",
     "types": ["node"]
   },
   // 预设由 ESLint 通过 jiti 加载（不是 Node 原生剥离类型），因此不用 ts.json 的
