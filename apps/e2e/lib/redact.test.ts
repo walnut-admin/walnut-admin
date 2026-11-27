@@ -79,6 +79,26 @@ describe('redactText —— cookie 串与字段形态', () => {
     expect(out).not.toContain('A'.repeat(24))
     expect(out).not.toContain('Bearer eyJ')
   })
+
+  it('l1/l2 新增字段：lockPwdHash / credential / verifyCode 的明文被替换', () => {
+    // 形状取自 stage 的 LoggerMiddleware（请求体整段打印）与协议侧 root() 的明文 body
+    const input = [
+      `body={ lockPwdHash: 'Lock-2e2-pass', lockMode: 'security', lockCrossDevice: true }`,
+      `body={ level: 'account_critical', operationType: 'email_change', method: 'email', credential: '123456' }`,
+      `body={ type: 'emailAddress', purpose: 'login', verifyCode: '654321' }`,
+    ].join('\n')
+    const out = redactText(input)
+
+    expect(out).not.toContain('Lock-2e2-pass')
+    expect(out).not.toContain('123456')
+    expect(out).not.toContain('654321')
+    // 非敏感的同批字段与业务码必须保留（排障要靠它们）
+    expect(out).toContain(`lockPwdHash:${REDACTED}`)
+    expect(out).toContain('lockMode')
+    expect(out).toContain(`credential:${REDACTED}`)
+    expect(out).toContain(`verifyCode:${REDACTED}`)
+    expect(out).toContain('account_critical')
+  })
 })
 
 describe('redactText —— 不误杀排障信息', () => {
@@ -93,6 +113,11 @@ describe('redactText —— 不误杀排障信息', () => {
   it('没有赋值的普通词（cookie 配置 / token 预算）不被改写', () => {
     expect(redactText('Cookie 配置缺失：name or value')).toBe('Cookie 配置缺失：name or value')
     expect(redactText('CAP token 预算 90s')).toBe('CAP token 预算 90s')
+  })
+
+  it('非敏感的退避 / 计数元数据不被误杀（retryAfterSec / lockMode / operationType）', () => {
+    const input = 'meta={ failCount: 5, retryAfterSec: 30 } lockMode=security operationType=email_change'
+    expect(redactText(input)).toBe(input)
   })
 
   it('幂等：脱敏结果再跑一遍不变', () => {
@@ -124,6 +149,28 @@ describe('redactDeep —— attach 用的结构化脱敏', () => {
     expect(out.credentialsFile).toBe('D:\\repo\\apps\\e2e\\.auth\\credentials.json')
     // 输出仍是合法 JSON
     expect(() => JSON.parse(JSON.stringify(out))).not.toThrow()
+  })
+
+  it('l1/l2 字段在结构化数据里整段丢弃（lockPwdHash / credential / verifyCode）', () => {
+    const value = {
+      lockPwdHash: 'Lock-2e2-pass',
+      lockMode: 'security',
+      credential: '123456',
+      verifyCode: '654321',
+      meta: { failCount: 5, retryAfterSec: 30 },
+      nested: [{ lockPwdHash: 'another-pass' }],
+    }
+
+    const out = redactDeep(value) as Record<string, unknown>
+
+    expect(out.lockPwdHash).toBe(REDACTED)
+    expect(out.credential).toBe(REDACTED)
+    expect(out.verifyCode).toBe(REDACTED)
+    expect(out.lockMode).toBe('security')
+    expect(out.meta).toEqual({ failCount: 5, retryAfterSec: 30 })
+    expect((out.nested as Array<Record<string, unknown>>)[0]!.lockPwdHash).toBe(REDACTED)
+    expect(JSON.stringify(out)).not.toContain('Lock-2e2-pass')
+    expect(JSON.stringify(out)).not.toContain('another-pass')
   })
 
   it('不改入参（深拷贝）', () => {

@@ -48,6 +48,14 @@ const SENSITIVE_FIELD_NAMES = [
   'password',
   'passwd',
   'pwd',
+  // 锁屏口令（L1/L2）：`lockPwdHash` 是明文入参（网络层才是信封），中间有 `Hash` 不命中 `pwd`，
+  // 必须整名列出；`pwd` 仍在名单里是给旧字段兜底。
+  'lockpwdhash',
+  // 敏感操作二次验证（40119）的凭据：`POST /security/sensitive/verify` 的 `credential`
+  // 是邮件 / 短信验证码或密码本身（见 server 的 sensitive.dto.ts）。
+  'credential',
+  // 身份 / MFA 验证码（`verifyCode`）：邮箱 / 手机号绑定与验证的一次性码。
+  'verifycode',
   'access_token',
   'refresh_token',
   'id_token',
