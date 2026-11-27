@@ -48,6 +48,7 @@
     "lint-staged": "catalog:",
     "node-modules-inspector": "catalog:",
     "oxfmt": "catalog:",
+    "oxlint": "catalog:",
     "syncpack": "catalog:",
     "taze": "catalog:",
     "turbo": "catalog:",
@@ -56,6 +57,7 @@
   "lint-staged": {
     "*.{ts,vue,js}": [
       "oxfmt --write",
+      "oxlint --fix",
       "eslint --fix --concurrency=4"
     ]
   }

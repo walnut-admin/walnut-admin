@@ -102,6 +102,12 @@ jobs:
       - name: Lint root configs
         run: pnpm walnut lint:root
 
+      # 双轨期的快速正确性检查（oxlint）。不经 turbo（执行计划 §7.6 方案 R），
+      # 也不进 prepush（阶段计划：先独立跑一段、零误报后再谈进表）。
+      # `--format=github` 只影响输出形态（PR 注解），判据仍是退出码。
+      - name: Oxlint (correctness)
+        run: pnpm walnut lint:oxlint --format=github
+
       # 格式的唯一真源是 oxfmt（ESLint 已退出格式职责：三个预设 `stylistic: false`）。
       # 这一步是**阻断**而不是报告：首轮全仓格式化之后，格式漂移只有这里 + pre-push 看得见。
       # 不挂在 turbo 上：格式检查不需要包图，也不需要缓存 —— 整仓 2k+ 文件实测秒级。

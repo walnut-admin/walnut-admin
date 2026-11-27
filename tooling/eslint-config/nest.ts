@@ -2,6 +2,10 @@ import type { OptionsConfig } from '@antfu/eslint-config'
 import type { WalnutEslintConfig } from './base.ts'
 import antfu from '@antfu/eslint-config'
 import eslintConfigPrettier from 'eslint-config-prettier/flat'
+// oxlint 的 ignores / rules 两段与 base 共用同一份真源（批次 5 的两段式接法）。
+// 这里**刻意不带 `.ts` 扩展名**：本文件会进 apps/server 的 commonjs 类型程序，
+// value import 带扩展名会报 TS5097（type-only import 不受限，所以上面那行可以带）。
+import { buildOxlintIgnores, oxlintRules } from './base'
 // 这个相对导入**刻意不写 `.ts` 扩展名**：本文件会被消费方的类型程序一起编译
 // （`apps/server/tsconfig.json` 按 ADR 0012 是自包含的，没有开 `allowImportingTsExtensions`），
 // 带扩展名会让 `@walnut/server` 的 types:check 直接报 TS5097。
@@ -30,6 +34,8 @@ export const DATA_SCOPE_DIRECT_REPOSITORY_MESSAGE =
  * 注意 `typescript.tsconfigPath` 是**相对被 lint 的包根**解析的，所以这里写 `./tsconfig.json`。
  */
 export default function nestConfig(options: OptionsConfig = {}): WalnutEslintConfig {
+  // `ignores` 单独拆出来合并（oxlint 的全局 ignore 面与调用方的 ignores 并列，不能互相覆盖）
+  const { ignores: userIgnores, ...restOptions } = options
   return antfu(
     {
       typescript: {
@@ -38,20 +44,21 @@ export default function nestConfig(options: OptionsConfig = {}): WalnutEslintCon
       jsonc: false,
       yaml: false,
       markdown: false,
-      ignores: [
+      ignores: buildOxlintIgnores(userIgnores, [
         '**/node_modules/**',
         '**/dist/**',
         '**/public/js/**',
         // ambient 声明文件（.d.ts）豁免分层规则：它们只有类型声明、没有运行时 import，
         // 不产生可执行的依赖边。已知盲区：.d.ts 里的 type-only 跨层依赖不在机器守卫内
         // （tsc 只校验可解析、不校验方向），靠评审把关；当前 .d.ts 的内部 import 全部向下合法。
+        // （根 `.oxlintrc.json` 的 ignorePatterns 也带 `**/*.d.ts`，两边同一口径。）
         '**/*.d.ts',
         // 这里曾有一条 `**/*/strategy.ts`（本意是豁免 passport 的 strategy 文件），但 passport
         // 的命名是 `*.strategy.ts`，该 pattern 实际只命中 `libs/const/src/app/strategy.ts`
         // （业务常量）与两个 vendored OAuth strategy —— 等于给分层守卫切出一块盲区。
         // 2026-10-31 移除；vendor 文件若报错，按 lint 结论最小修复，不再靠路径豁免。
         'scripts/**/*.ts',
-      ],
+      ]),
       rules: {
         'no-console': 'off',
         'ts/no-this-alias': 'off',
@@ -81,7 +88,7 @@ export default function nestConfig(options: OptionsConfig = {}): WalnutEslintCon
           },
         ],
       },
-      ...options,
+      ...restOptions,
       // 硬边界：格式的唯一真源是 oxfmt（根 `.oxfmtrc.json`），调用方也改不回去
       stylistic: false,
     },
@@ -91,14 +98,16 @@ export default function nestConfig(options: OptionsConfig = {}): WalnutEslintCon
         local: localRules,
       },
       rules: {
-        'ts/consistent-type-imports': [
-          'error',
-          {
-            prefer: 'type-imports',
-            disallowTypeAnnotations: false,
-            fixStyle: 'separate-type-imports',
-          },
-        ],
+        // ── 双轨期刻意关闭（批次 5 · P3）────────────────────────────────────
+        // 为什么：该规则的 autofix 在 NestJS 里是**运行时危险**的 —— 它会把「只在构造器
+        // 签名里充当类型」的类改成 `import type`，而 `emitDecoratorMetadata` 依赖那个值
+        // 引用生成 `design:paramtypes`；import 一被擦除，DI 要到启动时才炸
+        // （Twenty 记录 3,814 处后直接禁用该规则）。本仓当前 tsconfig 开了
+        // emitDecoratorMetadata，类型感知的规则实测不报 DI 的那个类；但 lint-staged 的
+        // `eslint --fix` 是不可控入口，且 ESLint 没有「保留规则、只关 fix」的开关 ——
+        // 按执行计划 §7.4 的最稳形态整条降级，比赌「配置永远这么写」安全。
+        // 复盘条件：ADR 0007 的装饰器元数据纪律与 lint 边界合并后再议。
+        'ts/consistent-type-imports': 'off',
         'local/sort-nestjs-decorators': 'error',
       },
     },
@@ -150,6 +159,11 @@ export default function nestConfig(options: OptionsConfig = {}): WalnutEslintCon
         'turbo/no-undeclared-env-vars': 'off',
       },
     },
+    // ── oxlint 去重段 ── 把 oxlint 已覆盖的规则在 ESLint 侧关掉（只关规则、不摘插件注册）。
+    // 位置固定：各包自己的配置之后、prettier 兜底之前（见 base.ts 顶部的两段式说明）。
+    // apps/server/eslint.config.ts 在预设之后 `.append()` 的 libs 分层配置只剩
+    // no-restricted-imports / no-restricted-syntax / 本地规则 —— 都不在 oxlint 的覆盖面里。
+    ...oxlintRules,
     // 兜底：关掉任何漏网的格式化规则（必须最后，flat config 后份覆盖前份）。
     // 格式的唯一真源是 oxfmt（根 `.oxfmtrc.json`）。
     eslintConfigPrettier,

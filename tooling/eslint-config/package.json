@@ -26,6 +26,7 @@
   "dependencies": {
     "@antfu/eslint-config": "catalog:",
     "eslint-config-prettier": "catalog:",
+    "eslint-plugin-oxlint": "catalog:",
     "eslint-plugin-turbo": "catalog:"
   },
   "devDependencies": {
@@ -33,6 +34,7 @@
     "@walnut/tsconfig": "workspace:*",
     "@walnut/vitest-config": "workspace:*",
     "eslint": "catalog:",
+    "oxlint": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },

@@ -1,6 +1,11 @@
 import type { OptionsConfig } from '@antfu/eslint-config'
+import type { Linter } from 'eslint'
+import fs from 'node:fs'
+import path from 'node:path'
+import process from 'node:process'
 import antfu from '@antfu/eslint-config'
 import eslintConfigPrettier from 'eslint-config-prettier/flat'
+import oxlintPlugin from 'eslint-plugin-oxlint'
 import { commentPolicyConfig } from './comment-rules'
 // 这个相对导入**刻意不写 `.ts` 扩展名**：`nest.ts` 以类型方式引入本文件，
 // 于是本文件会进 `apps/server` 的类型程序，而那份 tsconfig（ADR 0012，自包含）没开
@@ -27,14 +32,86 @@ import { turboEnvVarsConfig } from './turbo-env-vars'
 export type WalnutEslintConfig = ReturnType<typeof antfu>
 
 /**
+ * ── oxlint 双轨接入（批次 5 · P3）──────────────────────────────────────────────
+ *
+ * 真源只有一份：仓库根的 `.oxlintrc.json`（oxlint 与 ESLint 共享 ignore 面）。
+ * 两段式接法：
+ *   1. `oxlintIgnores`（插件从 ignorePatterns 翻出来的那一段）并进 antfu 的 `ignores` ——
+ *      它就是 flat config 里「最前」的全局 ignore 段；
+ *   2. `oxlintRules`（oxlint 已覆盖的规则 → ESLint 侧 `off`）放在 prettier 兜底**之前**的
+ *      最后一层。顺序必须是「各包自己的配置 → oxlintRules → eslintConfigPrettier」。
+ *
+ * **Kibana 铁律**：双轨期只关规则、不摘插件注册 —— 历史 `eslint-disable` 指令一旦找不到
+ * 规则就会报 unknown rule，那时会冒出一批与迁移无关的红。
+ *
+ * 与执行计划 §7.3 的写法有两处实测差异（1.95.0 的 API / 类型与文档不一致，按代码）：
+ *   · `buildFromOxlintConfigFile` 是 default export 的成员，不是具名导出；
+ *   · 它返回的是 **flat config 数组**（ignore 段 + rules 段，可能再拆出 vue 例外段），
+ *     不是带 `.ignores` / `.rules` 的单个对象。
+ * 另：插件内部 `readFileSync(filePath)` 按 **cwd** 解析，而每个包的 `lint` 脚本都以包目录
+ * 为 cwd（turbo 逐包执行）⇒ 从 cwd 向上找配置文件，得到的绝对路径在根与每个包里都成立。
+ * （`import.meta.url` 也想过，但本文件会进 `apps/server` 的 commonjs 类型程序，
+ * `import.meta` 在那儿是 TS1343。）
+ */
+const OXLINT_CONFIG_FILENAME = '.oxlintrc.json'
+const OXLINT_IGNORE_CONFIG_NAME = 'oxlint/oxlint-config-ignore-patterns'
+
+function findOxlintConfig(startDir: string): string {
+  let dir = startDir
+  while (true) {
+    const candidate = path.join(dir, OXLINT_CONFIG_FILENAME)
+    if (fs.existsSync(candidate)) return candidate
+    const parent = path.dirname(dir)
+    if (parent === dir) {
+      throw new Error(
+        `@walnut/eslint-config: 未找到 ${OXLINT_CONFIG_FILENAME}（从 ${startDir} 向上）`,
+      )
+    }
+    dir = parent
+  }
+}
+
+const oxlintConfigs = oxlintPlugin.buildFromOxlintConfigFile(findOxlintConfig(process.cwd()))
+const oxlintIgnoreConfig = oxlintConfigs.find((config) => config.name === OXLINT_IGNORE_CONFIG_NAME)
+
+/** 并进 antfu 的 `ignores`（全局 ignore 段，必须最前）。 */
+export const oxlintIgnores: string[] = oxlintIgnoreConfig?.ignores ?? []
+/** 放在 prettier 兜底之前的最后一层（只关规则，不摘插件）。 */
+export const oxlintRules: Linter.Config[] = oxlintConfigs.filter(
+  (config) => config !== oxlintIgnoreConfig,
+)
+
+/**
+ * 把「oxlint 的 ignore 面」与调用方的 `ignores` 合成 antfu 的 `ignores` 选项。
+ *
+ * `OptionsConfig['ignores']` 允许数组或 `(originals) => string[]` 两种形态；这里两种都支持
+ * （调用方给函数时，它收到的 originals 已经带上 oxlint 的 ignore 面）。
+ * `extraIgnores` 给预设自己的固定豁免用（nest 的 public/js 与 scripts 等）。
+ */
+export function buildOxlintIgnores(
+  userIgnores: OptionsConfig['ignores'],
+  extraIgnores: string[] = [],
+): (originals: string[]) => string[] {
+  return (originals) => {
+    const merged = [...originals, '**/dist/**', 'pnpm-lock.yaml', ...extraIgnores, ...oxlintIgnores]
+    return typeof userIgnores === 'function'
+      ? userIgnores(merged)
+      : [...merged, ...(userIgnores ?? [])]
+  }
+}
+
+/**
  * 平台无关基线预设：Node / 纯逻辑包（不认 Vue、不认 UnoCSS）。
  *
  * 生效方式：包根写 `eslint.config.ts` → `export default baseConfig()`。
  */
 export default function baseConfig(options: OptionsConfig = {}): WalnutEslintConfig {
+  // `ignores` 单独拆出来合并：oxlint 的全局 ignore 面与调用方的 ignores 是**并列**关系，
+  // 不能让 `...restOptions` 把其中一份覆盖掉（对象展开里后写的 key 整体胜出）。
+  const { ignores: userIgnores, ...restOptions } = options
   return antfu(
     {
-      ignores: ['**/dist/**', 'pnpm-lock.yaml'],
+      ignores: buildOxlintIgnores(userIgnores),
       markdown: false,
       // 为什么基线预设也开 pnpm：`catalog:` 是仓库级不变量（`catalogMode: strict` + `hoist: false`），
       // 而根 `eslint.config.ts` 是本预设目前唯一的消费者，它**同时管着所有没有自己 config 的包**（当前 11 个）
@@ -51,8 +128,8 @@ export default function baseConfig(options: OptionsConfig = {}): WalnutEslintCon
         // mismatch）。两个预设都关，避免同一份 workspace 配置在两条路径上结论不一致。
         'pnpm/yaml-enforce-settings': 'off',
       },
-      ...options,
-      // 硬边界：格式的唯一真源是 oxfmt（根 `.oxfmtrc.json`）。放在 `...options` 之后 ——
+      ...restOptions,
+      // 硬边界：格式的唯一真源是 oxfmt（根 `.oxfmtrc.json`）。放在 `...restOptions` 之后 ——
       // 调用方也改不回去，否则会出现「oxfmt 写一套、ESLint 要求另一套」的来回改。
       stylistic: false,
     },
@@ -70,6 +147,9 @@ export default function baseConfig(options: OptionsConfig = {}): WalnutEslintCon
         'walnut-script/script-exit-code': 'error',
       },
     },
+    // ── oxlint 去重段 ── 把 oxlint 已覆盖的规则在 ESLint 侧关掉（只关规则、不摘插件注册）。
+    // 位置固定：各包自己的配置之后、prettier 兜底之前（见文件上方两段式说明）。
+    ...oxlintRules,
     // 兜底：万一有格式化规则漏网（第三方预设自带、或某条 ours 显式打开），由它关掉，
     // 防止两个工具互相改回去。**必须最后**：flat config 后份覆盖前份。
     eslintConfigPrettier,

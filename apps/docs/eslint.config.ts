@@ -9,7 +9,6 @@ export default vueConfig({
     'nginx/**',
   ],
   rules: {
-    'style/no-tabs': 'off',
     'vue/no-unused-refs': 'warn',
     'import/newline-after-import': 'warn',
   },

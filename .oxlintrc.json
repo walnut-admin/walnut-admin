@@ -1,0 +1,82 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // 双轨期（Rust 化工具链迁移 · 批次 5）的形态已拍板：**categories 兜底 + 少量显式增量**。
+  // 不预先抄规则清单 —— 增量规则必须来自观测到的真问题，一条一条加、每条写明为什么。
+  // 归属边界：Vue 模板、UnoCSS、本地规则（walnut-* / local/*）与类型感知分层留在 ESLint；
+  // oxlint 只跑通用正确性 + 已确认的安全增量（见下方 rules 的逐条注释）。
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    // 本仓三个 ESLint 预设都显式关掉它（服务端大量结构性日志）；correctness 兜底会把它打开，
+    // 不在这里对齐就会出现「oxlint 报、eslint 不报」的假红。
+    "no-console": "off",
+    // 与 ESLint 侧的实际形态逐项对齐（证据：eslint --print-config，见批次 5 回报）：
+    //   · ESLint 的活跃变体是 `ts/no-unused-expressions`（core 变体已被 antfu 关闭），
+    //     选项 allowShortCircuit / allowTernary / allowTaggedTemplates 全开；
+    //   · oxlint 的 core 变体默认全关这些选项 ⇒ 31 条「短路表达式」报告全是双轨差异，不是真问题。
+    // 同一概念只留一个 owner：ESLint 的 `ts/*` 变体看得见 TS 语义、也看得见 `.vue` 的 script，
+    // 所以这条整体交给 ESLint（oxlint 侧关闭），避免同一处代码两边各报一次。
+    "no-unused-expressions": "off",
+    // 同理：ESLint 侧活跃的是 `unused-imports/no-unused-vars`（args: after-used、`^_` 忽略、
+    // ignoreRestSiblings），它**看得见 .vue 模板里的引用**（执行计划 §7.4 的硬边界）。
+    // oxlint 只 lint `.vue` 的 script 块 ⇒ 未使用符号/导入归 ESLint 独占，oxlint 侧关闭。
+    "no-unused-vars": "off",
+    // 以下四条在 ESLint 侧**未启用**（`--print-config` 里没有该 key，或 antfu 已用别的规则替换）。
+    // 双轨期的判据是「换引擎不换规则」：oxlint 的 correctness 兜底比 ESLint 宽，
+    // 这些多出来的面先关掉，等单独一轮确认收益后再开（那时是「换规则」，不是本批）。
+    "no-unsafe-optional-chaining": "off",
+    "no-useless-escape": "off",
+    "unicorn/no-useless-spread": "off",
+    "unicorn/no-useless-fallback-in-spread": "off",
+    // 这三条**不是**「ESLint 没启用」，而是「ESLint 启用了、而且现有代码用
+    // `eslint-disable-next-line` 显式豁免过」：apps/e2e/tests/fixtures.ts 的空对象参数、
+    // apps/server/.../seed-layer.ts 的 ANSI 正则。若把 owner 换到 oxlint，ESLint 会把那些
+    // 指令判成 unused（`--fix` 会直接删掉），删完 oxlint 立刻报红 —— 这是双轨期唯一会
+    // 「自动修复反而制造失败」的组合。规则换引擎不换 owner：这三条留 ESLint。
+    "no-control-regex": "off",
+    "no-empty-pattern": "off",
+    // tooling/eslint-config/comment-rules.ts:56,61 的指令豁免的是这条；同理留 ESLint。
+    "no-misleading-character-class": "off",
+    // 同一条规则两边都在：ESLint（unicorn 0.x）对含转义的正则不报、oxlint 报（实测 4 条，
+    // 如 `/^\.claude\/skills\//`）。双轨期以 ESLint 结论为准 —— 它是既有的、绿的那一侧，
+    // 本批不动规则判定，只换执行引擎。
+    "unicorn/prefer-string-starts-ends-with": "off"
+  },
+  // 与 ESLint 侧 ignores 对齐：这里豁免的文件 oxlint 不报，ESLint 也不报（共享同一份真源）。
+  // 漏一条的后果是「同一批文件出现 oxlint 报、eslint 不报」的假红（见执行计划 §7.2）。
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/dist-staging/**",
+    "**/dist-stage/**",
+    "**/coverage/**",
+    "**/.turbo/**",
+    "**/node_modules/**",
+    "**/env-local/**",
+    // 生成物（openapi 生成链与三方一致测试都在写它们，手改没有意义）
+    "apps/server/openapi.json",
+    "packages/generated/**",
+    "apps/admin/types/generated/**",
+    // 声明文件：没有运行时语义，correctness 规则对它只产生噪音；nest 预设一直豁免它。
+    "**/*.d.ts",
+    // 第三方 / 静态运行时资产：原样分发，改一行都会在下次升级时被覆盖
+    // （apps/admin 与 nest 预设同样忽略它们；路径是实测的真实位置，
+    // 执行计划 §7.2 写的 apps/server/public/js 在本仓已不存在）。
+    "apps/admin/public/vendor/**",
+    "apps/server/apps/api/src/public/**",
+    // VitePress 的运行期产物（docs 的 ESLint 配置同样忽略）
+    "**/.vitepress/cache/**",
+    "**/.vitepress/dist/**"
+  ],
+  // 预设间的差异只能用 overrides 表达（oxlint 的 categories/rules 是全局的）：
+  // nest 预设显式关掉了 `typescript/no-this-alias`（服务端 OAuth strategy 的 this 别名），
+  // 而 base/vue 预设保留它。不写这里会让 server 的既有豁免在 oxlint 侧变成新红。
+  "overrides": [
+    {
+      "files": ["apps/server/**"],
+      "rules": {
+        "typescript/no-this-alias": "off"
+      }
+    }
+  ]
+}

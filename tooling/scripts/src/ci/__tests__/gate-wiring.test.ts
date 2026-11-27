@@ -375,12 +375,29 @@ describe('可执行名字的形态（P1-18）', () => {
     { token: '|', why: '管道' },
   ]
 
-  /** `lint*` 门禁的合法形态：`exec walnut-*`、`exec eslint` / `exec turbo`、或直接 eslint / turbo */
+  /**
+   * `lint*` 门禁的合法形态：`exec walnut-*`、`exec eslint` / `exec oxlint` / `exec turbo`、
+   * 或直接 eslint / oxlint / turbo。
+   *
+   * `oxlint` 是 2026-11 批次 5（P3）起的第二个 lint 引擎（双轨期）。这条断言拦的是
+   * 「门禁面自由发挥」（比如拿 `exec tsc` 冒充 `lint:xxx`），不是拦新引擎 —— 判据仍然是
+   * 「有没有 linter 语义」，所以把 oxlint 与 eslint 并列放行，而不是给它开一条豁免。
+   */
   function lintShapeOk(argv: readonly string[]): boolean {
     if (argv[0] === 'exec')
-      return argv[1]?.startsWith('walnut-') === true || argv[1] === 'eslint' || argv[1] === 'turbo'
+      return (
+        argv[1]?.startsWith('walnut-') === true ||
+        argv[1] === 'eslint' ||
+        argv[1] === 'oxlint' ||
+        argv[1] === 'turbo'
+      )
     // `lint` / `lint:fix` 自己就是保留的根脚本：它们由根脚本执行，不走命令表展开
-    return argv[0] === 'eslint' || argv[0] === 'turbo' || KEPT_ROOT_SCRIPTS.has(argv[0] ?? '')
+    return (
+      argv[0] === 'eslint' ||
+      argv[0] === 'oxlint' ||
+      argv[0] === 'turbo' ||
+      KEPT_ROOT_SCRIPTS.has(argv[0] ?? '')
+    )
   }
 
   it('名字形态：小写 kebab + `:` 分段（保留的根脚本与命令表 id 都查）', () => {
@@ -412,14 +429,14 @@ describe('可执行名字的形态（P1-18）', () => {
     expect(bad).toEqual([])
   })
 
-  it('`lint*` 命令必须落到 eslint / turbo / `walnut-*` bin 三种形态之一（门禁面不许自由发挥）', () => {
+  it('`lint*` 命令必须落到 eslint / oxlint / turbo / `walnut-*` bin 四种形态之一（门禁面不许自由发挥）', () => {
     const bad: string[] = []
     for (const id of commandIds) {
       if (!id.startsWith('lint')) continue
       const resolved = resolveCommandArgv([id])
       if (!lintShapeOk(resolved))
         bad.push(
-          `\`${id}\` 解析为 \`${resolved.join(' ')}\` —— 既不是 exec walnut-* / eslint / turbo`,
+          `\`${id}\` 解析为 \`${resolved.join(' ')}\` —— 既不是 exec walnut-* / eslint / oxlint / turbo`,
         )
     }
     expect(bad).toEqual([])
@@ -451,6 +468,7 @@ describe('可执行名字的形态（P1-18）', () => {
     expect(lintShapeOk(['exec', 'tsc', '-p', 'tsconfig.json'])).toBe(false)
     expect(lintShapeOk(['exec', 'walnut-check-adr'])).toBe(true)
     expect(lintShapeOk(['exec', 'eslint', '*.ts'])).toBe(true)
+    expect(lintShapeOk(['exec', 'oxlint', '--quiet'])).toBe(true)
     expect(lintShapeOk(['exec', 'turbo', 'run', 'lint'])).toBe(true)
   })
 })

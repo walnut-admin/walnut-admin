@@ -261,6 +261,9 @@ catalog:
   # ESLint 退出格式职责后的兜底（关掉与 oxfmt 冲突的格式化规则），见 tooling/eslint-config 三个预设。
   # 锁 10.1.8：10.1.9 发布于 2026-11-27、未过 minimumReleaseAge；两个版本都带 `/flat` 子路径。
   eslint-config-prettier: 10.1.8
+  # 把 .oxlintrc.json 翻译成「关掉 oxlint 已覆盖规则」的 ESLint flat config 段（双轨去重）。
+  # **必须与 oxlint 同版**（插件按 oxlint 的规则表生成 key）；升级两者要一起动。
+  eslint-plugin-oxlint: 1.95.0
   eslint-plugin-turbo: 2.11.2
   express-csp-header: 6.3.1
   express-xss-sanitizer: 2.0.2
@@ -309,6 +312,10 @@ catalog:
   # 精确锁 0.80.0：0.x 的配置 key 会跨版本改名，抄旧配置会静默失效；升级单独成批、逐 key
   # 对照当版文档（口径见 plans/rust-toolchain-migration-execution.md §6.1）。
   oxfmt: 0.80.0
+  # 快速检查器（Rust / Oxc）—— 双轨期与 ESLint 并行：correctness 兜底在这里跑，
+  # Vue 模板 / 本地规则 / 类型感知分层仍归 ESLint（口径见 plans/rust-toolchain-migration-execution.md §7）。
+  # 精确锁：与 eslint-plugin-oxlint **锁步**，两者版本必须一致。
+  oxlint: 1.95.0
   pagefind: 1.3.0
   passport: 0.7.0
   passport-jwt: 4.0.1

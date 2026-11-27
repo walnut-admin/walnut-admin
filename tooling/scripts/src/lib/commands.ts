@@ -292,6 +292,22 @@ export const COMMANDS: readonly Command[] = [
     argv: ['exec', 'eslint', '*.ts', '*.json', '*.yaml', '--fix', '--concurrency=4'],
   },
   {
+    id: 'lint:oxlint',
+    group: '门禁',
+    label: 'oxlint 快速检查（categories.correctness 兜底）',
+    why: '通用正确性规则的第一道快速通道；Vue 模板、本地规则、类型感知分层仍归 ESLint。',
+    // 在仓库根跑一次，不经 turbo（执行计划 §7.6 方案 R）：改 `.oxlintrc.json` 立刻生效，
+    // 没有「缓存回放旧规则」的问题。`--fix` 的退出码不可信，判红只认这一条（不带 fix）。
+    argv: ['exec', 'oxlint', '--quiet'],
+  },
+  {
+    id: 'lint:oxlint:fix',
+    group: '门禁',
+    label: 'oxlint 自动修复',
+    why: '能机械修的一次修完；修完仍要跑 lint:oxlint —— fix 的退出码不能当门禁判据。',
+    argv: ['exec', 'oxlint', '--fix'],
+  },
+  {
     id: 'format:check',
     group: '门禁',
     label: '格式检查（oxfmt --check，唯一真源）',
