@@ -1,5 +1,6 @@
 /**
- * 一轮 E2E 的编排入口（包脚本 `e2e` / `e2e:smoke` / `e2e:risk` / `e2e:network` 都走它）。
+ * 一轮 E2E 的编排入口（包脚本 `e2e` / `e2e:default` / `e2e:smoke` / `e2e:risk` /
+ * `e2e:network` 都走它）。
  *
  * 顺序是**硬约束**，每一步都在解决上一段的时序问题：
  * 1. **抢 run 级 advisory lock 并整轮持有** —— restore / prepare-db 的 `DROP DATABASE` 与随后
@@ -59,6 +60,16 @@ async function main(): Promise<void> {
   const testArgs = passthrough.filter(arg => arg !== '--rebuild-baseline')
   // profile 与 project 的 1:1 约束在**动锁 / 动库之前**校验：配错直接退 2，不白重建一次库
   const finalTestArgs = resolveProfileTestArgs(STACK_PROFILE, testArgs)
+
+  // 可发现性（R-C §4.1）：不设 --project 的 default 全量现在会带上 pages / journey
+  // （5 个 project，10 分钟级）。在开始等之前说清楚，并指向日常入口。
+  const hasProjectFilter = finalTestArgs.some(arg => arg === '--project' || arg.startsWith('--project='))
+  if (STACK_PROFILE.name === 'default' && !hasProjectFilter) {
+    console.log(
+      '[e2e/run] 注意：本次为全量 5 个 project（default 面 + pages + journey），预计 13–15 分钟；'
+      + '日常验收请用 `pnpm walnut e2e:default`（smoke + risk + network + mobile，约 5 分钟级）',
+    )
+  }
 
   const lock = await connectMaintenance()
   try {

@@ -25,10 +25,25 @@ export async function responseInterceptors(res: AxiosResponse<ResponseBase<{ id:
   // code below is custom code in `axios.response.data`
   const { code, data, msg, meta } = res.data
 
+  /**
+   * 自愈 flag（`_capRefreshRetried` / `_deviceResetRetried` / `_sensitiveVerifyRetried`）
+   * 必须挂在**本次消费者的 config 副本**上，不能直接改 `res.config`。
+   *
+   * 为什么（R-D §3.4）：cache / throttle 适配器按 URL 复用在途 promise，并发同 URL 的
+   * 两个调用会拿到**同一个 AxiosResponse / config**。旧实现第一个消费者把共享 config 的
+   * flag 置 true，第二个消费者看到 flag 已置位就跳过自愈（40605 会被踢去 /not-allowed，
+   * 40119 只恢复一路）。克隆一次 config 后每个拦截器调用各有自己的 flag：
+   * 两个消费者都会各自等待「单例自愈」完成并重放，重放仍失败时才在各自的 flag 上收口。
+   *
+   * 只克隆 config，不动 response 的其它字段；重放沿用原请求参数（cache 命中时的
+   * 语义与旧实现一致 —— 复用同一 URL / params 的请求配置）。
+   */
+  const config = { ...res.config }
+
   // normal success
   if (code === WalnutAdminConstAppResponseCode.SUCCESS) {
     // auto decrypt response data
-    const keys = res.config._autoDecryptResponseData as string[]
+    const keys = config._autoDecryptResponseData as string[]
 
     if (keys && (Array.isArray(keys) ? keys.length : true)) {
       const keyList = isArray(keys) ? keys : [keys]
@@ -51,7 +66,7 @@ export async function responseInterceptors(res: AxiosResponse<ResponseBase<{ id:
   // manually call cap global modal and verify
   if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED) {
     await SingletonPromiseCapJSInteraction()
-    return await AppAxios.request(res.config)
+    return await AppAxios.request(config)
   }
 
   // cap js token refresh required
@@ -62,13 +77,13 @@ export async function responseInterceptors(res: AxiosResponse<ResponseBase<{ id:
   // 4 次/60 秒限流返回 42900 把用户直接踢到 /not-allowed 页。
   // 照 40101（refreshToken.ts）与 40605（下面的 `_deviceResetRetried`）的写法：
   // **每个请求最多自愈一次**，且**只有真拿到新 token 才重放**。
-  if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_REFRESH_REQUIRED && !res.config._capRefreshRetried) {
-    res.config._capRefreshRetried = true
+  if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_REFRESH_REQUIRED && !config._capRefreshRetried) {
+    config._capRefreshRetried = true
 
     const capToken = await SingletonPromiseCapJSRefresh()
 
     if (capToken) {
-      return await AppAxios.request(res.config)
+      return await AppAxios.request(config)
     }
 
     // 空串 = 无感刷新失败（WASM 被 CSP 拦 / cap.js 服务不可用 / 用户环境不支持）。
@@ -79,14 +94,14 @@ export async function responseInterceptors(res: AxiosResponse<ResponseBase<{ id:
 
   // when access token is expired, call refresh token api to get new token
   if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED) {
-    await SingletonPromiseRefreshToken(res.config)
-    return await AppAxios.request(res.config)
+    await SingletonPromiseRefreshToken(config)
+    return await AppAxios.request(config)
   }
 
   // when signature is expired, call session key api to get new aes key
   if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_EXPIRED_SIGNATURE) {
     await SingletonPromiseSign()
-    return await AppAxios.request(res.config)
+    return await AppAxios.request(config)
   }
 
   // refresh token is expired, so this user need to signout and re-signin
@@ -98,23 +113,23 @@ export async function responseInterceptors(res: AxiosResponse<ResponseBase<{ id:
   // rsa decrypt failed
   if (code === WalnutAdminConstAppResponseCode.BAD_REQUEST_DECRYPT_FAILED) {
     // allow to execute encrypt logic in request interceptor again
-    res.config._encrypted = false
+    config._encrypted = false
     await SingletonPromiseRsaDecryptFailed(res)
-    return await AppAxios.request(res.config)
+    return await AppAxios.request(config)
   }
 
   // rsa pub key not found
   if (code === WalnutAdminConstAppResponseCode.BAD_REQUEST_RSA_PUB_KEY_NOT_FOUND) {
     await SingletonPromiseRsaPubKeyNotFound()
-    return await AppAxios.request(res.config)
+    return await AppAxios.request(config)
   }
 
   // P0-1：设备 cookie 过期 / 被清 / 行没了 —— 40605 是**可自愈**的，不是永久拒绝。
   // 学 40101 的写法：清本地 device 缓存 → 重走 /system/device/initial → 重放原请求；
   // `_deviceResetRetried` 保证每个请求只自愈一次（自愈后仍 40605 就落到下面的
   // notAllowed 分支，不会打转）。自愈本身失败（initial 也被拒 / 网络）同样落到下面。
-  if (code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED && !res.config._deviceResetRetried) {
-    res.config._deviceResetRetried = true
+  if (code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED && !config._deviceResetRetried) {
+    config._deviceResetRetried = true
 
     let healed = false
 
@@ -138,10 +153,10 @@ export async function responseInterceptors(res: AxiosResponse<ResponseBase<{ id:
       // - `_mergeRequest = false`：merge 适配器 `if (!_mergeRequest || ...)` 直接放行。
       // 只对这次重放关闭去重——非 GET / 没有 `_cache`/`_throttle` 的请求上这些开关是无操作。
       // E2E U8 用例守此行为（apps/e2e/tests/risk/device.spec.ts）。
-      res.config._cache_force_update = true
-      res.config._throttle = 0
-      res.config._mergeRequest = false
-      return await AppAxios.request(res.config)
+      config._cache_force_update = true
+      config._throttle = 0
+      config._mergeRequest = false
+      return await AppAxios.request(config)
     }
   }
 
@@ -207,16 +222,16 @@ export async function responseInterceptors(res: AxiosResponse<ResponseBase<{ id:
   // - 重放前关掉 cache / throttle / merge 三层按 URL 复用在途 promise 的去重（同 40605 的理由：
   //   自愈前发出的同 URL 请求可能带着旧结果回来，复用它的在途 promise 等于没重放）；
   // - 并发 40119 由 `SingletonPromiseSensitiveVerify` 并成一次弹窗，各自拿到结果再重放。
-  if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_SENSITIVE_VERIFICATION_REQUIRED && !res.config._sensitiveVerifyRetried) {
-    res.config._sensitiveVerifyRetried = true
+  if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_SENSITIVE_VERIFICATION_REQUIRED && !config._sensitiveVerifyRetried) {
+    config._sensitiveVerifyRetried = true
 
     const verified = await SingletonPromiseSensitiveVerify(meta)
 
     if (verified) {
-      res.config._cache_force_update = true
-      res.config._throttle = 0
-      res.config._mergeRequest = false
-      return await AppAxios.request(res.config)
+      config._cache_force_update = true
+      config._throttle = 0
+      config._mergeRequest = false
+      return await AppAxios.request(config)
     }
 
     // 用户取消 / 描述符不可用：交给函数末尾的统一错误路径（提示 + reject），不回滚业务状态。

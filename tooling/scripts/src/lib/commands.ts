@@ -293,14 +293,25 @@ export const COMMANDS: readonly Command[] = [
       + '`pnpm --filter @walnut/e2e exec playwright install chromium`、'
       + '数据栈在 5433 / 6380 可达（WSL 形态还要一个隐藏会话）。全量含 @network 用例（依赖真实外网，'
       + '离线时改用 e2e:risk）。刻意不进 prepush 与 ci:local：重活不属于推送前门禁。',
-    // 顺序写在 apps/e2e/scripts/run.ts：锁 → preflight → prepare-db → stack-info → playwright test
+    // 顺序写在 apps/e2e/scripts/run.ts：锁 → preflight → 基线决策 → Redis 设备键对账 →
+    // stack-info → playwright test
     argv: ['-C', 'apps/e2e', 'run', 'e2e'],
     budgetMs: 0, // 整套分钟级，且含 webServer 启停（不给入口层套上限）
   },
   {
+    id: 'e2e:default',
+    group: '门禁',
+    label: 'E2E default 面（smoke + risk + network + mobile）',
+    why: '日常验收入口：覆盖设备 / 风控 / 冒烟 / 外网 / mobile 四个 project，不跑 pages 与 journey'
+      + '（它们有独立 stack profile 与基线，CI 里也各自成 job）。'
+      + '前置与 e2e 相同；比裸 `pnpm walnut e2e` 少 2 个 project（约 3–5 分钟）。',
+    argv: ['-C', 'apps/e2e', 'run', 'e2e:default'],
+    budgetMs: 0, // 同 e2e：分钟级 + webServer 启停
+  },
+  {
     id: 'e2e:smoke',
     group: '门禁',
-    label: 'E2E 冒烟子集（setup + UI 登录/首页/用户 CRUD）',
+    label: 'E2E 冒烟子集（setup + 首页 / 菜单 / 角色 / 设置 / 用户 CRUD）',
     why: '改前端或后端引导链后先跑这一组：它含 UI 登录与 MFA，能最快回答「栈还活着吗」。'
       + '前置与 e2e 相同（setup-env / pnpm build / 两处 build:stage / playwright install / 数据栈），'
       + '但它不碰 @network，离线也能跑。',
