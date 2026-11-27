@@ -22,9 +22,7 @@ const props = defineProps({
   ...WithValueProps,
 
   listFn: {
-    type: Function as PropType<
-      (data?: BaseListParams<any>) => Promise<BaseListResponse<any>>
-    >,
+    type: Function as PropType<(data?: BaseListParams<any>) => Promise<BaseListResponse<any>>>,
     required: true,
   },
   readFn: {
@@ -63,21 +61,23 @@ async function onUpdateValue(val: StringOrNumber | StringOrNumber[]) {
   emit('update:value', val)
 
   // empty value. reset to initial state and clean options
-  if (!val || (val as StringOrNumber[]).length === 0)
-    await onReset()
+  if (!val || (val as StringOrNumber[]).length === 0) await onReset()
 
   // query is empty. reset to initial state
-  if (Object.keys(params.value.query!).length !== 0)
-    await onReset(false)
+  if (Object.keys(params.value.query!).length !== 0) await onReset(false)
 }
 
 async function onScroll(e: Event) {
-  if (!e || !e.target)
-    return
+  if (!e || !e.target) return
 
   // reach bottom
-  // @ts-expect-error need to rework
-  if ((e.target as ParentNode).firstElementChild.offsetHeight! === (e.target as HTMLElement).scrollTop + (e.target as HTMLElement)?.offsetHeight) {
+  // 注：`@ts-expect-error` 必须紧贴**出错那一行** —— oxfmt 会把长表达式换行，
+  // 写在 `if (` 上方会让指令落空（格式化后实测：TS2578 + TS2339）。
+  if (
+    // @ts-expect-error need to rework
+    (e.target as ParentNode).firstElementChild.offsetHeight! ===
+    (e.target as HTMLElement).scrollTop + (e.target as HTMLElement)?.offsetHeight
+  ) {
     if (params.value.page!.page! * 10 >= total.value) {
       useAppMessage().info('The End of the World')
       return
@@ -99,24 +99,15 @@ async function onApiSelectList(filter = false) {
     if (!filter) {
       options.value = options.value.concat(
         res.data
-          .filter(
-            i =>
-              !valueOptions.value
-                .map(i => i.value)
-                .includes(onGetOptionItem(i).value),
-          )
+          .filter((i) => !valueOptions.value.map((i) => i.value).includes(onGetOptionItem(i).value))
           .map(onGetOptionItem),
       )
-    }
-    else {
-      valueOptions.value = valueOptions.value.concat(
-        res.data.map(onGetOptionItem),
-      )
+    } else {
+      valueOptions.value = valueOptions.value.concat(res.data.map(onGetOptionItem))
     }
 
     loading.value = false
-  }
-  finally {
+  } finally {
     loading.value = false
   }
 }
@@ -124,8 +115,7 @@ async function onApiSelectList(filter = false) {
 async function onSearch(query: string) {
   params.value.page!.page = 1
   options.value.length = 0
-  if (!props.multiple)
-    valueOptions.value.length = 0
+  if (!props.multiple) valueOptions.value.length = 0
 
   params.value.query![props.labelField ?? 'label'] = query
   await onApiSelectList(true)
@@ -145,20 +135,17 @@ async function onReset(cleanOptions = true) {
 async function onFeedback() {
   if (props.multiple) {
     if (props.valueSeparator) {
-      for (const item of (props.value as string).split(
-        props.valueSeparator,
-      ) as StringOrNumber[]) {
-        const isExisted = options.value.some(i => i.value === item)
+      for (const item of (props.value as string).split(props.valueSeparator) as StringOrNumber[]) {
+        const isExisted = options.value.some((i) => i.value === item)
 
         if (!isExisted) {
           const res = await props.readFn(item)
           valueOptions.value = valueOptions.value.concat(onGetOptionItem(res))
         }
       }
-    }
-    else {
+    } else {
       for (const item of props.value as StringOrNumber[]) {
-        const isExisted = options.value.some(i => i.value === item)
+        const isExisted = options.value.some((i) => i.value === item)
 
         if (!isExisted) {
           const res = await props.readFn(item)
@@ -166,9 +153,8 @@ async function onFeedback() {
         }
       }
     }
-  }
-  else {
-    const isExisted = options.value.some(i => i.value === props.value)
+  } else {
+    const isExisted = options.value.some((i) => i.value === props.value)
 
     if (!isExisted) {
       const res = await props.readFn(props.value as StringOrNumber)
@@ -178,11 +164,9 @@ async function onFeedback() {
 }
 
 onMounted(async () => {
-  if (isFunction(props.listFn))
-    await onApiSelectList()
+  if (isFunction(props.listFn)) await onApiSelectList()
 
-  if (props.value)
-    await onFeedback()
+  if (props.value) await onFeedback()
 })
 </script>
 

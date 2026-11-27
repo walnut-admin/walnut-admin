@@ -47,12 +47,16 @@
     "lefthook": "catalog:",
     "lint-staged": "catalog:",
     "node-modules-inspector": "catalog:",
+    "oxfmt": "catalog:",
     "syncpack": "catalog:",
     "taze": "catalog:",
     "turbo": "catalog:",
     "typescript": "catalog:"
   },
   "lint-staged": {
-    "*.{ts,vue,js}": "eslint --fix --concurrency=4"
+    "*.{ts,vue,js}": [
+      "oxfmt --write",
+      "eslint --fix --concurrency=4"
+    ]
   }
 }

@@ -84,16 +84,18 @@ function readJsonFile(file: string): Record<string, unknown> | null {
   try {
     const parsed: unknown = JSON.parse(readFileSync(file, 'utf8'))
     return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
-      ? parsed as Record<string, unknown>
+      ? (parsed as Record<string, unknown>)
       : null
-  }
-  catch {
+  } catch {
     return null
   }
 }
 
 /** 只保留白名单字段（不改入参） */
-function pickFields(source: Record<string, unknown>, fields: readonly string[]): Record<string, unknown> {
+function pickFields(
+  source: Record<string, unknown>,
+  fields: readonly string[],
+): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   for (const field of fields) {
     if (field in source) {
@@ -128,10 +130,11 @@ async function attachJson(testInfo: TestInfo, name: string, value: unknown): Pro
     mkdirSync(path.dirname(file), { recursive: true })
     writeFileSync(file, `${JSON.stringify(redactDeep(value), null, 2)}\n`, 'utf8')
     await testInfo.attach(name, { path: file, contentType: 'application/json' })
-  }
-  catch (error) {
+  } catch (error) {
     // attach 失败绝不掩盖真正的断言失败（它是收尾动作，不是判据）
-    console.warn(`[e2e/fixtures] attach ${name} 失败：${error instanceof Error ? error.message : String(error)}`)
+    console.warn(
+      `[e2e/fixtures] attach ${name} 失败：${error instanceof Error ? error.message : String(error)}`,
+    )
   }
 }
 
@@ -160,7 +163,7 @@ async function attachFailureEvidence(testInfo: TestInfo): Promise<void> {
   await attachJson(testInfo, 'recent-envelopes.json', {
     capturedAt: new Date().toISOString(),
     note: '只含 url/status/code/msg（无响应体）；已脱敏',
-    entries: snapshotRecentEnvelopes(ATTACH_ENVELOPE_LIMIT).map(entry => ({
+    entries: snapshotRecentEnvelopes(ATTACH_ENVELOPE_LIMIT).map((entry) => ({
       url: entry.url,
       status: entry.status,
       code: entry.code,
@@ -170,25 +173,33 @@ async function attachFailureEvidence(testInfo: TestInfo): Promise<void> {
 }
 
 export const test = base.extend<
-  { deviceCleanup: void, authedPage: Page },
-  { deviceCleanupRun: void, authedContext: BrowserContext }
+  { deviceCleanup: void; authedPage: Page },
+  { deviceCleanupRun: void; authedContext: BrowserContext }
 >({
   // Playwright 的 fixture 回调首参是「本 fixture 依赖的其它 fixture」映射；这两条不依赖任何
   // fixture（也不该依赖：test 作用域要是写上 `page`，每条用例都会被强制开一个页面）。
-  // eslint-disable-next-line no-empty-pattern -- 空映射是 Playwright 的签名，不是笔误
-  deviceCleanupRun: [async ({}, use) => {
-    await use()
-    await flushTrackedDevices()
-    await flushWorkerTrackedDevices()
-  }, { scope: 'worker', auto: true }],
+  // 注：`eslint-disable-next-line` 必须贴着**回调那一行** —— oxfmt 把 `async ({}, use)` 换行到
+  // 数组元素之后，写在属性上方会让指令落空（格式化后实测）。
+  deviceCleanupRun: [
+    // eslint-disable-next-line no-empty-pattern -- 空映射是 Playwright 的签名，不是笔误
+    async ({}, use) => {
+      await use()
+      await flushTrackedDevices()
+      await flushWorkerTrackedDevices()
+    },
+    { scope: 'worker', auto: true },
+  ],
 
-  // eslint-disable-next-line no-empty-pattern -- 同上
-  deviceCleanup: [async ({}, use, testInfo: TestInfo) => {
-    await use()
-    // 取证在清理之前：设备行 / Redis 键还在时，附件里的 device id 与 PG 现场对得上
-    await attachFailureEvidence(testInfo)
-    await flushTrackedDevices({ testInfo })
-  }, { auto: true }],
+  deviceCleanup: [
+    // eslint-disable-next-line no-empty-pattern -- 同上
+    async ({}, use, testInfo: TestInfo) => {
+      await use()
+      // 取证在清理之前：设备行 / Redis 键还在时，附件里的 device id 与 PG 现场对得上
+      await attachFailureEvidence(testInfo)
+      await flushTrackedDevices({ testInfo })
+    },
+    { auto: true },
+  ],
 
   /**
    * worker 级共享的**只读**已登录 context：worker 启动时走一次完整 UI 登录，之后同一 worker
@@ -203,16 +214,19 @@ export const test = base.extend<
    * - 这台设备登记为 **worker 作用域**（`trackWorkerDevice`），由 worker 级 auto fixture
    *   在进程退出时清理 —— 不会被某条用例的 test 作用域清理提前删掉。
    */
-  authedContext: [async ({ browser }, use) => {
-    const context = await newBrowserContext(browser)
-    const page = await context.newPage()
-    await loginViaUI(page)
-    trackWorkerDevice(await resolveDeviceId(page))
-    // 登录页关闭后登录态仍留在 context（cookies + localStorage + IndexedDB）里
-    await page.close()
-    await use(context)
-    await context.close()
-  }, { scope: 'worker' }],
+  authedContext: [
+    async ({ browser }, use) => {
+      const context = await newBrowserContext(browser)
+      const page = await context.newPage()
+      await loginViaUI(page)
+      trackWorkerDevice(await resolveDeviceId(page))
+      // 登录页关闭后登录态仍留在 context（cookies + localStorage + IndexedDB）里
+      await page.close()
+      await use(context)
+      await context.close()
+    },
+    { scope: 'worker' },
+  ],
 
   /** 共享已登录 context 里的新页面（每个只读用例一份，避免上一用例的页面状态串过来） */
   authedPage: async ({ authedContext }, use) => {

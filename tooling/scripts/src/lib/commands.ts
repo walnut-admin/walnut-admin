@@ -38,8 +38,18 @@
  * `runArgs` 之前过这一遍 —— 表与逐字钉着表的用例因此都不必改。
  */
 
+import { PRE_HOOK_CONSUMERS } from '../ci/pre-hook-consumers.ts'
+
 /** 命令分组（顺序即清单里的展示顺序；表本身也按这个顺序排列） */
-export type CommandGroup = '开发' | '构建' | '门禁' | '依赖' | '数据库' | '环境' | '发版与镜像' | '工具'
+export type CommandGroup =
+  | '开发'
+  | '构建'
+  | '门禁'
+  | '依赖'
+  | '数据库'
+  | '环境'
+  | '发版与镜像'
+  | '工具'
 
 export interface CommandBase {
   /** 稳定标识：`pnpm walnut <id>` 用的就是它，沿用根脚本名（文档里早已在用的名字一个都不用换） */
@@ -170,7 +180,14 @@ export const COMMANDS: readonly Command[] = [
     group: '构建',
     label: '只构建 admin（含依赖包）',
     why: '改前端时省掉 server 侧的构建时间；与全量构建共用同一份内存设置。',
-    argv: ['exec', 'cross-env', 'NODE_OPTIONS=--max-old-space-size=8192', 'turbo', 'build', '--filter=@walnut/admin'],
+    argv: [
+      'exec',
+      'cross-env',
+      'NODE_OPTIONS=--max-old-space-size=8192',
+      'turbo',
+      'build',
+      '--filter=@walnut/admin',
+    ],
     budgetMs: 20 * MINUTE,
   },
   {
@@ -178,7 +195,14 @@ export const COMMANDS: readonly Command[] = [
     group: '构建',
     label: '只构建 server（不含依赖包）',
     why: '后端改动后快速拿产物；worker 冒烟、openapi 导出、迁移都读 dist。',
-    argv: ['exec', 'cross-env', 'NODE_OPTIONS=--max-old-space-size=8192', 'turbo', 'build', '--filter=@walnut/server'],
+    argv: [
+      'exec',
+      'cross-env',
+      'NODE_OPTIONS=--max-old-space-size=8192',
+      'turbo',
+      'build',
+      '--filter=@walnut/server',
+    ],
     budgetMs: 15 * MINUTE,
   },
   {
@@ -194,15 +218,23 @@ export const COMMANDS: readonly Command[] = [
     group: '构建',
     label: 'admin 的 stage 构建（turbo build:stage）',
     why: 'stage 产物的 base 与后端地址跟正式构建不同；发版前由它产出那一份。',
-    argv: ['exec', 'cross-env', 'NODE_OPTIONS=--max-old-space-size=8192', 'turbo', 'build:stage', '--filter=@walnut/admin'],
+    argv: [
+      'exec',
+      'cross-env',
+      'NODE_OPTIONS=--max-old-space-size=8192',
+      'turbo',
+      'build:stage',
+      '--filter=@walnut/admin',
+    ],
     budgetMs: 20 * MINUTE,
   },
   {
     id: 'smoke:dist',
     group: '构建',
     label: '产物冒烟（真实浏览器打开 dist，断言 splash 消失）',
-    why: '构建成功不等于跑得起来：缺一条条件导出时产物一执行就抛错、页面停在 splash，而 lint / 类型 / 构建全绿。'
-      + '没有浏览器时脚本自己跳过。',
+    why:
+      '构建成功不等于跑得起来：缺一条条件导出时产物一执行就抛错、页面停在 splash，而 lint / 类型 / 构建全绿。' +
+      '没有浏览器时脚本自己跳过。',
     argv: ['exec', 'walnut-smoke-dist'],
     budgetMs: 5 * MINUTE,
   },
@@ -260,6 +292,20 @@ export const COMMANDS: readonly Command[] = [
     argv: ['exec', 'eslint', '*.ts', '*.json', '*.yaml', '--fix', '--concurrency=4'],
   },
   {
+    id: 'format:check',
+    group: '门禁',
+    label: '格式检查（oxfmt --check，唯一真源）',
+    why: '格式的唯一真源是 oxfmt；ESLint 已退出格式职责（stylistic: false），所以这一面没有第二条闸。',
+    argv: ['exec', 'oxfmt', '--check', '.'],
+  },
+  {
+    id: 'format:fix',
+    group: '门禁',
+    label: '格式化（oxfmt --write，会改文件）',
+    why: '本地一次改完；改完仍要跑 format:check 确认没有剩下的。',
+    argv: ['exec', 'oxfmt', '--write', '.'],
+  },
+  {
     id: 'types:check',
     group: '门禁',
     label: '全仓类型检查（admin / docs 用 vue-tsc，其余 tsc）',
@@ -284,15 +330,16 @@ export const COMMANDS: readonly Command[] = [
     id: 'e2e',
     group: '门禁',
     label: '全链路 E2E（独立 PG/Redis 栈 + dist-stage 后端 + dist-staging 前端）',
-    why: '跨端链路（设备身份、CAP、签名握手、风控）只有真实浏览器 + 真实后端能验；这条命令先查前置、'
-      + '抢 run 级锁、重建独立库（默认 walnut_e2e / 5433 / 6380，绝不碰 dev 库）再跑 spec。'
-      + '`E2E_STACK_PROFILE=smoke|risk|network|pages|journey` 切到该 profile 的独立库 / 偏移端口 / `.e2e/<p>/` 基线'
-      + '（不设 = default，本地全量行为不变；profile 与 project 同名 1:1）。'
-      + '**前置**：`pnpm setup-env`（apps/server/env-local/.env.stage）、`pnpm build`（workspace 包的 CJS dist）、'
-      + '`pnpm walnut build:stage` 与 `pnpm --filter @walnut/server build:stage`、'
-      + '`pnpm --filter @walnut/e2e exec playwright install chromium`、'
-      + '数据栈在 5433 / 6380 可达（WSL 形态还要一个隐藏会话）。全量含 @network 用例（依赖真实外网，'
-      + '离线时改用 e2e:risk）。刻意不进 prepush 与 ci:local：重活不属于推送前门禁。',
+    why:
+      '跨端链路（设备身份、CAP、签名握手、风控）只有真实浏览器 + 真实后端能验；这条命令先查前置、' +
+      '抢 run 级锁、重建独立库（默认 walnut_e2e / 5433 / 6380，绝不碰 dev 库）再跑 spec。' +
+      '`E2E_STACK_PROFILE=smoke|risk|network|pages|journey` 切到该 profile 的独立库 / 偏移端口 / `.e2e/<p>/` 基线' +
+      '（不设 = default，本地全量行为不变；profile 与 project 同名 1:1）。' +
+      '**前置**：`pnpm setup-env`（apps/server/env-local/.env.stage）、`pnpm build`（workspace 包的 CJS dist）、' +
+      '`pnpm walnut build:stage` 与 `pnpm --filter @walnut/server build:stage`、' +
+      '`pnpm --filter @walnut/e2e exec playwright install chromium`、' +
+      '数据栈在 5433 / 6380 可达（WSL 形态还要一个隐藏会话）。全量含 @network 用例（依赖真实外网，' +
+      '离线时改用 e2e:risk）。刻意不进 prepush 与 ci:local：重活不属于推送前门禁。',
     // 顺序写在 apps/e2e/scripts/run.ts：锁 → preflight → 基线决策 → Redis 设备键对账 →
     // stack-info → playwright test
     argv: ['-C', 'apps/e2e', 'run', 'e2e'],
@@ -302,9 +349,10 @@ export const COMMANDS: readonly Command[] = [
     id: 'e2e:default',
     group: '门禁',
     label: 'E2E default 面（smoke + risk + network + mobile）',
-    why: '日常验收入口：覆盖设备 / 风控 / 冒烟 / 外网 / mobile 四个 project，不跑 pages 与 journey'
-      + '（它们有独立 stack profile 与基线，CI 里也各自成 job）。'
-      + '前置与 e2e 相同；比裸 `pnpm walnut e2e` 少 2 个 project（约 3–5 分钟）。',
+    why:
+      '日常验收入口：覆盖设备 / 风控 / 冒烟 / 外网 / mobile 四个 project，不跑 pages 与 journey' +
+      '（它们有独立 stack profile 与基线，CI 里也各自成 job）。' +
+      '前置与 e2e 相同；比裸 `pnpm walnut e2e` 少 2 个 project（约 3–5 分钟）。',
     argv: ['-C', 'apps/e2e', 'run', 'e2e:default'],
     budgetMs: 0, // 同 e2e：分钟级 + webServer 启停
   },
@@ -312,9 +360,10 @@ export const COMMANDS: readonly Command[] = [
     id: 'e2e:smoke',
     group: '门禁',
     label: 'E2E 冒烟子集（setup + 首页 / 菜单 / 角色 / 设置 / 用户 CRUD）',
-    why: '改前端或后端引导链后先跑这一组：它含 UI 登录与 MFA，能最快回答「栈还活着吗」。'
-      + '前置与 e2e 相同（setup-env / pnpm build / 两处 build:stage / playwright install / 数据栈），'
-      + '但它不碰 @network，离线也能跑。',
+    why:
+      '改前端或后端引导链后先跑这一组：它含 UI 登录与 MFA，能最快回答「栈还活着吗」。' +
+      '前置与 e2e 相同（setup-env / pnpm build / 两处 build:stage / playwright install / 数据栈），' +
+      '但它不碰 @network，离线也能跑。',
     argv: ['-C', 'apps/e2e', 'run', 'e2e:smoke'],
     budgetMs: 0, // 同 e2e：分钟级 + webServer 启停
   },
@@ -322,9 +371,10 @@ export const COMMANDS: readonly Command[] = [
     id: 'e2e:risk',
     group: '门禁',
     label: 'E2E 风险子集（设备 ID 全生命周期）',
-    why: '设备签发 / 40605 自愈 / 滑动续期 / 封禁锁定 / 新设备 CAP 这些链路只有这一组 spec 守着。'
-      + '依赖真实外网的用例带 @network 标记、由 e2e:network 单独跑，所以这一组离线应全绿；'
-      + '前置同 e2e。',
+    why:
+      '设备签发 / 40605 自愈 / 滑动续期 / 封禁锁定 / 新设备 CAP 这些链路只有这一组 spec 守着。' +
+      '依赖真实外网的用例带 @network 标记、由 e2e:network 单独跑，所以这一组离线应全绿；' +
+      '前置同 e2e。',
     argv: ['-C', 'apps/e2e', 'run', 'e2e:risk'],
     budgetMs: 0, // 同 e2e
   },
@@ -332,8 +382,9 @@ export const COMMANDS: readonly Command[] = [
     id: 'e2e:network',
     group: '门禁',
     label: 'E2E 外网子集（@network：真实 geoip 定位）',
-    why: '这条只跑标了 @network 的用例（当前是非 local IP 走 api.ip.sb 的真实定位）：**它依赖真实外网**，'
-      + '断网 / 代理拦截时必红，所以从 risk 子集里隔离出来。前置同 e2e（只多一个外网可达）。',
+    why:
+      '这条只跑标了 @network 的用例（当前是非 local IP 走 api.ip.sb 的真实定位）：**它依赖真实外网**，' +
+      '断网 / 代理拦截时必红，所以从 risk 子集里隔离出来。前置同 e2e（只多一个外网可达）。',
     argv: ['-C', 'apps/e2e', 'run', 'e2e:network'],
     budgetMs: 0, // 同 e2e
   },
@@ -355,8 +406,9 @@ export const COMMANDS: readonly Command[] = [
     id: 'openapi:check',
     group: '门禁',
     label: 'OpenAPI 一致性（导出 → 生成 → git diff）',
-    why: '前端类型真源是 server 装饰器反射出的 openapi.json；DTO 改了却没重导出时，前端类型就在静默说谎。'
-      + '导出要引导 AppModule，所以本机需要 env-local 与 PG / Redis。',
+    why:
+      '前端类型真源是 server 装饰器反射出的 openapi.json；DTO 改了却没重导出时，前端类型就在静默说谎。' +
+      '导出要引导 AppModule，所以本机需要 env-local 与 PG / Redis。',
     argv: ['-C', 'apps/server', 'openapi:check'],
   },
   {
@@ -447,7 +499,9 @@ export const COMMANDS: readonly Command[] = [
   {
     id: 'lint:pre-hooks',
     group: '门禁',
-    label: '脚本前置钩子（vite / vue-tsc 前必须先跑生成）',
+    // 措辞从**名单本身**推导：名字住在 ci/pre-hook-consumers.ts（唯一真源），
+    // 写死「vite / vue-tsc」会在新增消费者后继续骗人（清单比规则先腐烂的那类）。
+    label: `脚本前置钩子（${PRE_HOOK_CONSUMERS.map((consumer) => consumer.bin).join(' / ')} 前必须先跑生成）`,
     why: '生成物不在跟踪面里，干净检出里没有它们；缺了钩子会让构建在生成之前就读文件。',
     argv: ['exec', 'walnut-check-pre-hooks'],
   },
@@ -602,7 +656,14 @@ export const COMMANDS: readonly Command[] = [
     group: '依赖',
     label: '只扫 apps 组（knip --workspace）',
     why: '同上：缩小扫描面，只回答「三个 app 有没有死代码」。',
-    argv: ['exec', 'cross-env', 'NODE_OPTIONS=--max-old-space-size=8192', 'knip', '--workspace', './apps/*'],
+    argv: [
+      'exec',
+      'cross-env',
+      'NODE_OPTIONS=--max-old-space-size=8192',
+      'knip',
+      '--workspace',
+      './apps/*',
+    ],
   },
   {
     id: 'inspect:node-modules',
@@ -721,11 +782,12 @@ export const COMMANDS: readonly Command[] = [
     id: 'e2e:affected',
     group: '工具',
     label: '按改动范围选择 E2E 子集（默认 base=origin/main）',
-    why: '本地与 nightly 的轻量入口：读 `git diff --name-only <base>...HEAD`，admin 登录 → smoke、'
-      + 'server guards/system/ip/middleware → risk、admin views/router → pages、socket/锁屏 → journey、'
-      + 'seed / 迁移 / prepare-db → 重新封板 + 全量、'
-      + '只改文档 → 跳过、**其它任何路径 → 全量**（安全网）。**刻意不进 prepush / PR 门禁**；'
-      + '执行仍经 apps/e2e/scripts/run.ts（抢 run 级锁、基线决策与单 run 不变量不变）。',
+    why:
+      '本地与 nightly 的轻量入口：读 `git diff --name-only <base>...HEAD`，admin 登录 → smoke、' +
+      'server guards/system/ip/middleware → risk、admin views/router → pages、socket/锁屏 → journey、' +
+      'seed / 迁移 / prepare-db → 重新封板 + 全量、' +
+      '只改文档 → 跳过、**其它任何路径 → 全量**（安全网）。**刻意不进 prepush / PR 门禁**；' +
+      '执行仍经 apps/e2e/scripts/run.ts（抢 run 级锁、基线决策与单 run 不变量不变）。',
     argv: ['-C', 'apps/e2e', 'run', 'e2e:affected'],
     // base 可位置参数给（`pnpm walnut e2e:affected origin/main`），也可 `--base=<ref>`
     positionalArgs: '[base]',
@@ -735,17 +797,19 @@ export const COMMANDS: readonly Command[] = [
     id: 'e2e:doctor',
     group: '工具',
     label: 'E2E 前置自检（打印全部检查与修复命令，不抢锁、不动库）',
-    why: '跑 e2e 前的失败先说清「缺什么、怎么补」：它只跑 preflight（env / workspace CJS dist / '
-      + '两处 stage 产物 / chromium / PG·Redis 可达 / PG 容器可读 / 端口），**不**抢 run 级锁、'
-      + '不重建库、不起服务。环境有问题时仍按退出码 2 收场（与 e2e 的前置口径一致），适合排障时反复跑。',
+    why:
+      '跑 e2e 前的失败先说清「缺什么、怎么补」：它只跑 preflight（env / workspace CJS dist / ' +
+      '两处 stage 产物 / chromium / PG·Redis 可达 / PG 容器可读 / 端口），**不**抢 run 级锁、' +
+      '不重建库、不起服务。环境有问题时仍按退出码 2 收场（与 e2e 的前置口径一致），适合排障时反复跑。',
     argv: ['-C', 'apps/e2e', 'run', 'e2e:doctor'],
   },
   {
     id: 'e2e:report',
     group: '工具',
     label: '打开上一轮 E2E 的 HTML 报告',
-    why: '它**不是门禁**：起一个常驻的本地报告服务，看完手动关。失败回放（trace / 截图 / 网络）在'
-      + 'Playwright 报告里；产物落在 gitignored 的 playwright-report/（含 token，别上传）。',
+    why:
+      '它**不是门禁**：起一个常驻的本地报告服务，看完手动关。失败回放（trace / 截图 / 网络）在' +
+      'Playwright 报告里；产物落在 gitignored 的 playwright-report/（含 token，别上传）。',
     argv: ['-C', 'apps/e2e', 'run', 'e2e:report'],
     budgetMs: 0, // 起本地报告服务，常驻
   },
@@ -753,9 +817,10 @@ export const COMMANDS: readonly Command[] = [
     id: 'e2e:stack:up',
     group: '工具',
     label: '起 E2E 数据栈（独立 PG 5433 / Redis 6380）',
-    why: '按 E2E_PG_EXEC_MODE / 平台自动选 WSL 常驻栈或通用 compose（容器名可用 E2E_PG_CONTAINER 覆盖），'
-      + '然后 `docker compose up -d`。**只起数据栈**：不抢 run 级锁、不重建库、不碰 Playwright 的 webServer —— '
-      + '那些仍由 e2e 自己编排。',
+    why:
+      '按 E2E_PG_EXEC_MODE / 平台自动选 WSL 常驻栈或通用 compose（容器名可用 E2E_PG_CONTAINER 覆盖），' +
+      '然后 `docker compose up -d`。**只起数据栈**：不抢 run 级锁、不重建库、不碰 Playwright 的 webServer —— ' +
+      '那些仍由 e2e 自己编排。',
     argv: ['-C', 'apps/e2e', 'run', 'e2e:stack', 'up'],
     budgetMs: 5 * MINUTE, // compose up 通常秒级；拉镜像时才会慢，5 分钟收掉卡死
   },
@@ -763,8 +828,9 @@ export const COMMANDS: readonly Command[] = [
     id: 'e2e:stack:down',
     group: '工具',
     label: '停 E2E 数据栈（默认保留数据卷）',
-    why: '与 up 同一个形态探测；默认 `down` 保留数据卷（基线仍可用）。要重置成空实例就在命令后加 '
-      + '`--volumes`（或 `-- -v`）：连卷删掉后旧基线失效，下一次 run 会全量 prepare 并重新封板。',
+    why:
+      '与 up 同一个形态探测；默认 `down` 保留数据卷（基线仍可用）。要重置成空实例就在命令后加 ' +
+      '`--volumes`（或 `-- -v`）：连卷删掉后旧基线失效，下一次 run 会全量 prepare 并重新封板。',
     argv: ['-C', 'apps/e2e', 'run', 'e2e:stack', 'down'],
     budgetMs: 5 * MINUTE,
   },
@@ -772,27 +838,30 @@ export const COMMANDS: readonly Command[] = [
     id: 'e2e:stack:status',
     group: '工具',
     label: 'E2E 数据栈状态（容器 / PG·Redis 可达性 / 端口 / 基线）',
-    why: '一条只读命令回答「现在能不能跑 e2e」：容器是否 running、5433 / 6380 是否可达、'
-      + '3001 / 3002 / 4173 是否空闲、当前基线可用 / 缺失 / 漂移。复用 preflight 的探针与 baseline 的判定，'
-      + '不抢锁、不动库、不启停服务；默认只报告、退出码恒 0，`-- --strict` 时容器 / PG·Redis 任一 FAIL ⇒ 1。',
+    why:
+      '一条只读命令回答「现在能不能跑 e2e」：容器是否 running、5433 / 6380 是否可达、' +
+      '3001 / 3002 / 4173 是否空闲、当前基线可用 / 缺失 / 漂移。复用 preflight 的探针与 baseline 的判定，' +
+      '不抢锁、不动库、不启停服务；默认只报告、退出码恒 0，`-- --strict` 时容器 / PG·Redis 任一 FAIL ⇒ 1。',
     argv: ['-C', 'apps/e2e', 'run', 'e2e:stack', 'status'],
   },
   {
     id: 'e2e:clean',
     group: '工具',
     label: '清理 apps/e2e/.e2e 的调试文件（dry-run 默认）',
-    why: '`.e2e/` 是排障现场：log / 临时 json / 截图 / trace 会越堆越多，而基线三件套与 stack.json '
-      + '是下一轮 run 直接消费的。默认只列出将删条目；`--force` 才真删，且路径闸只允许删该目录的直接子项。'
-      + '跑用例期间别清（正在写的日志会被删）。',
+    why:
+      '`.e2e/` 是排障现场：log / 临时 json / 截图 / trace 会越堆越多，而基线三件套与 stack.json ' +
+      '是下一轮 run 直接消费的。默认只列出将删条目；`--force` 才真删，且路径闸只允许删该目录的直接子项。' +
+      '跑用例期间别清（正在写的日志会被删）。',
     argv: ['-C', 'apps/e2e', 'run', 'e2e:clean'],
   },
   {
     id: 'e2e:redis-gc',
     group: '工具',
     label: 'Redis 设备键对账（按 deviceId 清孤儿，不 FLUSH）',
-    why: '扫描白名单前缀里的设备键，查 `sys_device` 判存在性，只对「设备不存在」的键执行精确 `DEL`。'
-      + 'run 流程默认在库准备之后自动跑（`E2E_REDIS_GC=0` 关）；这条是排障 / 负对照的独立入口，'
-      + '`--dry-run` 只看计划不删。**绝不 FLUSHDB / FLUSHALL**（compose 里已禁用那两个命令）。',
+    why:
+      '扫描白名单前缀里的设备键，查 `sys_device` 判存在性，只对「设备不存在」的键执行精确 `DEL`。' +
+      'run 流程默认在库准备之后自动跑（`E2E_REDIS_GC=0` 关）；这条是排障 / 负对照的独立入口，' +
+      '`--dry-run` 只看计划不删。**绝不 FLUSHDB / FLUSHALL**（compose 里已禁用那两个命令）。',
     argv: ['-C', 'apps/e2e', 'run', 'e2e:redis-gc'],
     budgetMs: 5 * MINUTE,
   },
@@ -815,8 +884,9 @@ export const COMMANDS: readonly Command[] = [
     id: 'gen:doc',
     group: '工具',
     label: '生成后端代码文档（compodoc，产物在 apps/server/.tmp/compodoc）',
-    why: 'compodoc 提供代码结构视图（模块图 / 注入关系 / 每方法装饰器清单），与 Swagger 的 HTTP 面互补；'
-      + '产物落 apps/server/.tmp/compodoc（已被 gitignore），全量生成以分钟计，所以只做本地产物、不进 CI。',
+    why:
+      'compodoc 提供代码结构视图（模块图 / 注入关系 / 每方法装饰器清单），与 Swagger 的 HTTP 面互补；' +
+      '产物落 apps/server/.tmp/compodoc（已被 gitignore），全量生成以分钟计，所以只做本地产物、不进 CI。',
     argv: ['-C', 'apps/server', 'gen:doc'],
     budgetMs: 4 * MINUTE, // 全量生成实测两次为 116s / 187s（机器负载不同），留余量
   },
@@ -832,12 +902,9 @@ export const COMMANDS: readonly Command[] = [
  */
 export function resolveCommandArgv(argv: readonly string[]): string[] {
   const head = argv[0]
-  if (head === undefined)
-    return []
-  if (PNPM_SUBCOMMANDS.has(head) || KEPT_ROOT_SCRIPTS.has(head))
-    return [...argv]
-  const command = COMMANDS.find(item => item.id === head)
-  if (command === undefined || !('argv' in command))
-    return [...argv]
+  if (head === undefined) return []
+  if (PNPM_SUBCOMMANDS.has(head) || KEPT_ROOT_SCRIPTS.has(head)) return [...argv]
+  const command = COMMANDS.find((item) => item.id === head)
+  if (command === undefined || !('argv' in command)) return [...argv]
   return [...command.argv, ...argv.slice(1)]
 }

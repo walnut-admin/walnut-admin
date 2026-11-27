@@ -1,6 +1,7 @@
 import type { OptionsConfig } from '@antfu/eslint-config'
 import type { WalnutEslintConfig } from './base.ts'
 import antfu from '@antfu/eslint-config'
+import eslintConfigPrettier from 'eslint-config-prettier/flat'
 // 这个相对导入**刻意不写 `.ts` 扩展名**：本文件会被消费方的类型程序一起编译
 // （`apps/server/tsconfig.json` 按 ADR 0012 是自包含的，没有开 `allowImportingTsExtensions`），
 // 带扩展名会让 `@walnut/server` 的 types:check 直接报 TS5097。
@@ -16,9 +17,11 @@ import { turboEnvVarsConfig } from './turbo-env-vars'
  * 禁令，而 flat config 里同一 rules key 后份整体覆盖前份 —— 那条配置必须把本 selector
  * 一起带上，否则 libs 里已有的显式 disable 会变成「未使用指令」，直连保护也会静默消失。
  */
-export const DATA_SCOPE_DIRECT_REPOSITORY_SELECTOR = 'CallExpression[callee.property.name=\'getRepository\'][arguments.0.name=/^(SysUserEntity|SysLogOperateEntity|SysLogAuthEntity|AppMonitorUserEntity|SysDeletedEntity|AppDemoEntity|SysEmployeeEntity)$/]'
+export const DATA_SCOPE_DIRECT_REPOSITORY_SELECTOR =
+  "CallExpression[callee.property.name='getRepository'][arguments.0.name=/^(SysUserEntity|SysLogOperateEntity|SysLogAuthEntity|AppMonitorUserEntity|SysDeletedEntity|AppDemoEntity|SysEmployeeEntity)$/]"
 
-export const DATA_SCOPE_DIRECT_REPOSITORY_MESSAGE = '数据权限：已注册实体必须经 WalnutAdminCommonPgBaseRepository（common/repository）访问；系统通道请加 eslint-disable-next-line no-restricted-syntax 并写明理由。'
+export const DATA_SCOPE_DIRECT_REPOSITORY_MESSAGE =
+  '数据权限：已注册实体必须经 WalnutAdminCommonPgBaseRepository（common/repository）访问；系统通道请加 eslint-disable-next-line no-restricted-syntax 并写明理由。'
 
 /**
  * NestJS 后端预设：apps/server。
@@ -60,20 +63,27 @@ export default function nestConfig(options: OptionsConfig = {}): WalnutEslintCon
         'ts/no-unsafe-argument': 'warn',
         'ts/no-unsafe-return': 'warn',
         'ts/no-unsafe-call': 'warn',
-        'no-restricted-imports': ['error', {
-          patterns: [
-            {
-              group: ['@walnut/client', '@walnut/client/*'],
-              message: '@walnut/client contains Vue composables and browser-only APIs (Web Crypto, DOM, IndexedDB). Do not import from NestJS server code.',
-            },
-            {
-              group: ['@walnut/http', '@walnut/http/*'],
-              message: '@walnut/http is the frontend HTTP client (browser interceptors, cache, retry). Server should use @nestjs/axios or raw axios.',
-            },
-          ],
-        }],
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              {
+                group: ['@walnut/client', '@walnut/client/*'],
+                message:
+                  '@walnut/client contains Vue composables and browser-only APIs (Web Crypto, DOM, IndexedDB). Do not import from NestJS server code.',
+              },
+              {
+                group: ['@walnut/http', '@walnut/http/*'],
+                message:
+                  '@walnut/http is the frontend HTTP client (browser interceptors, cache, retry). Server should use @nestjs/axios or raw axios.',
+              },
+            ],
+          },
+        ],
       },
       ...options,
+      // 硬边界：格式的唯一真源是 oxfmt（根 `.oxfmtrc.json`），调用方也改不回去
+      stylistic: false,
     },
     {
       files: ['**/*.ts'],
@@ -81,11 +91,14 @@ export default function nestConfig(options: OptionsConfig = {}): WalnutEslintCon
         local: localRules,
       },
       rules: {
-        'ts/consistent-type-imports': ['error', {
-          prefer: 'type-imports',
-          disallowTypeAnnotations: false,
-          fixStyle: 'separate-type-imports',
-        }],
+        'ts/consistent-type-imports': [
+          'error',
+          {
+            prefer: 'type-imports',
+            disallowTypeAnnotations: false,
+            fixStyle: 'separate-type-imports',
+          },
+        ],
         'local/sort-nestjs-decorators': 'error',
       },
     },
@@ -105,10 +118,13 @@ export default function nestConfig(options: OptionsConfig = {}): WalnutEslintCon
       files: ['**/*.ts'],
       ignores: ['**/common/repository/**'],
       rules: {
-        'no-restricted-syntax': ['error', {
-          selector: DATA_SCOPE_DIRECT_REPOSITORY_SELECTOR,
-          message: DATA_SCOPE_DIRECT_REPOSITORY_MESSAGE,
-        }],
+        'no-restricted-syntax': [
+          'error',
+          {
+            selector: DATA_SCOPE_DIRECT_REPOSITORY_SELECTOR,
+            message: DATA_SCOPE_DIRECT_REPOSITORY_MESSAGE,
+          },
+        ],
       },
     },
     {
@@ -134,5 +150,8 @@ export default function nestConfig(options: OptionsConfig = {}): WalnutEslintCon
         'turbo/no-undeclared-env-vars': 'off',
       },
     },
+    // 兜底：关掉任何漏网的格式化规则（必须最后，flat config 后份覆盖前份）。
+    // 格式的唯一真源是 oxfmt（根 `.oxfmtrc.json`）。
+    eslintConfigPrettier,
   )
 }

@@ -67,13 +67,16 @@ interface INestCliJson {
       }
     }
   }
-  projects: Record<string, {
-    type: string
-    root: string
-    sourceRoot: string
-    entryFile: string
-    compilerOptions: { tsConfigPath: string }
-  }>
+  projects: Record<
+    string,
+    {
+      type: string
+      root: string
+      sourceRoot: string
+      entryFile: string
+      compilerOptions: { tsConfigPath: string }
+    }
+  >
 }
 
 interface ISwcrcJson {
@@ -97,26 +100,40 @@ function readJson<T>(relativePath: string): T {
 function readActualLibNames(): string[] {
   const libsRoot = resolve(process.cwd(), 'libs')
   return readdirSync(libsRoot, { withFileTypes: true })
-    .filter(entry => entry.isDirectory())
-    .map(entry => entry.name)
-    .filter(name => existsSync(resolve(libsRoot, name, 'src', 'index.ts')))
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .filter((name) => existsSync(resolve(libsRoot, name, 'src', 'index.ts')))
     .sort()
 }
 
 /** `@walnut-server/<name>` 键集合（剥掉命名空间前缀与 `/*` 子路径变体，排序后比较） */
 function aliasLibNames(paths: Record<string, string[]>): string[] {
-  return [...new Set(
-    Object.keys(paths)
-      .filter(key => key.startsWith('@walnut-server/'))
-      .map(key => key.replace(/^@walnut-server\//, '').replace(/\/\*$/, '')),
-  )].sort()
+  return [
+    ...new Set(
+      Object.keys(paths)
+        .filter((key) => key.startsWith('@walnut-server/'))
+        .map((key) => key.replace(/^@walnut-server\//, '').replace(/\/\*$/, '')),
+    ),
+  ].sort()
 }
 
-const NEST_CLI_CONFIGS = ['infra/nest/dev.json', 'infra/nest/prod.json', 'infra/nest/stage.json'] as const
-const SWCRC_CONFIGS = ['infra/swc/dev.swcrc', 'infra/swc/prod.swcrc', 'infra/swc/stage.swcrc'] as const
+const NEST_CLI_CONFIGS = [
+  'infra/nest/dev.json',
+  'infra/nest/prod.json',
+  'infra/nest/stage.json',
+] as const
+const SWCRC_CONFIGS = [
+  'infra/swc/dev.swcrc',
+  'infra/swc/prod.swcrc',
+  'infra/swc/stage.swcrc',
+] as const
 
 /** ④ 三份 app 构建配置：面 ④ 的全部落点（D14 之前只有第一份在对账） */
-const APP_TSCONFIGS = ['apps/api/tsconfig.app.json', 'apps/cli/tsconfig.app.json', 'apps/worker/tsconfig.app.json'] as const
+const APP_TSCONFIGS = [
+  'apps/api/tsconfig.app.json',
+  'apps/cli/tsconfig.app.json',
+  'apps/worker/tsconfig.app.json',
+] as const
 
 /** ⑦ nest filenames 里除 `libs/<name>/src` 之外的条目：三个组合入口的源码目录 */
 const APP_ENTRY_DIRS = ['apps/api/src', 'apps/cli/src', 'apps/worker/src'] as const
@@ -128,27 +145,37 @@ const LIB_TSCONFIG_EXTENDS = '../../tsconfig.lib.base.json'
  * ④ 一个 app 的 tsconfig.app.json 的 include 问题集（空数组 = 通过）：
  * 自身 src 通配条目必须在；libs glob 集合 ≡ 磁盘且无未知形状 / 无重复。
  */
-function collectAppIncludeProblems(configPath: string, include: readonly string[], actualLibs: readonly string[]): string[] {
+function collectAppIncludeProblems(
+  configPath: string,
+  include: readonly string[],
+  actualLibs: readonly string[],
+): string[] {
   const problems: string[] = []
 
   if (!include.includes('src/**/*'))
     problems.push(`${configPath} 的 include 缺本入口自己的 src 通配条目`)
 
   const libEntryRe = /^\.\.\/\.\.\/libs\/([\w-]+)\/src\/\*\*\/\*$/
-  const unknown = include.filter(entry => entry.startsWith('../../libs/') && !libEntryRe.test(entry))
+  const unknown = include.filter(
+    (entry) => entry.startsWith('../../libs/') && !libEntryRe.test(entry),
+  )
   if (unknown.length > 0)
     problems.push(`${configPath} 的 include 里有形状不标准的 libs 条目：[${unknown.join(', ')}]`)
 
   const names = include
-    .filter(entry => !unknown.includes(entry))
-    .map(entry => libEntryRe.exec(entry)?.[1])
+    .filter((entry) => !unknown.includes(entry))
+    .map((entry) => libEntryRe.exec(entry)?.[1])
     .filter((name): name is string => name !== undefined)
     .sort()
   const duplicates = names.filter((name, index) => names.indexOf(name) !== index)
   if (duplicates.length > 0)
-    problems.push(`${configPath} 的 include 里同一 lib 出现多次：[${[...new Set(duplicates)].join(', ')}]`)
+    problems.push(
+      `${configPath} 的 include 里同一 lib 出现多次：[${[...new Set(duplicates)].join(', ')}]`,
+    )
   if (JSON.stringify(names) !== JSON.stringify([...actualLibs]))
-    problems.push(`${configPath} 的 libs 条目 [${names.join(', ')}] ≠ 磁盘 [${[...actualLibs].join(', ')}]`)
+    problems.push(
+      `${configPath} 的 libs 条目 [${names.join(', ')}] ≠ 磁盘 [${[...actualLibs].join(', ')}]`,
+    )
 
   return problems
 }
@@ -173,9 +200,13 @@ function collectLibTsconfigProblems(
 
     const keys = Object.keys(config).sort()
     if (JSON.stringify(keys) !== JSON.stringify(['compilerOptions', 'extends']))
-      problems.push(`${configPath} 的顶层键 [${keys.join(', ')}] 应恰好是 [compilerOptions, extends]（新增键要连同本守卫一起改）`)
+      problems.push(
+        `${configPath} 的顶层键 [${keys.join(', ')}] 应恰好是 [compilerOptions, extends]（新增键要连同本守卫一起改）`,
+      )
     if (config.extends !== LIB_TSCONFIG_EXTENDS)
-      problems.push(`${configPath} 的 extends 应为 ${LIB_TSCONFIG_EXTENDS}，实际 ${JSON.stringify(config.extends)}`)
+      problems.push(
+        `${configPath} 的 extends 应为 ${LIB_TSCONFIG_EXTENDS}，实际 ${JSON.stringify(config.extends)}`,
+      )
 
     const compilerOptions = config.compilerOptions
     if (typeof compilerOptions !== 'object' || compilerOptions === null) {
@@ -185,9 +216,13 @@ function collectLibTsconfigProblems(
     const options = compilerOptions as Record<string, unknown>
     const optionKeys = Object.keys(options)
     if (JSON.stringify(optionKeys) !== JSON.stringify(['outDir']))
-      problems.push(`${configPath} 的 compilerOptions 键 [${optionKeys.join(', ')}] 应恰好是 [outDir]`)
+      problems.push(
+        `${configPath} 的 compilerOptions 键 [${optionKeys.join(', ')}] 应恰好是 [outDir]`,
+      )
     if (options.outDir !== `../../dist/libs/${name}`)
-      problems.push(`${configPath} 的 outDir 应指向自己的 ../../dist/libs/${name}，实际 ${JSON.stringify(options.outDir)}`)
+      problems.push(
+        `${configPath} 的 outDir 应指向自己的 ../../dist/libs/${name}，实际 ${JSON.stringify(options.outDir)}`,
+      )
   }
 
   return problems
@@ -196,16 +231,20 @@ function collectLibTsconfigProblems(
 /** ⑦ 一份 nest json 的 filenames 里 application 条目的问题集（libs 条目由面 ② 守） */
 function collectAppEntryProblems(configPath: string, filenames: readonly string[]): string[] {
   const problems: string[] = []
-  const entries = filenames.filter(entry => !entry.startsWith('libs/'))
+  const entries = filenames.filter((entry) => !entry.startsWith('libs/'))
 
   const duplicates = entries.filter((entry, index) => entries.indexOf(entry) !== index)
   if (duplicates.length > 0)
-    problems.push(`${configPath} 的 filenames 里 application 目录重复：[${[...new Set(duplicates)].join(', ')}]`)
+    problems.push(
+      `${configPath} 的 filenames 里 application 目录重复：[${[...new Set(duplicates)].join(', ')}]`,
+    )
 
   const actual = [...new Set(entries)].sort()
   const expected = [...APP_ENTRY_DIRS].sort()
   if (JSON.stringify(actual) !== JSON.stringify(expected))
-    problems.push(`${configPath} 的 filenames 里 application 目录 [${actual.join(', ')}] ≠ [${expected.join(', ')}]（少一个 = 该入口的产物静默消失）`)
+    problems.push(
+      `${configPath} 的 filenames 里 application 目录 [${actual.join(', ')}] ≠ [${expected.join(', ')}]（少一个 = 该入口的产物静默消失）`,
+    )
 
   return problems
 }
@@ -213,7 +252,14 @@ function collectAppEntryProblems(configPath: string, filenames: readonly string[
 // ─── eslint.config.ts 分层接线解析（纯文本，零装载）────────────────────────────────
 
 /** 分层名单常量：exceptions 单独一条例外行，不并入 INFRA_LIBS（每个 lib 恰好登记一次） */
-const LAYER_LIST_NAMES = ['INFRA_LIBS', 'TECH_BASE_LIBS', 'TECH_ASSEMBLE_LIBS', 'DOMAIN_LIBS', 'TOP_LIBS', 'EXCEPTION_LIBS'] as const
+const LAYER_LIST_NAMES = [
+  'INFRA_LIBS',
+  'TECH_BASE_LIBS',
+  'TECH_ASSEMBLE_LIBS',
+  'DOMAIN_LIBS',
+  'TOP_LIBS',
+  'EXCEPTION_LIBS',
+] as const
 
 /**
  * 剥离 `//` 行注释与 `/* *\/` 块注释（字符串 / 模板串内部的 `//` 与 `/*` 原样保留）。
@@ -234,28 +280,25 @@ function stripComments(text: string): string {
         stripped += text[++i] ?? ''
         continue
       }
-      if (char === quote)
-        quote = null
+      if (char === quote) quote = null
       continue
     }
 
-    if (char === '\'' || char === '"' || char === '`') {
+    if (char === "'" || char === '"' || char === '`') {
       quote = char
       stripped += char
       continue
     }
 
     if (char === '/' && text[i + 1] === '/') {
-      while (i < text.length && text[i] !== '\n')
-        i++
+      while (i < text.length && text[i] !== '\n') i++
       stripped += '\n'
       continue
     }
 
     if (char === '/' && text[i + 1] === '*') {
       i += 2
-      while (i < text.length && !(text[i] === '*' && text[i + 1] === '/'))
-        i++
+      while (i < text.length && !(text[i] === '*' && text[i + 1] === '/')) i++
       i++
       stripped += ' '
       continue
@@ -267,16 +310,22 @@ function stripComments(text: string): string {
   return stripped
 }
 
-/** 读取五个单行字面量数组；读不到直接 fail（改名 / 跨行 / 计算式都不能让守卫静默失效） */
+/**
+ * 读取名单字面量数组；读不到直接 fail（改名 / 计算式都不能让守卫静默失效）。
+ * **跨行是允许的**：oxfmt 会把超过 printWidth 的数组拆成一行一项（`\s` 覆盖换行），
+ * 布局不是语义 —— 早先那条「必须单行」的假设在接入格式化器之后会直接误红。
+ */
 function readLayerLists(configText: string): Record<string, string[] | undefined> {
   const text = stripComments(configText)
   const lists: Record<string, string[] | undefined> = {}
   for (const listName of LAYER_LIST_NAMES) {
-    const match = new RegExp(`const ${listName} = \\[([^\\]]*)\\]`).exec(text)
+    const match = new RegExp(`const ${listName} = \\[([\\s\\S]*?)\\]`).exec(text)
     if (!match) {
-      expect.fail(`eslint.config.ts 里找不到 ${listName} 的单行字面量数组（改名或改成跨行/计算式都会让本守卫失效）`)
+      expect.fail(
+        `eslint.config.ts 里找不到 ${listName} 的字面量数组（改名或改成计算式都会让本守卫失效）`,
+      )
     }
-    const names = [...match[1].matchAll(/'([\w-]+)'/g)].map(literal => literal[1])
+    const names = [...match[1].matchAll(/'([\w-]+)'/g)].map((literal) => literal[1])
     expect(names.length, `${listName} 不能为空`).toBeGreaterThan(0)
     lists[listName] = names
   }
@@ -284,20 +333,18 @@ function readLayerLists(configText: string): Record<string, string[] | undefined
 }
 
 /** 从 `(` 之后的 bodyStart 起扫描到配对的 `)`（跳过字符串字面量），返回括号内文本 */
-function readParenBody(text: string, bodyStart: number): { body: string, endIndex: number } {
+function readParenBody(text: string, bodyStart: number): { body: string; endIndex: number } {
   let depth = 1
   let quote: string | null = null
 
   for (let i = bodyStart; i < text.length; i++) {
     const char = text[i]
     if (quote !== null) {
-      if (char === '\\')
-        i++
-      else if (char === quote)
-        quote = null
+      if (char === '\\') i++
+      else if (char === quote) quote = null
       continue
     }
-    if (char === '\'' || char === '"' || char === '`') {
+    if (char === "'" || char === '"' || char === '`') {
       quote = char
       continue
     }
@@ -307,8 +354,7 @@ function readParenBody(text: string, bodyStart: number): { body: string, endInde
     }
     if (char === ')') {
       depth--
-      if (depth === 0)
-        return { body: text.slice(bodyStart, i), endIndex: i }
+      if (depth === 0) return { body: text.slice(bodyStart, i), endIndex: i }
     }
   }
 
@@ -330,11 +376,10 @@ function splitTopLevelArgs(body: string): string[] {
         current += body[++i] ?? ''
         continue
       }
-      if (char === quote)
-        quote = null
+      if (char === quote) quote = null
       continue
     }
-    if (char === '\'' || char === '"' || char === '`') {
+    if (char === "'" || char === '"' || char === '`') {
       quote = char
       current += char
       continue
@@ -357,53 +402,69 @@ function splitTopLevelArgs(body: string): string[] {
     current += char
   }
 
-  if (current.trim() !== '')
-    args.push(current.trim())
+  if (current.trim() !== '') args.push(current.trim())
   return args
+}
+
+/**
+ * 剥掉后缀里的 `.filter(...)` —— 括号**配平扫描**而不是正则。
+ *
+ * 为什么：格式化器（oxfmt）会给单参数箭头函数补括号（`lib => …` → `(lib) => …`），
+ * `\.filter\([^)]*\)` 那种写法定会断在内层 `)` 上；布局不是语义，守卫不该因格式化失效。
+ */
+function stripFilterSuffix(suffix: string): string {
+  const at = suffix.indexOf('.filter(')
+  if (at < 0) return suffix
+  let depth = 0
+  for (let i = at + '.filter'.length; i < suffix.length; i++) {
+    if (suffix[i] === '(') depth++
+    else if (suffix[i] === ')') {
+      depth--
+      if (depth === 0) return suffix.slice(0, at) + suffix.slice(i + 1)
+    }
+  }
+  return suffix
 }
 
 /**
  * 展开 layer(...) 的数组参数：支持名单标识符、名字面量数组、`...NAME` 与
  * `...NAME.filter(lib => lib !== 'x')` 四种形态；其他形态 fail（不静默跳过）。
  */
-function expandLibExpression(expression: string, lists: Record<string, string[] | undefined>): string[] {
+function expandLibExpression(
+  expression: string,
+  lists: Record<string, string[] | undefined>,
+): string[] {
   const trimmed = expression.trim()
 
   if (!trimmed.startsWith('[')) {
     const list = lists[trimmed]
-    if (!list)
-      expect.fail(`layer 接线里出现未知名单标识符：${trimmed}`)
+    if (!list) expect.fail(`layer 接线里出现未知名单标识符：${trimmed}`)
     return [...list]
   }
 
   const names: string[] = []
   for (const raw of trimmed.slice(1, -1).split(',')) {
     const part = raw.trim()
-    if (part === '')
-      continue
+    if (part === '') continue
 
     if (part.startsWith('...')) {
       const rest = part.slice(3)
       const identifier = /^\w+/.exec(rest)?.[0]
-      if (identifier === undefined)
-        expect.fail(`layer 接线里出现无法解析的 spread：${part}`)
+      if (identifier === undefined) expect.fail(`layer 接线里出现无法解析的 spread：${part}`)
       const list = lists[identifier]
-      if (!list)
-        expect.fail(`layer 接线里 spread 了未知名单：${identifier}`)
+      if (!list) expect.fail(`layer 接线里 spread 了未知名单：${identifier}`)
 
       // 只认 `...NAME` 与 `...NAME.filter(x => x !== 'lit')`；其余后缀直接 fail（不静默跳过）
       const suffix = rest.slice(identifier.length)
-      const cleaned = suffix.replace(/\.filter\([^)]*\)/, '').trim()
-      if (cleaned !== '')
-        expect.fail(`layer 接线里出现无法解析的数组元素：${part}`)
+      const cleaned = stripFilterSuffix(suffix).trim()
+      if (cleaned !== '') expect.fail(`layer 接线里出现无法解析的数组元素：${part}`)
       const excluded = /!==\s*'([\w-]+)'/.exec(suffix)?.[1]
-      names.push(...list.filter(name => name !== excluded))
+      names.push(...list.filter((name) => name !== excluded))
       continue
     }
 
     const literal = /^'([\w-]+)'$/.exec(part)
-    if (!literal)
-      expect.fail(`layer 接线里出现无法解析的数组元素：${part}`)
+    if (!literal) expect.fail(`layer 接线里出现无法解析的数组元素：${part}`)
     names.push(literal[1])
   }
   return names
@@ -421,8 +482,7 @@ function parseLayerCall(args: string[], lists: Record<string, string[] | undefin
     expect.fail(`layer(...) 调用应有 4 个参数，实际 ${args.length} 个：${args.join(', ')}`)
 
   const name = /^'([\w-]+)'$/.exec(args[0])
-  if (!name)
-    expect.fail(`layer(...) 的第一个参数应是字符串字面量：${args[0]}`)
+  if (!name) expect.fail(`layer(...) 的第一个参数应是字符串字面量：${args[0]}`)
 
   return {
     name: name[1],
@@ -432,7 +492,10 @@ function parseLayerCall(args: string[], lists: Record<string, string[] | undefin
 }
 
 /** 从 eslint.config.ts 文本提取全部 `layer('name', libs, banned, label)` 调用（注释不参与） */
-function readLayerCalls(configText: string, lists: Record<string, string[] | undefined>): ILayerCall[] {
+function readLayerCalls(
+  configText: string,
+  lists: Record<string, string[] | undefined>,
+): ILayerCall[] {
   const text = stripComments(configText)
   const calls: ILayerCall[] = []
   const needle = 'layer('
@@ -440,14 +503,12 @@ function readLayerCalls(configText: string, lists: Record<string, string[] | und
 
   for (;;) {
     const index = text.indexOf(needle, from)
-    if (index < 0)
-      break
+    if (index < 0) break
 
     const bodyStart = index + needle.length
     from = bodyStart
     // 跳过函数定义 `function layer(name: ...)` 等非调用形态：调用第一参数必须是名字面量
-    if (!/^\s*'/.test(text.slice(bodyStart)))
-      continue
+    if (!/^\s*'/.test(text.slice(bodyStart))) continue
 
     const { body, endIndex } = readParenBody(text, bodyStart)
     calls.push(parseLayerCall(splitTopLevelArgs(body), lists))
@@ -458,13 +519,16 @@ function readLayerCalls(configText: string, lists: Record<string, string[] | und
 }
 
 /** 定位指定 layer 调用的括号位置与参数（用于篡改自测；找不到返回 null） */
-function findLayerCall(configText: string, layerName: string): { bodyStart: number, endIndex: number, args: string[] } | null {
+function findLayerCall(
+  configText: string,
+  layerName: string,
+): { bodyStart: number; endIndex: number; args: string[] } | null {
   const text = stripComments(configText)
-  const index = text.indexOf(`layer('${layerName}'`)
-  if (index < 0)
-    return null
+  // `\s*` 覆盖格式化器把 `layer(\n  'name', …)` 拆行的情况：参数间的空白与换行不是语义
+  const match = new RegExp(`layer\\(\\s*'${layerName}'`).exec(text)
+  if (!match) return null
 
-  const bodyStart = index + 'layer('.length
+  const bodyStart = match.index + 'layer('.length
   const { body, endIndex } = readParenBody(text, bodyStart)
   return { bodyStart, endIndex, args: splitTopLevelArgs(body) }
 }
@@ -482,12 +546,11 @@ function readExpressionUntilTopLevelComma(text: string, start: number): string {
         i++
         continue
       }
-      if (char === quote)
-        quote = null
+      if (char === quote) quote = null
       continue
     }
 
-    if (char === '\'' || char === '"' || char === '`') {
+    if (char === "'" || char === '"' || char === '`') {
       quote = char
       continue
     }
@@ -503,14 +566,12 @@ function readExpressionUntilTopLevelComma(text: string, start: number): string {
     }
 
     if (char === '}') {
-      if (depth === 0)
-        return text.slice(start, i).trim()
+      if (depth === 0) return text.slice(start, i).trim()
       depth--
       continue
     }
 
-    if (char === ',' && depth === 0)
-      return text.slice(start, i).trim()
+    if (char === ',' && depth === 0) return text.slice(start, i).trim()
   }
 
   expect.fail('layer() 函数体的 files 表达式没有在顶层逗号 / 闭花括号处结束')
@@ -524,33 +585,41 @@ function readExpressionUntilTopLevelComma(text: string, start: number): string {
 function readLayerHelperFilesExpression(configText: string): string {
   const text = stripComments(configText)
   const helperStart = text.indexOf('function layer(')
-  if (helperStart < 0)
-    expect.fail('eslint.config.ts 里找不到 layer() 函数定义')
+  if (helperStart < 0) expect.fail('eslint.config.ts 里找不到 layer() 函数定义')
   const filesIndex = text.indexOf('files:', helperStart)
-  if (filesIndex < 0)
-    expect.fail('layer() 函数体里找不到 files: 派生式')
+  if (filesIndex < 0) expect.fail('layer() 函数体里找不到 files: 派生式')
   return readExpressionUntilTopLevelComma(text, filesIndex + 'files:'.length)
 }
 
-/** 从 `libs.map(lib => \`...\`)` 派生式解出 glob 模板；形状不符直接 fail（不静默跳过） */
+/**
+ * 从 `libs.map(lib => \`...\`)` 派生式解出 glob 模板；形状不符直接 fail（不静默跳过）。
+ *
+ * 参数两侧的括号**可省可带**：格式化器会把单参数箭头函数写成 `(lib) =>`，两者语义相同。
+ */
 function readFilesTemplate(filesExpression: string): string {
-  const match = /^libs\.map\(lib => `([^`]*)`\)$/.exec(filesExpression.replace(/\s+/g, ' '))
-  if (!match)
-    expect.fail(`layer() 函数体的 files 派生式应是 libs.map(lib => \`...\`)，实际：${filesExpression}`)
+  const match = /^libs\.map\(\(?lib\)? => `([^`]*)`\)$/.exec(filesExpression.replace(/\s+/g, ' '))
+  if (!match) {
+    expect.fail(
+      `layer() 函数体的 files 派生式应是 libs.map(lib => \`...\`)，实际：${filesExpression}`,
+    )
+  }
   return match[1]
 }
 
 /** 把指定 layer 的第三参数（banned）改写成字面量数组 —— 供「注入篡改必红」自测 */
-function rewriteLayerBanned(configText: string, layerName: string, banned: readonly string[]): string {
+function rewriteLayerBanned(
+  configText: string,
+  layerName: string,
+  banned: readonly string[],
+): string {
   const text = stripComments(configText)
   const call = findLayerCall(text, layerName)
-  if (!call)
-    expect.fail(`找不到 layer('${layerName}', ...) 调用`)
+  if (!call) expect.fail(`找不到 layer('${layerName}', ...) 调用`)
   if (call.args.length !== 4)
     expect.fail(`layer('${layerName}', ...) 应有 4 个参数，实际 ${call.args.length} 个`)
 
-  const literal = `[${banned.map(name => `'${name}'`).join(', ')}]`
-  const rewrittenArgs = call.args.map((arg, index) => index === 2 ? literal : arg)
+  const literal = `[${banned.map((name) => `'${name}'`).join(', ')}]`
+  const rewrittenArgs = call.args.map((arg, index) => (index === 2 ? literal : arg))
   return `${text.slice(0, call.bodyStart)}${rewrittenArgs.join(', ')}${text.slice(call.endIndex)}`
 }
 
@@ -562,6 +631,9 @@ const LAYER_MATRIX = [
   { name: 'infra', libs: ['config', 'const', 'db', 'decorators', 'pipes', 'types', 'utils'] },
   // F-14 / Q8a：技术层拆「设施 / 装配内核」两条 —— rank 上 base 低于 assemble，
   // 允许边只有 assemble → base 单向（ip 不得引 crud/list 等内核 lib）。
+  // oxfmt-ignore：**必须保持单行** —— scaffold 的 insertMatrixRow 按
+  // `{ name: 'x', libs: [` … `] }` 的文本形态插行，换行会让 `pnpm walnut scaffold:lib` 失效。
+  // oxfmt-ignore
   { name: 'tech-base', libs: ['als', 'blpath', 'cookie', 'crypto', 'lock', 'queue', 'sse', 'cache', 'throttle', 'mailer', 'sms', 'rsa', 'ip'] },
   { name: 'tech-assemble', libs: ['repository', 'list', 'crud', 'scope-resolver', 'token'] },
   { name: 'identity', libs: ['identity'] },
@@ -600,53 +672,67 @@ function collectWiringProblems(configText: string): string[] {
   // b) 每层 files ≡ 该层每个 lib 的 `libs/<lib>/**` 全部 `.ts`：layer() 函数体的派生式被改窄时这里红
   const filesTemplate = readFilesTemplate(readLayerHelperFilesExpression(configText))
   if (filesTemplate !== EXPECTED_FILES_TEMPLATE)
-    problems.push(`layer() 函数体的 files 模板 [${filesTemplate}] 应为 [${EXPECTED_FILES_TEMPLATE}]`)
+    problems.push(
+      `layer() 函数体的 files 模板 [${filesTemplate}] 应为 [${EXPECTED_FILES_TEMPLATE}]`,
+    )
   for (const call of calls) {
-    const files = call.libs.map(lib => filesTemplate.replace(/\$\{lib\}/g, lib))
-    const expected = call.libs.map(lib => `libs/${lib}/**/*.ts`)
+    const files = call.libs.map((lib) => filesTemplate.replace(/\$\{lib\}/g, lib))
+    const expected = call.libs.map((lib) => `libs/${lib}/**/*.ts`)
     if (JSON.stringify(files) !== JSON.stringify(expected))
       problems.push(`layer ${call.name} 的 files [${files.join(', ')}] ≠ libs/<lib>/**/*.ts 全集`)
   }
 
   // c) layer 调用顺序与矩阵（名字序）一致；exceptions 是唯一的精确例外行
-  const nonExceptionCalls = calls.filter(call => call.name !== EXCEPTION_LAYER.name)
-  const actualLayerNames = nonExceptionCalls.map(call => call.name)
-  if (JSON.stringify(actualLayerNames) !== JSON.stringify(LAYER_MATRIX.map(row => row.name)))
-    problems.push(`layer 调用顺序 [${actualLayerNames.join(', ')}] ≠ 矩阵 [${LAYER_MATRIX.map(row => row.name).join(', ')}]`)
+  const nonExceptionCalls = calls.filter((call) => call.name !== EXCEPTION_LAYER.name)
+  const actualLayerNames = nonExceptionCalls.map((call) => call.name)
+  if (JSON.stringify(actualLayerNames) !== JSON.stringify(LAYER_MATRIX.map((row) => row.name)))
+    problems.push(
+      `layer 调用顺序 [${actualLayerNames.join(', ')}] ≠ 矩阵 [${LAYER_MATRIX.map((row) => row.name).join(', ')}]`,
+    )
 
   // fail-closed 的 libsBoundaryConfig 不是 layer(...) 形态，不在本对账内；每个 lib 必须恰好登记一次
-  const layerLibs = calls.flatMap(call => call.libs)
+  const layerLibs = calls.flatMap((call) => call.libs)
   const duplicateLibs = layerLibs.filter((name, index) => layerLibs.indexOf(name) !== index)
   if (duplicateLibs.length > 0)
-    problems.push(`同一 lib 出现在多个 layer 的 libs 数组：${[...new Set(duplicateLibs)].join(', ')}`)
+    problems.push(
+      `同一 lib 出现在多个 layer 的 libs 数组：${[...new Set(duplicateLibs)].join(', ')}`,
+    )
 
-  const matrixLibs = [...LAYER_MATRIX.flatMap(row => row.libs), ...EXCEPTION_LAYER.libs].sort()
+  const matrixLibs = [...LAYER_MATRIX.flatMap((row) => row.libs), ...EXCEPTION_LAYER.libs].sort()
   if (JSON.stringify([...new Set(layerLibs)].sort()) !== JSON.stringify(matrixLibs))
-    problems.push(`layer libs 并集 [${[...new Set(layerLibs)].sort().join(', ')}] ≠ 矩阵 [${matrixLibs.join(', ')}]`)
+    problems.push(
+      `layer libs 并集 [${[...new Set(layerLibs)].sort().join(', ')}] ≠ 矩阵 [${matrixLibs.join(', ')}]`,
+    )
 
   // 每层的 libs ≡ 矩阵对应行；exceptions 行单独对账
   for (const row of LAYER_MATRIX) {
-    const call = calls.find(item => item.name === row.name)
+    const call = calls.find((item) => item.name === row.name)
     if (!call) {
       problems.push(`找不到 layer('${row.name}', ...) 调用`)
       continue
     }
     if (JSON.stringify([...call.libs].sort()) !== JSON.stringify([...row.libs].sort()))
-      problems.push(`layer ${row.name} 的 libs [${call.libs.join(', ')}] ≠ 矩阵 [${row.libs.join(', ')}]`)
+      problems.push(
+        `layer ${row.name} 的 libs [${call.libs.join(', ')}] ≠ 矩阵 [${row.libs.join(', ')}]`,
+      )
   }
-  const exceptionCall = calls.find(call => call.name === EXCEPTION_LAYER.name)
+  const exceptionCall = calls.find((call) => call.name === EXCEPTION_LAYER.name)
   if (!exceptionCall) {
     problems.push(`找不到 layer('${EXCEPTION_LAYER.name}', ...) 调用`)
-  }
-  else if (JSON.stringify([...exceptionCall.libs].sort()) !== JSON.stringify([...EXCEPTION_LAYER.libs].sort())) {
-    problems.push(`layer ${EXCEPTION_LAYER.name} 的 libs [${exceptionCall.libs.join(', ')}] ≠ 矩阵 [${EXCEPTION_LAYER.libs.join(', ')}]`)
+  } else if (
+    JSON.stringify([...exceptionCall.libs].sort()) !==
+    JSON.stringify([...EXCEPTION_LAYER.libs].sort())
+  ) {
+    problems.push(
+      `layer ${EXCEPTION_LAYER.name} 的 libs [${exceptionCall.libs.join(', ')}] ≠ 矩阵 [${EXCEPTION_LAYER.libs.join(', ')}]`,
+    )
   }
 
   // d) 每层 banned ≡ rank(target) > rank(source) 的全部 lib（exceptions 例外行再减 allowedExtra）
   const rankOf = (name: string): number =>
     name === EXCEPTION_LAYER.name
       ? EXCEPTION_LAYER.rank
-      : LAYER_MATRIX.findIndex(row => row.name === name)
+      : LAYER_MATRIX.findIndex((row) => row.name === name)
 
   for (const call of calls) {
     const rank = rankOf(call.name)
@@ -655,17 +741,27 @@ function collectWiringProblems(configText: string): string[] {
       continue
     }
 
-    const expected = [...new Set(
-      LAYER_MATRIX.slice(rank + 1)
-        .flatMap(row => row.libs)
-        .filter(lib => !(call.name === EXCEPTION_LAYER.name && (EXCEPTION_LAYER.allowedExtra as readonly string[]).includes(lib))),
-    )].sort()
+    const expected = [
+      ...new Set(
+        LAYER_MATRIX.slice(rank + 1)
+          .flatMap((row) => row.libs)
+          .filter(
+            (lib) =>
+              !(
+                call.name === EXCEPTION_LAYER.name &&
+                (EXCEPTION_LAYER.allowedExtra as readonly string[]).includes(lib)
+              ),
+          ),
+      ),
+    ].sort()
     const actual = [...call.banned].sort()
 
     if (new Set(call.banned).size !== call.banned.length)
       problems.push(`layer ${call.name} 的 banned 有重复项：[${call.banned.join(', ')}]`)
     if (JSON.stringify(actual) !== JSON.stringify(expected))
-      problems.push(`layer ${call.name} 的 banned [${actual.join(', ')}] ≠ 矩阵推导 [${expected.join(', ')}]`)
+      problems.push(
+        `layer ${call.name} 的 banned [${actual.join(', ')}] ≠ 矩阵推导 [${expected.join(', ')}]`,
+      )
   }
 
   return problems
@@ -681,7 +777,9 @@ describe('lib 注册一致性 drift 守卫（libs 目录 ↔ 各注册面，纯 
   })
 
   it('每个 lib 都有 tsconfig.lib.json（nest-cli projects 的 tsConfigPath 指向它）', () => {
-    const missing = actualLibs.filter(name => !existsSync(resolve(process.cwd(), 'libs', name, 'tsconfig.lib.json')))
+    const missing = actualLibs.filter(
+      (name) => !existsSync(resolve(process.cwd(), 'libs', name, 'tsconfig.lib.json')),
+    )
     expect(missing, '缺 tsconfig.lib.json 的 lib').toEqual([])
   })
 
@@ -700,9 +798,13 @@ describe('lib 注册一致性 drift 守卫（libs 目录 ↔ 各注册面，纯 
       const subTargets = paths[subAlias]
 
       if (JSON.stringify(rootTargets) !== JSON.stringify([`./libs/${name}/src`]))
-        problems.push(`${rootAlias} 应指向 [./libs/${name}/src]，实际 ${JSON.stringify(rootTargets)}`)
+        problems.push(
+          `${rootAlias} 应指向 [./libs/${name}/src]，实际 ${JSON.stringify(rootTargets)}`,
+        )
       if (JSON.stringify(subTargets) !== JSON.stringify([`./libs/${name}/src/*`]))
-        problems.push(`${subAlias} 应指向 [./libs/${name}/src/*]，实际 ${JSON.stringify(subTargets)}`)
+        problems.push(
+          `${subAlias} 应指向 [./libs/${name}/src/*]，实际 ${JSON.stringify(subTargets)}`,
+        )
     }
 
     expect(problems).toEqual([])
@@ -715,11 +817,13 @@ describe('lib 注册一致性 drift 守卫（libs 目录 ↔ 各注册面，纯 
       const config = readJson<INestCliJson>(configPath)
 
       const filenames = config.compilerOptions.builder.options.filenames
-        .map(entry => /^libs\/([\w-]+)\/src$/.exec(entry)?.[1])
+        .map((entry) => /^libs\/([\w-]+)\/src$/.exec(entry)?.[1])
         .filter((name): name is string => name !== undefined)
         .sort()
       if (JSON.stringify(filenames) !== JSON.stringify(actualLibs)) {
-        problems.push(`${configPath} filenames [${filenames.join(', ')}] ≠ 磁盘 [${actualLibs.join(', ')}]`)
+        problems.push(
+          `${configPath} filenames [${filenames.join(', ')}] ≠ 磁盘 [${actualLibs.join(', ')}]`,
+        )
       }
 
       // application（api / cli / worker 组合入口）不参与 lib 对账，但必须存在且形状标准 ——
@@ -729,7 +833,9 @@ describe('lib 注册一致性 drift 守卫（libs 目录 ↔ 各注册面，纯 
         .map(([name]) => name)
         .sort()
       if (JSON.stringify(projectNames) !== JSON.stringify(actualLibs)) {
-        problems.push(`${configPath} projects（除 application）[${projectNames.join(', ')}] ≠ 磁盘 [${actualLibs.join(', ')}]`)
+        problems.push(
+          `${configPath} projects（除 application）[${projectNames.join(', ')}] ≠ 磁盘 [${actualLibs.join(', ')}]`,
+        )
       }
 
       for (const [name, project] of Object.entries(config.projects)) {
@@ -739,7 +845,9 @@ describe('lib 注册一致性 drift 守卫（libs 目录 ↔ 各注册面，纯 
             problems.push(`${configPath} 出现未知 application project：${name}`)
           }
           if (project.root !== `apps/${name}` || project.sourceRoot !== `apps/${name}/src`) {
-            problems.push(`${configPath} projects.${name} 的 root/sourceRoot 应为 apps/${name}（/src）`)
+            problems.push(
+              `${configPath} projects.${name} 的 root/sourceRoot 应为 apps/${name}（/src）`,
+            )
           }
           continue
         }
@@ -747,13 +855,19 @@ describe('lib 注册一致性 drift 守卫（libs 目录 ↔ 各注册面，纯 
           problems.push(`${configPath} projects.${name}.type 应为 library，实际 ${project.type}`)
         }
         if (project.root !== `libs/${name}` || project.sourceRoot !== `libs/${name}/src`) {
-          problems.push(`${configPath} projects.${name} 的 root/sourceRoot 应为 libs/${name}（/src）`)
+          problems.push(
+            `${configPath} projects.${name} 的 root/sourceRoot 应为 libs/${name}（/src）`,
+          )
         }
         if (project.entryFile !== 'index') {
-          problems.push(`${configPath} projects.${name}.entryFile 应为 index（要求 src/index.ts 存在）`)
+          problems.push(
+            `${configPath} projects.${name}.entryFile 应为 index（要求 src/index.ts 存在）`,
+          )
         }
         if (project.compilerOptions.tsConfigPath !== `libs/${name}/tsconfig.lib.json`) {
-          problems.push(`${configPath} projects.${name}.tsConfigPath 应为 libs/${name}/tsconfig.lib.json`)
+          problems.push(
+            `${configPath} projects.${name}.tsConfigPath 应为 libs/${name}/tsconfig.lib.json`,
+          )
         }
       }
     }
@@ -773,9 +887,11 @@ describe('lib 注册一致性 drift 守卫（libs 目录 ↔ 各注册面，纯 
 
       for (const name of actualLibs) {
         const targets = swcrc.jsc.paths[`@walnut-server/${name}`]
-        const normalized = (targets ?? []).map(target => target.replace(/^\.\//, ''))
+        const normalized = (targets ?? []).map((target) => target.replace(/^\.\//, ''))
         if (JSON.stringify(normalized) !== JSON.stringify([`libs/${name}/src`])) {
-          problems.push(`${swcrcPath} 的 @walnut-server/${name} 应指向 libs/${name}/src，实际 [${(targets ?? []).join(', ')}]`)
+          problems.push(
+            `${swcrcPath} 的 @walnut-server/${name} 应指向 libs/${name}/src，实际 [${(targets ?? []).join(', ')}]`,
+          )
         }
       }
     }
@@ -794,12 +910,16 @@ describe('lib 注册一致性 drift 守卫（libs 目录 ↔ 各注册面，纯 
 
   it('④ 自测：cli 的 include 少一个 lib / 多一个未知 libs 条目后必须报红（证明该面对账非空转）', () => {
     const config = readJson<{ include: string[] }>('apps/cli/tsconfig.app.json')
-    const dropped = config.include.filter(entry => entry !== '../../libs/als/src/**/*')
+    const dropped = config.include.filter((entry) => entry !== '../../libs/als/src/**/*')
     expect(dropped.length).toBe(config.include.length - 1)
-    expect(collectAppIncludeProblems('apps/cli/tsconfig.app.json', dropped, actualLibs)).not.toEqual([])
+    expect(
+      collectAppIncludeProblems('apps/cli/tsconfig.app.json', dropped, actualLibs),
+    ).not.toEqual([])
 
     const extra = [...config.include, '../../libs/zzz-probe/src/**/*']
-    expect(collectAppIncludeProblems('apps/cli/tsconfig.app.json', extra, actualLibs)).not.toEqual([])
+    expect(collectAppIncludeProblems('apps/cli/tsconfig.app.json', extra, actualLibs)).not.toEqual(
+      [],
+    )
   })
 
   it('⑤ eslint.config.ts 的分层名单（含 exceptions 例外行）并集 ≡ 磁盘 libs，且无重复', () => {
@@ -815,29 +935,33 @@ describe('lib 注册一致性 drift 守卫（libs 目录 ↔ 各注册面，纯 
   it('⑤ 接线对账：layer(...) 调用数 = 10，lib 归属 / banned 集合 / files 派生式 ≡ 分层矩阵', () => {
     const configText = readServerFile('eslint.config.ts')
     const calls = readLayerCalls(configText, readLayerLists(configText))
-    expect(calls.length, 'layer(...) 调用数（9 层 + infra-exceptions 例外行；注释里的示例不算）').toBe(10)
+    expect(
+      calls.length,
+      'layer(...) 调用数（9 层 + infra-exceptions 例外行；注释里的示例不算）',
+    ).toBe(10)
     expect(collectWiringProblems(configText)).toEqual([])
   })
 
   it('⑤ 接线对账自测：把 tech-base 层 banned 删一项后必须报红（证明对账不是空转）', () => {
     const configText = readServerFile('eslint.config.ts')
     const calls = readLayerCalls(configText, readLayerLists(configText))
-    const techBaseCall = calls.find(call => call.name === 'tech-base')
-    if (!techBaseCall)
-      expect.fail('找不到 tech-base 层')
+    const techBaseCall = calls.find((call) => call.name === 'tech-base')
+    if (!techBaseCall) expect.fail('找不到 tech-base 层')
     expect(techBaseCall.banned.length).toBeGreaterThan(1)
 
     // 篡改文本：banned 从「名单 spread」变成缺一项的字面量数组 —— 判定必须发现 banned ≠ 矩阵推导
     const tamperedText = rewriteLayerBanned(configText, 'tech-base', techBaseCall.banned.slice(1))
     const problems = collectWiringProblems(tamperedText)
-    expect(problems.some(problem => problem.includes('tech-base') && problem.includes('banned'))).toBe(true)
+    expect(
+      problems.some((problem) => problem.includes('tech-base') && problem.includes('banned')),
+    ).toBe(true)
   })
 
   it('⑥ libs/<name>/tsconfig.lib.json 内容 ≡ 脚手架模板（extends / outDir / 键集合）', () => {
     const problems = collectLibTsconfigProblems(actualLibs, (name) => {
       const configPath = resolve(process.cwd(), 'libs', name, 'tsconfig.lib.json')
       return existsSync(configPath)
-        ? JSON.parse(readFileSync(configPath, 'utf8')) as Record<string, unknown>
+        ? (JSON.parse(readFileSync(configPath, 'utf8')) as Record<string, unknown>)
         : null
     })
     expect(problems).toEqual([])
@@ -872,14 +996,17 @@ describe('lib 注册一致性 drift 守卫（libs 目录 ↔ 各注册面，纯 
     const problems: string[] = []
     for (const configPath of NEST_CLI_CONFIGS) {
       const config = readJson<INestCliJson>(configPath)
-      problems.push(...collectAppEntryProblems(configPath, config.compilerOptions.builder.options.filenames))
+      problems.push(
+        ...collectAppEntryProblems(configPath, config.compilerOptions.builder.options.filenames),
+      )
     }
     expect(problems).toEqual([])
   })
 
   it('⑦ 自测：删掉 filenames 里的 apps/worker/src 后必须报红（该入口产物不再生成）', () => {
-    const filenames = readJson<INestCliJson>('infra/nest/dev.json').compilerOptions.builder.options.filenames
-    const withoutWorker = filenames.filter(entry => entry !== 'apps/worker/src')
+    const filenames =
+      readJson<INestCliJson>('infra/nest/dev.json').compilerOptions.builder.options.filenames
+    const withoutWorker = filenames.filter((entry) => entry !== 'apps/worker/src')
     expect(withoutWorker.length).toBe(filenames.length - 1)
     expect(collectAppEntryProblems('infra/nest/dev.json', withoutWorker)).not.toEqual([])
   })

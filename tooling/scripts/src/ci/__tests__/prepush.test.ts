@@ -37,7 +37,7 @@ import {
  * 表里 argv 首词的合法集合 = **可执行的名字**：保留的根脚本、命令表 id、pnpm 子命令。
  * 根脚本瘦身后 `package.json` 里只剩保留的那几条，拿它当全集会把所有被移走的门禁判成「不存在」。
  */
-const commandIds = new Set(COMMANDS.map(command => command.id))
+const commandIds = new Set(COMMANDS.map((command) => command.id))
 const legalNames = new Set<string>([...KEPT_ROOT_SCRIPTS, ...commandIds])
 
 /** `argv[0]` 是 pnpm 自己的子命令（不是可执行名字）时，这几个是合法的例外 */
@@ -45,10 +45,9 @@ const PNPM_SUBCOMMANDS = new Set(['exec', 'change'])
 
 describe('pREPUSH_GATES —— 表本身', () => {
   it('id 无重复且都非空', () => {
-    const ids = PREPUSH_GATES.map(g => g.id)
+    const ids = PREPUSH_GATES.map((g) => g.id)
     expect(new Set(ids).size).toBe(ids.length)
-    for (const id of ids)
-      expect(id, 'id 不能为空').not.toBe('')
+    for (const id of ids) expect(id, 'id 不能为空').not.toBe('')
   })
 
   it('每一段的 argv（含 followups）的首词都能落到**真实存在**的可执行名字 / pnpm 子命令上', () => {
@@ -63,30 +62,42 @@ describe('pREPUSH_GATES —— 表本身', () => {
           expect(argv.length, `${gate.id}.${where}: pnpm 子命令不该只有一段`).toBeGreaterThan(1)
           continue
         }
-        expect(legalNames.has(head!), `${gate.id}.${where}: 根脚本与命令表里都没有 \`${head}\``).toBe(true)
+        expect(
+          legalNames.has(head!),
+          `${gate.id}.${where}: 根脚本与命令表里都没有 \`${head}\``,
+        ).toBe(true)
       }
     }
   })
 
   it('openapi 段同时查暂存区（F-53 边界①：已 add 的生成物不许让门禁绿）', () => {
-    const openapi = PREPUSH_GATES.find(gate => gate.id === 'openapi')
+    const openapi = PREPUSH_GATES.find((gate) => gate.id === 'openapi')
     expect(openapi, 'openapi 段不见了 —— 门禁被摘').toBeTruthy()
 
     const followups = openapi!.followups ?? []
-    const staged = followups.find(argv => argv.includes('--cached'))
-    expect(staged, 'openapi 段缺少 `git diff --cached` 这一步：git diff 只比工作区 vs 暂存区，已 add 的生成物会让门禁假绿').toBeTruthy()
+    const staged = followups.find((argv) => argv.includes('--cached'))
+    expect(
+      staged,
+      'openapi 段缺少 `git diff --cached` 这一步：git diff 只比工作区 vs 暂存区，已 add 的生成物会让门禁假绿',
+    ).toBeTruthy()
 
     // 两个生成物都要盯：只查一个等于漏一个
     // 段② 的产物（schema.d.ts）2026-11 批次 4 · D9 起在 packages/generated/api-types 下
-    for (const generated of ['apps/server/openapi.json', 'packages/generated/api-types/src/schema.d.ts']) {
+    for (const generated of [
+      'apps/server/openapi.json',
+      'packages/generated/api-types/src/schema.d.ts',
+    ]) {
       expect(staged!.includes(generated), `${generated} 不在暂存区比对里`).toBe(true)
     }
   })
 
   it('circular 段在表里，且链路真的带 --circular（摘掉旗标 = 门禁变成只数文件）', () => {
-    const gate = PREPUSH_GATES.find(g => g.id === 'circular')
+    const gate = PREPUSH_GATES.find((g) => g.id === 'circular')
     expect(gate, 'circular 段不见了 —— 环会重新变回「没有任何闸看得见」的失效面').toBeTruthy()
-    expect(gate!.argv[0], 'circular 段必须写命令表里的那个名字（这样 CI 与发版电池才引用得到同一项）').toBe('madge:check')
+    expect(
+      gate!.argv[0],
+      'circular 段必须写命令表里的那个名字（这样 CI 与发版电池才引用得到同一项）',
+    ).toBe('madge:check')
 
     // 命令表 → apps/server 的同名脚本 → madge 的旗标，链条上任一环写错都让这一段变成空转：
     // 少了 --circular 它只输出文件清单（永远 0 环）；少了 --extensions 它默认只认 .js
@@ -99,7 +110,10 @@ describe('pREPUSH_GATES —— 表本身', () => {
     ) as { scripts?: Record<string, string> }
     const madgeCmd = serverManifest.scripts?.madge ?? ''
     expect(madgeCmd, 'apps/server 的 madge 脚本没有 --circular').toContain('--circular')
-    expect(madgeCmd, 'apps/server 的 madge 脚本没有 --extensions（默认只认 .js ⇒ 静默 0 环）').toMatch(/--extensions[= ]/)
+    expect(
+      madgeCmd,
+      'apps/server 的 madge 脚本没有 --extensions（默认只认 .js ⇒ 静默 0 环）',
+    ).toMatch(/--extensions[= ]/)
   })
 
   it('负对照：真造一个环 madge 必须非零退出；正对照：无环必须零退出', () => {
@@ -108,29 +122,29 @@ describe('pREPUSH_GATES —— 表本身', () => {
     const madgeCli = path.join(REPO_ROOT, 'apps/server/node_modules/madge/bin/cli.js')
     expect(existsSync(madgeCli), `找不到 madge 的入口：${madgeCli}（先 pnpm install）`).toBe(true)
 
-    const run = (files: Record<string, string>): { status: number | null, out: string } => {
+    const run = (files: Record<string, string>): { status: number | null; out: string } => {
       const dir = mkdtempSync(path.join(os.tmpdir(), 'walnut-madge-'))
       try {
-        for (const [name, body] of Object.entries(files))
-          writeFileSync(path.join(dir, name), body)
-        const r = spawnSync(process.execPath, [madgeCli, '--circular', '--extensions', 'ts', dir], { encoding: 'utf8' })
+        for (const [name, body] of Object.entries(files)) writeFileSync(path.join(dir, name), body)
+        const r = spawnSync(process.execPath, [madgeCli, '--circular', '--extensions', 'ts', dir], {
+          encoding: 'utf8',
+        })
         return { status: r.status, out: `${r.stdout ?? ''}${r.stderr ?? ''}` }
-      }
-      finally {
+      } finally {
         // 自建的临时目录（os.tmpdir 下，不是仓库内容）
         rmSync(dir, { recursive: true, force: true })
       }
     }
 
     const cyclic = run({
-      'a.ts': 'import { b } from \'./b\'\nexport const a = (): unknown => b\n',
-      'b.ts': 'import { a } from \'./a\'\nexport const b = (): unknown => a\n',
+      'a.ts': "import { b } from './b'\nexport const a = (): unknown => b\n",
+      'b.ts': "import { a } from './a'\nexport const b = (): unknown => a\n",
     })
     expect(cyclic.status, `环没被 madge 判红（exit ${cyclic.status}）：\n${cyclic.out}`).not.toBe(0)
     expect(cyclic.out).toMatch(/circular/i)
 
     const acyclic = run({
-      'a.ts': 'import { b } from \'./b\'\nexport const a = (): unknown => b\n',
+      'a.ts': "import { b } from './b'\nexport const a = (): unknown => b\n",
       'b.ts': 'export const b = (): unknown => null\n',
     })
     expect(acyclic.status, `无环却判红了（exit ${acyclic.status}）：\n${acyclic.out}`).toBe(0)
@@ -147,11 +161,12 @@ describe('pREPUSH_GATES —— 表本身', () => {
 
   it('顺序与 id 稳定 —— 整表列出，不是抽样', () => {
     // 表里的顺序是「读起来该怎么理解」，不是依赖关系（并行跑）。改动它应该是**有意的**。
-    expect(PREPUSH_GATES.map(g => g.id)).toEqual([
+    expect(PREPUSH_GATES.map((g) => g.id)).toEqual([
       'boundaries',
       'circular',
       'lint',
       'lint-root',
+      'format',
       'types',
       'types-root',
       'test',
@@ -186,16 +201,20 @@ describe('pREPUSH_GATES —— 表本身', () => {
     // 判据是「有 workspace 包声明了这个脚本」，不是名单：新加一段 `exec turbo run <包级任务>`
     // 而忘了填 lane，这里就红。只有根任务的不算扇出（`turbo run lint:root` 只跑 `//#lint:root`，一路、秒级）
     const packageScripts = new Set(
-      workspacePackages().flatMap(pkg => Object.keys(pkg.manifest.scripts ?? {})),
+      workspacePackages().flatMap((pkg) => Object.keys(pkg.manifest.scripts ?? {})),
     )
     const fansOut = (gate: PrepushGate): boolean => {
       const task = gate.argv[3]
-      return gate.argv.slice(0, 3).join(' ') === 'exec turbo run'
-        && task !== undefined && !task.startsWith('//#') && packageScripts.has(task)
+      return (
+        gate.argv.slice(0, 3).join(' ') === 'exec turbo run' &&
+        task !== undefined &&
+        !task.startsWith('//#') &&
+        packageScripts.has(task)
+      )
     }
     const heavy = PREPUSH_GATES.filter(fansOut)
     // 判据本身失效（比如表里的 argv 不再这么写）时也要红，否则这条守卫会静默变成空转
-    expect(heavy.map(gate => gate.id)).toEqual(expect.arrayContaining(['lint', 'types', 'test']))
+    expect(heavy.map((gate) => gate.id)).toEqual(expect.arrayContaining(['lint', 'types', 'test']))
     for (const gate of heavy)
       expect(gate.lane, `${gate.id} 经 turbo 扇出，却不在重道 ${TURBO_LANE} 里`).toBe(TURBO_LANE)
   })
@@ -206,7 +225,9 @@ describe('formatLine —— 结果行（三态）', () => {
 
   it('通过打 ✓、失败打 ✗，并带上秒数', () => {
     expect(formatLine({ gate, status: 'ok', ms: 1234, output: '' })).toBe('  ✓    1.2s  某段门禁')
-    expect(formatLine({ gate, status: 'failed', ms: 12_340, output: '' })).toBe('  ✗   12.3s  某段门禁')
+    expect(formatLine({ gate, status: 'failed', ms: 12_340, output: '' })).toBe(
+      '  ✗   12.3s  某段门禁',
+    )
   })
 
   // 这一条是这次的**回归锚**：以前「跳过」与「通过」打的是同一个对勾（子进程 exit 0 + 只在失败时
@@ -235,32 +256,55 @@ describe('runGates —— 三态（跳过既不算通过、也不算失败）', 
   const mkGate = (id: string) => ({ id, label: `段 ${id}`, argv: ['x'], why: 'y'.repeat(30) })
 
   it('正常返回 ⇒ ok', async () => {
-    const results = await runGates([mkGate('a'), mkGate('b')], () => {}, 2, async () => {})
-    expect(results.map(r => r.status)).toEqual(['ok', 'ok'])
+    const results = await runGates(
+      [mkGate('a'), mkGate('b')],
+      () => {},
+      2,
+      async () => {},
+    )
+    expect(results.map((r) => r.status)).toEqual(['ok', 'ok'])
   })
 
   it('抛 ChildRunError(…, 3) ⇒ skipped（「环境缺失、未验证」的唯一入口）', async () => {
-    const results = await runGates([mkGate('a')], () => {}, 1, async (gate) => {
-      throw new ChildRunError(`${gate.id} 未验证`, SKIPPED_EXIT_CODE)
-    })
-    expect(results.map(r => r.status)).toEqual(['skipped'])
+    const results = await runGates(
+      [mkGate('a')],
+      () => {},
+      1,
+      async (gate) => {
+        throw new ChildRunError(`${gate.id} 未验证`, SKIPPED_EXIT_CODE)
+      },
+    )
+    expect(results.map((r) => r.status)).toEqual(['skipped'])
   })
 
   it('抛别的非零退出码 ⇒ failed（1 违规 / 2 前置未满足都算失败，只有 3 是跳过）', async () => {
-    const results = await runGates([mkGate('a'), mkGate('b'), mkGate('c')], () => {}, 3, async (gate) => {
-      throw new ChildRunError(`${gate.id} 挂了`, gate.id === 'c' ? 2 : 1)
-    })
-    expect(results.map(r => r.status)).toEqual(['failed', 'failed', 'failed'])
+    const results = await runGates(
+      [mkGate('a'), mkGate('b'), mkGate('c')],
+      () => {},
+      3,
+      async (gate) => {
+        throw new ChildRunError(`${gate.id} 挂了`, gate.id === 'c' ? 2 : 1)
+      },
+    )
+    expect(results.map((r) => r.status)).toEqual(['failed', 'failed', 'failed'])
   })
 
   it('混合时逐段分类，且结果顺序仍是表里的顺序（并行不影响断言）', async () => {
     const exitOf: Record<string, number> = { a: 0, b: SKIPPED_EXIT_CODE, c: 1 }
-    const results = await runGates([mkGate('a'), mkGate('b'), mkGate('c')], () => {}, 3, async (gate) => {
-      const code = exitOf[gate.id]!
-      if (code !== 0)
-        throw new ChildRunError(`${gate.id} 退出码 ${code}`, code)
-    })
-    expect(results.map(r => `${r.gate.id}:${r.status}`)).toEqual(['a:ok', 'b:skipped', 'c:failed'])
+    const results = await runGates(
+      [mkGate('a'), mkGate('b'), mkGate('c')],
+      () => {},
+      3,
+      async (gate) => {
+        const code = exitOf[gate.id]!
+        if (code !== 0) throw new ChildRunError(`${gate.id} 退出码 ${code}`, code)
+      },
+    )
+    expect(results.map((r) => `${r.gate.id}:${r.status}`)).toEqual([
+      'a:ok',
+      'b:skipped',
+      'c:failed',
+    ])
   })
 })
 
@@ -276,7 +320,7 @@ describe('runGates —— 三态（跳过既不算通过、也不算失败）', 
 describe('runGates —— 重道互斥', () => {
   function manual() {
     const started: string[] = []
-    const held = new Map<string, { resolve: () => void, reject: (error: Error) => void }>()
+    const held = new Map<string, { resolve: () => void; reject: (error: Error) => void }>()
     const execute: GateExecutor = async (gate) => {
       started.push(gate.id)
       await new Promise<void>((resolve, reject) => held.set(gate.id, { resolve, reject }))
@@ -284,19 +328,18 @@ describe('runGates —— 重道互斥', () => {
     /** 放行某一段；带 error = 让它以失败告终 */
     const end = (id: string, error?: Error): void => {
       const release = held.get(id)
-      if (error === undefined)
-        release?.resolve()
-      else
-        release?.reject(error)
+      if (error === undefined) release?.resolve()
+      else release?.reject(error)
     }
     /** 让已经排队的微任务跑完（放行之后，「下一段开始」发生在几步微任务里） */
-    const settle = (): Promise<void> => new Promise(resolve => setTimeout(resolve, 0))
+    const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0))
     return { execute, started, end, settle }
   }
 
-  const mkGate = (id: string, lane?: string): PrepushGate => (lane === undefined
-    ? { id, label: `段 ${id}`, argv: ['x'], why: 'y'.repeat(30) }
-    : { id, label: `段 ${id}`, argv: ['x'], why: 'y'.repeat(30), lane })
+  const mkGate = (id: string, lane?: string): PrepushGate =>
+    lane === undefined
+      ? { id, label: `段 ${id}`, argv: ['x'], why: 'y'.repeat(30) }
+      : { id, label: `段 ${id}`, argv: ['x'], why: 'y'.repeat(30), lane }
 
   it('同一条重道的两段不同时跑；不占道的段照常与它们并行', async () => {
     const m = manual()
@@ -316,7 +359,7 @@ describe('runGates —— 重道互斥', () => {
 
     m.end('c')
     const results = await run
-    expect(results.map(r => `${r.gate.id}:${r.status}`)).toEqual(['a:ok', 'b:ok', 'c:ok'])
+    expect(results.map((r) => `${r.gate.id}:${r.status}`)).toEqual(['a:ok', 'b:ok', 'c:ok'])
   })
 
   it('被挡住的段最终一定有人跑（提前收工 = 那一段永远不跑、结果表里还缺一行）', async () => {
@@ -330,7 +373,7 @@ describe('runGates —— 重道互斥', () => {
     expect(m.started).toEqual(['a', 'c'])
 
     m.end('c')
-    expect((await run).map(r => r.gate.id)).toEqual(['a', 'c'])
+    expect((await run).map((r) => r.gate.id)).toEqual(['a', 'c'])
   })
 
   it('重道里的段以失败 / 跳过告终也腾道（漏腾一次 = 同道的后一段永远不跑 = 静默少跑一道闸）', async () => {
@@ -344,12 +387,17 @@ describe('runGates —— 重道互斥', () => {
 
     m.end('b', new ChildRunError('b 违规', 1))
     const results = await run
-    expect(results.map(r => `${r.gate.id}:${r.status}`)).toEqual(['a:skipped', 'b:failed'])
+    expect(results.map((r) => `${r.gate.id}:${r.status}`)).toEqual(['a:skipped', 'b:failed'])
   })
 
   it('不同重道互不阻挡（道是「谁和谁抢」的最小范围，不是一把全局大锁）', async () => {
     const m = manual()
-    const run = runGates([mkGate('a', 'x'), mkGate('b', 'y'), mkGate('c', 'x')], () => {}, 3, m.execute)
+    const run = runGates(
+      [mkGate('a', 'x'), mkGate('b', 'y'), mkGate('c', 'x')],
+      () => {},
+      3,
+      m.execute,
+    )
     expect(m.started).toEqual(['a', 'b'])
 
     m.end('a')
@@ -358,7 +406,7 @@ describe('runGates —— 重道互斥', () => {
 
     m.end('b')
     m.end('c')
-    expect((await run).every(r => r.status === 'ok')).toBe(true)
+    expect((await run).every((r) => r.status === 'ok')).toBe(true)
   })
 })
 
@@ -398,18 +446,19 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
      * 实测能阻塞事件循环 1s+；一次 1500ms 预算的用例在 `pnpm prepush` 四路并发下外壳墙钟被推到
      * 4.3s，正是余量型判据抖动的来源。封顶 15s：真回归时别留一条分钟级的孤儿进程。
      */
-    hangAfter: (until: string): string[] => script([
-      `const fs = process.getBuiltinModule('node:fs')`,
-      `const stop = Date.now() + 15_000`,
-      `const poll = setInterval(() => {`,
-      `  if (!fs.existsSync(${JSON.stringify(until)})) {`,
-      `    if (Date.now() > stop) { clearInterval(poll); process.exit(0) }`,
-      `    return`,
-      `  }`,
-      `  clearInterval(poll)`,
-      `  setInterval(() => {}, 1_000)`,
-      `}, 25)`,
-    ]),
+    hangAfter: (until: string): string[] =>
+      script([
+        `const fs = process.getBuiltinModule('node:fs')`,
+        `const stop = Date.now() + 15_000`,
+        `const poll = setInterval(() => {`,
+        `  if (!fs.existsSync(${JSON.stringify(until)})) {`,
+        `    if (Date.now() > stop) { clearInterval(poll); process.exit(0) }`,
+        `    return`,
+        `  }`,
+        `  clearInterval(poll)`,
+        `  setInterval(() => {}, 1_000)`,
+        `}, 25)`,
+      ]),
     /**
      * 一上来就写 `started`（证明它真的起来了），然后一直等到 `trigger` 出现才写 `marker` 退出。
      *
@@ -417,19 +466,20 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
      * 测试在卡住那段报出来的那一刻读它们，读到的分别是「还没起来」还是「已经跑完」——
      * 两者都不是时钟读数，所以四路并发下不会漂。
      */
-    markStartedThenWait: (started: string, trigger: string, marker: string): string[] => script([
-      `const fs = process.getBuiltinModule('node:fs')`,
-      `fs.writeFileSync(${JSON.stringify(started)}, 'up')`,
-      `const stop = Date.now() + 15_000`,
-      `const poll = setInterval(() => {`,
-      `  if (fs.existsSync(${JSON.stringify(trigger)})) {`,
-      `    fs.writeFileSync(${JSON.stringify(marker)}, 'done')`,
-      `    clearInterval(poll)`,
-      `    process.exit(0)`,
-      `  }`,
-      `  if (Date.now() > stop) { clearInterval(poll); process.exit(0) }`,
-      `}, 25)`,
-    ]),
+    markStartedThenWait: (started: string, trigger: string, marker: string): string[] =>
+      script([
+        `const fs = process.getBuiltinModule('node:fs')`,
+        `fs.writeFileSync(${JSON.stringify(started)}, 'up')`,
+        `const stop = Date.now() + 15_000`,
+        `const poll = setInterval(() => {`,
+        `  if (fs.existsSync(${JSON.stringify(trigger)})) {`,
+        `    fs.writeFileSync(${JSON.stringify(marker)}, 'done')`,
+        `    clearInterval(poll)`,
+        `    process.exit(0)`,
+        `  }`,
+        `  if (Date.now() > stop) { clearInterval(poll); process.exit(0) }`,
+        `}, 25)`,
+      ]),
   }
 
   const mkGate = (id: string, argv: string[], budgetMs?: number) => ({
@@ -449,10 +499,8 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
     delete process.env[PREPUSH_BUDGET_ENV]
     try {
       return await run()
-    }
-    finally {
-      if (saved !== undefined)
-        process.env[PREPUSH_BUDGET_ENV] = saved
+    } finally {
+      if (saved !== undefined) process.env[PREPUSH_BUDGET_ENV] = saved
     }
   }
 
@@ -470,27 +518,31 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
       // 「谁先跑完」—— 那正是要在本用例里去掉的东西。
       let startedAtStuckFailure: boolean | undefined
       let finishedAtStuckFailure: boolean | undefined
-      const results = await withoutBudgetEnv(() => runGates(
-        [
-          mkGate('stuck', fakeGate.hangAfter(started), 3_000),
-          mkGate('survivor', fakeGate.markStartedThenWait(started, trigger, marker)),
-        ],
-        (done) => {
-          if (done.gate.id !== 'stuck')
-            return
-          // 前提读数（布尔，不是时钟）：这一刻兄弟段起来了没有、收工了没有
-          startedAtStuckFailure = existsSync(started)
-          finishedAtStuckFailure = existsSync(marker)
-          writeFileSync(trigger, 'go')
-        },
-        2,
-        createPnpmGateExecutor({ bin: process.execPath }),
-      ))
+      const results = await withoutBudgetEnv(() =>
+        runGates(
+          [
+            mkGate('stuck', fakeGate.hangAfter(started), 3_000),
+            mkGate('survivor', fakeGate.markStartedThenWait(started, trigger, marker)),
+          ],
+          (done) => {
+            if (done.gate.id !== 'stuck') return
+            // 前提读数（布尔，不是时钟）：这一刻兄弟段起来了没有、收工了没有
+            startedAtStuckFailure = existsSync(started)
+            finishedAtStuckFailure = existsSync(marker)
+            writeFileSync(trigger, 'go')
+          },
+          2,
+          createPnpmGateExecutor({ bin: process.execPath }),
+        ),
+      )
       const [stuck, survivor] = results
 
       // ⓪ 前提：卡住那段超时的那一刻，兄弟段**已经起来了**（否则「全杀」根本碰不到它 ——
       // 那是本用例的假绿）而且**还没收工**（它的后半辈子都落在超时之后）。
-      expect(startedAtStuckFailure, '兄弟段在卡住那段超时之前还没起来 ⇒ 本用例没覆盖到「超时之后」那段寿命').toBe(true)
+      expect(
+        startedAtStuckFailure,
+        '兄弟段在卡住那段超时之前还没起来 ⇒ 本用例没覆盖到「超时之后」那段寿命',
+      ).toBe(true)
       expect(finishedAtStuckFailure, '兄弟段在卡住那段超时之前就收工了 ⇒ 同上').toBe(false)
 
       // ① 卡住那段：它自己的失败，理由是**它自己**超时（不是「被信号结束」）
@@ -499,9 +551,10 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
 
       // ② 兄弟段：跑完、绿，而且真的干完了活（marker 是它自己写的）
       expect(survivor!.status, `兄弟段被连带杀掉了：\n${survivor!.output}`).toBe('ok')
-      expect(existsSync(marker), '兄弟段没跑完（marker 没写出来）—— 它的子进程被提前收掉了').toBe(true)
-    }
-    finally {
+      expect(existsSync(marker), '兄弟段没跑完（marker 没写出来）—— 它的子进程被提前收掉了').toBe(
+        true,
+      )
+    } finally {
       // 自建的临时目录（os.tmpdir 下，不是仓库内容）
       rmSync(dir, { recursive: true, force: true })
     }
@@ -511,13 +564,15 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
     const dir = mkdtempSync(path.join(os.tmpdir(), 'walnut-prepush-budget-'))
     try {
       const marker = path.join(dir, 'finished-20s.txt')
-      const [result] = await withoutBudgetEnv(() => runGates(
-        // 这条假命令要跑满 20s 才写 marker 再退出：**20s 是它自己的耗时**，也就是下面的语义分界
-        [mkGate('tight', fakeGate.work(20_000, marker), 1_500)],
-        () => {},
-        1,
-        createPnpmGateExecutor({ bin: process.execPath }),
-      ))
+      const [result] = await withoutBudgetEnv(() =>
+        runGates(
+          // 这条假命令要跑满 20s 才写 marker 再退出：**20s 是它自己的耗时**，也就是下面的语义分界
+          [mkGate('tight', fakeGate.work(20_000, marker), 1_500)],
+          () => {},
+          1,
+          createPnpmGateExecutor({ bin: process.execPath }),
+        ),
+      )
 
       expect(result!.status).toBe('failed')
       // 超时文案念的是**这一段**的预算（>2s = 1500ms 取整），不是全表的 600s
@@ -525,7 +580,9 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
 
       // 结构判据（与机器快慢无关）：这条命令只有**跑满 20s** 才会写 marker。
       // marker 不在 ⇒ 它从来没跑完，是被 1.5s 预算截断的；一刀切 600s 时它会写完 marker 再 exit 0。
-      expect(existsSync(marker), '20s 的命令居然跑完了 —— 预算没生效（它本该在 1.5s 被截断）').toBe(false)
+      expect(existsSync(marker), '20s 的命令居然跑完了 —— 预算没生效（它本该在 1.5s 被截断）').toBe(
+        false,
+      )
 
       // 分界用**那条命令自己的 20s**（语义边界），不是外壳墙钟里随手挑的一个数：
       // · 预算生效 ⇒ 约 1.5s 就被收掉，剩下的只有 spawn + win32 `taskkill`（同步 /T）的开销；
@@ -536,8 +593,7 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
       // 类型检查并行抢 CPU）时实测 spawn + taskkill 花了 4.8s，当场假红 —— 于是把命令自己的耗时
       // 拉到 20s：余量 18.5s，而预算生效时的测试耗时一点没变（仍是约 1.5s 加回收开销）。
       expect(result!.ms).toBeLessThan(20_000)
-    }
-    finally {
+    } finally {
       // 自建的临时目录（os.tmpdir 下，不是仓库内容）
       rmSync(dir, { recursive: true, force: true })
     }
@@ -568,14 +624,11 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
       // ④ 记录值（`GateResult.ms`）对**它自己的 6s**：没生效时它不可能在 6s 之前结束；
       //    生效时 ≈ 0.4s + spawn/taskkill 开销（2026-11 实测那笔开销 ≈2.8s，仍远低于 6s）
       expect(result!.ms).toBeLessThan(6_000)
-    }
-    finally {
+    } finally {
       // 自建的临时目录（os.tmpdir 下，不是仓库内容）
       rmSync(dir, { recursive: true, force: true })
-      if (saved === undefined)
-        delete process.env[PREPUSH_BUDGET_ENV]
-      else
-        process.env[PREPUSH_BUDGET_ENV] = saved
+      if (saved === undefined) delete process.env[PREPUSH_BUDGET_ENV]
+      else process.env[PREPUSH_BUDGET_ENV] = saved
     }
   }, 30_000)
 })
@@ -605,7 +658,12 @@ describe('strictFailureMessage —— PREPUSH_STRICT 的口径', () => {
  */
 describe('summarizeRun —— 成功汇总里也要看得见「跳过」', () => {
   const gate = (id: string) => ({ id, label: `段 ${id}`, argv: ['x'], why: 'y'.repeat(30) })
-  const result = (id: string, status: 'ok' | 'failed' | 'skipped') => ({ gate: gate(id), status, ms: 1000, output: '' })
+  const result = (id: string, status: 'ok' | 'failed' | 'skipped') => ({
+    gate: gate(id),
+    status,
+    ms: 1000,
+    output: '',
+  })
 
   it('全都真跑通过：不出现「跳过」字样（没有跳过时那句是噪音）', () => {
     const summary = summarizeRun([result('a', 'ok'), result('b', 'ok')], '3.0', false)
@@ -631,13 +689,13 @@ describe('summarizeRun —— 成功汇总里也要看得见「跳过」', () =>
   })
 
   it('有失败时：failed 只含失败段，真跑通过数不把跳过算进去', () => {
-    const summary = summarizeRun([
-      result('a', 'ok'),
-      result('b', 'failed'),
-      result('workflows', 'skipped'),
-    ], '2.0', false)
-    expect(summary.failed.map(r => r.gate.id)).toEqual(['b'])
-    expect(summary.skipped.map(r => r.gate.id)).toEqual(['workflows'])
+    const summary = summarizeRun(
+      [result('a', 'ok'), result('b', 'failed'), result('workflows', 'skipped')],
+      '2.0',
+      false,
+    )
+    expect(summary.failed.map((r) => r.gate.id)).toEqual(['b'])
+    expect(summary.skipped.map((r) => r.gate.id)).toEqual(['workflows'])
     expect(summary.okLine).toBe('3 段：1 段真跑通过 / 1 段跳过（未验证）（总 2.0s）')
   })
 })
@@ -674,19 +732,23 @@ describe('单段预算 —— 冷缓存下不许把还在跑的段判死', () =>
     // 900000：往上调不会假红，往下调回接近实测值会当场红。
     const measuredFloor: Record<string, number> = { lint: 309_500, test: 241_500 }
     for (const [id, floor] of Object.entries(measuredFloor)) {
-      const gate = PREPUSH_GATES.find(g => g.id === id)
+      const gate = PREPUSH_GATES.find((g) => g.id === id)
       expect(gate, `${id} 段不见了 —— 门禁被摘`).toBeTruthy()
       expect(
         gate!.budgetMs,
         `${id} 段没有自己的预算 ⇒ 冷跑会被全局 ${GATE_BUDGET_MS / 1000}s 判死（实测下界 ${floor / 1000}s）`,
       ).toBeTypeOf('number')
-      expect(gateBudgetMs(gate!), `${id} 段的预算不到实测下界的 2 倍`).toBeGreaterThanOrEqual(floor * 2)
+      expect(gateBudgetMs(gate!), `${id} 段的预算不到实测下界的 2 倍`).toBeGreaterThanOrEqual(
+        floor * 2,
+      )
     }
     // 其余段**不许**顺手放大：按段给预算的用途是「把慢段放开」，不是「全表偷偷放宽」
     for (const gate of PREPUSH_GATES) {
-      if (gate.id === 'lint' || gate.id === 'test')
-        continue
-      expect(gate.budgetMs, `${gate.id} 段不该有自己的预算（它没有越过全局值的实测证据）`).toBeUndefined()
+      if (gate.id === 'lint' || gate.id === 'test') continue
+      expect(
+        gate.budgetMs,
+        `${gate.id} 段不该有自己的预算（它没有越过全局值的实测证据）`,
+      ).toBeUndefined()
     }
   })
 })
@@ -700,7 +762,8 @@ describe('单段预算 —— 冷缓存下不许把还在跑的段判死', () =>
  */
 describe('nativeCrashNote —— 认得出原生崩溃，也不把它误判到别的失败上', () => {
   it('turbo 与 pnpm 转述的访问冲突退出码 ⇒ 给出提示，且说明「不是查出了问题」与下一步', () => {
-    const turbo = '@walnut/admin#lint:  ERROR  command (D:\\walnut-admin\\walnut-admin\\apps\\admin) C:\\nvm4w\\nodejs\\pnpm.cmd run lint exited (-1073741819)'
+    const turbo =
+      '@walnut/admin#lint:  ERROR  command (D:\\walnut-admin\\walnut-admin\\apps\\admin) C:\\nvm4w\\nodejs\\pnpm.cmd run lint exited (-1073741819)'
     const pnpmSigned = '[ELIFECYCLE] Command failed with exit code -1073741819.'
     const pnpmUnsigned = 'npm ERR! Exit code 3221225477'
     for (const sample of [turbo, pnpmSigned, pnpmUnsigned]) {

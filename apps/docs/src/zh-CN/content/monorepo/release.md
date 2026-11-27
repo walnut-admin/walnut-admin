@@ -158,6 +158,7 @@ pnpm release
 | `circular` | `pnpm walnut madge:check`（`apps/server` 的 apps + libs 循环依赖；madge 跑 1053 文件约 14–20s。它此前只躺在 package.json 里、不在任何门禁中，批次 2 · R2 接入） |
 | `lint` | `turbo run lint`（所有包，不排任何包） |
 | `lint-root` | `turbo run lint:root`（**根级文件**的 lint：`eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts`） |
+| `format` | `pnpm walnut format:check`（`oxfmt --check` —— 格式的唯一真源；ESLint 已 `stylistic: false`，这一面没有第二条闸） |
 | `types` | `turbo run types:check` |
 | `types-root` | `pnpm walnut types:check:root`（根 tsconfig 覆盖的 `eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts`） |
 | `test` | `turbo run test` |

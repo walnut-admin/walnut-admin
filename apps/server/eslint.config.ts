@@ -1,5 +1,8 @@
 import type { Linter } from 'eslint'
-import nestConfig, { DATA_SCOPE_DIRECT_REPOSITORY_MESSAGE, DATA_SCOPE_DIRECT_REPOSITORY_SELECTOR } from '@walnut/eslint-config/nest'
+import nestConfig, {
+  DATA_SCOPE_DIRECT_REPOSITORY_MESSAGE,
+  DATA_SCOPE_DIRECT_REPOSITORY_SELECTOR,
+} from '@walnut/eslint-config/nest'
 
 // ── lib 分层门禁 ───────────────────────────────────────────────────────────────
 // 依赖方向（箭头指向被依赖方，只有上层 import 下层）：
@@ -17,6 +20,10 @@ const EXCEPTION_LIBS = ['exceptions'] as const
 // 允许边只有 assemble → base **单向**：base 反过来引内核就是环的起点（ip 原引 crud 的
 // 端口 token 即此类，按 Decision 3 把 token 迁回 libs/ip 后方向变正），由 banned 按
 // rank 自动收紧拦住（不需要逐条边清单）。
+// oxfmt-ignore：**必须保持单行** —— `pnpm walnut scaffold:lib` 的 insertLayerList 按
+// `const X = [...]` 的单行字面量插行（跨行会让脚手架直接抛错）。格式化器写入的换行不是
+// 语义，但对这条文本通道是破坏。drift 守卫已改成容忍跨行，唯一的约束来自脚手架。
+// oxfmt-ignore
 const TECH_BASE_LIBS = ['als', 'blpath', 'cookie', 'crypto', 'lock', 'queue', 'sse', 'cache', 'throttle', 'mailer', 'sms', 'rsa', 'ip'] as const
 
 const TECH_ASSEMBLE_LIBS = ['repository', 'list', 'crud', 'scope-resolver', 'token'] as const
@@ -29,15 +36,18 @@ const TOP_LIBS = ['guards', 'app-domain'] as const
 const COMMON_IMPORT_PATTERNS = [
   {
     group: ['@walnut/client', '@walnut/client/*'],
-    message: '@walnut/client contains Vue composables and browser-only APIs (Web Crypto, DOM, IndexedDB). Do not import from NestJS server code.',
+    message:
+      '@walnut/client contains Vue composables and browser-only APIs (Web Crypto, DOM, IndexedDB). Do not import from NestJS server code.',
   },
   {
     group: ['@walnut/http', '@walnut/http/*'],
-    message: '@walnut/http is the frontend HTTP client (browser interceptors, cache, retry). Server should use @nestjs/axios or raw axios.',
+    message:
+      '@walnut/http is the frontend HTTP client (browser interceptors, cache, retry). Server should use @nestjs/axios or raw axios.',
   },
   {
     group: ['@/*', '@/**'],
-    message: '内部 lib 禁止 import @/*（那是 apps/api/src）。lib 只能依赖其他 @walnut-server/* 或三方包；需要 app 能力时用注入 token 反转依赖。',
+    message:
+      '内部 lib 禁止 import @/*（那是 apps/api/src）。lib 只能依赖其他 @walnut-server/* 或三方包；需要 app 能力时用注入 token 反转依赖。',
   },
   {
     group: ['**/apps/api/**', '**/apps/**'],
@@ -47,22 +57,30 @@ const COMMON_IMPORT_PATTERNS = [
 
 function banned(libs: readonly string[], layer: string) {
   return {
-    group: libs.flatMap(lib => [`@walnut-server/${lib}`, `@walnut-server/${lib}/*`]),
+    group: libs.flatMap((lib) => [`@walnut-server/${lib}`, `@walnut-server/${lib}/*`]),
     message: `lib 分层门禁：${layer} 不能 import ${libs.join(' / ')}。依赖方向见 ADR 0022。`,
   }
 }
 
-function layer(name: string, libs: readonly string[], bannedLibs: readonly string[], layerLabel: string): Linter.Config {
+function layer(
+  name: string,
+  libs: readonly string[],
+  bannedLibs: readonly string[],
+  layerLabel: string,
+): Linter.Config {
   return {
     name: `walnut/server/layer-${name}`,
-    files: libs.map(lib => `libs/${lib}/**/*.ts`),
+    files: libs.map((lib) => `libs/${lib}/**/*.ts`),
     rules: {
-      'no-restricted-imports': ['error', {
-        patterns: [
-          ...COMMON_IMPORT_PATTERNS,
-          ...(bannedLibs.length ? [banned(bannedLibs, layerLabel)] : []),
-        ],
-      }],
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            ...COMMON_IMPORT_PATTERNS,
+            ...(bannedLibs.length ? [banned(bannedLibs, layerLabel)] : []),
+          ],
+        },
+      ],
     },
   }
 }
@@ -73,15 +91,19 @@ const libsBoundaryConfig: Linter.Config = {
   name: 'walnut/server/libs-boundary',
   files: ['libs/**/*.ts'],
   rules: {
-    'no-restricted-imports': ['error', {
-      patterns: [
-        ...COMMON_IMPORT_PATTERNS,
-        {
-          group: ['@walnut-server/*'],
-          message: '该 lib 尚未登记分层。请先在 eslint.config.ts 的 INFRA_LIBS / TECH_BASE_LIBS / TECH_ASSEMBLE_LIBS / 领域层列表中归类。',
-        },
-      ],
-    }],
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          ...COMMON_IMPORT_PATTERNS,
+          {
+            group: ['@walnut-server/*'],
+            message:
+              '该 lib 尚未登记分层。请先在 eslint.config.ts 的 INFRA_LIBS / TECH_BASE_LIBS / TECH_ASSEMBLE_LIBS / 领域层列表中归类。',
+          },
+        ],
+      },
+    ],
   },
 }
 
@@ -99,27 +121,57 @@ const libsGuardConfig: Linter.Config = {
   files: ['libs/**/*.ts'],
   rules: {
     'local/no-cross-lib-relative-import': 'error',
-    'no-restricted-syntax': ['error', {
-      selector: 'ImportExpression',
-      message: 'libs 内禁止动态 import（含模板串/拼接/类型位 import()，现有静态门禁对它们全部失效）；确需按需加载时在评审中显式豁免。',
-    }, {
-      selector: DATA_SCOPE_DIRECT_REPOSITORY_SELECTOR,
-      message: DATA_SCOPE_DIRECT_REPOSITORY_MESSAGE,
-    }],
+    'no-restricted-syntax': [
+      'error',
+      {
+        selector: 'ImportExpression',
+        message:
+          'libs 内禁止动态 import（含模板串/拼接/类型位 import()，现有静态门禁对它们全部失效）；确需按需加载时在评审中显式豁免。',
+      },
+      {
+        selector: DATA_SCOPE_DIRECT_REPOSITORY_SELECTOR,
+        message: DATA_SCOPE_DIRECT_REPOSITORY_MESSAGE,
+      },
+    ],
   },
 }
 
 export default nestConfig().append(
   libsBoundaryConfig,
   libsGuardConfig,
-  layer('infra', INFRA_LIBS, [...TECH_BASE_LIBS, ...TECH_ASSEMBLE_LIBS, ...DOMAIN_LIBS, ...TOP_LIBS], '基建层'),
+  layer(
+    'infra',
+    INFRA_LIBS,
+    [...TECH_BASE_LIBS, ...TECH_ASSEMBLE_LIBS, ...DOMAIN_LIBS, ...TOP_LIBS],
+    '基建层',
+  ),
   // 唯一例外：异常过滤器需要 blpath 的 skip 名单（blpath 零出边）。
-  layer('infra-exceptions', EXCEPTION_LIBS, [...TECH_BASE_LIBS.filter(lib => lib !== 'blpath'), ...TECH_ASSEMBLE_LIBS, ...DOMAIN_LIBS, ...TOP_LIBS], '基建层（exceptions 例外）'),
+  layer(
+    'infra-exceptions',
+    EXCEPTION_LIBS,
+    [
+      ...TECH_BASE_LIBS.filter((lib) => lib !== 'blpath'),
+      ...TECH_ASSEMBLE_LIBS,
+      ...DOMAIN_LIBS,
+      ...TOP_LIBS,
+    ],
+    '基建层（exceptions 例外）',
+  ),
   // 技术设施（base）不能被内核（assemble）依赖 —— banned 里含 assemble 即 mechanical 拦下；
   // 反过来 assemble 引 base 合法（不在其 banned 内）。
-  layer('tech-base', TECH_BASE_LIBS, [...TECH_ASSEMBLE_LIBS, ...DOMAIN_LIBS, ...TOP_LIBS], '技术设施层'),
+  layer(
+    'tech-base',
+    TECH_BASE_LIBS,
+    [...TECH_ASSEMBLE_LIBS, ...DOMAIN_LIBS, ...TOP_LIBS],
+    '技术设施层',
+  ),
   layer('tech-assemble', TECH_ASSEMBLE_LIBS, [...DOMAIN_LIBS, ...TOP_LIBS], '技术装配层'),
-  layer('identity', ['identity'], [...DOMAIN_LIBS.filter(lib => lib !== 'identity'), ...TOP_LIBS], 'identity 内核'),
+  layer(
+    'identity',
+    ['identity'],
+    [...DOMAIN_LIBS.filter((lib) => lib !== 'identity'), ...TOP_LIBS],
+    'identity 内核',
+  ),
   layer('system', ['system'], ['auth', 'security', ...TOP_LIBS], 'system 域'),
   layer('auth', ['auth'], ['security', ...TOP_LIBS], 'auth 域'),
   layer('security', ['security'], TOP_LIBS, 'security 域'),

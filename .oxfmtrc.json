@@ -1,0 +1,44 @@
+{
+  // 格式的唯一真源（Rust / Oxc）。ESLint 已退出格式职责：三个预设置 `stylistic: false`
+  // 并以 `eslint-config-prettier` 兜底。改这里的取值 = 改全仓格式，别按偏好改，按「与现有
+  // ESLint 侧实测对齐」改（下面三条的 `--print-config` 证据在
+  // plans/rust-toolchain-migration-execution.md §6.2）。
+  "semi": false,
+  "singleQuote": true,
+  "tabWidth": 2,
+  // oxfmt 默认 100（Prettier 是 80）。首轮一次性大 diff 已拍板接受。
+  "printWidth": 100,
+  // 对齐 antfu 的 `style/comma-dangle=always-multiline`；不同会与 ESLint 打架。
+  "trailingComma": "all",
+  // 首轮关闭：默认 true 会重排所有 package.json，与 catalog 的既有顺序规则打架。
+  "sortPackageJson": false,
+  // 刻意不写 sortImports（默认关）：要开是后续独立一步、单独回滚（Sentry 有 customGroups
+  // 排序回归实录）。排序暂留 ESLint 的 perfectionist。
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/dist-staging/**",
+    "**/dist-stage/**",
+    "**/coverage/**",
+    "**/.turbo/**",
+    "**/node_modules/**",
+    "**/env-local/**",
+    "pnpm-lock.yaml",
+    // 生成物：openapi.json 由 openapi:export 重写、schema.d.ts 由它生成，格式化会与 git diff 门禁打架
+    "apps/server/openapi.json",
+    "packages/generated/**",
+    "apps/admin/types/generated/**",
+    // `pnpm version -r` 自己写这本书（double-quoted key 是它的固定输出）；格式化它会让
+    // 每次发版后 format:check 变红 —— 与 openapi.json 同一类「机器写的文件」。
+    ".changeset/ledger.yaml",
+    // `apps/admin/build/generate` 在每次 types:check / build 时重写它（内容由 zod schema 推导）。
+    // 格式化它同样会让 format:check 在构建后变红；生成器的输出就是这份文件的唯一真源。
+    ".vscode/settings-dev.schema.json",
+    // 首轮不碰 markdown：VitePress 的自定义块（tabs / mermaid / 容器）在格式化面前风险高，
+    // 且冻结区文档被构建直接编译 ⇒ 直接忽略，md 另开一轮单独验证。
+    "**/*.md",
+    // 第三方 / 静态运行时资产：原样分发，改一行都会在下次升级时被覆盖
+    // （ESLint 侧的 admin 与 nest 预设同样忽略它们，理由见 apps/admin/eslint.config.ts 顶部）。
+    "apps/admin/public/vendor/**",
+    "apps/server/apps/api/src/public/**"
+  ]
+}

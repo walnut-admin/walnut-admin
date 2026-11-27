@@ -178,6 +178,12 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     why: '根级文件（`eslint.config.ts` / `knip.config.ts` / `package.json` / `pnpm-workspace.yaml`）**不在任何包的 lint 范围里**（它们不进 turbo 的包图），所以必须单独一段。',
   },
   {
+    id: 'format',
+    label: '格式检查（oxfmt --check）',
+    argv: ['format:check'],
+    why: '格式的唯一真源已从 ESLint 拆到 oxfmt（stylistic: false）；缺这一段时唯一能看见格式漂移的是 CI',
+  },
+  {
     id: 'types',
     label: '类型检查（不排任何包）',
     argv: ['exec', 'turbo', 'run', 'types:check'],
@@ -276,7 +282,17 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     // 用 --stat 只为把失败输出压成一行改动统计：openapi.json 是全量重排，整份 diff 上万行，
     // 灌进门禁失败回放里等于没人看得见结论。
     followups: [
-      ['exec', 'git', 'diff', '--cached', '--exit-code', '--stat', '--', 'apps/server/openapi.json', 'packages/generated/api-types/src/schema.d.ts'],
+      [
+        'exec',
+        'git',
+        'diff',
+        '--cached',
+        '--exit-code',
+        '--stat',
+        '--',
+        'apps/server/openapi.json',
+        'packages/generated/api-types/src/schema.d.ts',
+      ],
     ],
     // 剩下的边界面（F-53）：
     // 边界② **已修（2026-11 批次 4 · D9）**：原来 fork PR 拿不到 secret `ENV_KEYS` ⇒ CI 的
@@ -489,13 +505,11 @@ export async function runGates(
 
   /** 领下一段可领的段；没有可领的返回 `null`（表空了，或都被重道挡着） */
   function take(): PrepushGate | null {
-    const index = pending.findIndex(gate => gate.lane === undefined || !busyLanes.has(gate.lane))
+    const index = pending.findIndex((gate) => gate.lane === undefined || !busyLanes.has(gate.lane))
     const gate = index === -1 ? undefined : pending[index]
-    if (gate === undefined)
-      return null
+    if (gate === undefined) return null
     pending.splice(index, 1)
-    if (gate.lane !== undefined)
-      busyLanes.add(gate.lane)
+    if (gate.lane !== undefined) busyLanes.add(gate.lane)
     return gate
   }
 
@@ -503,32 +517,28 @@ export async function runGates(
     for (;;) {
       const gate = take()
       if (gate === null) {
-        if (pending.length === 0)
-          return
-        await new Promise<void>(resolve => waiting.add(resolve))
+        if (pending.length === 0) return
+        await new Promise<void>((resolve) => waiting.add(resolve))
         continue
       }
       const started = Date.now()
       const chunks: string[] = []
       let status: GateStatus = 'ok'
       try {
-        await execute(gate, text => chunks.push(text))
-      }
-      catch (error) {
+        await execute(gate, (text) => chunks.push(text))
+      } catch (error) {
         // 子进程按**四态**退出码回报（lib/errors.ts）：3 = 环境缺失、这一步没跑。不认 3 的话，
         // 跳过与失败在汇总里同形 —— 而这正是本文件这次要修的那件事。
-        status = error instanceof ChildRunError && error.exitCode === SKIPPED_EXIT_CODE
-          ? 'skipped'
-          : 'failed'
+        status =
+          error instanceof ChildRunError && error.exitCode === SKIPPED_EXIT_CODE
+            ? 'skipped'
+            : 'failed'
         chunks.push(error instanceof Error ? error.message : String(error))
-      }
-      finally {
+      } finally {
         // 无论这一段怎么结束（通过 / 失败 / 跳过）重道都要腾出来：漏腾一次，同道的后一段永远不跑
         // = 静默少跑一道闸。先腾道、后报结果 —— 叫醒的 worker 要等本轮同步代码跑完才会动，抢不到前面
-        if (gate.lane !== undefined)
-          busyLanes.delete(gate.lane)
-        for (const wake of waiting)
-          wake()
+        if (gate.lane !== undefined) busyLanes.delete(gate.lane)
+        for (const wake of waiting) wake()
         waiting.clear()
       }
       const result: GateResult = { gate, status, ms: Date.now() - started, output: chunks.join('') }
@@ -540,7 +550,7 @@ export async function runGates(
   await Promise.all(
     Array.from({ length: Math.max(1, Math.min(concurrency, gates.length)) }, () => worker()),
   )
-  return gates.map(gate => results.get(gate.id)!).filter(Boolean)
+  return gates.map((gate) => results.get(gate.id)!).filter(Boolean)
 }
 
 /**
@@ -578,11 +588,15 @@ function isStrict(): boolean {
  * 纯函数（读入参，不读 `process.env`）：它是「未验证是否算失败」这条口径的**唯一一句**，
  * 而口径这种东西必须有用例钉住 —— main() 会真跑整张表，用例碰不到。
  */
-export function strictFailureMessage(strict: boolean, skippedIds: readonly string[]): string | null {
-  if (!strict || skippedIds.length === 0)
-    return null
-  return `${STRICT_ENV}=1：有 ${skippedIds.length} 段跳过（未验证）—— ${skippedIds.join(', ')}。`
-    + '装上对应的工具后重跑，或去掉这个环境变量（它默认关，只为「谁都不许把未验证当通过」的场景拧开）'
+export function strictFailureMessage(
+  strict: boolean,
+  skippedIds: readonly string[],
+): string | null {
+  if (!strict || skippedIds.length === 0) return null
+  return (
+    `${STRICT_ENV}=1：有 ${skippedIds.length} 段跳过（未验证）—— ${skippedIds.join(', ')}。` +
+    '装上对应的工具后重跑，或去掉这个环境变量（它默认关，只为「谁都不许把未验证当通过」的场景拧开）'
+  )
 }
 
 /** 一次 prepush 的**结论**（三态报数 + 跳过名单 + 严格开关的判决） */
@@ -609,17 +623,18 @@ export function summarizeRun(
   totalSeconds: string,
   strict: boolean,
 ): RunSummary {
-  const failed = results.filter(result => result.status === 'failed')
-  const skipped = results.filter(result => result.status === 'skipped')
+  const failed = results.filter((result) => result.status === 'failed')
+  const skipped = results.filter((result) => result.status === 'skipped')
   const passed = results.length - failed.length - skipped.length
-  const skippedIds = skipped.map(result => result.gate.id)
+  const skippedIds = skipped.map((result) => result.gate.id)
   // 有跳过时才追加那一段 —— 没有跳过时「0 段跳过」只是噪音；但只要**有**，它就必须出现在汇总里
   const skippedNote = skipped.length === 0 ? '' : ` / ${skipped.length} 段跳过（未验证）`
   return {
     okLine: `${results.length} 段：${passed} 段真跑通过${skippedNote}（总 ${totalSeconds}s）`,
-    skippedLine: skipped.length === 0
-      ? null
-      : `未验证的段：${skippedIds.join(', ')}（本机环境缺失，跳过不等于通过；权威闸门见 .github/workflows/）`,
+    skippedLine:
+      skipped.length === 0
+        ? null
+        : `未验证的段：${skippedIds.join(', ')}（本机环境缺失，跳过不等于通过；权威闸门见 .github/workflows/）`,
     strictMessage: strictFailureMessage(strict, skippedIds),
     failed,
     skipped,
@@ -632,7 +647,8 @@ export function summarizeRun(
  * 只认**带上下文**的写法，不认裸数字：日志里碰巧出现这个数的概率不为零，认错了提示就是一条误导。
  * turbo 打的是 `… exited (-1073741819)`，pnpm 打的是 `exit code -1073741819`，npm 打的是 `Exit code 3221225477`。
  */
-const NATIVE_CRASH_EXIT = /exited \((?:-1073741819|3221225477)\)|[eE]xit code (?:-1073741819|3221225477)\b/
+const NATIVE_CRASH_EXIT =
+  /exited \((?:-1073741819|3221225477)\)|[eE]xit code (?:-1073741819|3221225477)\b/
 
 /**
  * 一段的输出里认得出「Node 进程的原生崩溃」时给出一句提示；否则 `null`。
@@ -649,18 +665,21 @@ const NATIVE_CRASH_EXIT = /exited \((?:-1073741819|3221225477)\)|[eE]xit code (?
  * 靠输出文本认而不是读 `exitCode`：走到这里时退出码早被 turbo / pnpm 收敛成 1 了，原文只存在于输出里。
  */
 export function nativeCrashNote(output: string): string | null {
-  if (!NATIVE_CRASH_EXIT.test(output))
-    return null
-  return '这一段里有进程以访问冲突退出（0xC0000005）：Node 进程的原生崩溃，不是这条命令查出了问题，输出里不会有成因。'
-    + '本机实测它与机器负载相关，重跑一次通常就过；反复出现时再抓崩溃转储排查。'
+  if (!NATIVE_CRASH_EXIT.test(output)) return null
+  return (
+    '这一段里有进程以访问冲突退出（0xC0000005）：Node 进程的原生崩溃，不是这条命令查出了问题，输出里不会有成因。' +
+    '本机实测它与机器负载相关，重跑一次通常就过；反复出现时再抓崩溃转储排查。'
+  )
 }
 
 export async function main(): Promise<void> {
   const concurrency = Math.max(1, Number(process.env.PREPUSH_CONCURRENCY) || DEFAULT_CONCURRENCY)
   const started = Date.now()
-  out(`推送前门禁：${PREPUSH_GATES.length} 段，最多并行 ${concurrency} 路（表在 tooling/scripts/src/ci/prepush.ts）`)
+  out(
+    `推送前门禁：${PREPUSH_GATES.length} 段，最多并行 ${concurrency} 路（表在 tooling/scripts/src/ci/prepush.ts）`,
+  )
 
-  const results = await runGates(PREPUSH_GATES, result => out(formatLine(result)), concurrency)
+  const results = await runGates(PREPUSH_GATES, (result) => out(formatLine(result)), concurrency)
   const total = ((Date.now() - started) / 1000).toFixed(1)
   const summary = summarizeRun(results, total, isStrict())
 
@@ -669,29 +688,30 @@ export async function main(): Promise<void> {
     line('ok', summary.okLine)
     if (summary.skippedLine !== null) {
       line('skipped', summary.skippedLine)
-      if (summary.strictMessage !== null)
-        throw new ViolationError(summary.strictMessage)
+      if (summary.strictMessage !== null) throw new ViolationError(summary.strictMessage)
     }
     return
   }
 
   // 失败才回放输出：成功时那些输出没人看，失败时它是唯一线索
   for (const result of summary.failed) {
-    err(`\n${'─'.repeat(20)} ${result.gate.label} 失败（${(result.ms / 1000).toFixed(1)}s） ${'─'.repeat(20)}`)
+    err(
+      `\n${'─'.repeat(20)} ${result.gate.label} 失败（${(result.ms / 1000).toFixed(1)}s） ${'─'.repeat(20)}`,
+    )
     err(`为什么必须有这一段：${result.gate.why}`)
     err(result.output.trimEnd() || '（这一段没有输出，只有非零退出码）')
     // 原生崩溃与「查出了问题」同形（都是非零退出码），但下一步完全不同：先说清是哪一种
     const crashNote = nativeCrashNote(result.output)
-    if (crashNote !== null)
-      lineErr('warning', crashNote)
+    if (crashNote !== null) lineErr('warning', crashNote)
   }
   // 这一行是**明细**（哪几段、各自耗时），不带标记 —— 唯一那句结论由 `runCli` 打
-  err(`${summary.failed.length}/${results.length} 段失败：${summary.failed.map(r => r.gate.id).join(', ')}（总 ${total}s）`)
+  err(
+    `${summary.failed.length}/${results.length} 段失败：${summary.failed.map((r) => r.gate.id).join(', ')}（总 ${total}s）`,
+  )
   // 已经有失败时结论早就红了，但「还有几段没验过」仍要说 —— 严格口径在这里也只多一行，不改退出码
   if (summary.skippedLine !== null) {
     err(summary.skippedLine)
-    if (summary.strictMessage !== null)
-      err(summary.strictMessage)
+    if (summary.strictMessage !== null) err(summary.strictMessage)
   }
   throw new ViolationError(`${summary.failed.length} 段推送前门禁失败（明细见上）`)
 }

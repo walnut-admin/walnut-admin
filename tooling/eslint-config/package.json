@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@antfu/eslint-config": "catalog:",
+    "eslint-config-prettier": "catalog:",
     "eslint-plugin-turbo": "catalog:"
   },
   "devDependencies": {

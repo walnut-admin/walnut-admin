@@ -111,8 +111,7 @@ versioning:
   #    新增 workspace 包时必须加进来，否则 `pnpm change check` 与 versioning-config.test.ts 都会拦。
   fixed:
     # 类型是 string[][]（组的数组，每组是包名的数组）。单组也要写成嵌套序列。
-    -
-      - '@walnut/admin'
+    - - '@walnut/admin'
       - '@walnut/e2e'
       - '@walnut/server'
       - '@walnut/docs'
@@ -259,6 +258,9 @@ catalog:
   easy-fns-ts: 2.1.1
   echarts: 6.0.0
   eslint: 10.3.0
+  # ESLint 退出格式职责后的兜底（关掉与 oxfmt 冲突的格式化规则），见 tooling/eslint-config 三个预设。
+  # 锁 10.1.8：10.1.9 发布于 2026-11-27、未过 minimumReleaseAge；两个版本都带 `/flat` 子路径。
+  eslint-config-prettier: 10.1.8
   eslint-plugin-turbo: 2.11.2
   express-csp-header: 6.3.1
   express-xss-sanitizer: 2.0.2
@@ -303,6 +305,10 @@ catalog:
   # 7.13.0 为 latest 稳定（2026-02-11 发布）；上游仓库 8.4k stars、2026-09 仍有提交，维护活跃。
   openapi-typescript: 7.13.0
   otplib: 13.4.0
+  # 格式化器（Rust / Oxc）—— 格式的唯一真源；ESLint 已退出格式职责（stylistic: false）。
+  # 精确锁 0.80.0：0.x 的配置 key 会跨版本改名，抄旧配置会静默失效；升级单独成批、逐 key
+  # 对照当版文档（口径见 plans/rust-toolchain-migration-execution.md §6.1）。
+  oxfmt: 0.80.0
   pagefind: 1.3.0
   passport: 0.7.0
   passport-jwt: 4.0.1
