@@ -1245,7 +1245,7 @@ pnpm walnut types:check
 
 `contract` 比 `utils-core` 多三件事：entry 表更长（以 `vite.config.ts` 的表为准）、手写 barrel 覆盖 `dist/index.cjs`、`entries.drift.test.ts` 用正则解析配置文件文本。
 
-1. **平移 entries**：把 `packages/platform-any/contract/vite.config.ts` 的 entries 表原样搬进新增的 tsdown 配置（键名 = 文件名，一条不多一条不少）。
+1. **平移 entries**：迁移前 `vite.config.ts` 的 entries 表原样搬进新增的 `tsdown.config.ts`（键名 = 文件名，一条不多一条不少）。
 2. **`scripts.build` 改成 `tsdown && node scripts/build-barrel.ts`**：barrel 脚本保留（tsdown 的产物名同样是 `dist/*.cjs`，脚本零改动可用）。
 3. **`package.json` 的 `exports` 一条都不动**（`source` / `types` / `import` 指源码，`require` / `default` 指 CJS）。
 4. **改一致性测试的解析目标**：`packages/platform-any/contract/__tests__/entries.drift.test.ts` 里 `viteEntries()` 读的是 `read('vite.config.ts')`。改成读新配置文件后，正则 `['"]?([\w-]+)['"]?:\s*resolve\(\s*__dirname\s*,\s*['"]src\/([^'"]+)\.ts['"]\s*\)` 仍然匹配 —— **前提是新配置沿用 `resolve(__dirname, 'src/x.ts')` 的写法**。如果改成 `resolve(import.meta.dirname, …)`，正则里的 `__dirname` 要同步放宽；两种都行，但必须在回报里贴「改完后故意删一个 entry，测试确实红」的证据（否则它可能静默变成空断言）。

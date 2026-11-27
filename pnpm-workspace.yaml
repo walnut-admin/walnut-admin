@@ -349,6 +349,9 @@ catalog:
   tinyglobby: 0.2.16
   tinymce: 8.5.0
   ts-json-schema-generator: 2.9.1-next.18
+  # 共享包（platform-any/{utils-core,contract}）的 lib 打包器，替代 Vite lib 模式 + vite-plugin-dts。
+  # 0.x 版本，**精确锁**：0.23 是 breaking 版本，升级要单独成批并跑完全套验收（执行计划 §8.1）。
+  tsdown: 0.23.7
   turbo: 2.11.2
   typeorm: 1.1.2
   typescript: 6.0.3
@@ -368,7 +371,6 @@ catalog:
   vite-plugin-compression2: 2.5.3
   vite-plugin-csp-guard: 4.0.1
   vite-plugin-devtools-json: 1.0.0
-  vite-plugin-dts: 4.5.4
   vite-plugin-image-optimizer: 2.0.3
   vite-plugin-mkcert: 2.0.0
   vite-plugin-restart: 2.0.0

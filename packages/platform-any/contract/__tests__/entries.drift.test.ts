@@ -1,5 +1,5 @@
 /**
- * 三方一致门禁：`src/<x>.ts` 公共模块 ⇄ `vite.config.ts` 的 build.lib entries ⇄
+ * 三方一致门禁：`src/<x>.ts` 公共模块 ⇄ `tsdown.config.ts` 的 entry 表 ⇄
  * `src/index.ts` 选择性 barrel ⇄ `package.json` exports 子路径。
  *
  * 这几处此前全靠人工同步 —— 漏登记的症状是**静默**的：dist 少了产物、子路径 import 404、
@@ -33,16 +33,20 @@ function publicModules(): string[] {
     .sort()
 }
 
-interface ViteEntry {
+interface BuildEntry {
   key: string
   module: string
 }
 
-/** 从 vite.config.ts 文本提取 entries（`'x': resolve(__dirname, 'src/x.ts')`） */
-function viteEntries(): ViteEntry[] {
-  const source = read('vite.config.ts')
+/**
+ * 从 `tsdown.config.ts` 文本提取 entries（`'x': resolve(__dirname | import.meta.dirname, 'src/x.ts')`）。
+ * 正则同时接受两种 dirname 写法：配置从 Vite 迁到 tsdown 时把 `__dirname` 换成了
+ * `import.meta.dirname`，收紧回单一写法会让本测试静默变成空断言（`entries.length === 0`）。
+ */
+function tsdownEntries(): BuildEntry[] {
+  const source = read('tsdown.config.ts')
   const pattern =
-    /['"]?([\w-]+)['"]?:\s*resolve\(\s*__dirname\s*,\s*['"]src\/([^'"]+)\.ts['"]\s*\)/g
+    /['"]?([\w-]+)['"]?:\s*resolve\(\s*(?:__dirname|import\.meta\.dirname)\s*,\s*['"]src\/([^'"]+)\.ts['"]\s*\)/g
   return [...source.matchAll(pattern)].map((match) => ({ key: match[1]!, module: match[2]! }))
 }
 
@@ -137,19 +141,19 @@ function substituteWildcard(target: unknown, wildcard: string): unknown {
 
 describe('entries / barrel / exports drift gate', () => {
   const modules = publicModules()
-  const entries = viteEntries()
+  const entries = tsdownEntries()
 
   it('discovers every public module and the entries block', () => {
     expect(modules.length, 'src/ 下没有发现任何公共模块').toBeGreaterThan(0)
-    expect(entries.length, 'vite.config.ts 里没有解析到任何 entry').toBeGreaterThan(0)
+    expect(entries.length, 'tsdown.config.ts 里没有解析到任何 entry').toBeGreaterThan(0)
   })
 
-  it('every public module has a vite entry and no entry is orphaned', () => {
+  it('every public module has a tsdown entry and no entry is orphaned', () => {
     const problems: string[] = []
     const entryKeys = new Set(entries.map((entry) => entry.key))
 
     if (!entryKeys.has('index'))
-      problems.push('vite.config.ts is missing the "index" entry → src/index.ts')
+      problems.push('tsdown.config.ts is missing the "index" entry → src/index.ts')
 
     for (const entry of entries) {
       if (entry.key !== entry.module)
@@ -161,19 +165,19 @@ describe('entries / barrel / exports drift gate', () => {
     }
 
     if (entryKeys.size !== entries.length)
-      problems.push('vite.config.ts declares duplicate entry keys')
+      problems.push('tsdown.config.ts declares duplicate entry keys')
 
     for (const module of modules) {
       if (!entryKeys.has(module))
         problems.push(
-          `src/${module}.ts is missing a vite build.lib entry (expected '${module}': resolve(__dirname, 'src/${module}.ts'))`,
+          `src/${module}.ts is missing a tsdown entry (expected '${module}': resolve(import.meta.dirname, 'src/${module}.ts'))`,
         )
     }
 
     expect(problems).toEqual([])
   })
 
-  it('vite entry key set equals the public modules plus the "index" barrel', () => {
+  it('tsdown entry key set equals the public modules plus the "index" barrel', () => {
     const entryKeys = [...new Set(entries.map((entry) => entry.key))].sort()
     const expected = [...modules, 'index'].sort()
     expect(entryKeys).toEqual(expected)

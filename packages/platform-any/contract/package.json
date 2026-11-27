@@ -28,11 +28,11 @@
     "pnpm": ">=12.0.0"
   },
   "scripts": {
-    "build": "vite build && node scripts/build-barrel.ts",
+    "build": "tsdown && node scripts/build-barrel.ts",
     "lint": "eslint . --concurrency=4",
     "lint:fix": "eslint . --fix --concurrency=4",
     "types:check": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "pnpm run build && vitest run",
     "test:watch": "vitest",
     "clean": "rimraf dist",
     "clean:all": "rimraf dist node_modules"
@@ -45,9 +45,8 @@
     "@walnut/tsconfig": "workspace:*",
     "@walnut/vitest-config": "workspace:*",
     "rimraf": "catalog:",
+    "tsdown": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:",
-    "vite-plugin-dts": "catalog:",
     "vitest": "catalog:"
   },
   "walnut": {

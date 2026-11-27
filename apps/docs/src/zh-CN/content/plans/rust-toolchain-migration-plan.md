@@ -82,7 +82,7 @@
 - `output.minify` 的正确形态是 **Oxc 对象**：`{ compress: { dropConsole: true, dropDebugger: true } }`。三个成熟 Vite 8 应用（vbenjs/vue-vben-admin、buqiyuan/vue3-antdv-admin、pure-admin/vue-pure-admin，2026-11-27 逐仓核对）都是这个形态；本仓的 `output.minify` 已经写对，需要改的是 `build.minify: 'esbuild'` 这一层。
 - 可选：`rolldownOptions.checks.pluginTimings: false` 关掉插件耗时告警（pure-admin 在用），属于降噪不是必需。
 - 插件表（`tooling/vite-config/src/plugins/`）在 Vite 8.4 下的 peer 兼容性核对。
-- 共享包的构建配置（`packages/platform-any/contract/vite.config.ts`、`packages/platform-any/utils-core/vite.config.ts`）仍在用 `rollupOptions` 键名；Vite 8 把它作为 `rolldownOptions` 的弃用别名保留，本阶段只核对「是否仍被接受」，不改名（改名归 P4）。
+- 共享包的构建配置（P1 时还是 `vite.config.ts`；P4 已整文件删除，换成 `packages/platform-any/contract/tsdown.config.ts` 与 `packages/platform-any/utils-core/tsdown.config.ts`）当时仍在用 `rollupOptions` 键名；Vite 8 把它作为 `rolldownOptions` 的弃用别名保留，P1 只核对「是否仍被接受」，不改名（改名归 P4）。
 - `tooling/scripts/src/ci/check-pre-hooks.ts` 的消费者名单：P0 已把它配置化（数据驱动），本阶段若新增或替换消费者**只改数据**，不动门禁逻辑。
 
 **入口判据**：P0 的产物与截图基线可用。
@@ -218,7 +218,7 @@ export default defineConfig({
 - **产物验证用 `node --check` + require 冒烟**替代 publint / attw：exports 指 `.ts` 时这两个工具必然假阳性，会逼人加豁免而不是发现问题。
 - 第一步：`packages/platform-any/utils-core`（`entries` 表很短，消费面小）。核对产物形状、CJS 可被 `require`、`dist/*.d.ts` 的现状（当前是占位、无人消费）不被意外改变。
 - 第二步：`packages/platform-any/contract`。这里是主要成本：
-  - `packages/platform-any/contract/vite.config.ts` 的 entries 表要平移；entries 与 `src` 文件、`exports` 键、`dist` 产物四方一致由 `packages/platform-any/contract/__tests__/entries.drift.test.ts` 守着 —— 该测试解析的是配置文件文本，配置换形态后它要跟着改，否则会红或更糟（静默变成空断言）。
+  - 迁移前 `vite.config.ts` 的 entries 表要平移；entries 与 `src` 文件、`exports` 键、`dist` 产物四方一致由 `packages/platform-any/contract/__tests__/entries.drift.test.ts` 守着 —— 该测试解析的是配置文件文本，配置换形态后它要跟着改，否则会红或更糟（静默变成空断言）。
   - `packages/platform-any/contract/package.json` 的 `exports` 四条件（`source` / `types` / `import` 指源码，`require` / `default` 指 CJS）一条都不能动，也不交给 tsdown 生成。
 - 版本：锁 `tsdown` 0.23.x，不接受自动升小版本。
 
