@@ -102,8 +102,8 @@ jobs:
       - name: Lint root configs
         run: pnpm walnut lint:root
 
-      # 双轨期的快速正确性检查（oxlint）。不经 turbo（执行计划 §7.6 方案 R），
-      # 也不进 prepush（阶段计划：先独立跑一段、零误报后再谈进表）。
+      # 双轨期的快速正确性检查（oxlint）。不经 turbo（执行计划 §7.6 方案 R）。
+      # 已进 prepush 的 lint:oxlint 段（批次 9B，2026-11-28）；CI 这里仍独立跑一遍并附 PR 注解。
       # `--format=github` 只影响输出形态（PR 注解），判据仍是退出码。
       - name: Oxlint (correctness)
         run: pnpm walnut lint:oxlint --format=github

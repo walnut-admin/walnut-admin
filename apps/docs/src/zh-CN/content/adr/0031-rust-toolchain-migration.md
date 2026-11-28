@@ -78,11 +78,10 @@ tsdown；类型检查一侧用 tsrs 做诊断快查、另一侧用 TNB（classic
   （`no-control-regex` / `no-empty-pattern` / `no-misleading-character-class`）因此**刻意留在
   ESLint**：ESLint 侧已有带理由的 `eslint-disable-next-line`，把 owner 换到 oxlint 会让 ESLint
   先删指令、oxlint 随即报红 —— 这是双轨期唯一会「自动修复反而制造失败」的组合。
-- 接线与缓存：`lint:oxlint` 在 CI（`--quiet --format=github`）与 lint-staged 里跑；
-  `.oxlintrc.json` 登记进根 `turbo.json` 的 `globalDependencies`（ESLint 侧会读它，
-  不登记就会出现「改了配置、缓存回放旧结论」的假绿）。**暂不进 prepush**：`--fix` 的退出码
-  不可信（有「修完仍有错却退出 0」的实录），门禁只认 `--quiet` 不带 fix 的形态；按计划要连续
-  若干次运行零误报后才谈进表。
+- 接线与缓存：`lint:oxlint` 在 CI（`--quiet --format=github`）、lint-staged 与 **prepush 门禁表的
+  `lint:oxlint` 段**里跑（2026-11-28 批次 9B 进表）；门禁只认 `--quiet` 不带 fix 的形态
+  （`--fix` 的退出码不可信，有「修完仍有错却退出 0」的实录）。`.oxlintrc.json` 登记进根
+  `turbo.json` 的 `globalDependencies`（ESLint 侧会读它，不登记就会出现「改了配置、缓存回放旧结论」的假绿）。
 
 ## Decision 3: 共享包 CJS 构建交给 tsdown，对外契约手写不动
 
@@ -106,7 +105,7 @@ tsdown；类型检查一侧用 tsrs 做诊断快查、另一侧用 TNB（classic
 
 ## Decision 4: 类型检查拆成「诊断快查」与「引擎升级」两条，互不替代
 
-### 4.1 诊断侧：tsrs 影子（`7.1.0-beta.tsrs5`，精确锁）
+### 4.1 诊断侧：tsrs 已整批转正（`7.1.0-beta.tsrs5`，精确锁）
 
 tsrs 是 tsc 的 Rust 移植、也是独立的检查 CLI；它自带编译器，不读 `typescript` 包。
 
@@ -116,15 +115,18 @@ tsrs 是 tsc 的 Rust 移植、也是独立的检查 CLI；它自带编译器，
   发布，pnpm 的 `no-downgrade` 把「发布者从个人账号换成 OIDC」判成 possible package takeover；
   策略本身不关，逐版本豁免都要写一行理由。同一张表里其余条目是 2019-2024 年发布、provenance
   机制尚未普及的历史版本，同样**逐条豁免而非整体关闭策略**。
-- **接线是影子态（report-only）**：需要检查的包各自声明 `tsrs` 并加 `types:check:tsrs`
-  （`hoist: false` 下必须逐包声明）；turbo 新增同名任务（`dependsOn: ["transit"]`、
-  `outputs: []`）；CI 有一步 `continue-on-error: true` 的 `Type check with tsrs (report only)`；
-  命令表暴露 `types:check:tsrs` 便于人跑。**不进 prepush、不进发版电池** —— 删掉这几处即完成回滚。
-- **缓存分离**：server 的 `tsBuildInfoFile` 挪到 `node_modules/.cache/tsrs/`，且 tsrs 侧
-  `--incremental false` —— tsrs 写 Go 格式的 buildinfo，与 TS6 共路径会乒乓失效。
-- **影子判据是「时长 + 诊断 diff」**：issue #1114 记录约 1% 的随机失败，团队决定只跟踪、
-  不加同 commit 双跑门禁；出现可复现的失败模式再复评。本地 `typecheck:watch` **永久留 tsc**
-  （Windows 上 tsrs 的 watch 是 NotImplemented、退出码 5，且缺 fswatch 后端与 LSP watchdog）。
+- **已整批转正（2026-11-28，`6e0e68db`）**：12 个包的 `types:check` 主脚本就是
+  `tsrs --noEmit --pretty` —— server、e2e、api-types、contract、utils-core、client、http、
+  scripts、release、vite-config、vitest-config、eslint-config；`packages/platform-any/types` 与
+  `@walnut/commitlint-config` 仍用 `tsc --noEmit`。影子期的 `types:check:tsrs` 脚本、turbo
+  影子任务、CI 的 `continue-on-error` 步骤与命令表条目全部退役；**转正只换检查命令**，
+  回滚是一行：把命令指回 tsc。
+- **缓存分离**：server 的 `tsBuildInfoFile` 指向 `node_modules/.cache/tsrs/` —— tsrs 写 Go 格式
+  的 buildinfo，不能与 TS6 的 buildinfo 共用路径；本地 `typecheck:watch` 仍由 tsc 承担。
+- **随机失败按「记录、不加门禁」处理**：issue #1114 记录约 1% 的随机失败，影子期只跟踪、
+  不加同 commit 双跑门禁；转正后若出现可复现的失败模式再复评。本地 `typecheck:watch`
+  **永久留 tsc**（Windows 上 tsrs 的 watch 是 NotImplemented、退出码 5，且缺 fswatch 后端与
+  LSP watchdog）。
 
 ### 4.2 引擎侧：`typescript` 包面换成 TNB，引擎全面 7.x
 
@@ -149,9 +151,9 @@ TNB（typescript-native-bridge）对外是 classic 6.0.3 API 外壳，对内是�
   直接读类型图（TS 7.1 形状的 JS API），产物与迁移前基线**逐字节一致**（同一 hash，换生成器
   不允许出现任何 schema 变化）。这是 admin 的**第二条 typescript 链**：vue-tsc / ESLint 走 TNB
   的 classic 外壳，生成器走 tsrs 的 7.1 API。
-- **admin 的 vue-tsc 保持 3.2.8**：同一基线 0 诊断；换 TNB 后暖跑 1.7x、冷跑 2.2x。
-  3.3.14 在 **stock TS6 下也**会多出 1 条真实诊断（`JSONEditor/index.vue` 的 TS2322），
-  与 TNB 无关；先单独修源码，再谈升级。
+- **admin 的 vue-tsc 已升到 3.3.14**（2026-11-28，`25cd245c`）：升之前先修掉 3.3.14 在
+  **stock TS6 下也会**多出的 1 条真实诊断（`JSONEditor/index.vue` 的 TS2322，与 TNB 无关）；
+  同一基线仍是 0 诊断。迁移期 3.2.8 的对照读数是换 TNB 后暖跑 1.7x、冷跑 2.2x。
 - **裸装 `typescript@7` 仍是红线**：nest CLI 守卫 exit 1、vue-tsc 的 peer `<7` 两个断点都还没解；
   TNB 外壳是当前唯一合法形态。tsrs 也不能当 vue-tsc / Nest 的后端（它的 API 是 7.1 形状、
   没有 `createProgram`）。
@@ -192,8 +194,9 @@ tsrs 与 TNB 都只替换检查引擎，不改变「哪些代码能直接被 Nod
 - **全量构建 -49%**（`pnpm build`，Sentry 开启口径 2m44s → 1m24s；批次 2 的 P1 收尾读数）。
 - **server `tsc --noEmit` 4.3–4.8x**（冷 23.6s → 5.5s、暖 14.1s → 2.9s，TNB 引擎）。
 - **admin `vue-tsc --noEmit` 1.7x**（暖跑 9.9s → 5.8s；冷跑 2.2x），诊断数不变（0）。
-- **tsrs 影子包级 2.3–5.7x**（批次 7 读数；全仓冷跑 60.3s → 3.2s 不可直接对比 —— tsrs 影子
-  只跑声明了 `types:check:tsrs` 的包，admin / docs 不在其中）。
+- **tsrs 包级 2.3–5.7x**（批次 7 影子期读数；全仓冷跑 60.3s → 3.2s 不可直接对比 —— 影子只跑
+  声明了 `types:check:tsrs` 的包，admin / docs 不在其中；2026-11-28 已整批转正为 12 包的
+  `types:check` 主脚本）。
 - **产物不变**：nest 构建产物与 `verify-build-assets` 通过，`openapi.json` 导出零 diff，
   admin 的 schema 生成物与 HEAD 基线逐字节一致（hash 同值）；批次 8 回归时全仓测试绿，
   syncpack / lockfile / `install --frozen-lockfile` 等门禁绿。收尾提交把生成链换成 tsrs checker 后，
@@ -210,11 +213,13 @@ tsrs 与 TNB 都只替换检查引擎，不改变「哪些代码能直接被 Nod
 - **TNB 的 project-mode 缺陷待上游**：`emit` 在 project mode 下静默写 0 个文件是最危险的形态
   （没有报错），排查时先确认「有没有产物」，不要只看 `emitSkipped`。TNB 是第三方桥接包、不是
   官方发行版；Alpine / musl 不可用，Node RSS 约 1.4x。
-- **oxlint 暂不进 prepush**：双轨期先观察误报；`--fix` 的退出码不能当判据；规则所有权表
-  （`.oxlintrc.json` 的逐条关闭理由 + ESLint 侧的 `oxlintRules` 段）需要人维护。
-- **tsrs 是 prerelease**：锁精确版本、影子期只观测；Windows 无 watch，本地 `typecheck:watch`
-  永久留 tsc；`--pretty` 的输出字节与 tsc 不同（CRLF / 末尾空行），脚本解析要注意。
-- **vue-tsc 暂时停在 3.2.8**：3.3.14 多出的 1 条诊断是真问题，先修源码再升级。
+- **oxlint 已进 prepush（2026-11-28 批次 9B）**：双轨期仍要观察误报；`--fix` 的退出码不能当判据；
+  规则所有权表（`.oxlintrc.json` 的逐条关闭理由 + ESLint 侧的 `oxlintRules` 段）需要人维护。
+- **tsrs 是 prerelease**：锁精确版本；已整批转正为 12 包的 `types:check` 主脚本；Windows 无 watch，
+  本地 `typecheck:watch` 永久留 tsc；`--pretty` 的输出字节与 tsc 不同（CRLF / 末尾空行），
+  脚本解析要注意。
+- **vue-tsc 已到 3.3.14**：3.3.14 多出的 1 条诊断是真问题，已先修源码（`JSONEditor` 的 TS2322）
+  再升级。
 - **oxfmt / tsdown 都是 0.x**：精确锁版本、升级单独成批；CJS 在 tsdown 里是维护模式；
   markdown 首轮不格式化，格式面还留着一个后续步骤。
 - **裸装 `typescript@7` 仍未解禁**：等 nest-cli 与 vue-tsc 的上游支持；在此之前 TNB 外壳是

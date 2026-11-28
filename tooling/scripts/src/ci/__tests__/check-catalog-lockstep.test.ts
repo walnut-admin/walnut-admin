@@ -8,6 +8,7 @@ import {
   isExactVersion,
   parseDeclaredCatalog,
   parseLockedCatalog,
+  parseLockedOverrides,
   readHeadBlob,
   topLevelSection,
 } from '../check-catalog-lockstep.ts'
@@ -91,6 +92,22 @@ describe('parseLockedCatalog', () => {
   })
 })
 
+describe('parseLockedOverrides', () => {
+  it('从顶层 overrides: 取包名到覆盖值，剥引号', () => {
+    const m = parseLockedOverrides(
+      "catalogs:\n  default:\n    a:\n      specifier: 1.0.0\n      version: 1.0.0\noverrides:\n  typescript: npm:typescript-native-bridge@6.0.3\n  'quoted': 2.0.0\n",
+    )
+    expect([...m.entries()]).toEqual([
+      ['typescript', 'npm:typescript-native-bridge@6.0.3'],
+      ['quoted', '2.0.0'],
+    ])
+  })
+
+  it('没有 overrides: 段时返回空', () => {
+    expect(parseLockedOverrides('catalogs:\n  default:\n    a: {}\n').size).toBe(0)
+  })
+})
+
 describe('isExactVersion', () => {
   it('精确版本为真，范围写法为假', () => {
     expect(isExactVersion('1.2.3')).toBe(true)
@@ -138,6 +155,57 @@ describe('compareCatalogs（纯函数）', () => {
     expect(compareCatalogs(ranged, lock)).toEqual([])
   })
 
+  it('catalog 条目被同名 override 覆盖（pnpm 不写 catalogs: 段）⇒ 视为已锁定，绿', () => {
+    // 2026-11-28 的 typescript（TNB 转正）就是这个形态：catalog 里有，锁文件
+    // catalogs: 段没有、overrides: 段有同名同值条目。旧判据在这里误报「锁文件里没有」。
+    const ws2 = 'catalog:\n  a: 1.0.0\n  typescript: npm:typescript-native-bridge@6.0.3\n'
+    const lock = [
+      'catalogs:',
+      '  default:',
+      '    a:',
+      '      specifier: 1.0.0',
+      '      version: 1.0.0',
+      'overrides:',
+      '  typescript: npm:typescript-native-bridge@6.0.3',
+      '',
+    ].join('\n')
+    expect(compareCatalogs(ws2, lock)).toEqual([])
+  })
+
+  it('同名 override 的值与 catalog 声明不一致 ⇒ 仍判红（override 不豁免锁步比对）', () => {
+    const ws2 = 'catalog:\n  a: 1.0.0\n  typescript: npm:typescript-native-bridge@6.0.3\n'
+    const stale = [
+      'catalogs:',
+      '  default:',
+      '    a:',
+      '      specifier: 1.0.0',
+      '      version: 1.0.0',
+      'overrides:',
+      '  typescript: npm:typescript-native-bridge@5.9.0',
+      '',
+    ].join('\n')
+    const f = compareCatalogs(ws2, stale)
+    expect(f.map((x) => x.rule)).toEqual(['catalog-lockstep'])
+    expect(f[0]!.detail).toContain('`typescript`')
+    expect(f[0]!.detail).toContain('同名 override')
+  })
+
+  it('catalog 条目既不在 catalogs: 也不在 overrides: ⇒ 仍判红（覆盖不是豁免）', () => {
+    const ws2 = 'catalog:\n  a: 1.0.0\n  typescript: npm:typescript-native-bridge@6.0.3\n'
+    const lockAOnly = [
+      'catalogs:',
+      '  default:',
+      '    a:',
+      '      specifier: 1.0.0',
+      '      version: 1.0.0',
+      '',
+    ].join('\n')
+    const f = compareCatalogs(ws2, lockAOnly)
+    expect(f.map((x) => x.rule)).toEqual(['catalog-lockstep'])
+    expect(f[0]!.detail).toContain('`typescript`')
+    expect(f[0]!.detail).toContain('锁文件里没有')
+  })
+
   it('解析不出来时按前置条件报错，不静默通过', () => {
     expect(compareCatalogs('packages:\n  - x\n', lockOk).map((f) => f.rule)).toEqual([
       'precondition',
@@ -152,10 +220,15 @@ describe('collectFindings（比对 HEAD 里那一对）', () => {
   })
 
   it('hEAD 里那一对是**两段式锁文件**也能解析（只认第二段的 catalogs）', () => {
+    const lock = readHeadBlob('pnpm-lock.yaml', ROOT)!
     const declared = parseDeclaredCatalog(readHeadBlob('pnpm-workspace.yaml', ROOT)!)
-    const locked = parseLockedCatalog(readHeadBlob('pnpm-lock.yaml', ROOT)!)
+    const locked = parseLockedCatalog(lock)
+    const overrides = parseLockedOverrides(lock)
     expect(declared.size).toBeGreaterThan(100)
-    expect(locked.size).toBe(declared.size)
+    // 被同名 override 覆盖的条目按 pnpm 的锁文件形态**不在** catalogs: 段，
+    // 所以不变量是「每个声明都能在 catalogs: 或 overrides: 里找到」，不是 size 严格相等
+    expect([...declared.keys()].filter((k) => !locked.has(k) && !overrides.has(k))).toEqual([])
+    expect(locked.size).toBeGreaterThan(100)
   })
 
   it('读不到 HEAD 时按前置条件报错（不是静默通过）', () => {

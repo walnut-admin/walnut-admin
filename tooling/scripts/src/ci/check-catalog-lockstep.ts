@@ -30,6 +30,15 @@
  * `catalogs.default.<包名>` 里 pnpm 自己记了 `specifier`（= 声明值）与 `version`（= 解析值）
  * —— 拿它跟 `pnpm-workspace.yaml` 一比就是答案，不必啃 1 MB 的 `importers`。实测 16ms。
  *
+ * ## 被同名 `overrides` 覆盖的 catalog 条目
+ *
+ * pnpm 12 对「catalog 里有、顶层 `overrides:` 里也有同名条目」的依赖**不写锁文件的 `catalogs:` 段**
+ * （覆盖值只记在 `overrides:` 段）。2026-11-28 的 `typescript`（TNB 转正，fc786d47）就是这个形态：
+ * catalog 声明 243 条，锁文件 `catalogs:` 只有 242 条，旧判据因此误报「锁文件里没有」。
+ * 修法（方案 a）：声明条目若在锁文件 `overrides:` 段有同名条目，视为**已锁定**，拿 `overrides:`
+ * 的值参与比对 —— 覆盖值同样是「锁文件对这条依赖的解析结果」，catalog 改了而锁文件没跟上时照样红。
+ * 判据的其余部分（未锁定、版本不一致、多余锁定）原样保留，**不弱化门禁**。
+ *
  * ## 判据刻意宽松的地方（宁可漏报不可误报）
  *
  * `version` 那条只对**看起来是精确版本**的声明生效：声明里带 `^` `~` `>` `<` `*` `|` 或 `x`
@@ -136,6 +145,26 @@ export function parseLockedCatalog(
   return out
 }
 
+/**
+ * 锁文件顶层的 `overrides:` → 包名到覆盖值。
+ *
+ * 被同名覆盖的 catalog 条目**不会**出现在 `catalogs:` 段里（见文件头），所以它必须单独读。
+ * 只取单行 `  包名: 值` 形态；`overrides` 理论上也可能写成嵌套对象（`pkg: {dep: v}`），
+ * 那种形态本仓没有，遇到时按「没覆盖」处理 —— 会回到旧判据报「锁文件里没有」，
+ * 宁可误报也不静默放过。
+ */
+export function parseLockedOverrides(lockfile: string): Map<string, string> {
+  // 两段式锁文件里 `overrides:` 只在根桩那一段出现；取 `last` 与 catalogs 的取法保持一致
+  const sec = topLevelSection(lockfile, 'overrides', 'last')
+  const out = new Map<string, string>()
+  if (!sec) return out
+  for (const l of sec.lines) {
+    const kv = splitIndentedKV(l, 2)
+    if (kv && kv.value !== '') out.set(unquote(kv.key), unquote(kv.value))
+  }
+  return out
+}
+
 /** 声明值是精确版本吗（带范围符的跳过版本比对，见文件头「判据刻意宽松」） */
 export function isExactVersion(v: string): boolean {
   return !/[\^~><*|]|\bx\b/i.test(v)
@@ -145,6 +174,8 @@ export function isExactVersion(v: string): boolean {
 export function compareCatalogs(workspaceYaml: string, lockfile: string): Finding[] {
   const declared = parseDeclaredCatalog(workspaceYaml)
   const locked = parseLockedCatalog(lockfile)
+  // 被同名 override 覆盖的 catalog 条目不会写进 catalogs: 段，改由 overrides: 段作证
+  const overrides = parseLockedOverrides(lockfile)
 
   // 前置条件：解析不出来说明格式变了，**不能当成「都对」**（那正是假绿的形态）
   if (declared.size === 0)
@@ -166,10 +197,22 @@ export function compareCatalogs(workspaceYaml: string, lockfile: string): Findin
   for (const [name, v] of declared) {
     const lk = locked.get(name)
     if (!lk) {
-      findings.push({
-        rule: 'catalog-lockstep',
-        detail: `catalog 声明了 \`${name}\`（${v}）但锁文件里没有`,
-      })
+      const ov = overrides.get(name)
+      if (ov === undefined) {
+        findings.push({
+          rule: 'catalog-lockstep',
+          detail: `catalog 声明了 \`${name}\`（${v}）但锁文件里没有`,
+        })
+        continue
+      }
+      // 同名 override 就是锁文件对这条依赖的解析结果：值一致才算锁步。
+      // 这条只比一个值（没有 catalogs: 那侧的 specifier/version 两重校验），
+      // 但覆盖值本身就是一个完整 specifier，直接比是唯一可比的判据。
+      if (ov !== v)
+        findings.push({
+          rule: 'catalog-lockstep',
+          detail: `\`${name}\`：catalog 声明 ${v}，锁文件同名 override 记为 ${ov}`,
+        })
       continue
     }
     if (lk.specifier !== v)

@@ -1,7 +1,7 @@
 # Rust 化工具链迁移：阶段性计划（草案）
 
 > 状态：**主体已执行**（2026-11-27 立项，2026-11-28 收尾）。P0–P4 已完成；P5 分三条：
-> **P5a 影子进行中**、**P5b 待影子期满**、**P5c 已转正**。各阶段的工作量只是「感受」，没有排期承诺。
+> **P5a 影子已期满、P5b 已整批转正（`6e0e68db`）**、**P5c 已转正（`fc786d47`）**。各阶段的工作量只是「感受」，没有排期承诺。
 > 8 个批次的落地结果、各批提交号与两处计划外发现见[执行计划](./rust-toolchain-migration-execution.md)的「执行结果」短注。
 > **执行级计划**（批次拆分、逐批文件与命令、验收与回退）：[Rust 化工具链迁移：执行计划](./rust-toolchain-migration-execution.md)。
 > **定位**：把「换工具」拆成可独立验收、可独立回滚的阶段，回答每一步**先做什么、做到什么算完、怎么退回去**。
@@ -240,10 +240,9 @@ export default defineConfig({
 
 ### P5 类型检查升级（轨道 C + D）
 
-> **执行状态（2026-11-28）**：P5-pre 已完成；**P5a 影子进行中**（`types:check:tsrs` 已在需要检查的
-> 包上接线，CI 里是 `continue-on-error` 的 report-only 步骤，不进 prepush / 发版电池）；
-> **P5b 待影子期满**（1–2 周 / ≥10 PR，判据是时长 + 诊断 diff）；**P5c 已转正**（catalog +
-> `overrides` 双改到 TNB，nest-on-TNB PoC 五项全绿）。
+> **执行状态（2026-11-28）**：P5-pre 已完成；**P5a 影子已期满**（`types:check:tsrs` 影子接线已随转正
+> 退役）；**P5b 已整批转正**（`6e0e68db`：12 包的 `types:check` 主脚本切到 tsrs，`typecheck:watch`
+> 保留 tsc）；**P5c 已转正**（`fc786d47`：catalog + `overrides` 双改到 TNB，nest-on-TNB PoC 五项全绿）。
 
 **目标**：P5 分成两条独立路径 —— **C（检查侧快查，tsrs）**：先清障、再影子、再整批转正；**D（引擎全面 TS7）**：TNB 作为 `typescript` 包面全局接入，nest-on-TNB PoC 先行。收益口径见评估 5.6：tsrs 在 server 上 4.28s、包级项目 3–12x，但主要集中在 CI 冷跑；引擎侧的收益（tsgo）另算。
 

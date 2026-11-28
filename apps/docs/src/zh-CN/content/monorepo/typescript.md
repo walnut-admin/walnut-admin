@@ -30,7 +30,7 @@ Walnut Admin 是一个**异构工具链**的全栈 monorepo——前端用 ESM +
 | `base.json` | 仓库根 `tsconfig.json`、`@walnut/eslint-config`、`@walnut/commitlint-config`、`@walnut/vitest-config` | 这些文件由 ESLint（经 jiti）/ commitlint 的 TS loader / Vitest 的 esbuild 加载，**不是** Node 原生执行 ⇒ 不需要 `erasableSyntaxOnly` |
 | 不继承任何预设 | `apps/server` | 见第 3 节 |
 
-预设包本身没有可检查的 TS 源码，所以它的 `types:check` 只是一句 `echo`（`tooling/tsconfig/package.json`）；而 `@walnut/eslint-config` 的预设是**真 TS 源码**，`types:check` 是真正的 `tsc --noEmit`。
+预设包本身没有可检查的 TS 源码，所以它的 `types:check` 只是一句 `echo`（`tooling/tsconfig/package.json`）；而 `@walnut/eslint-config` 的预设是**真 TS 源码**，`types:check` 是真正的 `tsrs --noEmit`。
 
 ### 2. 前端包 extends `vue.json`
 
@@ -81,8 +81,15 @@ Walnut Admin 是一个**异构工具链**的全栈 monorepo——前端用 ESM +
 
 | 任务 | 前端 | 后端 |
 |------|------|------|
-| 类型检查 | `vue-tsc --noEmit` | `tsc --noEmit` |
+| 类型检查 | `vue-tsc --noEmit`（TNB 引擎） | `tsrs --noEmit --pretty` |
 | 构建 | `vite build`（不做类型检查） | `nest build`（SWC 编译） |
+
+2026-11-28 起 `types:check` 的检查器已整批转正（[ADR-0031](/content/adr/0031-rust-toolchain-migration.md)）：
+
+- **12 个包用 tsrs**（精确锁 `7.1.0-beta.tsrs5`）：`apps/server`、`apps/e2e`、`packages/platform-any/{contract,utils-core}`、`packages/platform-web/{client,http}`、`packages/generated/api-types`，以及 `tooling/{scripts,release,vite-config,vitest-config,eslint-config}`。
+- **admin 仍是 `vue-tsc --noEmit`**，经 TNB 的 classic 外壳走 tsgo 7.x 引擎；docs 是 `echo skipped`。
+- `packages/platform-any/types` 与 `@walnut/commitlint-config` 仍用 `tsc --noEmit`（不在 tsrs 的转正名单里）。
+- 本地 `typecheck:watch` **永久保留 `tsc --noEmit --watch`**：tsrs 在 Windows 上的 watch 是 NotImplemented（退出码 5）。
 
 根 `turbo.json` 中 `types:check` 和 `build` 是**两个独立任务**，互不影响。
 
@@ -117,3 +124,4 @@ Walnut Admin 是一个**异构工具链**的全栈 monorepo——前端用 ESM +
 - [ADR-0010: No TypeScript Project References](/content/adr/0010-no-ts-project-references.md)
 - [ADR-0012: Frontend-Backend Toolchain Divergence](/content/adr/0012-toolchain-divergence.md)
 - [ADR-0019: 共享 tsconfig 预设包与「无 `.mjs`」约束](/content/adr/0019-tsconfig-presets-and-no-mjs.md)
+- [ADR-0031: 前端工具链 Rust 化：oxfmt / oxlint / tsdown / tsrs / TNB](/content/adr/0031-rust-toolchain-migration.md)
