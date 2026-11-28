@@ -365,7 +365,9 @@ catalog:
   tsdown: 0.23.7
   # 检查侧快查（tsc 的 Rust 移植）。**精确锁、禁用范围**：`tsrsN` 的版本文本排序最多到 tsrs9，
   # registry 也没有 `next` tag（只有 `latest`），写范围会在跨 N 时排序错乱。
-  # 影子期只接 `types:check:tsrs`（report-only），转正判据见执行计划 §9.2 / §9.3。
+  # 已转正（2026-11-28）：`types:check` 主脚本就是 tsrs，不再有 report-only 影子脚本。
+  # 例外：admin 走 vue-tsc，`@walnut/commitlint-config` 与 `@walnut/types` 仍用 tsc，
+  # docs 与纯 JSON 预设包是 echo 跳过。
   tsrs: 7.1.0-beta.tsrs5
   turbo: 2.11.2
   typeorm: 1.1.2
