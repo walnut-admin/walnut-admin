@@ -151,8 +151,9 @@ export default function baseConfig(options: OptionsConfig = {}): WalnutEslintCon
     // ── oxlint 去重段 ── 把 oxlint 已覆盖的规则在 ESLint 侧关掉（只关规则、不摘插件注册）。
     // 位置固定：各包自己的配置之后、prettier 兜底之前（见文件上方两段式说明）。
     ...oxlintRules,
-    // ── 排序所有权 ── 语句级 import 排序与 `package.json` 键序归 oxfmt（根 `.oxfmtrc.json`）；
-    // 具名 specifier / export 语句的排序仍归 ESLint。分工与理由见 sort-ownership.ts 顶部。
+    // ── 排序所有权 ── 语句级 import 排序与 `package.json` 的**根键序**归 oxfmt
+    // （根 `.oxfmtrc.json`）；具名 specifier / export 语句的排序与 package.json 的
+    // `exports` 条件序 / `pnpm.overrides` asc 仍归 ESLint（oxfmt 做不到）。分工与理由见 sort-ownership.ts 顶部。
     // 放在各包配置之后：调用方不能把它改回去，否则会与 oxfmt 互相改写。
     ...sortOwnershipConfig(),
     // 兜底：万一有格式化规则漏网（第三方预设自带、或某条 ours 显式打开），由它关掉，

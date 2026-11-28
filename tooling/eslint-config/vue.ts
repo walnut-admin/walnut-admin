@@ -45,8 +45,9 @@ export default function vueConfig(options: OptionsConfig = {}): WalnutEslintConf
     // unocss 工具类顺序）继续由本预设负责，**没有**搬到 oxlint —— 下面这段只关「script 侧
     // 已被 oxlint 覆盖」的规则。谁想加模板规则，加在这里，不要指望 oxlint。
     ...oxlintRules,
-    // ── 排序所有权 ── 语句级 import 排序与 `package.json` 键序归 oxfmt（根 `.oxfmtrc.json`）；
-    // 具名 specifier / export 语句的排序仍归 ESLint。分工与理由见 sort-ownership.ts 顶部。
+    // ── 排序所有权 ── 语句级 import 排序与 `package.json` 的**根键序**归 oxfmt
+    // （根 `.oxfmtrc.json`）；具名 specifier / export 与 package.json 的 `exports` 条件序 /
+    // `pnpm.overrides` asc 仍归 ESLint（oxfmt 做不到）。分工与理由见 sort-ownership.ts 顶部。
     ...sortOwnershipConfig(),
     // 兜底：关掉任何漏网的格式化规则（必须最后，flat config 后份覆盖前份）
     eslintConfigPrettier,

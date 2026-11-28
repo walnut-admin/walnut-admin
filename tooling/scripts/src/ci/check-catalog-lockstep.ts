@@ -39,11 +39,23 @@
  * 的值参与比对 —— 覆盖值同样是「锁文件对这条依赖的解析结果」，catalog 改了而锁文件没跟上时照样红。
  * 判据的其余部分（未锁定、版本不一致、多余锁定）原样保留，**不弱化门禁**。
  *
+ * ## `overrides:` 本身也要两侧对称
+ *
+ * 只读锁文件的 `overrides:` 有一个漏报面：**workspace 侧改了 override、锁文件没跟上**时，
+ * catalog 段可能完全没变化（被覆盖的条目本来就不进 `catalogs:`），上面的逐条比对会一条都不报。
+ * 所以 workspace yaml 的顶层 `overrides:` 与锁文件的 `overrides:` 也做对称比对：
+ * 多值 / 少值 / 值不同都报（`overrides-lockstep`）。这与「catalog 声明改了、锁文件没跟上」是同一类
+ * 失败：工作区看着对，CI 的 `--frozen-lockfile` 红。
+ *
  * ## 判据刻意宽松的地方（宁可漏报不可误报）
  *
  * `version` 那条只对**看起来是精确版本**的声明生效：声明里带 `^` `~` `>` `<` `*` `|` 或 `x`
  * 时跳过版本比对（那种情况解析值与声明值本来就不该相等，比了必误报）。本仓 `saveExact: true`，
  * 243 条全是精确版本，所以这条宽松目前是纯保险。
+ * **同名 override 的覆盖值比对同口径**：catalog 声明是范围时跳过值比对（override 常常是
+ * `npm:` 别名或解析后的精确版，范围声明下两者本来就不该相等）。
+ * **inline 嵌套对象值（`b: {x: 1}`）两侧都跳过**：它不是「版本值」，做字符串比对必误报；
+ * 本仓没有这种形态，遇到时按「不比」处理（不静默当成覆盖成立，也不是红）。
  */
 import { execFileSync } from 'node:child_process'
 
@@ -141,12 +153,20 @@ export function parseLockedCatalog(
 }
 
 /**
+ * inline 嵌套对象值（`b: {x: 1}`）不是可比的版本值：跳过比对（见文件头「判据刻意宽松」）。
+ * 只认单行 `{...}`：多行嵌套对象在 splitIndentedKV 那层就落不到「键值对」分支。
+ */
+function isInlineObjectValue(value: string): boolean {
+  return value.startsWith('{') && value.endsWith('}')
+}
+
+/**
  * 锁文件顶层的 `overrides:` → 包名到覆盖值。
  *
  * 被同名覆盖的 catalog 条目**不会**出现在 `catalogs:` 段里（见文件头），所以它必须单独读。
- * 只取单行 `  包名: 值` 形态；`overrides` 理论上也可能写成嵌套对象（`pkg: {dep: v}`），
- * 那种形态本仓没有，遇到时按「没覆盖」处理 —— 会回到旧判据报「锁文件里没有」，
- * 宁可误报也不静默放过。
+ * 只取单行 `  包名: 值` 形态；inline 嵌套对象值（`b: {x: 1}`）跳过比对。多行嵌套对象
+ * （`pkg:` 下再缩进）本来就不会命中这个解析器；遇到时按「没覆盖」处理 —— 会回到旧判据
+ * 报「锁文件里没有」，宁可误报也不静默放过。
  */
 export function parseLockedOverrides(lockfile: string): Map<string, string> {
   // 两段式锁文件里 `overrides:` 只在根桩那一段出现；取 `last` 与 catalogs 的取法保持一致
@@ -155,7 +175,26 @@ export function parseLockedOverrides(lockfile: string): Map<string, string> {
   if (!sec) return out
   for (const l of sec.lines) {
     const kv = splitIndentedKV(l, 2)
-    if (kv && kv.value !== '') out.set(unquote(kv.key), unquote(kv.value))
+    if (kv && kv.value !== '' && !isInlineObjectValue(kv.value))
+      out.set(unquote(kv.key), unquote(kv.value))
+  }
+  return out
+}
+
+/**
+ * `pnpm-workspace.yaml` 的顶层 `overrides:` → 包名到覆盖值。
+ *
+ * 与 `parseLockedOverrides` 同形，供「两侧对称比对」使用（见文件头）：workspace 侧改了
+ * override 而没跑 install 时，锁文件不会变，必须由这次比对报出来。
+ */
+export function parseDeclaredOverrides(workspaceYaml: string): Map<string, string> {
+  const sec = topLevelSection(workspaceYaml, 'overrides')
+  const out = new Map<string, string>()
+  if (!sec) return out
+  for (const l of sec.lines) {
+    const kv = splitIndentedKV(l, 2)
+    if (kv && kv.value !== '' && !isInlineObjectValue(kv.value))
+      out.set(unquote(kv.key), unquote(kv.value))
   }
   return out
 }
@@ -171,6 +210,8 @@ export function compareCatalogs(workspaceYaml: string, lockfile: string): Findin
   const locked = parseLockedCatalog(lockfile)
   // 被同名 override 覆盖的 catalog 条目不会写进 catalogs: 段，改由 overrides: 段作证
   const overrides = parseLockedOverrides(lockfile)
+  // override 自身也要两侧对称：workspace 改了没跑 install 时锁文件不会变
+  const declaredOverrides = parseDeclaredOverrides(workspaceYaml)
 
   // 前置条件：解析不出来说明格式变了，**不能当成「都对」**（那正是假绿的形态）
   if (declared.size === 0)
@@ -203,7 +244,9 @@ export function compareCatalogs(workspaceYaml: string, lockfile: string): Findin
       // 同名 override 就是锁文件对这条依赖的解析结果：值一致才算锁步。
       // 这条只比一个值（没有 catalogs: 那侧的 specifier/version 两重校验），
       // 但覆盖值本身就是一个完整 specifier，直接比是唯一可比的判据。
-      if (ov !== v)
+      // 与 catalogs 分支同口径：声明是范围时跳过值比对（override 常是 npm: 别名 /
+      // 解析后的精确版，范围声明下本来就不该相等；比了必误报）。
+      if (isExactVersion(v) && ov !== v)
         findings.push({
           rule: 'catalog-lockstep',
           detail: `\`${name}\`：catalog 声明 ${v}，锁文件同名 override 记为 ${ov}`,
@@ -224,6 +267,31 @@ export function compareCatalogs(workspaceYaml: string, lockfile: string): Findin
   for (const name of locked.keys()) {
     if (!declared.has(name))
       findings.push({ rule: 'catalog-lockstep', detail: `锁文件里有 \`${name}\` 但 catalog 已删` })
+  }
+
+  // workspace `overrides:` ↔ 锁文件 `overrides:`：多值 / 少值 / 值不同都报。
+  // 这一面 catalog 循环看不见（被覆盖条目不进 catalogs:），漏了它就是「改了 override 没跑 install」的假绿。
+  for (const [name, v] of declaredOverrides) {
+    const ov = overrides.get(name)
+    if (ov === undefined) {
+      findings.push({
+        rule: 'overrides-lockstep',
+        detail: `workspace overrides 声明了 \`${name}\`（${v}）但锁文件 overrides 里没有`,
+      })
+      continue
+    }
+    if (ov !== v)
+      findings.push({
+        rule: 'overrides-lockstep',
+        detail: `\`${name}\`：workspace overrides 记为 ${v}，锁文件 overrides 记为 ${ov}`,
+      })
+  }
+  for (const name of overrides.keys()) {
+    if (!declaredOverrides.has(name))
+      findings.push({
+        rule: 'overrides-lockstep',
+        detail: `锁文件 overrides 里有 \`${name}\` 但 workspace overrides 已删`,
+      })
   }
   return findings
 }

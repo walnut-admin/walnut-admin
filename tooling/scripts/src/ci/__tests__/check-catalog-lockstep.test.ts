@@ -7,6 +7,7 @@ import {
   compareCatalogs,
   isExactVersion,
   parseDeclaredCatalog,
+  parseDeclaredOverrides,
   parseLockedCatalog,
   parseLockedOverrides,
   readHeadBlob,
@@ -103,8 +104,26 @@ describe('parseLockedOverrides', () => {
     ])
   })
 
+  it('inline 嵌套对象值跳过（不是可比的版本值）', () => {
+    const m = parseLockedOverrides('overrides:\n  a: 1.0.0\n  b: {x: 2}\n  c:\n    d: 3\n')
+    expect([...m.entries()]).toEqual([['a', '1.0.0']])
+  })
+
   it('没有 overrides: 段时返回空', () => {
     expect(parseLockedOverrides('catalogs:\n  default:\n    a: {}\n').size).toBe(0)
+  })
+})
+
+describe('parseDeclaredOverrides', () => {
+  it('从 workspace yaml 顶层 overrides: 取包名到覆盖值，并跳过 inline 对象', () => {
+    const m = parseDeclaredOverrides(
+      "overrides:\n  'typescript': npm:typescript-native-bridge@6.0.3\n  b: {x: 1}\ncatalog:\n  a: 1.0.0\n",
+    )
+    expect([...m.entries()]).toEqual([['typescript', 'npm:typescript-native-bridge@6.0.3']])
+  })
+
+  it('没有 overrides: 段时返回空', () => {
+    expect(parseDeclaredOverrides('catalog:\n  a: 1.0.0\n').size).toBe(0)
   })
 })
 
@@ -158,7 +177,8 @@ describe('compareCatalogs（纯函数）', () => {
   it('catalog 条目被同名 override 覆盖（pnpm 不写 catalogs: 段）⇒ 视为已锁定，绿', () => {
     // 2026-11-28 的 typescript（TNB 转正）就是这个形态：catalog 里有，锁文件
     // catalogs: 段没有、overrides: 段有同名同值条目。旧判据在这里误报「锁文件里没有」。
-    const ws2 = 'catalog:\n  a: 1.0.0\n  typescript: npm:typescript-native-bridge@6.0.3\n'
+    const ws2 =
+      'overrides:\n  typescript: npm:typescript-native-bridge@6.0.3\ncatalog:\n  a: 1.0.0\n  typescript: npm:typescript-native-bridge@6.0.3\n'
     const lock = [
       'catalogs:',
       '  default:',
@@ -173,7 +193,9 @@ describe('compareCatalogs（纯函数）', () => {
   })
 
   it('同名 override 的值与 catalog 声明不一致 ⇒ 仍判红（override 不豁免锁步比对）', () => {
-    const ws2 = 'catalog:\n  a: 1.0.0\n  typescript: npm:typescript-native-bridge@6.0.3\n'
+    // workspace 的 override 与锁文件一致（两侧对称绿），但 catalog 声明比它们新 ⇒ 只报 catalog 那条
+    const ws2 =
+      'overrides:\n  typescript: npm:typescript-native-bridge@5.9.0\ncatalog:\n  a: 1.0.0\n  typescript: npm:typescript-native-bridge@6.0.3\n'
     const stale = [
       'catalogs:',
       '  default:',
@@ -188,6 +210,96 @@ describe('compareCatalogs（纯函数）', () => {
     expect(f.map((x) => x.rule)).toEqual(['catalog-lockstep'])
     expect(f[0]!.detail).toContain('`typescript`')
     expect(f[0]!.detail).toContain('同名 override')
+  })
+
+  it('catalog 声明是范围时，同名 override 值不同也跳过比对（否则必误报）', () => {
+    // catalog 声明 ^2.0.0，override 是 npm: 别名；两者本来就不该相等
+    const ws2 = 'overrides:\n  r: npm:r@2.3.0\ncatalog:\n  a: 1.0.0\n  r: ^2.0.0\n'
+    const lock = [
+      'catalogs:',
+      '  default:',
+      '    a:',
+      '      specifier: 1.0.0',
+      '      version: 1.0.0',
+      'overrides:',
+      '  r: npm:r@2.3.0',
+      '',
+    ].join('\n')
+    expect(compareCatalogs(ws2, lock)).toEqual([])
+  })
+
+  it('catalog 条目在 catalogs: 与 overrides: 两处都有且值不同 ⇒ 以 catalogs: 为准（既有口径）', () => {
+    const ws2 = 'overrides:\n  a: 2.0.0\ncatalog:\n  a: 1.0.0\n'
+    const lock = [
+      'catalogs:',
+      '  default:',
+      '    a:',
+      '      specifier: 1.0.0',
+      '      version: 1.0.0',
+      'overrides:',
+      '  a: 2.0.0',
+      '',
+    ].join('\n')
+    expect(compareCatalogs(ws2, lock)).toEqual([])
+  })
+
+  it('inline 嵌套对象值两侧都跳过比对（不是版本值）', () => {
+    const ws2 = 'overrides:\n  b: {x: 1}\ncatalog:\n  a: 1.0.0\n'
+    const lock = [
+      'catalogs:',
+      '  default:',
+      '    a:',
+      '      specifier: 1.0.0',
+      '      version: 1.0.0',
+      'overrides:',
+      '  b: {x: 2}',
+      '',
+    ].join('\n')
+    expect(compareCatalogs(ws2, lock)).toEqual([])
+  })
+
+  it('workspace overrides 改了、锁文件没跟上 ⇒ 报 overrides-lockstep（值不同）', () => {
+    const ws2 = 'overrides:\n  x: 1.0.0\ncatalog:\n  a: 1.0.0\n'
+    const lock = [
+      'catalogs:',
+      '  default:',
+      '    a:',
+      '      specifier: 1.0.0',
+      '      version: 1.0.0',
+      'overrides:',
+      '  x: 0.9.0',
+      '',
+    ].join('\n')
+    const f = compareCatalogs(ws2, lock)
+    expect(f.map((x) => x.rule)).toEqual(['overrides-lockstep'])
+    expect(f[0]!.detail).toContain('`x`')
+    expect(f[0]!.detail).toContain('1.0.0')
+    expect(f[0]!.detail).toContain('0.9.0')
+  })
+
+  it('workspace 新增 override 但锁文件没有 ⇒ 报 overrides-lockstep（少值）', () => {
+    const ws2 = 'overrides:\n  x: 1.0.0\ncatalog:\n  a: 1.0.0\n'
+    const lock = 'catalogs:\n  default:\n    a:\n      specifier: 1.0.0\n      version: 1.0.0\n'
+    const f = compareCatalogs(ws2, lock)
+    expect(f.map((x) => x.rule)).toEqual(['overrides-lockstep'])
+    expect(f[0]!.detail).toContain('锁文件 overrides 里没有')
+  })
+
+  it('锁文件 override 还在但 workspace 已删 ⇒ 报 overrides-lockstep（多值）', () => {
+    const ws2 = 'catalog:\n  a: 1.0.0\n'
+    const lock = [
+      'catalogs:',
+      '  default:',
+      '    a:',
+      '      specifier: 1.0.0',
+      '      version: 1.0.0',
+      'overrides:',
+      '  x: 1.0.0',
+      '',
+    ].join('\n')
+    const f = compareCatalogs(ws2, lock)
+    expect(f.map((x) => x.rule)).toEqual(['overrides-lockstep'])
+    expect(f[0]!.detail).toContain('workspace overrides 已删')
   })
 
   it('catalog 条目既不在 catalogs: 也不在 overrides: ⇒ 仍判红（覆盖不是豁免）', () => {

@@ -10,17 +10,23 @@
   "printWidth": 100,
   // 对齐 antfu 的 `style/comma-dangle=always-multiline`；不同会与 ESLint 打架。
   "trailingComma": "all",
-  // ── 排序唯一真源移交 oxfmt（2026-11-28 决策）──────────────────────────────
-  // 语句级 import 排序与 package.json 键序都由这里负责：ESLint 侧已关
-  // `perfectionist/sort-imports`（base / vue / nest 三预设）与 `package.json` 的
-  // `jsonc/sort-keys`（`sort-ownership.ts`）。oxfmt 不做具名 specifier / export 语句
-  // 排序，那三样（sort-named-imports / sort-named-exports / sort-exports）仍归 ESLint。
+  // ── 排序的唯一真源（2026-11-28 决策）──────────────────────────────────────
+  // **归 oxfmt**：语句级 import 排序（`sortImports`）、`package.json` 的根键序与 `dependencies`
+  // 的 asc（`sortPackageJson`）。ESLint 侧对应关掉 `perfectionist/sort-imports`（base / vue / nest
+  // 三预设，`sort-ownership.ts`）与 `jsonc/sort-keys` 的**根键序**那一条。
+  // **仍归 ESLint**（oxfmt 的能力边界）：具名 specifier / export 语句三条规则
+  // （sort-named-imports / sort-named-exports / sort-exports），以及 package.json 的
+  // `exports` 条件序（types → import → require → default）与 `pnpm.overrides` 的 asc
+  // （oxfmt 不排 `exports` 子键，也不认 overrides 的字符串键序）。
   // 回滚这两个开关必须成对：只改这里会让 ESLint 把顺序改回去（反之亦然）。
   "sortPackageJson": true,
   // groups 逐组复刻 @antfu/eslint-config 8.2.0 的 perfectionist 配置（2026-11-28
-  // `--print-config` 实测）；两处差异都是 oxfmt 的能力边界：
+  // `--print-config` 实测）；三处差异都是 oxfmt 的能力边界：
   //   · `ts-equals-import` 没有对应 selector ⇒ 落 `unknown`（与 perfectionist 的末组同位）；
-  //   · perfectionist 的 `newlinesBetween: "ignore"` 在 oxfmt 只有布尔值 ⇒ false（不增删空行）。
+  //   · perfectionist 的 `newlinesBetween: "ignore"` 在 oxfmt 只有布尔值 ⇒ false（不增删空行）；
+  //   · oxfmt 不读 tsconfig 的 `paths`，`@walnut/*` / `@walnut-server/*` 一律归 external 组
+  //     （perfectionist 时代按 internal）。要一致可加 `internalPattern`，但那会引入一次性重排，
+  //     未做（2026-11-28 探针：全仓 2 文件 +3/−3）。
   "sortImports": {
     // 逐组照抄 antfu 的 perfectionist 配置（组名同义）；唯一替换是 `side-effect` → 预定义组
     // `side_effect`（oxfmt 用下划线）。首组必须是 `type-import` 这个 catch-all —— 写成 `type`
@@ -49,9 +55,11 @@
     "**/node_modules/**",
     "**/env-local/**",
     "pnpm-lock.yaml",
-    // 生成物：openapi.json 由 openapi:export 重写、schema.d.ts 由它生成，格式化会与 git diff 门禁打架
+    // 生成物：openapi.json 由 openapi:export 重写、schema.d.ts 由它生成，格式化会与 git diff 门禁打架。
+    // 只忽略**那一个文件**：`packages/generated/api-types` 的 package.json / tsconfig / eslint 配置
+    // 与手写的 `src/index.ts` 照常受格式检查（2026-11-28 收窄，原先是整棵 `packages/generated/**`）。
     "apps/server/openapi.json",
-    "packages/generated/**",
+    "packages/generated/api-types/src/schema.d.ts",
     "apps/admin/types/generated/**",
     // `pnpm version -r` 自己写这本书（double-quoted key 是它的固定输出）；格式化它会让
     // 每次发版后 format:check 变红 —— 与 openapi.json 同一类「机器写的文件」。
@@ -62,6 +70,9 @@
     // 首轮不碰 markdown：VitePress 的自定义块（tabs / mermaid / 容器）在格式化面前风险高，
     // 且冻结区文档被构建直接编译 ⇒ 直接忽略，md 另开一轮单独验证。
     "**/*.md",
+    // `.hbs` 走 oxfmt 的 Glimmer 模板语言路径，会把 `<!DOCTYPE html>` 当冗余行删除（页面进
+    // quirks mode）——模板语言一律不进格式化面，模板的唯一真源是手写内容。
+    "**/*.hbs",
     // 第三方 / 静态运行时资产：原样分发，改一行都会在下次升级时被覆盖
     // （ESLint 侧的 admin 与 nest 预设同样忽略它们，理由见 apps/admin/eslint.config.ts 顶部）。
     "apps/admin/public/vendor/**",

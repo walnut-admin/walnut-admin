@@ -97,6 +97,7 @@
     "vue3-google-signin": "catalog:"
   },
   "devDependencies": {
+    "@iconify/json": "catalog:",
     "@iconify/vue": "catalog:",
     "@types/ali-oss": "catalog:",
     "@types/codemirror": "catalog:",

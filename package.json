@@ -23,6 +23,7 @@
     "lint:root": "eslint *.ts *.json *.yaml --concurrency=4",
     "types:check": "turbo types:check",
     "test": "turbo test",
+    "check": "walnut-check",
     "prepush": "walnut-prepush",
     "setup-env": "walnut-setup-env decrypt",
     "release": "walnut-release"
@@ -50,10 +51,14 @@
     "typescript": "catalog:"
   },
   "lint-staged": {
-    "*.{ts,vue,js}": [
-      "oxfmt --write",
+    "*.{ts,tsx,vue,js}": [
       "oxlint --fix",
-      "eslint --fix --concurrency=4"
+      "eslint --fix --concurrency=4",
+      "oxfmt --write"
+    ],
+    "*.{json,yml,yaml}": [
+      "eslint --fix --concurrency=4",
+      "oxfmt --write"
     ]
   },
   "engines": {

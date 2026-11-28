@@ -579,6 +579,10 @@ export async function runGates(
         // 原生崩溃不是检查结论（没有输出、没有 JS 栈），重跑与「第一次没跑」等价 —— 但它只
         // 在 turbo 重道与 win32 上重试一次（判据与证据见 isNativeCrashFailure；普通失败绝不重试）。
         if (gate.lane === TURBO_LANE && isNativeCrashFailure(error, chunks.join(''), platform)) {
+          // 重试要重跑整段（最坏 2 × 段预算 = 15 分钟），必须**当场**让人看见，不能等回放：
+          // 静默重试会让人以为门禁卡死。走 `out()`（stdout，立即写）而不是写进 chunks
+          // （chunks 只在段失败时回放，成功时随结果丢弃 —— 那就等于没打）。
+          out(`[prepush] ${gate.id}：检测到原生崩溃，自动重试一次（普通失败不重试）`)
           retried = true
           chunks.push(`\n${crashRetryNotice(error)}\n`)
           try {
@@ -782,13 +786,42 @@ export function summarizeRun(
  * 认错了提示就是一条误导（用例里有正反两面样本）。
  *
  * turbo 打的是 `… exited (-1073741819)`，pnpm 打的是 `exit code -1073741819`，npm 打的是
- * `Exit code 3221225477`；十六进制 `exit code 0xC0000005` 也一并认（任务管理器 / 事件日志口径）。
+ * `Exit code 3221225477` / `Exit code: 3221225477`；十六进制 `exit code 0xC0000005` 也一并认
+ * （任务管理器 / 事件日志口径）。冒号是可选的：工具之间不一致，两种样本都进用例。
  */
 const NATIVE_CRASH_EXIT =
-  /exited \((?:-?1073741819|3221225477|0xC0000005)\)|exit code (?:-?1073741819|3221225477|0xC0000005)\b/i
+  /exited \((?:-?1073741819|3221225477|0xC0000005)\)|exit code:?\s*(?:-?1073741819|3221225477|0xC0000005)\b/i
 
 /** 直接以崩溃码退出的子进程（不经过 turbo / pnpm 转述时）：32 位无符号与有符号两种写法 */
 const NATIVE_CRASH_CODES: ReadonlySet<number> = new Set([0xc0000005, -1073741819])
+
+/** 崩溃转述要落在输出最后几行内（见 {@link hasNativeCrashSignature}） */
+const NATIVE_CRASH_TAIL_LINES = 5
+
+/** 普通失败摘要的标记（vitest 的失败十字 U+2715、turbo / pnpm 的 failed / FAIL） */
+const FAILURE_SUMMARY = /\u2715|\bfailed\b|\bFAIL(?:ED)?\b/
+
+/**
+ * 输出里是否认得出「Node 进程的原生崩溃」——**收敛后的文本判据**（{@link isNativeCrashFailure}
+ * 与 {@link nativeCrashNote} 共用，两处不能各判一套）。
+ *
+ * 为什么不能只看崩溃码正则：本仓的测试断言里**就含崩溃码字面量**（例如「崩溃码是 3221225477」
+ * 这类用例）。普通失败回放时输出里既有那个数、也有失败十字（U+2715）/ `failed` 失败摘要 —— 只看正则会把一条
+ * 真实的测试失败说成「原生崩溃，重跑就好」，甚至自动重试一次。
+ *
+ * 判据（宁可漏报不可误报）：
+ *   · 崩溃转述出现在**输出最后 {@link NATIVE_CRASH_TAIL_LINES} 行内** ⇒ 认；
+ *   · 或整段输出里**没有**失败摘要（失败十字 U+2715 / `failed` / `FAIL`） ⇒ 认（崩溃原生的形态本来就没有结论）；
+ *   · 其余一律不认。
+ * 已知残余：普通失败的输出尾部恰好含崩溃码串、且失败摘要在更早的行 —— 这种极端形态仍会误认。
+ * 真出现时把窗口收窄或改成「最后一条失败摘要之后必须紧跟崩溃行」，不要退回只看正则。
+ */
+export function hasNativeCrashSignature(output: string): boolean {
+  if (!NATIVE_CRASH_EXIT.test(output)) return false
+  if (!FAILURE_SUMMARY.test(output)) return true
+  const tail = output.trimEnd().split(/\r?\n/).slice(-NATIVE_CRASH_TAIL_LINES).join('\n')
+  return NATIVE_CRASH_EXIT.test(tail)
+}
 
 /**
  * 这个异常是否意味着「进程以 Windows 访问冲突死掉」，而不是「命令给出了否定结论」。
@@ -797,7 +830,8 @@ const NATIVE_CRASH_CODES: ReadonlySet<number> = new Set([0xc0000005, -1073741819
  * ① 平台必须是 win32 —— Linux / macOS 上这条路径永远不生效；
  * ② 退出码 2 / 3 不算：2 是超时 / 没跑起来 / 被信号结束，3 是环境缺失、压根没跑。超时重试一次
  *    等于把 15 分钟预算翻倍，会把「卡住」伪装成「再等等」；跳过更不是崩溃；
- * ③ 崩溃码（直接子进程）或输出里的崩溃转述（经 turbo / pnpm）任一命中即可。
+ * ③ 崩溃码（直接子进程）或输出里**可信的**崩溃转述（经 turbo / pnpm；判据见
+ *    {@link hasNativeCrashSignature}）任一命中即可。
  */
 export function isNativeCrashFailure(
   error: unknown,
@@ -807,7 +841,7 @@ export function isNativeCrashFailure(
   if (platform !== 'win32') return false
   if (!(error instanceof ChildRunError)) return false
   if (error.exitCode === 2 || error.exitCode === SKIPPED_EXIT_CODE) return false
-  return NATIVE_CRASH_CODES.has(error.exitCode) || NATIVE_CRASH_EXIT.test(output)
+  return NATIVE_CRASH_CODES.has(error.exitCode) || hasNativeCrashSignature(output)
 }
 
 /** 重试那一次开始前写进捕获输出的分界线（只在失败回放里被人看到，成功时随结果丢弃） */
@@ -825,11 +859,19 @@ function crashRetryNotice(error: unknown): string {
  * 为什么需要：这样退出的子进程**不留任何报错** —— 没有 JS 栈、没有 stderr，只剩上游工具转述的退出码。
  * 把它当一条普通的门禁失败去读，读到的是一屏 turbo 日志，看不出「重跑一次」是有依据的下一步。
  *
+ * **平台门与 {@link isNativeCrashFailure} 同口径**：非 win32 返回 `null`（Linux / macOS 的崩溃是信号、
+ * 退出码被截到 8 位，这段签名只对 Windows 有意义）。
+ *
  * `retried` 为真时（崩溃后已自动重试过一次仍失败）文案必须换掉「重跑一次通常就过」：那一句已经被
  * 机制执行过了，再让人重跑一次是把同一句话再说一遍 —— 反复出现时下一步是抓崩溃转储。
  */
-export function nativeCrashNote(output: string, retried = false): string | null {
-  if (!NATIVE_CRASH_EXIT.test(output)) return null
+export function nativeCrashNote(
+  output: string,
+  retried = false,
+  platform: NodeJS.Platform = process.platform,
+): string | null {
+  if (platform !== 'win32') return null
+  if (!hasNativeCrashSignature(output)) return null
   const head =
     '这一段里有进程以访问冲突退出（0xC0000005）：Node 进程的原生崩溃，不是这条命令查出了问题，输出里不会有成因。'
   return retried

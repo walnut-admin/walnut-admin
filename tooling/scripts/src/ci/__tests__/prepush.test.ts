@@ -24,6 +24,7 @@ import {
   formatLine,
   GATE_BUDGET_MS,
   gateBudgetMs,
+  hasNativeCrashSignature,
   isNativeCrashFailure,
   nativeCrashNote,
   PREPUSH_BUDGET_ENV,
@@ -378,7 +379,7 @@ describe('runGates —— 原生崩溃自动重试一次（Windows 专属，普�
     expect(result!.retried).toBe(true)
   })
 
-  it('普通 lint 失败（exit 1、输出里没有崩溃特征）⇒ 一次都不重试', async () => {
+  it('普通失败（exit 1、输出里没有崩溃特征）⇒ 一次都不重试', async () => {
     let attempts = 0
     const [result] = await runGates(
       [mkGate('lint')],
@@ -388,6 +389,34 @@ describe('runGates —— 原生崩溃自动重试一次（Windows 专属，普�
         attempts += 1
         write('  28:3  error  Prefer using a top-level type-only import')
         throw new ChildRunError('lint 失败：退出码 1', 1)
+      },
+      { platform: 'win32' },
+    )
+    expect(attempts).toBe(1)
+    expect(result!.status).toBe('failed')
+    expect(result!.retried).toBeUndefined()
+  })
+
+  it('普通失败里带崩溃码字面量 + 失败摘要 ⇒ 不重试（本仓用例就会打印这种断言）', async () => {
+    let attempts = 0
+    const [result] = await runGates(
+      [mkGate('test')],
+      () => {},
+      1,
+      async (_gate, write) => {
+        attempts += 1
+        write(
+          [
+            "expect(stderr).toContain('exit code 3221225477')",
+            ' ❯ src/foo.test.ts:12:3',
+            '  10| const output = run()',
+            '  11| // 崩溃码是本仓用例的断言字面量',
+            '  12| expect(output).toContain(crash)',
+            ' ✕ foo.test.ts (1 test | 1 failed)',
+            ' Test Files  1 failed (1)',
+          ].join('\n'),
+        )
+        throw new ChildRunError('test 失败：退出码 1', 1)
       },
       { platform: 'win32' },
     )
@@ -492,6 +521,37 @@ describe('isNativeCrashFailure —— 崩溃特征的三条边（平台 / 退出
     expect(
       isNativeCrashFailure(new ChildRunError('失败', 1), '耗时 3221225477 纳秒', 'win32'),
     ).toBe(false)
+  })
+
+  it('冒号形态（Exit code: 3221225477 / exit code: 0xC0000005）同样认得', () => {
+    for (const output of ['Exit code: 3221225477', 'exit code: 0xC0000005']) {
+      expect(isNativeCrashFailure(new ChildRunError('失败', 1), output, 'win32'), output).toBe(true)
+      expect(nativeCrashNote(output, false, 'win32'), output).not.toBeNull()
+    }
+  })
+
+  it('崩溃转述在输出尾部（最后 5 行）且有失败摘要 ⇒ true', () => {
+    const output = [
+      ' Tasks:    1 failed, 1 total',
+      ' Failed:    @walnut/admin#lint',
+      '@walnut/admin#lint:  ERROR  command ... exited (-1073741819)',
+    ].join('\n')
+    expect(hasNativeCrashSignature(output)).toBe(true)
+  })
+
+  it('普通失败：崩溃码字面量在前、失败摘要在后 ⇒ false（不重试也不出提示）', () => {
+    const output = [
+      "expect(stderr).toContain('exit code 3221225477')",
+      ' ❯ src/foo.test.ts:12:3',
+      '  10| const output = run()',
+      '  11| // 崩溃码是本仓用例的断言字面量',
+      '  12| expect(output).toContain(crash)',
+      ' ✕ foo.test.ts (1 test | 1 failed)',
+      ' Test Files  1 failed (1)',
+    ].join('\n')
+    expect(hasNativeCrashSignature(output)).toBe(false)
+    expect(isNativeCrashFailure(new ChildRunError('失败', 1), output, 'win32')).toBe(false)
+    expect(nativeCrashNote(output, false, 'win32')).toBeNull()
   })
 
   it('exit 2（超时 / 没跑起来 / 被信号结束）与 exit 3（未验证）都不是崩溃', () => {
@@ -1037,11 +1097,17 @@ describe('nativeCrashNote —— 认得出原生崩溃，也不把它误判到�
     const pnpmSigned = '[ELIFECYCLE] Command failed with exit code -1073741819.'
     const pnpmUnsigned = 'npm ERR! Exit code 3221225477'
     for (const sample of [turbo, pnpmSigned, pnpmUnsigned]) {
-      const note = nativeCrashNote(`…噪音…\n${sample}\n…噪音…`)
+      const note = nativeCrashNote(`…噪音…\n${sample}\n…噪音…`, false, 'win32')
       expect(note, `没认出：${sample}`).not.toBeNull()
       expect(note).toContain('0xC0000005')
       expect(note).toContain('不是这条命令查出了问题')
       expect(note).toContain('重跑')
+    }
+  })
+
+  it('非 win32 平台 ⇒ null（与 isNativeCrashFailure 同口径，Linux / macOS 不看这段签名）', () => {
+    for (const platform of ['linux', 'darwin', 'freebsd'] as const) {
+      expect(nativeCrashNote('exit code 0xC0000005', false, platform), platform).toBeNull()
     }
   })
 
@@ -1053,7 +1119,10 @@ describe('nativeCrashNote —— 认得出原生崩溃，也不把它误判到�
       '@walnut/admin#lint:  ERROR  command exited (1)',
       '[ELIFECYCLE] Command failed with exit code 134.', // V8 的 OOM 是 abort，有报错原文，不走这条提示
     ]) {
-      expect(nativeCrashNote(sample), `误认了：${JSON.stringify(sample)}`).toBeNull()
+      expect(
+        nativeCrashNote(sample, false, 'win32'),
+        `误认了：${JSON.stringify(sample)}`,
+      ).toBeNull()
     }
   })
 
@@ -1063,12 +1132,12 @@ describe('nativeCrashNote —— 认得出原生崩溃，也不把它误判到�
       'hash: -1073741819',
       'exit code 32212254771', // 前缀相同、但不是这个退出码
     ]) {
-      expect(nativeCrashNote(sample), `误认了：${sample}`).toBeNull()
+      expect(nativeCrashNote(sample, false, 'win32'), `误认了：${sample}`).toBeNull()
     }
   })
 
   it('已自动重试过（retried=true）⇒ 不再说「重跑一次通常就过」，指向抓转储', () => {
-    const note = nativeCrashNote('@walnut/admin#lint: exited (-1073741819)', true)
+    const note = nativeCrashNote('@walnut/admin#lint: exited (-1073741819)', true, 'win32')
     expect(note).not.toBeNull()
     expect(note).toContain('自动重试一次')
     expect(note).toContain('最终仍未通过')

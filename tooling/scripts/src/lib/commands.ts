@@ -101,6 +101,9 @@ export type Command = PnpmCommand | CustomCommand
  * 要跑根 `package.json` 里的同名脚本，没有它 turbo 会把任务标成 `<NONEXISTENT>` 并**一个任务都不跑**
  * （2026-11-23 实测：`turbo run lint:root` 报 0 successful / 0 total、退出码 0）—— 那会让 prepush
  * 与发版电池的 `lint-root` 段静默变成空转。保留它是为了让 `turbo run` 有东西可跑。
+ *
+ * `check` 是**组合入口**而不是新门禁：它把「本地完整检查」拼成一条（ESLint 轨 + 类型 + 测试 +
+ * oxlint 轨 + 格式），仍由根脚本承担 —— 命令表不复制那份组合，只登记它的存在（`argv: ['run', 'check']`）。
  */
 export const KEPT_ROOT_SCRIPTS: ReadonlySet<string> = new Set([
   'dev',
@@ -110,6 +113,7 @@ export const KEPT_ROOT_SCRIPTS: ReadonlySet<string> = new Set([
   'lint:root',
   'types:check',
   'test',
+  'check',
   'prepush',
   'setup-env',
   'release',
@@ -581,6 +585,19 @@ export const COMMANDS: readonly Command[] = [
     label: '断言 git 钩子由 lefthook 托管',
     why: '钩子被别的工具接管或静默消失时，pre-push 门禁就不再运行，而没有任何提示。',
     argv: ['exec', 'walnut-check-git-hooks'],
+  },
+  {
+    id: 'check',
+    group: '门禁',
+    label: '完整本地检查（ESLint 轨 + 类型 + 测试 + oxlint 轨 + 格式）',
+    why: '`lint` 只是 ESLint 一条轨；「本地全绿」的完整口径是这条（等价于 prepush 的静态面，不含架构边界与依赖一致性）。',
+    // 组合写在 `ci/check.ts` 的步骤表里（根脚本只留 `walnut-check` 一个词 —— 根脚本值不许出现
+    // `&&` / `;` / `|`，gate-wiring.test.ts 机械拦）。表里登记它只是因为它是保留的根脚本：
+    // 形态必须是 ['run', id]，命令在两处各写一遍才是真风险。
+    argv: ['run', 'check'],
+    // 不设入口级预算：步骤表里每一步各有自己的预算（30 分钟），入口层再套 15 分钟只会把
+    // 「合法但慢的冷缓存全量检查」误判成卡死。理由同 prepush / ci:local。
+    budgetMs: 0,
   },
   {
     id: 'prepush',
