@@ -14,9 +14,10 @@
 > **两处计划外大发现**：① 批次 4 的 lint-staged 回滚试验留下两处未被格式化器看过的文件
 > （`deploy/docker-compose.yml`、`.github/workflows/deploy.yml`），首轮「全仓通过」并不完整，
 > 由两个补充提交收尾 —— 教训是「全仓格式化过一次」不等于「每个文件都过了一遍」；
-> ② TNB 的 project-mode 缺陷（`getSourceFiles()` 返回空壳、`emit()` 静默写 0 个文件）让 admin
-> 生成链原本的 `ts-json-schema-generator` 直接断掉，改用 `tsrs/sync` 的 checker 重写生成器后
-> 产物逐字节不变（归因与终局状态见评估 §5.4 与 [ADR 0031](../adr/0031-rust-toolchain-migration.md)）。
+> ② TNB 的 project-mode 使用形态约束（详见 Ledger 的 C03 条；`getSourceFiles()` 返回空壳、
+> `emit()` 静默写 0 个文件）让 admin 生成链原本的 `ts-json-schema-generator` 直接断掉，改用
+> `tsrs/sync` 的 checker 重写生成器后产物逐字节不变（归因与终局状态见评估 §5.4 与
+> [ADR 0031](../adr/0031-rust-toolchain-migration.md)）。
 
 ## 遗留账与跟进（Ledger，2026-11-28）
 
@@ -81,7 +82,7 @@
 | 条目 | 类别 | 证据或提交号 | 跟进方式 | 解除条件 |
 |------|------|--------------|----------|----------|
 | 裸装 `typescript@7` | 🚫 | 评估 §5.4 / §8.1；nest-cli #3479 open、PR #3554 未批；vue-tsc 的 peer `<7` | 不装；TNB 外壳是当前唯一合法形态；每季度复核上游 | nest-cli 支持 7.1 API（含 watch / paths）且 vue-tsc peer 放宽 |
-| TNB project-mode 的处置（原「是否给上游提 issue」） | 🚫 | 决策点 ②：2026-11-28 用户决定**不提**上游 issue；复现矩阵 17 种形态证明是使用形态约束而非引擎缺陷；两条绕法实测可用（classic 风格；project + 显式 host + 物化） | 不主动追上游；新消费者按 ADR 0031 的约束条款走 classic，确需 project 语义时显式 host + 物化 | 上游自行修复「无 host 的 emit 静默 0 文件」或 `getSourceFiles()` 薄桩并回归通过；届时复评（不主动提 issue） |
+| TNB project-mode 的处置（原「是否给上游提 issue」） | 🚫 | 决策点 ②：2026-11-28 用户决定**不提**上游 issue；复现矩阵 17 种形态证明是使用形态约束而非引擎缺陷；两条绕法实测可用（classic 风格；project + 显式 host + 物化） | 不主动追上游；新消费者按 ADR 0031 的约束条款走 classic，确需 project 语义时显式 host + 物化。**TNB 升级时须重跑 17 格调用形态矩阵**（探针脚本不随仓保留，核心断言已内嵌 §6；升级后若行为漂移，按 ADR 0031 的约束条款评估） | 上游自行修复「无 host 的 emit 静默 0 文件」或 `getSourceFiles()` 薄桩并回归通过；届时复评（不主动提 issue） |
 | tsrs 在 Windows 的 `--watch` | 🚫 | 评估 §5.5：NotImplemented，退出码 5；缺 fswatch 后端与 LSP watchdog，无跟踪 issue、无 ETA | 本地 `typecheck:watch` 永久用 tsc（Zerion 模式） | 上游补齐 fswatch / LSP watchdog |
 | tsrs #1114 约 1% 随机失败 | 🚫 | 评估 §5.5：1,240 次里 12 次；团队决策只跟踪、不加双跑门禁 | 转正后保留「一行改回 tsc」的回滚；出现可复现模式再复评 | issue 关闭，或锁定触发条件并给出可靠绕法 |
 | tsrs prerelease 的版本纪律 | 🚫 | `7.1.0-beta.tsrs5` 精确锁；无 `next` tag、`tsrsN` 排序只到 9、packaged validation 仍 pending | catalog 禁范围；升级单独批次并跑全量诊断 diff | 发布 stable 且 packaged validation 转正 |

@@ -180,6 +180,12 @@ admin 另有 `tsconfig.dts.json`（`skipLibCheck: false`）专门查手写 d.ts�
     空壳 SourceFile、`program.emit()` 静默写 0 个文件（classic 路径正常）。admin 生成链的
     `ts-json-schema-generator` 因此改走 `tsrs/sync` 的 checker，产物与迁移前基线**逐字节一致**；
     缺陷本身留给上游桥接层修。
+    > **2026-11-28 勘误（后于此评估，勿按上面「缺陷」「留给上游修」的口径执行）**：当日 17 格
+    > 调用形态矩阵把上面的现象定性为 **project-mode 使用形态约束**，而非引擎缺陷 —— classic
+    > 调用（无 `configFileName`），或 project 语义 + 显式 `ts.createCompilerHost` + 逐文件物化，
+    > 两条绕法都实测可用；用户同日决定**不提**上游 issue。约束条款见
+    > [ADR 0031](../adr/0031-rust-toolchain-migration.md)，完整矩阵与处置见
+    > [执行计划 Ledger](../plans/rust-toolchain-migration-execution.md)。
   - **admin / vue-tsc 保留 3.2.8**：3.3.14 会引入 **1 条真实诊断**
     （`JSONEditor/index.vue` 的 TS2322，stock TS6 + vue-tsc 3.3.14 下同样复现，与 TNB 无关），
     单独修掉源码后可升；不要在迁移收尾里顺手带上。
@@ -488,7 +494,11 @@ tsrs 是 TS 7.1 的移植，所以下面大部分缺口与「原生 TS7」同源
 > **剩余项的真源不在这里**：本篇是 2026-11-27 的 as-of 快照，只保留当日判定；迁移全生命周期的
 > ✅ / 🔧 / 📋 / 🚫 四类遗留账、证据提交号与解除条件，统一维护在
 > [执行计划的「遗留账与跟进（Ledger）」](../plans/rust-toolchain-migration-execution.md)。
-> 上面的「唯一未决项」已由该 Ledger 的 A15（归因标准已落地）与 C03（TNB project-mode 上游 issue）接管。
+> 上面的「唯一未决项」已由该 Ledger 的 A15（归因标准已落地）与 C03（TNB project-mode 的处置）接管。
+>
+> **2026-11-28 勘误**：C03 一条原写作「TNB project-mode 上游 issue」，现已作废 —— 复现矩阵把它
+> 定性为**使用形态约束**（classic 调用，或 project 语义 + 显式 host + 物化，可绕），用户在当日
+> 决定**不提**上游 issue；详见执行计划 Ledger。
 
 ## 12. 参考资料
 
