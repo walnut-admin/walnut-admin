@@ -93,7 +93,7 @@ lint 不是必须的，但是很有必要，一个项目做大了以后或者参
 强烈不推荐关闭 eslint 的校验
 :::
 
-在根 `package.json` 的 [`lint-staged`](https://github.com/walnut-admin/walnut-admin/blob/main/package.json) 块里删掉 eslint 那条即可。
+在根 `package.json` 的 [`lint-staged`](https://github.com/walnut-admin/walnut-admin/blob/main/package.json) 块里删掉 eslint 那条即可（同一数组里还有 oxlint 的 `--fix` 与 oxfmt 的写入，它们是另外两条）。
 
 ## CommitLint
 
@@ -253,10 +253,14 @@ git commit -m "xxx" --no-verify
 ```json
 {
   "lint-staged": {
-    "*.{ts,vue,js}": [
-      "oxfmt --write",
+    "*.{ts,tsx,vue,js}": [
       "oxlint --fix",
-      "eslint --fix --concurrency=4"
+      "eslint --fix --concurrency=4",
+      "oxfmt --write"
+    ],
+    "*.{json,yml,yaml}": [
+      "eslint --fix --concurrency=4",
+      "oxfmt --write"
     ]
   }
 }

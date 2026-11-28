@@ -69,6 +69,7 @@ pnpm walnut             # 人在终端里：上下键移动、空格勾选、回
     "lint:root": "eslint *.ts *.json *.yaml --concurrency=4", // 根 turbo 的 //#lint:root 任务需要它
     "types:check": "turbo types:check",
     "test": "turbo test",
+    "check": "walnut-check",           // 完整本地检查：三步表在 tooling/scripts/src/ci/check.ts
     "prepush": "walnut-prepush",        // 门禁表在 tooling/scripts/src/ci/prepush.ts
     "setup-env": "walnut-setup-env decrypt",
     "release": "walnut-release"
@@ -113,7 +114,7 @@ pnpm walnut             # 人在终端里：上下键移动、空格勾选、回
 钩子内容的唯一真源是根 `lefthook.yml`（lefthook，不再是 `simple-git-hooks`，见 [ADR 0018](/content/adr/0018-git-hooks-lefthook)）：
 
 ```
-pre-commit → pnpm exec lint-staged（ESLint fix on staged files，秒级）
+pre-commit → pnpm exec lint-staged（oxlint --fix → eslint --fix → oxfmt --write on staged files，秒级）
 commit-msg → pnpm exec commitlint --edit {1}（提交信息规范检查）
 pre-push   → pnpm --silent prepush（单条聚合门禁：跑一张门禁表，并行、每段报耗时）
 ```
@@ -123,7 +124,7 @@ pre-push   → pnpm --silent prepush（单条聚合门禁：跑一张门禁表�
 不用再在长串里找位置。整表耗时看那段输出自己报（`✅ N 段全部通过（总 Xs）`），**别在本页抄数量**
 —— 它随门禁增删而变，抄了必腐烂。
 
-`pre-commit` 只跑 ESLint fix，不做类型检查（太慢，阻塞 commit 体验）；`commit-msg` 由 commitlint 校验提交信息格式；其余的静态检查全部放在 `pre-push`。pre-push 刻意只调**单条命令**，且钩子文件里没有可截断的命令链 —— 清单在跟踪面里的一张表上，改动在 diff 里看得见，完整性由 `prepush.test.ts` 机械拦（它断言表里每一段的首词都能落到真实存在的可执行名字上：保留的根脚本或命令表 id）。
+`pre-commit` 只跑 lint-staged 的三步（`oxlint --fix` → `eslint --fix` → `oxfmt --write`；格式化器收尾，理由见 [ESLint 配置](./eslint.md)），不做类型检查（太慢，阻塞 commit 体验）；`commit-msg` 由 commitlint 校验提交信息格式；其余的静态检查全部放在 `pre-push`。需要「本地完整检查」而不带推送前全量门禁时用 `pnpm check`（ESLint 轨 + 类型 + 测试 + oxlint 轨 + 格式）。pre-push 刻意只调**单条命令**，且钩子文件里没有可截断的命令链 —— 清单在跟踪面里的一张表上，改动在 diff 里看得见，完整性由 `prepush.test.ts` 机械拦（它断言表里每一段的首词都能落到真实存在的可执行名字上：保留的根脚本或命令表 id）。
 
 > 注意 `lint:root` 是**命令表**里的一项（`pnpm walnut lint:root`），同时根 `turbo.json` 已存在 `//#lint:root` 任务（`//#` 前缀表示根任务）。因此 `pnpm walnut lint:root` 与 `turbo run lint:root` 都能调用，后者还会命中 turbo 缓存；`lint:root` 不会跟着任何包的 `lint` 跑。
 

@@ -189,6 +189,9 @@ admin 另有 `tsconfig.dts.json`（`skipLibCheck: false`）专门查手写 d.ts�
   - **admin / vue-tsc 保留 3.2.8**：3.3.14 会引入 **1 条真实诊断**
     （`JSONEditor/index.vue` 的 TS2322，stock TS6 + vue-tsc 3.3.14 下同样复现，与 TNB 无关），
     单独修掉源码后可升；不要在迁移收尾里顺手带上。
+    > **2026-11-28 终局状态（订正上面这条）**：源码先修（TS2322）、再升到 **3.3.14** 已完成
+    > （`25cd245c`），升级后基线仍是 0 诊断；本条「保留 3.2.8」是 2026-11-27 的 as-of 读数，
+    > 终局口径见 [ADR 0031](../adr/0031-rust-toolchain-migration.md) Decision 4。
 - 来源：[announcing-typescript-7-0](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0)、[announcing-typescript-7-1-beta](https://devblogs.microsoft.com/typescript/announcing-typescript-7-1-beta)、[nestjs/nest-cli#3479](https://github.com/nestjs/nest-cli/issues/3479)、[nestjs/nest-cli#3554](https://github.com/nestjs/nest-cli/pull/3554)、[johnsoncodehk/typescript-native-bridge](https://github.com/johnsoncodehk/typescript-native-bridge)、[language-tools PR #6129](https://github.com/vuejs/language-tools/pull/6129)（访问日期 2026-11-27）。
 
 ### 5.5 tsrs（`tsrs@7.1.0-beta.tsrs5`，2026-11-23）—— 优先路线，但必须先影子期
@@ -198,7 +201,10 @@ admin 另有 `tsconfig.dts.json`（`skipLibCheck: false`）专门查手写 d.ts�
   - **生态位**：`oxc-project/tsrs`，TS 7 编译器 / LSP / JS API 的 Rust 移植；oxlint 1.92+ 的类型感知后端之一；同时是能独立当 `tsc` 用的 CLI（`tsrs -p` / `tsrs --build`），这一点比「当 lint 后端」更有价值。
   - **新硬风险 #1114（2026-11-26 open）**：同一项目 1,240 次运行里 12 次失败（约 1%）—— 随机段错误或假类型错误（假 TS2307），在 tsrs5 的复现范围内，maintainer 未回复。结论：**tsrs 不能立即当唯一阻断门禁，必须先影子期**。**团队决策（2026-11-27）：不为此加「同 commit 双跑」门禁**（判断为报告者环境问题）；影子期保留「时长 + 诊断 diff」两条判据；若影子期或转正后出现可复现的随机失败模式，再复评此决策。
   - **版本节奏**：tsrs2 → 5 的间隔是 2 / 2 / 3 天，无 RC；TS 7.1 的 RC 按官方 iteration plan 排在 2026-12-01、stable 待定；tsrs 的 stable 只会在其后且无日期；packaged-release validation 仍 pending；`tsrsN` 的版本文本排序最多到 tsrs9 → **锁精确版本、禁用范围**；registry 没有 `next` tag。
-  - **退出码与 Windows**：诊断失败 = **2**（tsc 是 1，tsrs 不同 —— 此前写的 1 是笔误，2026-11-28 实测订正）；Windows 下 watch 报 NotImplemented = **5**（此前记录的 2 是错的，本轮订正）。Windows 的 named pipes 已实现（`docs/DEFAULTS.md` 对应行是过期文档），真正缺的是 fswatch 后端与 LSP watchdog，**无跟踪 issue、无 ETA**。
+  - **退出码与 Windows**：诊断失败 = **2**（tsc 是 1）；Windows 下 watch 报 NotImplemented = **5**。Windows 的 named pipes 已实现（`docs/DEFAULTS.md` 对应行是过期文档），真正缺的是 fswatch 后端与 LSP watchdog，**无跟踪 issue、无 ETA**。
+    > **2026-11-28 勘误（订正本节原文的两个退出码）**：本节 2026-11-27 的初稿写作「诊断失败 = 1」
+    > 与「Windows watch = 2」，两处都错 —— 当日在 Windows 实测为 **2 / 5**（与执行计划 §9.1 / §9.4
+    > 同口径）。脚本解析退出码时按 2 / 5，不要按 tsc 的 1 / 2 类推。
   - **真实采用**：Sentry（`typecheck = tsrs --build ... --builders 2`，CI 唯一检查器，TS6 别名留给其它工具）；Cloudflare agents（逐 tsconfig `tsrs -p`，失败重试 3 次）；**Zerion 就是我们要的模式**（`typecheck: tsrs -p . --noEmit` + `typecheck:watch: tsc --noEmit --pretty --watch`）；sxzz/rolldown-plugin-dts（`tsrs --fast`）；rnw-community（tsrs 优先 + `@typescript/native` 兜底）；Vite+ 的 PR #3352 已把 type-aware 后端从 oxlint-tsgolint 换成 tsrs；Effect-TS/tsgo 提供 tsrs 的 LSP 封装；**公开的 NestJS 仓库零采用** —— 我们是早期采用者，唯一证据就是本仓实测（5.6）。
   - **JS API**：tsrs 暴露 TS7.1 形态的 `tsrs/sync|async|fs|ast`（SDK suite 968/968、170/177 方法），**不兼容 classic `createProgram`** → vue-tsc（`@volar/typescript` 的 peer 是 `typescript < 7`）、TNB（搜 tsrs 命中 0）、Nest CLI 都不能跑在它上面；admin 脱离 TS6 的现实路径是 **TNB 外壳（短期）与 content-mapper（中期）**，而不是换 vue-tsc 的后端。
   - **治理**：2026-10-01 建仓，3 个活跃维护者（Max Schwenk / Boshen / Cameron），外部 PR 一律关闭（48 个 open PR），文档落后 2 个 release；Cloudflare + VoidZero + Owner.com 赞助，Apache-2.0。
@@ -494,9 +500,9 @@ tsrs 是 TS 7.1 的移植，所以下面大部分缺口与「原生 TS7」同源
 > **剩余项的真源不在这里**：本篇是 2026-11-27 的 as-of 快照，只保留当日判定；迁移全生命周期的
 > ✅ / 🔧 / 📋 / 🚫 四类遗留账、证据提交号与解除条件，统一维护在
 > [执行计划的「遗留账与跟进（Ledger）」](../plans/rust-toolchain-migration-execution.md)。
-> 上面的「唯一未决项」已由该 Ledger 的 A15（归因标准已落地）与 C03（TNB project-mode 的处置）接管。
+> 上面的「唯一未决项」已由该 Ledger 的 A15（归因标准已落地）与 D02（TNB project-mode 的处置）接管。
 >
-> **2026-11-28 勘误**：C03 一条原写作「TNB project-mode 上游 issue」，现已作废 —— 复现矩阵把它
+> **2026-11-28 勘误**：D02 一条原写作「TNB project-mode 上游 issue」，现已作废 —— 复现矩阵把它
 > 定性为**使用形态约束**（classic 调用，或 project 语义 + 显式 host + 物化，可绕），用户在当日
 > 决定**不提**上游 issue；详见执行计划 Ledger。
 

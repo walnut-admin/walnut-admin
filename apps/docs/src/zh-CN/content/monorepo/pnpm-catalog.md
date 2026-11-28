@@ -2,7 +2,7 @@
 
 ## 概述
 
-Walnut Admin 使用 **pnpm catalog + `catalogMode: strict`** 集中管理所有外部依赖版本。**242** 条依赖的版本号在 `pnpm-workspace.yaml` 的 `catalog:` 段落中统一定义，所有 `package.json` 只能写 `"catalog:"` 引用，不允许直接写版本号。（2026-08-08：jest / ts-jest / ts-loader / ts-node / tsconfig-paths / @types/jest 等不再使用的条目已从 catalog 移除；2026-09-23：工具链拆包与去 `tsx` 后再降到 242 —— 增减明细见 [pnpm-workspace 配置](./pnpm-workspace-config.md)。）
+Walnut Admin 使用 **pnpm catalog + `catalogMode: strict`** 集中管理所有外部依赖版本。**231** 条依赖的版本号在 `pnpm-workspace.yaml` 的 `catalog:` 段落中统一定义（判据：该段的键数；2026-11-28 迁移收尾清点 —— 删掉 `tsx` / `@oxlint/migrate` 等一次性条目后从 242 降到 231，增减明细见 [pnpm-workspace 配置](./pnpm-workspace-config.md)），所有 `package.json` 只能写 `"catalog:"` 引用，不允许直接写版本号。
 
 ## 我们做了什么
 
@@ -25,7 +25,8 @@ catalogMode: strict
 ```yaml
 catalog:
   vue: 3.5.34          # ✅ 精确，没有 ^ 或 ~
-  typescript: 6.0.3    # ✅ 精确
+  # ✅ 精确；包面是 TNB（npm 别名 + 桥接串），不是 stock 6.0.3 —— 见下方「关键配置」
+  typescript: npm:typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2
 ```
 
 **不允许**使用 semver range（`^`、`~`、`>=`）。所有依赖版本精确锁死，确保所有环境（开发机、CI、部署）安装到完全相同的版本。
@@ -69,16 +70,19 @@ pnpm 的 named catalogs（`catalogs:` 而非 `catalog:`）支持分组管理—�
 # pnpm-workspace.yaml（精简示例）
 packages:
   - 'apps/*'
-  - 'packages/*'
+  - 'packages/platform-any/*'
+  - 'packages/platform-web/*'
+  - 'packages/generated/*'
+  - 'tooling/*'
 
 catalogMode: strict
 
 catalog:
   vue: 3.5.34
-  typescript: 6.0.3
+  typescript: npm:typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2
   eslint: 10.3.0
   turbo: 2.11.2
-  # ... 242 条目
+  # ... 231 条目（键数以 pnpm-workspace.yaml 为准；2026-11-28 清点）
 ```
 
 ## 添加新依赖的流程

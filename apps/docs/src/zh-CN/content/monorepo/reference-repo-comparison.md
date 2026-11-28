@@ -160,7 +160,7 @@
 
 ### 4.4 ESLint / tsconfig / vitest / AST
 
-- Z 的 43.6 KB「本地规则」实为 **13 条**，每条都有 RuleTester 正反语料 + 两条「结构锁」（名册只增不减、模板分支必须注册）。本仓 `tooling/eslint-config/nest-local-rules.ts` 只有 1 条规则，**全仓 0 个 RuleTester**。
+- Z 的 43.6 KB「本地规则」实为 **13 条**，每条都有 RuleTester 正反语料 + 两条「结构锁」（名册只增不减、模板分支必须注册）。本仓 `tooling/eslint-config/nest-local-rules.ts` 有 **2 条**规则（`sort-nestjs-decorators` / `no-cross-lib-relative-import`），**3 个 RuleTester 文件**（`nest-local-rules` / `script-rules` / `comment-rules`）；其余本地规则共 3 条（两条脚本入口 + emoji）。
 - 13 条里**本仓适用且零误报**的只有两条（= C5）；其余要么被现有机制覆盖（精确版本靠 `saveExact` + syncpack）、要么无命中点、要么前提不同（中文棘轮）。
 - tsconfig：我们把 Z 的 `ts + scripts` 两档合成了一档（`erasableSyntaxOnly` 在 `ts.json`），**属合理取舍**；可选补一条 `types: ['node']` 显式声明。
 - vitest 预设：本仓 `include` **不含 `.tsx`**（当前全仓 0 个 `.test.tsx`，属**潜在**而非现存问题）；Z 还有「include 面偏离 src 时必须写明静默 0 用例风险」这条判据值得借。

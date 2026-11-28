@@ -134,8 +134,14 @@
 
 - **stylistic 彻底拆除（决策 1）**：`tooling/eslint-config/base.ts` 与 `vue.ts` 里给 antfu 预设设 `stylistic: false`，末尾加 `eslint-config-prettier` 兜底（ComfyUI 接法）。ESLint 此后只留非格式规则。
 - **perfectionist 的 import / export 排序暂留 ESLint**，等 oxfmt 的 `sortImports` 启用时一并迁走；这一步登记为后续独立事项，不混在首轮里。
-- `lefthook.yml` 与根 `package.json` 的 `lint-staged` 段：接入格式化，**顺序固定为** `oxfmt --write` → `oxlint --fix` → `eslint --fix`（`oxlint` 这一段在 P3 接入时补上，但位次在 P2 就定死）。注意 lefthook 在 Windows 上的命令写法 —— 命令里不要用双引号包裹参数，避免被 shell 解析成字面量。
+- `lefthook.yml` 与根 `package.json` 的 `lint-staged` 段：接入格式化，**顺序固定为** `oxlint --fix` → `eslint --fix` → `oxfmt --write`（格式化器收尾；2026-11-28 从「先格式化」更正，见下方注记）。`oxlint` 这一段在 P3 接入时补上，但位次在 P2 就定死。注意 lefthook 在 Windows 上的命令写法 —— 命令里不要用双引号包裹参数，避免被 shell 解析成字面量。
 - CI 与推送前门禁：`oxfmt --check` 作为**阻断**命令进入三表（`prepush.ts` / `local-ci.ts` / `release/steps.ts`）与钉死测试。这是新增门禁命令，三表同步纪律在这一步必须完整走一遍。
+
+> **2026-11-28 决策注记（订正上面的 `sortPackageJson: false` / `sortImports` 未开）**：两个开关
+> 当日拍板**全开**并已实施（`.oxfmtrc.json`；证据与提交见执行计划 Ledger 的 A19 / A20）。
+> 本节第 5 / 6 条验收里的排序口径以 [ADR 0031](../adr/0031-rust-toolchain-migration.md) 与
+> Ledger 为准；lint-staged 顺序也在同日的 R7 收口里改为 `oxlint --fix` → `eslint --fix` →
+> `oxfmt --write`（**格式化器收尾**：后跑的工具不得改写前跑工具的输出结构，否则 `format:check` 红）。
 
 **入口判据**：P0 完成；决策 1 / 2 已定（无需再等任何开放问题）。
 
@@ -145,7 +151,7 @@
 2. 首轮格式化**单独成一个提交**，且该提交不含任何逻辑改动；评审只看「是不是只动了空白与排版」。
 3. stylistic 拆除后 `pnpm lint`、`pnpm types:check`、`pnpm test` 全绿 —— 不允许出现「oxfmt 与 stylistic 互相改回去」的文件。
 4. `oxfmt --check` 在干净仓库通过；在故意改坏格式的文件上让 CI 红（验证阻断真的生效，而不是只跑不判）。
-5. lint-staged 顺序固定为 `oxfmt --write` → `oxlint --fix` → `eslint --fix`；lefthook 的 Windows 命令不带双引号。
+5. lint-staged 顺序固定为 `oxlint --fix` → `eslint --fix` → `oxfmt --write`（格式化器收尾）；lefthook 的 Windows 命令不带双引号。
 6. `sortPackageJson` 首轮关闭、`sortImports` 未开，且两者都登记为独立后续事项。
 7. oxfmt 在 catalog 里精确锁 `0.80.0`；升级单独成提交。
 

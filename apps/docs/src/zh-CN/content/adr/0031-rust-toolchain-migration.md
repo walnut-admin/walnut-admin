@@ -41,18 +41,31 @@ tsdown；类型检查一侧用 tsrs 做诊断快查、另一侧用 TNB（classic
 - 根 `.oxfmtrc.json` 的取值：`semi: false` / `singleQuote: true` / `tabWidth: 2` /
   `printWidth: 100` / `trailingComma: all`。`printWidth` 取 oxfmt 默认值 100（Prettier 是 80），
   首轮全仓重排的一次性大 diff 已接受，且首轮格式化单独成提交、不含逻辑改动。
-- `sortPackageJson` 首轮**关闭**（默认 true 会重排所有 `package.json`，与 catalog 的既有顺序规则
-  打架）；`sortImports` **不写**（默认关，开启是后续独立一步、单独回滚 —— Sentry 有
-  customGroups 排序回归的实录）。perfectionist 的 import / export 排序因此**暂留 ESLint**。
+- **排序（2026-11-28 最终决策，全开）**：`sortPackageJson: true`、`sortImports` 全量开启
+  （groups 逐组复刻 antfu / perfectionist 8.2.0 + `newlinesBetween: false` +
+  `partitionByNewline: true`）。ESLint 侧相应地只关两处、不移交三样：
+  `perfectionist/sort-imports` 关闭（语句级 import 归 oxfmt）；
+  `jsonc/sort-keys` 对 `package.json` **窄版保留** —— 只留 `exports` 条件序
+  （types → import → require → default）与 `resolutions` / `pnpm.overrides` 的 asc，
+  根键序交 oxfmt（oxfmt 不排 exports 子键、也不排 overrides 子键）；
+  `sort-named-imports` / `sort-named-exports` / `sort-exports` 留 ESLint
+  （oxfmt 的 `sortImports` 只排 import **语句**）。回滚必须成对：`.oxfmtrc.json` 的开关与
+  `tooling/eslint-config/sort-ownership.ts` 的关闭，单改一边会互相改回去。
 - 三个预设（`base` / `vue` / `nest`）的 `@antfu/eslint-config` 选项统一 `stylistic: false`，
   末尾接 `eslint-config-prettier/flat` 兜底，防止残留格式规则与 oxfmt 互相改回去。
 - 门禁：`pnpm walnut format:check`（`oxfmt --check .`）进**推送前门禁表**的 `format` 段、
   发版电池与 CI 的 `Format check (oxfmt)` 步骤；pre-commit 的 `lint-staged`
-  顺序固定为 `oxfmt --write` → `oxlint --fix` → `eslint --fix`。
+  顺序固定为 `oxlint --fix` → `eslint --fix` → `oxfmt --write`。
+  **格式化器必须收尾**（不是「先格式化再 lint」）：后跑的工具不得改写前跑工具的输出结构 ——
+  `eslint --fix` 会拆 / 合并 import 语句（如把 `import { type X }` 拆成 `import type`），
+  oxfmt 再按 `sortImports` 重排；顺序反过来时最终文本不满足格式判据，pre-push 的
+  `format:check` 直接红（2026-11-28 实测：旧顺序跑完后 `oxfmt --check` exit 1）。
 - ignore 面与「机器写的文件」同口径：构建产物、`env-local/`、lockfile、`openapi.json`、
-  `packages/generated/**`、admin 的生成声明、`.changeset/ledger.yaml`、
-  `.vscode/settings-dev.schema.json`、第三方 vendor 资产，以及**首轮不碰 `*.md`**
-  （VitePress 的自定义块风险高，markdown 另开一轮单独验证）。
+  `packages/generated/api-types/src/schema.d.ts`（只忽略那一个生成物，包内手写文件照常受检）、
+  admin 的生成声明、`.changeset/ledger.yaml`、`.vscode/settings-dev.schema.json`、
+  第三方 vendor 资产，以及**首轮不碰 `*.md` / `*.hbs`**（VitePress 的自定义块与 Handlebars 的
+  模板语义风险高，markdown 另开一轮单独验证；`.hbs` 走 oxfmt 的 Glimmer 路径会删 DOCTYPE，
+  模板语言一律不进格式化面）。
 - 0.x 纪律：精确锁版本；出问题**回退版本号**，不是撤门禁；升级单独成批、逐 key 对照当版文档。
 
 ## Decision 2: lint 双轨 —— oxlint 做 correctness 兜底，ESLint 保留独有面
@@ -82,6 +95,16 @@ tsdown；类型检查一侧用 tsrs 做诊断快查、另一侧用 TNB（classic
   `lint:oxlint` 段**里跑（2026-11-28 批次 9B 进表）；门禁只认 `--quiet` 不带 fix 的形态
   （`--fix` 的退出码不可信，有「修完仍有错却退出 0」的实录）。`.oxlintrc.json` 登记进根
   `turbo.json` 的 `globalDependencies`（ESLint 侧会读它，不登记就会出现「改了配置、缓存回放旧结论」的假绿）。
+- **覆盖面收窄一处（`**/*.d.ts`）**：`**/*.d.ts` 在 oxlint 与 ESLint 的共享 ignore 段里，
+  两边都**不 lint 任何手写 d.ts**（迁移前 ESLint 是查的）。这是有意的取舍：oxlint 的
+  correctness 对声明文件只产生噪音，而手写 d.ts 的类型正确性由 `tsrs` / `vue-tsc` /
+  `types:check` 与 `lint:dts`（`check-handwritten-dts`）门禁承接，emoji 检查由 `lint:emoji`
+  按扩展名兜住 —— 覆盖面收窄但不失守。要恢复风格检查，就在 `.oxlintrc.json` 与各预设里
+  同时去掉这条 ignore（两边必须成对）。
+- **owner 空档一处（`no-empty-pattern` @ `apps/server`）**：该规则在 nest 预设迁移前就是 `off`
+  （`--print-config` 实测），oxlint 侧同样 `off` ⇒ **server 上这条规则无 owner**。这是迁移前的
+  既有状态，不是本批制造的空档；要启用就同时改 `.oxlintrc.json` 的 `apps/server/**` override 与
+  nest 预设，并给现有豁免注释换 owner。
 
 ## Decision 3: 共享包 CJS 构建交给 tsdown，对外契约手写不动
 
@@ -148,17 +171,19 @@ TNB（typescript-native-bridge）对外是 classic 6.0.3 API 外壳，对内是�
   没传 `writeFile`** 时会静默写 0 个文件（`emitSkipped:false`、零诊断）—— 因为 tsgo 分支不构造
   默认 host，写入端只认 `host.writeFile` / `emit(writeFile)`。绕法已验证：①classic 风格（解析时
   不传 `configFileName`，`options.configFilePath` 不存在）——本仓自己写的运行时消费者全部走这条
-  （第三方工具链自带 host，见执行计划 §6（C03）的审计表）；
+  （第三方工具链自带 host，见执行计划 §6（D02）的审计表）；
   ②project 语义 + 显式 `ts.createCompilerHost(options)`（或给 `emit` 传 `writeFile`）+ 读 AST 前
   逐文件物化 —— 配置语义（`include` / `exclude` / `paths` / `types` / `lib` / `sourceMap` /
   `rootDir`）在 fixture 上逐项验证；checker 图与 emit 文本（含 `.js.map`）与 classic 逐字节一致，
   真实包的语义诊断数也与 classic 相同。**用户决定不提上游 issue
-  （2026-11-28）**，英文草稿不再维护；完整复现矩阵与消费面审计见执行计划 §6（C03）。
-- **约束条款（给后来者）**：任何新引入的 `typescript` API 消费者必须默认用 classic 风格调用
-  （不要把 `configFilePath` 带进 `options`）；确需 project 语义时，必须显式传
-  `ts.createCompilerHost(options)`，并在读 `statements` 前对每个文件调用
-  `program.getSourceFile(name)`；**禁止**「`createProgram` 不传 host + `emit()` 不传 `writeFile`」
-  这一组合 —— 它是唯一会静默丢产物的形态。
+  （2026-11-28）**，英文草稿不再维护；完整复现矩阵与消费面审计见执行计划 §6（D02）。
+- **约束条款（给后来者，限定「`createProgram` + `emit` / 读 AST」这一形态）**：任何新引入的
+  `typescript` API 消费者必须默认用 classic 风格调用（不要把 `configFilePath` 带进 `options`）；
+  确需 project 语义时，必须显式传 `ts.createCompilerHost(options)`，并在读 `statements` 前对每个
+  文件调用 `program.getSourceFile(name)`；**禁止**「`createProgram` 不传 host + `emit()` 不传
+  `writeFile`」这一组合 —— 它是唯一会静默丢产物的形态。**范围限定**：只调 `createSourceFile` /
+  `parseJsonText` / checker（不建 program、不 emit）的消费者不受约束，classic 解析器在这些路径上
+  没有薄桩问题（消费面审计见执行计划 §6）。
 - **生成器的绕行方式**：admin 的 `.vscode/settings-dev.schema.json` 生成器改为 `tsrs/sync` 的
   checker 直接读类型图（TS 7.1 形状的 JS API），产物与迁移前基线**逐字节一致**（同一 hash，
   换生成器不允许出现任何 schema 变化）。这是 admin 的**第二条 typescript 链**：vue-tsc / ESLint
@@ -245,8 +270,11 @@ tsrs 与 TNB 都只替换检查引擎，不改变「哪些代码能直接被 Nod
 
 - [ADR 0014](./0014-eslint-config-strategy.md)：ESLint 配置策略（本篇取代其 Decision 2 / 3 的
   部分口径，原文不改）
+- [ADR 0005](./0005-jit-vs-build.md)：前端 JIT、共享包 CJS 构建（Decision 3 换实现，不变这条分工）
 - [ADR 0012](./0012-toolchain-divergence.md)：前后端工具链分歧（server 自有 tsconfig / SWC）
 - [ADR 0019](./0019-tsconfig-presets-and-no-mjs.md)：共享 tsconfig 预设与「无 `.mjs`」约束
+- [ADR 0023](./0023-contract-uplift-and-route-parity-gates.md)：契约上收与路由 parity 门禁
+  （Decision 3 的 `exports` 契约与这份门禁的口径一致）
 - [迁移考量与风险评估](../industry-research/rust-toolchain-migration-assessment.md)：逐项判定、
   实测与风险清单（冻结快照）
 - [阶段性迁移计划](../plans/rust-toolchain-migration-plan.md) 与

@@ -14,7 +14,7 @@
 > **两处计划外大发现**：① 批次 4 的 lint-staged 回滚试验留下两处未被格式化器看过的文件
 > （`deploy/docker-compose.yml`、`.github/workflows/deploy.yml`），首轮「全仓通过」并不完整，
 > 由两个补充提交收尾 —— 教训是「全仓格式化过一次」不等于「每个文件都过了一遍」；
-> ② TNB 的 project-mode 使用形态约束（详见 Ledger 的 C03 条；`getSourceFiles()` 返回空壳、
+> ② TNB 的 project-mode 使用形态约束（详见 Ledger 的 D02 条；`getSourceFiles()` 返回空壳、
 > `emit()` 静默写 0 个文件）让 admin 生成链原本的 `ts-json-schema-generator` 直接断掉，改用
 > `tsrs/sync` 的 checker 重写生成器后产物逐字节不变（归因与终局状态见评估 §5.4 与
 > [ADR 0031](../adr/0031-rust-toolchain-migration.md)）。
@@ -28,77 +28,83 @@
 > **四类**：✅ 已清零（有提交或文档证据）｜🔧 进行中（明确哪一路在清）｜📋 决策点（需要人拍板，
 > 含选项与建议）｜🚫 做不到 / 刻意保留（写清为什么、什么条件下重开）。
 >
-> **统计（2026-11-28，对 HEAD `de27bfb5` 清点；C03 于 2026-11-28 改判、排序两开关当日决开并实施后）：✅ 20 条 / 🔧 4 条 / 📋 5 条 / 🚫 18 条，共 47 条。
-> 条数是清点口径而不是承诺；新增遗留只往本表追加，不另立第二本账。
+> **统计（2026-11-28，对 HEAD `de27bfb5` 清点；D02 于 2026-11-28 改判、排序两开关当日决开并实施后）：✅ 20 条 / 🔧 4 条 / 📋 5 条 / 🚫 18 条，共 47 条。
+> §2 的 4 条里有 2 条（B03 / B04）已改判 ✅ 但**留在原段落档**（先例：knip 条目）—— 按段落计仍是 4 条，
+> 已清零的实数因此是 22；条数是清点口径而不是承诺，新增遗留只往本表追加，不另立第二本账。
+>
+> **ID 是稳定引用**：`A` = ✅ 已清零 / `B` = 🔧 进行中 / `C` = 📋 决策点 / `D` = 🚫 做不到，
+> 编号按**表内行序**（2026-11-28 一次成文，A01–A20 / B01–B04 / C01–C05 / D01–D18）。
+> 正文引用一律写 ID（如「另记 D02」）。新增条目**追加在表尾并顺延编号**，不要重排既有行 ——
+> 重排会让全仓所有 ID 引用指错条目，而这种错没有门禁能拦。
 >
 > **证据口径**：提交号优先；只有文档结论的写文件与章节。探针类数字都带测量方法，引用时看判据不看绝对值。
 
-### 1. ✅ 已清零（18 条）
+### 1. ✅ 已清零（20 条）
 
-| 条目 | 类别 | 证据或提交号 | 跟进方式 | 解除条件 |
-|------|------|--------------|----------|----------|
-| `check-pre-hooks` 的 `CONSUMERS` 硬编码 | ✅ | `dc93c473`（批次 1 P0）；`tooling/scripts/src/ci/pre-hook-consumers.ts`；规则 id 已改名 `consumer-script-needs-pre-generate` | 完成；新增消费者只改数据，不动门禁逻辑 | 已解除；若名单再被硬编码则重开 |
-| Vite 8.0.11 → 8.4.0；`build.minify: 'esbuild'` 的矛盾 | ✅ | `736c5f90`（批次 2）；`apps/admin/vite.config.ts` 已无 `build.minify`，细节只在 `rolldownOptions.output.minify` | 完成；CSS / sourcemap / legacy 回归记录在批次 2 回报 | 已解除；升 Vite 主版本时按 §4.4 重跑回归 |
-| 16 份 tsconfig 的 `baseUrl` + admin 的 paths 前缀 | ✅ | `82c39f21`（批次 3）；`grep '"baseUrl"'` 为空；admin paths 为 `./src/*` / `./types/*` | 完成；`--listFiles` 覆盖与清理前一致 | 已解除 |
-| `crossOrigin: 'Anonymous'` 真 bug | ✅ | `671ccd91`；`packages/platform-web/client/src/browser/file/base64.ts` 与同目录 `base64.test.ts` | 完成；测试只认小写 `anonymous` | 已解除 |
-| oxfmt 正式接入、stylistic 拆除、`format` 门禁三表、首轮全仓格式化 | ✅ | `396320b4` + `5f761523`；残留两文件由 `5b5b595f` / `edf5acf7` 收尾；`1cc5c72f` 同步文档 | 完成；首轮大 diff 单独成提交，`format:check` 阻断 | 已解除；升级 oxfmt 走独立批次（D14） |
-| oxlint 双轨、去重两段式、CI、turbo `globalDependencies` 登记 | ✅ | `6ee45d62` + `04ca519d`（批次 5）；`.oxlintrc.json`；`buildFromOxlintConfigFile` 两段式 | 完成；规则所有权写在配置注释里 | 已解除；首轮关闭的 correctness 规则见 C05 |
-| oxlint 进 prepush（8 批之外的批次 9B） | ✅ | `25cd245c`；`tooling/scripts/src/ci/prepush.ts` 的 `lint:oxlint` 段；`gate-wiring.test.ts` 同步 | 完成；每 push 约 0.3 秒 | 已解除 |
-| server 的 `ts/consistent-type-imports` 关闭 | ✅ | `6ee45d62`；`tooling/eslint-config/nest.ts:110`；理由：autofix 会删 DI 需要的 import（Twenty 记录 3,814 例） | 完成；若 ADR 0007 的元数据边界与 lint 边界合并后再评估 | 已解除；重开必须同时满足「不破坏 emitDecoratorMetadata」与 lint-staged 安全 |
-| tsdown 接管共享包（utils-core / contract）、barrel 与 drift/default 断言 | ✅ | `55258b80`（批次 6）；两支 `tsdown.config.ts`；`entries.drift.test.ts` + `dist-exports.test.ts`；有意省略 `platform` 以避开 tsdown#1111 告警 | 完成；后端逐子路径 require 冒烟 | 已解除；升级 0.x 走独立批次（D14） |
-| tsrs 影子 → 整批转正；本地 watch 留 tsc | ✅ | `60860886`（P5a）+ `6e0e68db`（P5b）；12 个包的 `types:check` 主脚本；server 的 `tsBuildInfoFile` 分离 | 完成；回滚一行改回 tsc | 已解除；#1114 与 Windows watch 见 D02 / D03 |
-| TNB 作为 `typescript` 包面；nest-on-TNB PoC 五项 | ✅ | `fc786d47`（批次 8）；ADR 0031；`nest build` / `nest start --watch` / `createProgram` / `design:paramtypes` / `openapi:check:export` 全绿 | 完成；回滚分「全局」与「仅 nest」两档 | 已解除；project-mode 使用形态约束另记 C03 |
-| vue-tsc 3.3.14 + `JSONEditor` 的 TS2322 | ✅ | `25cd245c`；先修源码再升级，升级后基线仍 0 诊断 | 完成；升级前后都有读数 | 已解除 |
-| tsrs 退出码笔误（诊断失败 / Windows watch） | ✅ | 评估 §5.5 已订正为「诊断失败 = 2、Windows watch = 5」；执行计划 §9.1 / §9.4 同口径 | 文档完成；脚本解析按新口径 | 已解除 |
-| `eslint-disable` 归属约定 | ✅ | `apps/docs/src/zh-CN/content/monorepo/eslint.md` 的「eslint-disable 归属约定」；ADR 0031 Decision 2 | 文档完成；新规则按 owner 写注释 | 已解除 |
-| TNB 诊断归因标准（评估 §11 的唯一未决项） | ✅ | 执行计划 §10.3 的三段判据（可归因 / 真问题 / 外壳缺陷）；批次 8 按此执行 | 完成；后续诊断漂移复用交叉实验 | 已解除 |
-| ADR 0031 记录迁移决策、三份文档收口 | ✅ | `039fd6d4`；ADR 0031 Accepted；评估 / 阶段计划 / 执行计划互相引用 | 完成 | 已解除 |
-| 旧页 `apps/docs/src/zh-CN/guide/lint.md` 的过时事实 | ✅ | 本次 Ledger 随附（保留「旧文档保留作对照」横幅） | 已更新四组事实：格式化真源、lint-staged 顺序、stylelint / prettier 段、手动命令 | 已解除；该页仍是历史对照，不追新功能 |
-| P0 基线（admin `vue-tsc`、dist 清单、截图） | ✅ | `dc93c473`；基线落在 gitignored 的 `.zcode/`；批次 8 用同温度对比 | 完成；P5c 的四项读数在 ADR 0031 | 已解除；数据不随仓库保存（D12） |
-| oxfmt `sortImports`（语句级 import 排序） | ✅ | 决策点 ①：2026-11-28 用户拍板**全开**；实施提交号由主对话回填 | 已实施：`.oxfmtrc.json` 复刻 antfu 的 perfectionist groups + `newlinesBetween: false` + `partitionByNewline: true`；ESLint 关 `perfectionist/sort-imports`（base / vue / nest 三预设，共用 `tooling/eslint-config/sort-ownership.ts`）；具名 specifier / export 三条规则保留。全仓实测 2 文件 +3/−3（均为 `apps/server` 的 `.d.ts`，因并行「不碰 server」约束留给 server 清理一路） | 已解除；升 oxfmt 时重跑「`eslint --fix` ↔ `oxfmt --write`」两轮循环对照 |
-| oxfmt `sortPackageJson`（package.json 键序） | ✅ | 决策点 ①：2026-11-28 用户拍板**全开**；实施提交号由主对话回填 | 已实施：`sortPackageJson: true`；ESLint 只对 `**/package.json` 关 `jsonc/sort-keys`（其余 JSON / tsconfig 的键序规则保留）。17 个 `package.json` 键序重排（含根）；`dependencies` / `overrides` 的 asc 由 oxfmt 同样执行 | 已解除；键序唯一真源是 oxfmt，新增键位以 oxfmt 输出为准 |
+| ID | 条目 | 类别 | 证据或提交号 | 跟进方式 | 解除条件 |
+|----|------|------|--------------|----------|----------|
+| A01 | `check-pre-hooks` 的 `CONSUMERS` 硬编码 | ✅ | `dc93c473`（批次 1 P0）；`tooling/scripts/src/ci/pre-hook-consumers.ts`；规则 id 已改名 `consumer-script-needs-pre-generate` | 完成；新增消费者只改数据，不动门禁逻辑 | 已解除；若名单再被硬编码则重开 |
+| A02 | Vite 8.0.11 → 8.4.0；`build.minify: 'esbuild'` 的矛盾 | ✅ | `736c5f90`（批次 2）；`apps/admin/vite.config.ts` 已无 `build.minify`，细节只在 `rolldownOptions.output.minify` | 完成；CSS / sourcemap / legacy 回归记录在批次 2 回报 | 已解除；升 Vite 主版本时按 §4.4 重跑回归 |
+| A03 | 16 份 tsconfig 的 `baseUrl` + admin 的 paths 前缀 | ✅ | `82c39f21`（批次 3）；`grep '"baseUrl"'` 为空；admin paths 为 `./src/*` / `./types/*` | 完成；`--listFiles` 覆盖与清理前一致 | 已解除 |
+| A04 | `crossOrigin: 'Anonymous'` 真 bug | ✅ | `671ccd91`；`packages/platform-web/client/src/browser/file/base64.ts` 与同目录 `base64.test.ts` | 完成；测试只认小写 `anonymous` | 已解除 |
+| A05 | oxfmt 正式接入、stylistic 拆除、`format` 门禁三表、首轮全仓格式化 | ✅ | `396320b4` + `5f761523`；残留两文件由 `5b5b595f` / `edf5acf7` 收尾；`1cc5c72f` 同步文档 | 完成；首轮大 diff 单独成提交，`format:check` 阻断 | 已解除；升级 oxfmt 走独立批次（D15） |
+| A06 | oxlint 双轨、去重两段式、CI、turbo `globalDependencies` 登记 | ✅ | `6ee45d62` + `04ca519d`（批次 5）；`.oxlintrc.json`；`buildFromOxlintConfigFile` 两段式 | 完成；规则所有权写在配置注释里 | 已解除；首轮关闭的 correctness 规则见 C02 |
+| A07 | oxlint 进 prepush（8 批之外的批次 9B） | ✅ | `25cd245c`；`tooling/scripts/src/ci/prepush.ts` 的 `lint:oxlint` 段；`gate-wiring.test.ts` 同步 | 完成；每 push 约 0.3 秒 | 已解除 |
+| A08 | server 的 `ts/consistent-type-imports` 关闭 | ✅ | `6ee45d62`；`tooling/eslint-config/nest.ts:110`；理由：autofix 会删 DI 需要的 import（Twenty 记录 3,814 例） | 完成；若 ADR 0007 的元数据边界与 lint 边界合并后再评估 | 已解除；重开必须同时满足「不破坏 emitDecoratorMetadata」与 lint-staged 安全 |
+| A09 | tsdown 接管共享包（utils-core / contract）、barrel 与 drift/default 断言 | ✅ | `55258b80`（批次 6）；两支 `tsdown.config.ts`；`entries.drift.test.ts` + `dist-exports.test.ts`；有意省略 `platform` 以避开 tsdown#1111 告警 | 完成；后端逐子路径 require 冒烟 | 已解除；升级 0.x 走独立批次（D15） |
+| A10 | tsrs 影子 → 整批转正；本地 watch 留 tsc | ✅ | `60860886`（P5a）+ `6e0e68db`（P5b）；12 个包的 `types:check` 主脚本；server 的 `tsBuildInfoFile` 分离 | 完成；回滚一行改回 tsc | 已解除；#1114 与 Windows watch 见 D04 / D03 |
+| A11 | TNB 作为 `typescript` 包面；nest-on-TNB PoC 五项 | ✅ | `fc786d47`（批次 8）；ADR 0031；`nest build` / `nest start --watch` / `createProgram` / `design:paramtypes` / `openapi:check:export` 全绿 | 完成；回滚分「全局」与「仅 nest」两档 | 已解除；project-mode 使用形态约束另记 D02 |
+| A12 | vue-tsc 3.3.14 + `JSONEditor` 的 TS2322 | ✅ | `25cd245c`；先修源码再升级，升级后基线仍 0 诊断 | 完成；升级前后都有读数 | 已解除 |
+| A13 | tsrs 退出码笔误（诊断失败 / Windows watch） | ✅ | 评估 §5.5 已订正为「诊断失败 = 2、Windows watch = 5」；执行计划 §9.1 / §9.4 同口径 | 文档完成；脚本解析按新口径 | 已解除 |
+| A14 | `eslint-disable` 归属约定 | ✅ | `apps/docs/src/zh-CN/content/monorepo/eslint.md` 的「eslint-disable 归属约定」；ADR 0031 Decision 2 | 文档完成；新规则按 owner 写注释 | 已解除 |
+| A15 | TNB 诊断归因标准（评估 §11 的唯一未决项） | ✅ | 执行计划 §10.3 的三段判据（可归因 / 真问题 / 外壳缺陷）；批次 8 按此执行 | 完成；后续诊断漂移复用交叉实验 | 已解除 |
+| A16 | ADR 0031 记录迁移决策、三份文档收口 | ✅ | `039fd6d4`；ADR 0031 Accepted；评估 / 阶段计划 / 执行计划互相引用 | 完成 | 已解除 |
+| A17 | 旧页 `apps/docs/src/zh-CN/guide/lint.md` 的过时事实 | ✅ | 本次 Ledger 随附（保留「旧文档保留作对照」横幅） | 已更新四组事实：格式化真源、lint-staged 顺序、stylelint / prettier 段、手动命令 | 已解除；该页仍是历史对照，不追新功能 |
+| A18 | P0 基线（admin `vue-tsc`、dist 清单、截图） | ✅ | `dc93c473`；基线落在 gitignored 的 `.zcode/`；批次 8 用同温度对比 | 完成；P5c 的四项读数在 ADR 0031 | 已解除；数据不随仓库保存（D13） |
+| A19 | oxfmt `sortImports`（语句级 import 排序） | ✅ | 决策点 ①：2026-11-28 用户拍板**全开**；实施提交 `e5d145a1` | 已实施：`.oxfmtrc.json` 复刻 antfu 的 perfectionist groups + `newlinesBetween: false` + `partitionByNewline: true`；ESLint 关 `perfectionist/sort-imports`（base / vue / nest 三预设，共用 `tooling/eslint-config/sort-ownership.ts`）；具名 specifier / export 三条规则保留。全仓实测 2 文件 +3/−3（均为 `apps/server` 的 `.d.ts`，因并行「不碰 server」约束留给 server 清理一路） | 已解除；升 oxfmt 时重跑「`eslint --fix` ↔ `oxfmt --write`」两轮循环对照 |
+| A20 | oxfmt `sortPackageJson`（package.json 键序） | ✅ | 决策点 ①：2026-11-28 用户拍板**全开**；实施提交 `e5d145a1` | 已实施：`sortPackageJson: true`（根键序 + `dependencies` 的 asc）；ESLint 侧 `jsonc/sort-keys` 对 `**/package.json` 改为**窄版**（只留 `exports` 条件序与 `resolutions` / `pnpm.overrides` 的 asc —— **oxfmt 不排 `exports` 子键、也不排 overrides 子键**（2026-11-28 实测：`dependencies` 被排成 asc、`pnpm.overrides` 原样）；其余 JSON / tsconfig 的键序规则全部保留）。17 个 `package.json` 键序重排（含根） | 已解除；键序唯一真源是 oxfmt，新增键位以 oxfmt 输出为准 |
 
-### 2. 🔧 进行中（4 条）
+### 2. 🔧 进行中（4 条：2 条在跟、2 条已清零留档）
 
-| 条目 | 类别 | 证据或提交号 | 跟进方式 | 解除条件 |
-|------|------|--------------|----------|----------|
-| e2e 全 profile 基线重封与全量回归 | 🔧 | 本次清点：`.e2e/{smoke,risk,network,pages,journey}/baseline.manifest.json` 已在 2026-11-28 重封，dataKey 同为 `dfc6560a…`；`.e2e/baseline.manifest.json`（default）仍是 2026-11-27、dataKey 为 `85ee618c…` | 另一路 agent 在跑 `e2e:default`（smoke / risk / network / mobile 四 project）与命名 profile；完成后回填读数 | 所有 profile 清单的 dataKey 与当前数据路径一致；`e2e:default` 与命名 profile 全绿；CI nightly 首跑有记录 |
-| Windows `0xC0000005`（admin 的 eslint / vite 偶发原生崩溃） | 🔧 | `plans/tooling-restructure-plan.md` §14 的排查记录；`plans/e2e-sandbox-plan.md` §7 已知问题；prepush 的 `nativeCrashNote` 只加提示、不改判决 | 另一路 agent 治理；下一步用 WER LocalDumps 抓 node 崩溃转储（需改注册表，留给所有者） | 拿到转储定位到模块，或连续负载复现 0 次并形成可执行的重跑口径；否则保持「重跑」处置 |
-| `pnpm knip` 红 + 依赖卫生 | ✅ | `knip.config.ts` 顶部判据；`apps/docs/src/zh-CN/content/monorepo/knip.md` 的分类口径 | 已收口（2026-11-28）：`pnpm knip` exit 0；删无用依赖 / 导出与 catalog 条目、补 `entry`/`project`（admin `build/**`、server CLI/worker/migrations/barrel、`.tsx`）；`maxWorkers` 漂移改在 turbo.json 注释对齐事实 | `pnpm knip` exit 0；`ignoreIssues` 仅剩 server 冻结兼容层与 docs 英文站脚手架（逐条理由在配置文件） |
-| docs 的 `types:check` 曾是 `echo skipped` | 🔧 | 工作区已由并行 agent 改为 `vue-tsc --noEmit`（`apps/docs/package.json`），并把 `eslint.config.ts` 纳入 `apps/docs/tsconfig.json`；首跑 0 诊断；评估 §4.2 已加 2026-11-28 勘误 | 等该路 agent 提交并跑全仓门禁；不要用裸 `tsc` 硬开 | docs 的 `types:check` 进门禁且 0 诊断、`build:docs` 绿；否则保留 skipped 并写理由 |
+| ID | 条目 | 类别 | 证据或提交号 | 跟进方式 | 解除条件 |
+|----|------|------|--------------|----------|----------|
+| B01 | e2e 全 profile 基线重封与全量回归 | 🔧 | 本次清点：`.e2e/{smoke,risk,network,pages,journey}/baseline.manifest.json` 已在 2026-11-28 重封，dataKey 同为 `dfc6560a…`；`.e2e/baseline.manifest.json`（default）仍是 2026-11-27、dataKey 为 `85ee618c…` | 另一路 agent 在跑 `e2e:default`（smoke / risk / network / mobile 四 project）与命名 profile；完成后回填读数 | 所有 profile 清单的 dataKey 与当前数据路径一致；`e2e:default` 与命名 profile 全绿；CI nightly 首跑有记录 |
+| B02 | Windows `0xC0000005`（admin 的 eslint / vite 偶发原生崩溃） | 🔧 | `plans/tooling-restructure-plan.md` §14 的排查记录；`plans/e2e-sandbox-plan.md` §7 已知问题；prepush 的 `nativeCrashNote` 只加提示、不改判决 | 另一路 agent 治理；下一步用 WER LocalDumps 抓 node 崩溃转储（需改注册表，留给所有者） | 拿到转储定位到模块，或连续负载复现 0 次并形成可执行的重跑口径；否则保持「重跑」处置 |
+| B03 | `pnpm knip` 红 + 依赖卫生 | ✅ | `knip.config.ts` 顶部判据；`apps/docs/src/zh-CN/content/monorepo/knip.md` 的分类口径 | 已收口（2026-11-28）：`pnpm knip` exit 0；删无用依赖 / 导出与 catalog 条目、补 `entry`/`project`（admin `build/**`、server CLI/worker/migrations/barrel、`.tsx`）；`maxWorkers` 漂移改在 turbo.json 注释对齐事实 | `pnpm knip` exit 0；`ignoreIssues` 仅剩 server 冻结兼容层与 docs 英文站脚手架（逐条理由在配置文件） |
+| B04 | docs 的 `types:check` 曾是 `echo skipped` | ✅ | `413f6ad9`：改为 `vue-tsc --noEmit`（`apps/docs/package.json`），并把 `eslint.config.ts` 纳入 `apps/docs/tsconfig.json`；9/9 文件 0 诊断；评估 §4.2 已加 2026-11-28 勘误 | 完成；不要用裸 `tsc` 硬开 | 已解除；`build:docs` 绿 |
 
 ### 3. 📋 决策点（5 条）
 
-| 条目 | 类别 | 证据或提交号 | 跟进方式 | 解除条件 |
-|------|------|--------------|----------|----------|
-| tsdown `sourcemap` 评估 | 📋 | 两支 `tsdown.config.ts` 的 `sourcemap: true`；dist 有 19 个 `.map`；contract 的 `dist/index.cjs` 被 barrel 覆盖后没有 `sourceMappingURL`；server 启动脚本不传 `--enable-source-maps` | 建议**关**（低优先）；若调试 CJS 需要则保留，并在 README 写清 | 拍板开 / 关并改一处配置；改后跑构建与 require 冒烟 |
-| oxlint 首轮关闭的 correctness 规则复议 | 📋 | `.oxlintrc.json` 关掉 `no-unsafe-optional-chaining` / `no-useless-escape` / `unicorn/no-useless-spread` / `unicorn/no-useless-fallback-in-spread` / `unicorn/prefer-string-starts-ends-with`；另有三条因 `eslint-disable` owner 留 ESLint | 建议保持关闭；每次只开一条，先观测零误报再进配置 | 单条规则在双轨对照中零误报，且 owner 与豁免注释同步迁移 |
-| markdown 是否进 oxfmt | 📋 | `.oxfmtrc.json` 的 `**/*.md` ignore；ADR 0031 记录「markdown 另开一轮」 | 建议后续独立批次：先 `--check` docs，验证 VitePress tabs / mermaid / 容器，再移除 ignore | docs 全量 `oxfmt --check` 绿且 `build:docs` 死链绿 |
-| `reference-repo-comparison.md` 的时效性 | 📋 | 该页是 2026-09-23 的一次性对比；正文里「格式化由 ESLint stylistic 承担 / 无 oxlint」等口径已被 ADR 0031 取代；页头只有权威边界，没有 as-of 日期 | 建议下次触碰时加一行 as-of + 指向 ADR 0031 / 本 Ledger；纯历史 plan 不追改 | 页头有日期与「工具链结论以 ADR 0031 为准」的声明 |
-| `@vue/content-mapper` v4 / Vue 官方路线 | 📋 | 评估 §5.7：v4 alpha.3、只支持 TS7.1、取消独立 vue-tsc 二进制、无 stable 日期；Vize / Golar 只观察 | 等上游；不主动接 | v4 stable 后用同一 SFC 基线与 TNB 对比，再决定是否去掉 TNB 的 vue-tsc 依赖 |
+| ID | 条目 | 类别 | 证据或提交号 | 跟进方式 | 解除条件 |
+|----|------|------|--------------|----------|----------|
+| C01 | tsdown `sourcemap` 评估 | 📋 | 两支 `tsdown.config.ts` 的 `sourcemap: true`；dist 有 19 个 `.map`；contract 的 `dist/index.cjs` 被 barrel 覆盖后没有 `sourceMappingURL`；server 启动脚本不传 `--enable-source-maps` | 建议**关**（低优先）；若调试 CJS 需要则保留，并在 README 写清 | 拍板开 / 关并改一处配置；改后跑构建与 require 冒烟 |
+| C02 | oxlint 首轮关闭的 correctness 规则复议 | 📋 | `.oxlintrc.json` 关掉 `no-unsafe-optional-chaining` / `no-useless-escape` / `unicorn/no-useless-spread` / `unicorn/no-useless-fallback-in-spread` / `unicorn/prefer-string-starts-ends-with`；另有三条因 `eslint-disable` owner 留 ESLint | 建议保持关闭；每次只开一条，先观测零误报再进配置 | 单条规则在双轨对照中零误报，且 owner 与豁免注释同步迁移 |
+| C03 | markdown 是否进 oxfmt | 📋 | `.oxfmtrc.json` 的 `**/*.md` ignore；ADR 0031 记录「markdown 另开一轮」 | 建议后续独立批次：先 `--check` docs，验证 VitePress tabs / mermaid / 容器，再移除 ignore | docs 全量 `oxfmt --check` 绿且 `build:docs` 死链绿 |
+| C04 | `reference-repo-comparison.md` 的时效性 | 📋 | 该页是 2026-09-23 的一次性对比；正文里「格式化由 ESLint stylistic 承担 / 无 oxlint」等口径已被 ADR 0031 取代；页头只有权威边界，没有 as-of 日期 | 建议下次触碰时加一行 as-of + 指向 ADR 0031 / 本 Ledger；纯历史 plan 不追改 | 页头有日期与「工具链结论以 ADR 0031 为准」的声明 |
+| C05 | `@vue/content-mapper` v4 / Vue 官方路线 | 📋 | 评估 §5.7：v4 alpha.3、只支持 TS7.1、取消独立 vue-tsc 二进制、无 stable 日期；Vize / Golar 只观察 | 等上游；不主动接 | v4 stable 后用同一 SFC 基线与 TNB 对比，再决定是否去掉 TNB 的 vue-tsc 依赖 |
 
 ### 4. 🚫 做不到 / 刻意保留（18 条）
 
-| 条目 | 类别 | 证据或提交号 | 跟进方式 | 解除条件 |
-|------|------|--------------|----------|----------|
-| 裸装 `typescript@7` | 🚫 | 评估 §5.4 / §8.1；nest-cli #3479 open、PR #3554 未批；vue-tsc 的 peer `<7` | 不装；TNB 外壳是当前唯一合法形态；每季度复核上游 | nest-cli 支持 7.1 API（含 watch / paths）且 vue-tsc peer 放宽 |
-| TNB project-mode 的处置（原「是否给上游提 issue」） | 🚫 | 决策点 ②：2026-11-28 用户决定**不提**上游 issue；复现矩阵 17 种形态证明是使用形态约束而非引擎缺陷；两条绕法实测可用（classic 风格；project + 显式 host + 物化） | 不主动追上游；新消费者按 ADR 0031 的约束条款走 classic，确需 project 语义时显式 host + 物化。**TNB 升级时须重跑 17 格调用形态矩阵**（探针脚本不随仓保留，核心断言已内嵌 §6；升级后若行为漂移，按 ADR 0031 的约束条款评估） | 上游自行修复「无 host 的 emit 静默 0 文件」或 `getSourceFiles()` 薄桩并回归通过；届时复评（不主动提 issue） |
-| tsrs 在 Windows 的 `--watch` | 🚫 | 评估 §5.5：NotImplemented，退出码 5；缺 fswatch 后端与 LSP watchdog，无跟踪 issue、无 ETA | 本地 `typecheck:watch` 永久用 tsc（Zerion 模式） | 上游补齐 fswatch / LSP watchdog |
-| tsrs #1114 约 1% 随机失败 | 🚫 | 评估 §5.5：1,240 次里 12 次；团队决策只跟踪、不加双跑门禁 | 转正后保留「一行改回 tsc」的回滚；出现可复现模式再复评 | issue 关闭，或锁定触发条件并给出可靠绕法 |
-| tsrs prerelease 的版本纪律 | 🚫 | `7.1.0-beta.tsrs5` 精确锁；无 `next` tag、`tsrsN` 排序只到 9、packaged validation 仍 pending | catalog 禁范围；升级单独批次并跑全量诊断 diff | 发布 stable 且 packaged validation 转正 |
-| oxlint 不 lint Vue 模板 | 🚫 | 官方兼容矩阵只 lint `.vue` 的 script 块；评估 §7.1 | 模板规则留 ESLint；配置里写明所有权 | 官方宣布模板 lint 且本仓实测误报可接受 |
-| 五条本地规则留在 ESLint | 🚫 | `walnut-comment/no-emoji`、`walnut-script/script-header`、`walnut-script/script-exit-code`、`local/sort-nestjs-decorators`、`local/no-cross-lib-relative-import`；jsPlugins 仍是 alpha | 保留；不移植 | jsPlugins 稳定且能用 RuleTester 平移 |
-| oxlint type-aware 不进门禁 | 🚫 | `pnpm exec oxlint --type-aware` 仅是观测；monorepo 需先构建依赖 d.ts，而共享包 `types` 指源码、dist d.ts 已无 | 只观测；不接门禁 | 有真实 d.ts 管线，或 oxlint 支持源码类型；先观测零误报 |
-| 不全量替换 ESLint | 🚫 | 评估 §7.1 / §10；Vue 模板、本地规则、类型感知分层至少一项留 ESLint | 双轨是终点，不是过渡态 | 不重开；三项都被替代后才复议 |
-| admin 的两条 typescript 链 | 🚫 | `fc786d47`；vue-tsc / ESLint 走 TNB（各自带 host 的 project / watch 形态），`apps/admin/build/generate/genJSONSchemas.ts` 走 `tsrs/sync` | 保持；生成器产物与基线逐字节对齐；project 形态已可用（显式 host + 物化），但外部 TJS 不会主动物化薄桩，故不以「搬回 TJS」为目标 | 外部 TJS 若支持预建 program 或自动物化，且产物过同一字节基线；不强制 |
-| `dts: false` / `dist/*.d.ts` 消失 | 🚫 | 评估 §4.4 / §7.3；`types` 条件指源码，dist d.ts 无消费者 | 不偷偷开 dts；这是预期变化 | 出现真实 dist d.ts 消费者，另立项目并处理 rolldown-plugin-dts |
-| `publint` / `attw` 不作门禁 | 🚫 | 两者在 `exports` 指 `.ts` 时必然假阳性；执行计划 §8.3 | 关闭；临时跑过只记假阳性类型 | `exports` 改成指 dist |
-| P0 基线数据不随仓库保存 | 🚫 | `dc93c473`；基线落在 gitignored 的 `.zcode/`，含机器耗时与截图 | 保留判据与提交号在文档；绝对值只在本机 | 需要跨机对比时改存归一化诊断清单，不存耗时 |
-| 旧 `guide/` 文档树 / 纯历史 plan 冻结 | 🚫 | `plans/tooling-restructure-plan.md` 明确保留旧文档树为后续事项；本次只更正 `guide/lint.md` 的事实 | 不追改历史 plan；旧页保留横幅作对照 | 单独立项迁移整棵 guide 树 |
-| oxfmt / oxlint / tsdown / tsrs 的 0.x 精确锁 | 🚫 | catalog：`oxfmt 0.80.0`、`oxlint 1.95.0`、`tsdown 0.23.7`、`tsrs 7.1.0-beta.tsrs5` | 精确锁；升级单独批次，逐 key 对照当版文档 | 各自 1.0 / stable 后再评估范围 |
-| 不用 `tsrs --fast` | 🚫 | 官方定位「可能改变诊断与退出码」；评估 §5.5 | 门禁只用不带 `--fast` 的形态 | 不重开；除非门禁不再以退出码为判据 |
-| 不升 Vitest 5 | 🚫 | Vitest 4.1.2 的 peer 已含 vite ^8；评估 §5.9 | 单独立项 | 有明确收益且能独立验收 |
-| 不重划 Vite 分包 / 共享包不改 ESM-only | 🚫 | 成熟 Vite 8 应用只动 minify 与文件名；后端 `require` 是既成事实；评估 §6.3 / §7.3 | 保持 `codeSplitting.groups` 现状；CJS 维护模式够用 | 单独立项，带运行期证据 |
+| ID | 条目 | 类别 | 证据或提交号 | 跟进方式 | 解除条件 |
+|----|------|------|--------------|----------|----------|
+| D01 | 裸装 `typescript@7` | 🚫 | 评估 §5.4 / §8.1；nest-cli #3479 open、PR #3554 未批；vue-tsc 的 peer `<7` | 不装；TNB 外壳是当前唯一合法形态；每季度复核上游 | nest-cli 支持 7.1 API（含 watch / paths）且 vue-tsc peer 放宽 |
+| D02 | TNB project-mode 的处置（原「是否给上游提 issue」） | 🚫 | 决策点 ②：2026-11-28 用户决定**不提**上游 issue；复现矩阵 17 种形态证明是使用形态约束而非引擎缺陷；两条绕法实测可用（classic 风格；project + 显式 host + 物化） | 不主动追上游；新消费者按 ADR 0031 的约束条款走 classic，确需 project 语义时显式 host + 物化。**TNB 升级时须重跑 17 格调用形态矩阵**（探针脚本不随仓保留，核心断言已内嵌 §6；升级后若行为漂移，按 ADR 0031 的约束条款评估） | 上游自行修复「无 host 的 emit 静默 0 文件」或 `getSourceFiles()` 薄桩并回归通过；届时复评（不主动提 issue） |
+| D03 | tsrs 在 Windows 的 `--watch` | 🚫 | 评估 §5.5：NotImplemented，退出码 5；缺 fswatch 后端与 LSP watchdog，无跟踪 issue、无 ETA | 本地 `typecheck:watch` 永久用 tsc（Zerion 模式） | 上游补齐 fswatch / LSP watchdog |
+| D04 | tsrs #1114 约 1% 随机失败 | 🚫 | 评估 §5.5：1,240 次里 12 次；团队决策只跟踪、不加双跑门禁 | 转正后保留「一行改回 tsc」的回滚；出现可复现模式再复评 | issue 关闭，或锁定触发条件并给出可靠绕法 |
+| D05 | tsrs prerelease 的版本纪律 | 🚫 | `7.1.0-beta.tsrs5` 精确锁；无 `next` tag、`tsrsN` 排序只到 9、packaged validation 仍 pending | catalog 禁范围；升级单独批次并跑全量诊断 diff | 发布 stable 且 packaged validation 转正 |
+| D06 | oxlint 不 lint Vue 模板 | 🚫 | 官方兼容矩阵只 lint `.vue` 的 script 块；评估 §7.1 | 模板规则留 ESLint；配置里写明所有权 | 官方宣布模板 lint 且本仓实测误报可接受 |
+| D07 | 五条本地规则留在 ESLint | 🚫 | `walnut-comment/no-emoji`、`walnut-script/script-header`、`walnut-script/script-exit-code`、`local/sort-nestjs-decorators`、`local/no-cross-lib-relative-import`；jsPlugins 仍是 alpha | 保留；不移植 | jsPlugins 稳定且能用 RuleTester 平移 |
+| D08 | oxlint type-aware 不进门禁 | 🚫 | `pnpm exec oxlint --type-aware` 仅是观测；monorepo 需先构建依赖 d.ts，而共享包 `types` 指源码、dist d.ts 已无 | 只观测；不接门禁 | 有真实 d.ts 管线，或 oxlint 支持源码类型；先观测零误报 |
+| D09 | 不全量替换 ESLint | 🚫 | 评估 §7.1 / §10；Vue 模板、本地规则、类型感知分层至少一项留 ESLint | 双轨是终点，不是过渡态 | 不重开；三项都被替代后才复议 |
+| D10 | admin 的两条 typescript 链 | 🚫 | `fc786d47`；vue-tsc / ESLint 走 TNB（各自带 host 的 project / watch 形态），`apps/admin/build/generate/genJSONSchemas.ts` 走 `tsrs/sync` | 保持；生成器产物与基线逐字节对齐；project 形态已可用（显式 host + 物化），但外部 TJS 不会主动物化薄桩，故不以「搬回 TJS」为目标 | 外部 TJS 若支持预建 program 或自动物化，且产物过同一字节基线；不强制 |
+| D11 | `dts: false` / `dist/*.d.ts` 消失 | 🚫 | 评估 §4.4 / §7.3；`types` 条件指源码，dist d.ts 无消费者 | 不偷偷开 dts；这是预期变化 | 出现真实 dist d.ts 消费者，另立项目并处理 rolldown-plugin-dts |
+| D12 | `publint` / `attw` 不作门禁 | 🚫 | 两者在 `exports` 指 `.ts` 时必然假阳性；执行计划 §8.3 | 关闭；临时跑过只记假阳性类型 | `exports` 改成指 dist |
+| D13 | P0 基线数据不随仓库保存 | 🚫 | `dc93c473`；基线落在 gitignored 的 `.zcode/`，含机器耗时与截图 | 保留判据与提交号在文档；绝对值只在本机 | 需要跨机对比时改存归一化诊断清单，不存耗时 |
+| D14 | 旧 `guide/` 文档树 / 纯历史 plan 冻结 | 🚫 | `plans/tooling-restructure-plan.md` 明确保留旧文档树为后续事项；本次只更正 `guide/lint.md` 的事实 | 不追改历史 plan；旧页保留横幅作对照 | 单独立项迁移整棵 guide 树 |
+| D15 | oxfmt / oxlint / tsdown / tsrs 的 0.x 精确锁 | 🚫 | catalog：`oxfmt 0.80.0`、`oxlint 1.95.0`、`tsdown 0.23.7`、`tsrs 7.1.0-beta.tsrs5` | 精确锁；升级单独批次，逐 key 对照当版文档 | 各自 1.0 / stable 后再评估范围 |
+| D16 | 不用 `tsrs --fast` | 🚫 | 官方定位「可能改变诊断与退出码」；评估 §5.5 | 门禁只用不带 `--fast` 的形态 | 不重开；除非门禁不再以退出码为判据 |
+| D17 | 不升 Vitest 5 | 🚫 | Vitest 4.1.2 的 peer 已含 vite ^8；评估 §5.9 | 单独立项 | 有明确收益且能独立验收 |
+| D18 | 不重划 Vite 分包 / 共享包不改 ESM-only | 🚫 | 成熟 Vite 8 应用只动 minify 与文件名；后端 `require` 是既成事实；评估 §6.3 / §7.3 | 保持 `codeSplitting.groups` 现状；CJS 维护模式够用 | 单独立项，带运行期证据 |
 
 ### 5. 决策点 ①：oxfmt 的 `sortImports` / `sortPackageJson` 要不要现在开
 
@@ -112,10 +118,12 @@
   `tooling/eslint-config/sort-ownership.ts`）。全仓实测 **2 文件 +3/−3**，都在
   `apps/server` 的两个 `.d.ts`（oxfmt 不读 tsconfig paths，`@walnut(-server)/*` 落
   external 组，而 perfectionist 按 internal 处理）—— 按并行「不碰 server」约束本次未落盘。
-- `sortPackageJson`：`true`；ESLint 只对 `**/package.json` 关 `jsonc/sort-keys`，其他 JSON /
-  tsconfig 的键序规则不动。全仓 **17 个 `package.json`** 键序重排。oxfmt 同样排
-  `dependencies` / `overrides`；不排 `exports` 子键与 `files` 数组（`files` 仍归
-  `jsonc/sort-array-values`）。
+- `sortPackageJson`：`true`；ESLint 只对 `**/package.json` 的 `jsonc/sort-keys` 改成**窄版**
+  （`exports` 条件序 + `resolutions` / `pnpm.overrides` 的 asc），其他 JSON / tsconfig 的键序规则不动。
+  全仓 **17 个 `package.json`** 键序重排。oxfmt 排根键序与 `dependencies` 的 asc；
+  **不排** `exports` 子键、`pnpm.overrides` 子键与 `files` 数组（前两者由窄版 `jsonc/sort-keys`
+  接管，`files` 仍归 `jsonc/sort-array-values`）。2026-11-28 实测：`dependencies` 被排成 asc、
+  `pnpm.overrides` 原样不动。
 - 循环对照：`eslint --fix` 与 `oxfmt --write` 交替两轮，受影响文件的 sha256 全程不变。
 - 回滚必须成对：`.oxfmtrc.json` 两个开关 + `sort-ownership.ts` 两条关闭，单改一边会互相改回去。
 
@@ -1016,11 +1024,13 @@ pnpm exec oxfmt --check *.ts *.json *.yaml
 ### 6.4 lint-staged 与 lefthook
 
 根 `package.json` 的 `lint-staged` 改成数组（**顺序固定**，`oxlint` 的位次由批次 5 插入）。**`package.json` 是严格 JSON：下面两个注释不能带进去，理由写进回报即可。**
+（**2026-11-28 更正**：现行顺序是 `oxlint --fix` → `eslint --fix` → `oxfmt --write`（格式化器收尾），
+glob 也扩了 —— 下面这段是批次 4 的历史作业单，理由见 §6.4 末尾的收尾更正。）
 
 ```jsonc
 {
   "lint-staged": {
-    // 顺序就是所有权：先格式化，再 lint。
+    // 顺序就是所有权：先格式化，再 lint。（历史形态；现行顺序见 §6.4 的 2026-11-28 更正）
     // 批次 5 会在 oxfmt 与 eslint 之间插入 "oxlint --fix"，位次现在就要守住。
     "*.{ts,vue,js}": [
       "oxfmt --write",
@@ -1033,6 +1043,16 @@ pnpm exec oxfmt --check *.ts *.json *.yaml
 - `lefthook.yml` **不需要改**（`--max-arg-length=4000` 在它的 `run` 值里，原样保留）。
 - 如果确实要改 `lefthook.yml` 的 `run` 值：**不许带双引号**（Windows 上 lefthook 的引号拼接会静默丢参，`lefthook-config.test.ts` 机械拦）。
 - glob 只有 `*.{ts,vue,js}` 这一版：JSON / YAML / CSS 的格式化**只在 `format:check` 门禁里覆盖**，不在 pre-commit 自动改。这是有意的（pre-commit 只碰代码，避免提交时静默重排配置文件）。
+
+> **2026-11-28 收尾更正（R7 · 本节的顺序与 glob 两份口径都变了）**：上面是批次 4 当时的作业单，
+> 保留作历史记录。**现行顺序是 `oxlint --fix` → `eslint --fix` → `oxfmt --write`** ——
+> 格式化器必须收尾：`eslint --fix` 会拆 / 合并 import 语句（如把 `import { type X }` 拆成
+> `import type`），oxfmt 再按 `sortImports` 重排；反过来（先格式化）时最终文本不满足格式判据，
+> pre-push 的 `format:check` 直接红（2026-11-28 实测：旧顺序跑完后 `oxfmt --check` exit 1；
+> 新顺序连跑两轮 sha256 不变）。glob 也扩到 `.tsx` / `.json` / `.yml` / `.yaml`：
+> 代码与数据文件分成两个**不相交**的 glob（lint-staged 的多个 glob 条目并行执行，重叠会 race），
+> JSON / YAML 只走 ESLint + oxfmt。现行形态见根 `package.json` 与
+> [ESLint 配置](../monorepo/eslint.md) 第 4 节。
 
 ### 6.5 stylistic 彻底拆除
 

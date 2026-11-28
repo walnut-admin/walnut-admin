@@ -202,7 +202,7 @@ stylelint 已移除，无需关闭。
 
 ### vscode 配合
 
-不再需要安装 prettier 插件（格式化由 ESLint 插件承担）。
+不再需要安装 prettier 插件（格式化由 **oxfmt** 承担：`pnpm walnut format:fix` / `format:check`；ESLint 的三个预设都已 `stylistic: false`）。
 
 ### 手动校验
 
@@ -253,10 +253,14 @@ git commit -m "xxx" --no-verify
 ```json
 {
   "lint-staged": {
-    "*.{ts,vue,js}": [
-      "oxfmt --write",
+    "*.{ts,tsx,vue,js}": [
       "oxlint --fix",
-      "eslint --fix --concurrency=4"
+      "eslint --fix --concurrency=4",
+      "oxfmt --write"
+    ],
+    "*.{json,yml,yaml}": [
+      "eslint --fix --concurrency=4",
+      "oxfmt --write"
     ]
   }
 }

@@ -16,10 +16,10 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm
 | 层级 | 技术 |
 |------|------|
 | 包管理 | pnpm 12+（workspace + catalog，`catalogMode: strict`） |
-| 任务编排 | Turborepo 2.9（任务拓扑 + 缓存 + 架构边界） |
-| 类型系统 | TypeScript 6.0（前端 ESM + 后端 CJS，双轨 toolchain） |
-| 代码检查 | ESLint 10.3 flat config + `@antfu/eslint-config` + `@walnut/eslint-config` |
-| 格式化 | oxfmt（`oxfmt --check` 是唯一真源；ESLint 已 `stylistic: false`、`eslint-config-prettier` 兜底） |
+| 任务编排 | Turborepo 2.11.2（任务拓扑 + 缓存 + 架构边界） |
+| 类型系统 | TypeScript 双形态：包面是 TNB（classic 6.0.3 外壳 + 进程内 tsgo 7.0.2 引擎），检查侧 12 个包用 tsrs、admin/docs 用 vue-tsc（[ADR 0031](../adr/0031-rust-toolchain-migration.md)） |
+| 代码检查 | oxlint（`correctness` 兜底 + 少量显式增量）+ ESLint 10.3 flat config（`@antfu/eslint-config` + `@walnut/eslint-config`）；Vue 模板、本地规则、类型感知分层留 ESLint |
+| 格式化 | oxfmt（`oxfmt --check` 是唯一真源，含 `sortPackageJson` / `sortImports`；ESLint 已 `stylistic: false`、`eslint-config-prettier` 兜底） |
 | 版本管理 | pnpm 原生 release management（`versioning.fixed` 单一组：**全部 workspace 包**永远同版本，组成员数由 `versioning-config.test.ts` 机械拦） |
 | 变更日志 | git-cliff 逐包渲染 `CHANGELOG.md`（PR 链接 + 贡献者）；`pnpm release` 另生成根 `changelog-latest.md` |
 | 死代码检测 | Knip 6.29（**2026-11-28 起 exit 0**；仍不进硬门禁，见 [Knip](./knip.md)） |
