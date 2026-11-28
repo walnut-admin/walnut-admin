@@ -293,17 +293,6 @@
       "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
       "cache": true
     },
-    // tsrs 的**影子任务**（执行计划 §9.1 第 4 条）：与 `types:check` 并行跑、只观测。
-    // `dependsOn: ["transit"]` 与 `types:check` 同口径 —— 共享包源码是类型真源，
-    // 断了它上游改源码时影子会回放旧结论（假绿），影子期的诊断 diff 就失去意义。
-    // `outputs: []` 是事实：tsrs 只报诊断，不产出文件（server 侧还显式 `--incremental false`）。
-    // 转正（§9.3）时删掉这一整个任务。
-    "types:check:tsrs": {
-      "dependsOn": ["transit"],
-      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
-      "outputs": [],
-      "cache": true
-    },
     "test": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],

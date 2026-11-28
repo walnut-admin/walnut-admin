@@ -122,15 +122,6 @@ jobs:
       - name: Type check (affected)
         run: pnpm exec turbo run types:check --affected
 
-      # tsrs 的**影子期**步骤（执行计划 §9.1 第 6 条）：与上面那条 tsc 并行跑，判据是
-      # 「时长 + 诊断 diff」（§9.2），**不是**这个 step 的红绿。
-      # `continue-on-error: true` 就是这一步的全部含义：它不阻断任何东西、不进任何门禁表，
-      # 删掉这几行即完成回滚。期满整批转正（§9.3）时连同命令表条目与本 step 一起删。
-      # 刻意不用 `--affected`：影子期要的是全仓读数（与 §9.2 的 `pnpm walnut types:check` 同口径）。
-      - name: Type check with tsrs (report only)
-        continue-on-error: true
-        run: pnpm walnut types:check:tsrs
-
       - name: Tests (affected)
         run: pnpm exec turbo run test --affected
 

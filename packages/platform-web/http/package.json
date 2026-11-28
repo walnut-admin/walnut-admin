@@ -15,8 +15,7 @@
     "build": "echo 'http: pure source, no build needed'",
     "lint": "eslint . --concurrency=4",
     "lint:fix": "eslint . --fix --concurrency=4",
-    "types:check": "tsc --noEmit",
-    "types:check:tsrs": "tsrs --noEmit --pretty",
+    "types:check": "tsrs --noEmit --pretty",
     "clean": "rimraf dist",
     "clean:all": "rimraf dist node_modules"
   },
