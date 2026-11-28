@@ -24,6 +24,7 @@ import {
   formatLine,
   GATE_BUDGET_MS,
   gateBudgetMs,
+  isNativeCrashFailure,
   nativeCrashNote,
   PREPUSH_BUDGET_ENV,
   PREPUSH_GATES,
@@ -245,6 +246,14 @@ describe('formatLine —— 结果行（三态）', () => {
     const long = formatLine({ gate, status: 'ok', ms: 12_300, output: '' })
     expect(short.indexOf('某段门禁')).toBe(long.indexOf('某段门禁'))
   })
+
+  it('崩溃后重试过的行在行尾标注（先崩后过不能与一次就过同形）', () => {
+    expect(formatLine({ gate, status: 'ok', ms: 1234, output: '', retried: true })).toBe(
+      '  ✓    1.2s  某段门禁  [崩溃后重试]',
+    )
+    // 没有重试过的行一个字符都不变（既有读法不受影响）
+    expect(formatLine({ gate, status: 'ok', ms: 1234, output: '' })).toBe('  ✓    1.2s  某段门禁')
+  })
 })
 
 /**
@@ -306,6 +315,203 @@ describe('runGates —— 三态（跳过既不算通过、也不算失败）', 
       'b:skipped',
       'c:failed',
     ])
+  })
+})
+
+/**
+ * 原生崩溃重试（判据与上游证据见 prepush.ts 的 isNativeCrashFailure 注释）。
+ *
+ * 用它钉住的四条边：① Windows 上崩溃 → 重试一次 → 绿；② 普通失败不重试；③ 只重试一次；
+ * ④ Linux 上同一份输出不重试（CI 口径不变）。超时 / 非 turbo 重道两条边界也在下面。
+ */
+describe('runGates —— 原生崩溃自动重试一次（Windows 专属，普通失败不重试）', () => {
+  /** `lane` 用 `null` 表达「不占道」（不能用 `undefined`：那会触发默认参数） */
+  const mkGate = (id: string, lane: string | null = TURBO_LANE): PrepushGate => ({
+    id,
+    label: `段 ${id}`,
+    argv: ['x'],
+    why: 'y'.repeat(30),
+    ...(lane === null ? {} : { lane }),
+  })
+
+  /** turbo 转述崩溃的真实形态（样本取自 2026-11-24 的门禁失败回放） */
+  const CRASH_LINE =
+    '@walnut/admin#lint:  ERROR  command (apps/admin) pnpm.cmd run lint exited (-1073741819)'
+
+  it('输出里的崩溃转述（exit 1）⇒ 重试一次；第二次通过 ⇒ ok 且 retried（先崩后过）', async () => {
+    let attempts = 0
+    const [result] = await runGates(
+      [mkGate('lint')],
+      () => {},
+      1,
+      async (_gate, write) => {
+        attempts += 1
+        if (attempts === 1) {
+          write(CRASH_LINE)
+          throw new ChildRunError('lint 失败：退出码 1', 1)
+        }
+      },
+      { platform: 'win32' },
+    )
+    expect(attempts).toBe(2)
+    expect(result!.status).toBe('ok')
+    expect(result!.retried).toBe(true)
+    // 第一次的崩溃原文与重试分界线都留在输出里（失败回放时是唯一线索）
+    expect(result!.output).toContain('exited (-1073741819)')
+    expect(result!.output).toContain('自动重试一次')
+  })
+
+  it('直接以崩溃码退出（不经 turbo 转述，exit 3221225477）⇒ 同样重试', async () => {
+    let attempts = 0
+    const [result] = await runGates(
+      [mkGate('lint')],
+      () => {},
+      1,
+      async () => {
+        attempts += 1
+        if (attempts === 1) throw new ChildRunError('子进程直接崩溃', 3221225477)
+      },
+      { platform: 'win32' },
+    )
+    expect(attempts).toBe(2)
+    expect(result!.status).toBe('ok')
+    expect(result!.retried).toBe(true)
+  })
+
+  it('普通 lint 失败（exit 1、输出里没有崩溃特征）⇒ 一次都不重试', async () => {
+    let attempts = 0
+    const [result] = await runGates(
+      [mkGate('lint')],
+      () => {},
+      1,
+      async (_gate, write) => {
+        attempts += 1
+        write('  28:3  error  Prefer using a top-level type-only import')
+        throw new ChildRunError('lint 失败：退出码 1', 1)
+      },
+      { platform: 'win32' },
+    )
+    expect(attempts).toBe(1)
+    expect(result!.status).toBe('failed')
+    expect(result!.retried).toBeUndefined()
+  })
+
+  it('重试后仍崩溃 ⇒ failed，且只重试一次（不无限重试）', async () => {
+    let attempts = 0
+    const [result] = await runGates(
+      [mkGate('lint')],
+      () => {},
+      1,
+      async (_gate, write) => {
+        attempts += 1
+        write(CRASH_LINE)
+        throw new ChildRunError('lint 失败：退出码 1', 1)
+      },
+      { platform: 'win32' },
+    )
+    expect(attempts).toBe(2)
+    expect(result!.status).toBe('failed')
+    expect(result!.retried).toBe(true)
+  })
+
+  it('在 Linux 上同一份崩溃输出不重试（CI 行为一行都不变）', async () => {
+    let attempts = 0
+    const [result] = await runGates(
+      [mkGate('lint')],
+      () => {},
+      1,
+      async (_gate, write) => {
+        attempts += 1
+        write(CRASH_LINE)
+        throw new ChildRunError('lint 失败：退出码 1', 1)
+      },
+      { platform: 'linux' },
+    )
+    expect(attempts).toBe(1)
+    expect(result!.status).toBe('failed')
+    expect(result!.retried).toBeUndefined()
+  })
+
+  it('非 turbo 重道的段不重试（范围就是实测出崩溃的扇出面）', async () => {
+    let attempts = 0
+    await runGates(
+      [mkGate('lint:adr', null)],
+      () => {},
+      1,
+      async (_gate, write) => {
+        attempts += 1
+        write(CRASH_LINE)
+        throw new ChildRunError('adr 失败', 1)
+      },
+      { platform: 'win32' },
+    )
+    expect(attempts).toBe(1)
+  })
+
+  it('超时（exit 2）即使输出里带崩溃转述也不重试（重试一次 = 预算翻倍）', async () => {
+    let attempts = 0
+    await runGates(
+      [mkGate('lint')],
+      () => {},
+      1,
+      async (_gate, write) => {
+        attempts += 1
+        write(CRASH_LINE)
+        throw new ChildRunError('超时（>900s）', 2)
+      },
+      { platform: 'win32' },
+    )
+    expect(attempts).toBe(1)
+  })
+})
+
+/**
+ * 判据本身（纯函数）：识别崩溃特征，不被普通失败 / 超时 / 跳过 / 裸数字带跑。
+ *
+ * 「认得出」与「不误认」缺一条都会让重试变成有害机制：认不出 = 机制永远不生效；
+ * 误认 = 把一条真的门禁失败重跑一遍，还可能在修不好的机器上把每段都拖成两倍。
+ */
+describe('isNativeCrashFailure —— 崩溃特征的三条边（平台 / 退出码 / 上下文）', () => {
+  const crashOutput = '@walnut/admin#lint: ERROR command ... exited (-1073741819)'
+  const plain = '  28:3  error  Prefer using a top-level type-only import'
+
+  it('win32 + turbo 转述 + exit 1 ⇒ true', () => {
+    expect(isNativeCrashFailure(new ChildRunError('失败', 1), crashOutput, 'win32')).toBe(true)
+  })
+
+  it('win32 + 直接崩溃码（无符号与有符号两种写法）⇒ true', () => {
+    for (const code of [3221225477, -1073741819]) {
+      expect(isNativeCrashFailure(new ChildRunError('崩溃', code), '', 'win32')).toBe(true)
+    }
+  })
+
+  it('win32 + 十六进制写法（exit code 0xC0000005）⇒ true；裸数字 ⇒ false', () => {
+    expect(
+      isNativeCrashFailure(new ChildRunError('失败', 1), 'exit code 0xC0000005', 'win32'),
+    ).toBe(true)
+    expect(
+      isNativeCrashFailure(new ChildRunError('失败', 1), '耗时 3221225477 纳秒', 'win32'),
+    ).toBe(false)
+  })
+
+  it('exit 2（超时 / 没跑起来 / 被信号结束）与 exit 3（未验证）都不是崩溃', () => {
+    expect(isNativeCrashFailure(new ChildRunError('超时', 2), crashOutput, 'win32')).toBe(false)
+    expect(isNativeCrashFailure(new ChildRunError('跳过', 3), crashOutput, 'win32')).toBe(false)
+  })
+
+  it('非 ChildRunError（执行器自身的编程错误）不算崩溃', () => {
+    expect(isNativeCrashFailure(new TypeError('boom'), crashOutput, 'win32')).toBe(false)
+  })
+
+  it('非 win32 平台一律 false（同一份输出在 Linux 上不重试）', () => {
+    for (const platform of ['linux', 'darwin'] as const) {
+      expect(isNativeCrashFailure(new ChildRunError('失败', 1), crashOutput, platform)).toBe(false)
+      expect(isNativeCrashFailure(new ChildRunError('崩溃', 3221225477), '', platform)).toBe(false)
+    }
+  })
+
+  it('普通失败输出 ⇒ false（不许把真违规说成「重跑就好」）', () => {
+    expect(isNativeCrashFailure(new ChildRunError('失败', 1), plain, 'win32')).toBe(false)
   })
 })
 
@@ -632,6 +838,50 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
       else process.env[PREPUSH_BUDGET_ENV] = saved
     }
   }, 30_000)
+
+  /**
+   * 崩溃重试的真接线：假执行器测的是调度策略，这条测的是**生产路径**（runArgs 捕获输出 →
+   * ChildRunError → 重试）真的把第一次的 crash 转述交给了判据。子进程按 turbo 的形态打印
+   * 转述并以 1 退出（不做真实原生崩溃：那不可控，也不是本用例要证明的东西）。
+   */
+  it('真子进程：第一次打印崩溃转述并 exit 1，第二次通过 ⇒ 自动重试且段变绿', async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'walnut-prepush-crash-retry-'))
+    try {
+      const counter = path.join(dir, 'attempts.txt')
+      const argv = script([
+        `const fs = process.getBuiltinModule('node:fs')`,
+        `const counter = ${JSON.stringify(counter)}`,
+        `let attempts = 0`,
+        `try { attempts = Number(fs.readFileSync(counter, 'utf8')) } catch {}`,
+        `fs.writeFileSync(counter, String(attempts + 1))`,
+        `if (attempts === 0) {`,
+        `  fs.writeSync(1, '@walnut/admin#lint:  ERROR  command pnpm.cmd run lint exited (-1073741819)\\n')`,
+        `  process.exit(1)`,
+        `}`,
+      ])
+      const gate = {
+        id: 'lint',
+        label: '段 lint',
+        argv,
+        why: 'y'.repeat(30),
+        lane: TURBO_LANE,
+      }
+      const [result] = await withoutBudgetEnv(() =>
+        runGates([gate], () => {}, 1, createPnpmGateExecutor({ bin: process.execPath }), {
+          platform: 'win32',
+        }),
+      )
+
+      // 结构判据（与机器快慢无关）：计数器由子进程自己写，2 = 真的跑了两次
+      expect(readFileSync(counter, 'utf8')).toBe('2')
+      expect(result!.status).toBe('ok')
+      expect(result!.retried).toBe(true)
+      expect(result!.output).toContain('自动重试一次')
+    } finally {
+      // 自建的临时目录（os.tmpdir 下，不是仓库内容）
+      rmSync(dir, { recursive: true, force: true })
+    }
+  }, 30_000)
 })
 
 describe('strictFailureMessage —— PREPUSH_STRICT 的口径', () => {
@@ -664,6 +914,11 @@ describe('summarizeRun —— 成功汇总里也要看得见「跳过」', () =>
     status,
     ms: 1000,
     output: '',
+  })
+  /** 「崩溃后重试过」的结果（`retried` 只影响可读性，不参与三态） */
+  const retried = (id: string, status: 'ok' | 'failed' = 'ok') => ({
+    ...result(id, status),
+    retried: true,
   })
 
   it('全都真跑通过：不出现「跳过」字样（没有跳过时那句是噪音）', () => {
@@ -698,6 +953,20 @@ describe('summarizeRun —— 成功汇总里也要看得见「跳过」', () =>
     expect(summary.failed.map((r) => r.gate.id)).toEqual(['b'])
     expect(summary.skipped.map((r) => r.gate.id)).toEqual(['workflows'])
     expect(summary.okLine).toBe('3 段：1 段真跑通过 / 1 段跳过（未验证）（总 2.0s）')
+  })
+
+  it('「崩溃后重试通过」的段在成功汇总里单列（不判红，但机器不稳必须看得见）', () => {
+    const summary = summarizeRun([result('a', 'ok'), retried('lint')], '10.0', false)
+    expect(summary.failed).toHaveLength(0)
+    expect(summary.retriedPassedLine).toContain('lint')
+    expect(summary.retriedPassedLine).toContain('先崩后过')
+    // 三态报数照旧：先崩后过仍然计入「真跑通过」，不另起一档
+    expect(summary.okLine).toBe('2 段：2 段真跑通过（总 10.0s）')
+  })
+
+  it('一次就过 / 崩溃后仍失败 ⇒ 没有「重试通过」名单（不制造噪音）', () => {
+    expect(summarizeRun([result('a', 'ok')], '1.0', false).retriedPassedLine).toBeNull()
+    expect(summarizeRun([retried('lint', 'failed')], '1.0', false).retriedPassedLine).toBeNull()
   })
 })
 
@@ -796,5 +1065,13 @@ describe('nativeCrashNote —— 认得出原生崩溃，也不把它误判到�
     ]) {
       expect(nativeCrashNote(sample), `误认了：${sample}`).toBeNull()
     }
+  })
+
+  it('已自动重试过（retried=true）⇒ 不再说「重跑一次通常就过」，指向抓转储', () => {
+    const note = nativeCrashNote('@walnut/admin#lint: exited (-1073741819)', true)
+    expect(note).not.toBeNull()
+    expect(note).toContain('自动重试一次')
+    expect(note).toContain('最终仍未通过')
+    expect(note).not.toContain('重跑一次通常就过')
   })
 })
