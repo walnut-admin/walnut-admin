@@ -15,16 +15,4 @@ export default registerAs('vendor', () => ({
       roleSessionName: process.env.VENDOR_KEYS_ALI_OSS_ROLE_SESSION_NAME,
     },
   },
-
-  tx: {
-    SMS: {
-      region: process.env.VENDOR_KEYS_TX_SMS_REGION,
-      id: process.env.VENDOR_KEYS_TX_SMS_ID,
-      secret: process.env.VENDOR_KEYS_TX_SMS_SECRET,
-      endPoint: process.env.VENDOR_KEYS_TX_SMS_ENDPOINT,
-      sdkAppId: process.env.VENDOR_KEYS_TX_SMS_SDK_APP_ID,
-      signName: process.env.VENDOR_KEYS_TX_SMS_SIGN_NAME,
-      templateId: process.env.VENDOR_KEYS_TX_SMS_TEMPLATE_ID,
-    },
-  },
 }))

@@ -296,28 +296,6 @@ export class EnvironmentVariables {
 
   @IsString()
   VENDOR_KEYS_ALI_OSS_ROLE_SESSION_NAME: string
-
-  /* tencent sms */
-  @IsString()
-  VENDOR_KEYS_TX_SMS_REGION: string
-
-  @IsString()
-  VENDOR_KEYS_TX_SMS_ID: string
-
-  @IsString()
-  VENDOR_KEYS_TX_SMS_SECRET: string
-
-  @IsString()
-  VENDOR_KEYS_TX_SMS_ENDPOINT: string
-
-  @IsString()
-  VENDOR_KEYS_TX_SMS_SDK_APP_ID: string
-
-  @IsString()
-  VENDOR_KEYS_TX_SMS_SIGN_NAME: string
-
-  @IsString()
-  VENDOR_KEYS_TX_SMS_TEMPLATE_ID: string
 }
 
 export function validateConfig(config: Record<string, unknown>) {
