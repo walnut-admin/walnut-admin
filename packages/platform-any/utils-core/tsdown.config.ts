@@ -25,7 +25,10 @@ export default defineConfig({
   dts: false,
   // exports 五条件的形状生成器表达不了 ⇒ 手写不动，关掉生成
   exports: false,
-  // `easy-fns-ts` 是唯一的外部运行时依赖，保持 external（不内联进产物）
+  // 本包**当前零外部运行时依赖**（`src` 只 import 同包的 `./object-paths`）。这行是从 contract
+  // 的配置复制来的防御项：`easy-fns-ts` 不是本包的依赖、也没被 import，写在这里是「将来引入时
+  // 不内联进产物」的占位，而不是现状描述（2026-11-28 订正：旧注释称它是「唯一的外部运行时依赖」，
+  // 与 package.json / src 的实际情况不符）。
   deps: { neverBundle: ['easy-fns-ts'] },
   outputOptions: {
     exports: 'named',

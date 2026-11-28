@@ -30,6 +30,10 @@ export function createComponentPlugin(options: ViteConfigPluginsOptions) {
     // TS2558（3.2.8 容忍，故以前只是偶发解析错误），一次 build 能报 31 条假红。
     // `append` = 与既有声明合并后再写，文件**永不缩小**；且 dev 侧 `default` 本来就是 append 语义
     // （`_removeUnused = syncMode === 'overwrite'`），所以这只是让 build 与 dev 一致。
+    //
+    // `append` 的代价（必须知道）：声明只增不减 ⇒ **删除 / 改名组件后 `components.d.ts` 会留下
+    // 陈旧条目**，需要手动清理，或定期以 `default` 模式重生一次。它把「半写窗口」的概率大幅降低，
+    // 但没有从机制上消除（真正的消除要等插件提供原子写入 / 单次 scan）。
     syncMode: 'append',
     dts: options.componentsDtsPath,
 
