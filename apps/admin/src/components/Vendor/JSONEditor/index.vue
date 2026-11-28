@@ -18,6 +18,10 @@ const [DefineJSONEditor, ReuseJSONEditor] = createReusableTemplate()
 
 const showModal = ref(false)
 
+function onOpenModal() {
+  showModal.value = true
+}
+
 watch(
   () => isDark.value,
   async (v) => {
@@ -42,7 +46,7 @@ watch(
     </DefineJSONEditor>
 
     <template v-if="button">
-      <WButton type="primary" @click="showModal = true">
+      <WButton type="primary" @click="onOpenModal">
         {{ $t('app.base.checkOrEdit') }}
       </WButton>
 

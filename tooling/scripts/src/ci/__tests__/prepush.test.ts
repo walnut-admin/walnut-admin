@@ -166,6 +166,7 @@ describe('pREPUSH_GATES —— 表本身', () => {
       'circular',
       'lint',
       'lint-root',
+      'lint:oxlint',
       'format',
       'types',
       'types-root',

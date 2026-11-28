@@ -76,6 +76,10 @@ const RELEASE_BATTERY: BatteryStep[] = [
     label: 'lint 根级配置（turbo run //#lint:root）',
     argv: ['exec', 'turbo', 'run', 'lint:root'],
   },
+  // oxlint 双轨期的 correctness 兜底（与 prepush 的 lint:oxlint 段同步）。不经 turbo：
+  // 根跑一次约 0.1s（2164 文件 / 111ms），发版面没有理由少这一段 —— 它是「明显写错」的
+  // 第一道快速通道，而 ESLint 的 affected 面在发版机上是全量重跑。
+  { id: 'lint:oxlint', label: 'oxlint 快速检查（correctness 兜底）', argv: ['lint:oxlint'] },
   // 格式的唯一真源是 oxfmt（ESLint 已 `stylistic: false`）。与 prepush 的 format 段同步；
   // 发版面看得见它还有一层意义 —— 发版要构建，而格式漂移在构建里不会报。
   { id: 'format', label: '格式检查（oxfmt --check）', argv: ['format:check'] },

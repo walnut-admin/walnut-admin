@@ -43,6 +43,7 @@ describe('releaseBatteryArgvs —— 会跑的那几行', () => {
       ['madge:check'],
       ['exec', 'turbo', 'run', 'lint'],
       ['exec', 'turbo', 'run', 'lint:root'],
+      ['lint:oxlint'],
       ['format:check'],
       ['exec', 'turbo', 'run', 'types:check'],
       ['types:check:root'],

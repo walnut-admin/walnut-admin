@@ -178,6 +178,14 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     why: '根级文件（`eslint.config.ts` / `knip.config.ts` / `package.json` / `pnpm-workspace.yaml`）**不在任何包的 lint 范围里**（它们不进 turbo 的包图），所以必须单独一段。',
   },
   {
+    id: 'lint:oxlint',
+    label: 'oxlint 快速检查（correctness 兜底）',
+    // 不经 turbo：oxlint 在根跑一次（命令表 `exec oxlint --quiet`），改 `.oxlintrc.json` 立刻生效。
+    // 实测（2026-11-28）2164 文件 / 111ms，整段含 pnpm 启动 0.3s —— 全表最便宜的一段。
+    argv: ['lint:oxlint'],
+    why: 'oxlint 双轨期的 correctness 兜底（约 0.1s）：Vue 模板、本地规则、类型感知分层仍归 ESLint，但「明显写错」的第一道快速通道不能只在 CI 里跑 —— 推送前 0.3s 就能拿到结论，没必要等 CI 的 `Lint (affected)`。',
+  },
+  {
     id: 'format',
     label: '格式检查（oxfmt --check）',
     argv: ['format:check'],

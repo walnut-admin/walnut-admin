@@ -870,8 +870,8 @@ catalogs:
       specifier: 5.0.6
       version: 5.0.6
     vue-tsc:
-      specifier: 3.2.8
-      version: 3.2.8
+      specifier: 3.3.14
+      version: 3.3.14
     vue3-google-signin:
       specifier: 2.1.1
       version: 2.1.1
@@ -1248,7 +1248,7 @@ importers:
         version: 8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0)
       vue-tsc:
         specifier: 'catalog:'
-        version: 3.2.8(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)
+        version: 3.3.14(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)
       web-vitals:
         specifier: 'catalog:'
         version: 5.2.0
@@ -2111,7 +2111,7 @@ importers:
         version: 1.1.0(rollup@4.60.3)(supports-color@10.2.2)
       vite-plugin-checker:
         specifier: 'catalog:'
-        version: 0.14.5(eslint@10.3.0(jiti@2.7.0)(supports-color@10.2.2))(meow@13.2.0)(optionator@0.9.4)(oxlint@1.95.0)(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)(vite@8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))(vue-tsc@3.2.8(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2))
+        version: 0.14.5(eslint@10.3.0(jiti@2.7.0)(supports-color@10.2.2))(meow@13.2.0)(optionator@0.9.4)(oxlint@1.95.0)(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)(vite@8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))(vue-tsc@3.3.14(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2))
       vite-plugin-compression2:
         specifier: 'catalog:'
         version: 2.5.3(rollup@4.60.3)
@@ -2166,7 +2166,7 @@ importers:
         version: 3.5.34(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)
       vue-tsc:
         specifier: 'catalog:'
-        version: 3.2.8(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)
+        version: 3.3.14(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)
 
   tooling/vitest-config:
     devDependencies:
@@ -7231,13 +7231,35 @@ packages:
   '@volar/language-core@2.4.28':
     resolution: {integrity: sha512-w4qhIJ8ZSitgLAkVay6AbcnC7gP3glYM3fYwKV3srj8m494E3xtrCv6E+bWviiK/8hs6e6t1ij1s2Endql7vzQ==}
 
+  '@volar/language-core@2.4.30':
+    resolution: {integrity: sha512-73fjwEV8wat6aOZ6U/y/hqtE30ocrIWECg67b0txGczOMNw+MffLmvJ5fnFfN9drVUEYZzLdaNo6VAy6G6avMw==}
+
+  '@volar/language-service@2.4.30':
+    resolution: {integrity: sha512-w/xDsASiqC71ggCOm7sTDXDNk/l72XEptodeRC68tgZ0e5QM4hM3zAqBGC7mBctvhrpYwKfMG+t9xcUo2hEFtA==}
+    peerDependencies:
+      typescript: <7
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   '@volar/source-map@2.4.28':
     resolution: {integrity: sha512-yX2BDBqJkRXfKw8my8VarTyjv48QwxdJtvRgUpNE5erCsgEUdI2DsLbpa+rOQVAJYshY99szEcRDmyHbF10ggQ==}
+
+  '@volar/source-map@2.4.30':
+    resolution: {integrity: sha512-zym1ob/KwDDyN+0jGVtxwbxJSRRnUvv5HspCtz3yEfVVdCG4/dzxJktMGPAgemqRuVs81O0o/y0q3qOUErR8kg==}
 
   '@volar/typescript@2.4.28':
     resolution: {integrity: sha512-Ja6yvWrbis2QtN4ClAKreeUZPVYMARDYZl9LMEv1iQ1QdepB6wn0jTRxA9MftYmYa4DQ4k/DaSZpFPUfxl8giw==}
     peerDependencies:
       typescript: '*'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@volar/typescript@2.4.30':
+    resolution: {integrity: sha512-/DgA5tgYFPfrLFuSjIMXMGHk1LQv2+P8eny6+BhGNzFJELWIW7UZlc56ZLIRFhLsPpMfIFxM8/HvOPBggrjTZg==}
+    peerDependencies:
+      typescript: <7
     peerDependenciesMeta:
       typescript:
         optional: true
@@ -7335,6 +7357,9 @@ packages:
 
   '@vue/language-core@3.2.8':
     resolution: {integrity: sha512-9OiSPQFiAAWNVnXb0d2dcTmcKnFQamhuNES6ayyISrb/mwPWVgoGdAqSfCWqKhQpa3D5gDTcYD+w7ObiheZ81g==}
+
+  '@vue/language-core@3.3.14':
+    resolution: {integrity: sha512-kRB+3hHg0c+BdD1XLAvwjVMQd5pC05zijSlPDRI3ERvC/s04JlRs5upy2KjeMg/9m9oD5zuMVh9yVvkKfZqoJg==}
 
   '@vue/reactivity@3.5.34':
     resolution: {integrity: sha512-y9XDjCEuBp+98k+UL5dbYkh57AHU4o6cxZedOPXw3bmrZZYLQsVHguGurq7hVrPCSrQtrnz1f9dssyFr+dMXfQ==}
@@ -15132,6 +15157,12 @@ packages:
     peerDependencies:
       typescript: '>=5.0.0'
 
+  vue-tsc@3.3.14:
+    resolution: {integrity: sha512-URAu2H9AuMZMg9GCgnqbaHHHd8pBZRAwNV2e2yYS8VDsoTVXHiOSo663OS6DkEvauQ2yixn5TPFJ9WV9QIspkA==}
+    hasBin: true
+    peerDependencies:
+      typescript: '>=5.0.0'
+
   vue3-google-signin@2.1.1:
     resolution: {integrity: sha512-RwlwyeCv8+PZjK35C/UyJN4/9MH+Fsz4bJDO7IjtmRuOaTMrvmMmI6SP5qkJgD7w9MIKOCj5rYVFMAL7+NCM0A==}
     peerDependencies:
@@ -21094,12 +21125,39 @@ snapshots:
   '@volar/language-core@2.4.28':
     dependencies:
       '@volar/source-map': 2.4.28
+    optional: true
 
-  '@volar/source-map@2.4.28': {}
+  '@volar/language-core@2.4.30':
+    dependencies:
+      '@volar/source-map': 2.4.30
+
+  '@volar/language-service@2.4.30(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)':
+    dependencies:
+      '@volar/language-core': 2.4.30
+      vscode-languageserver-protocol: 3.17.5
+      vscode-languageserver-textdocument: 1.0.12
+      vscode-uri: 3.1.0
+    optionalDependencies:
+      typescript: typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2
+
+  '@volar/source-map@2.4.28':
+    optional: true
+
+  '@volar/source-map@2.4.30': {}
 
   '@volar/typescript@2.4.28(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)':
     dependencies:
       '@volar/language-core': 2.4.28
+      path-browserify: 1.0.1
+      vscode-uri: 3.1.0
+    optionalDependencies:
+      typescript: typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2
+    optional: true
+
+  '@volar/typescript@2.4.30(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)':
+    dependencies:
+      '@volar/language-core': 2.4.30
+      '@volar/language-service': 2.4.30(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)
       path-browserify: 1.0.1
       vscode-uri: 3.1.0
     optionalDependencies:
@@ -21275,6 +21333,17 @@ snapshots:
   '@vue/language-core@3.2.8':
     dependencies:
       '@volar/language-core': 2.4.28
+      '@vue/compiler-dom': 3.5.40
+      '@vue/shared': 3.5.40
+      alien-signals: 3.2.1
+      muggle-string: 0.4.1
+      path-browserify: 1.0.1
+      picomatch: 4.0.7
+    optional: true
+
+  '@vue/language-core@3.3.14':
+    dependencies:
+      '@volar/language-core': 2.4.30
       '@vue/compiler-dom': 3.5.40
       '@vue/shared': 3.5.40
       alien-signals: 3.2.1
@@ -30205,7 +30274,7 @@ snapshots:
       - rollup
       - supports-color
 
-  vite-plugin-checker@0.14.5(eslint@10.3.0(jiti@2.7.0)(supports-color@10.2.2))(meow@13.2.0)(optionator@0.9.4)(oxlint@1.95.0)(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)(vite@8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))(vue-tsc@3.2.8(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)):
+  vite-plugin-checker@0.14.5(eslint@10.3.0(jiti@2.7.0)(supports-color@10.2.2))(meow@13.2.0)(optionator@0.9.4)(oxlint@1.95.0)(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)(vite@8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))(vue-tsc@3.3.14(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)):
     dependencies:
       '@babel/code-frame': 7.29.7
       chokidar: 5.0.0
@@ -30221,7 +30290,7 @@ snapshots:
       optionator: 0.9.4
       oxlint: 1.95.0
       typescript: typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2
-      vue-tsc: 3.2.8(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)
+      vue-tsc: 3.3.14(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)
 
   vite-plugin-compression2@2.5.3(rollup@4.60.3):
     dependencies:
@@ -30548,6 +30617,13 @@ snapshots:
     dependencies:
       '@volar/typescript': 2.4.28(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)
       '@vue/language-core': 3.2.8
+      typescript: typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2
+    optional: true
+
+  vue-tsc@3.3.14(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2):
+    dependencies:
+      '@volar/typescript': 2.4.30(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)
+      '@vue/language-core': 3.3.14
       typescript: typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2
 
   vue3-google-signin@2.1.1(vue@3.5.34(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)):
