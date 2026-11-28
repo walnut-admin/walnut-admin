@@ -81,7 +81,7 @@
 
 | 对象 | 命令 | 关键配置事实 |
 |------|------|--------------|
-| admin | `vue-tsc --noEmit`（3.2.8） | tsconfig 用 `baseUrl` + `paths`；dev 期由 `vite-plugin-checker` 内嵌 typescript + vueTsc + eslint |
+| admin | `vue-tsc --noEmit`（3.2.8） | tsconfig 用 `baseUrl` + `paths`；dev 期由 `vite-plugin-checker` 内嵌 typescript + vueTsc + eslint（2026-11-28 起 checker 只保留 vueTsc + eslint：TNB 下 `typescript` checker 与 vueTsc 副本的 bridge 会争同一进程的单例，见执行计划 A21） |
 | server | `tsc --noEmit --pretty` | **独立 tsconfig，不 extends 任何预设**（ADR 0012）；`module: commonjs`；开 `experimentalDecorators` + `emitDecoratorMetadata`；**未显式声明 `moduleResolution`**；paths 里没有 `baseUrl` |
 | 其余包 | `tsc --noEmit` | 走 `@walnut/tsconfig` 的 base / ts / vue 预设；`ts.json` 开 `erasableSyntaxOnly`；base 带 `ignoreDeprecations`、`allowImportingTsExtensions`、`verbatimModuleSyntax` |
 

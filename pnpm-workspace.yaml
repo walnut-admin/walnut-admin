@@ -55,6 +55,14 @@ publicHoistPattern:
   # 只是 winston 的依赖、不是 nest-winston 的依赖 ⇒ nestLike 返回 error 类型
   # （logger/index.ts 的 ts/no-unsafe-argument）。
   - logform
+  # vite-plugin-checker 的 vue-tsc fixture：prepareVueTsc 把解析到的 `typescript`（本仓经
+  # catalog/overrides 换成了 TNB）**整目录复制**到 checker 自己的 dist 下，再在副本里
+  # `require.resolve('@typescript-native-bridge/<platform>-<arch>')` 找 native bridge。
+  # 副本的 node_modules 只有 .bin，兄弟目录的平台包在 hoist: false 下又解析不到 ⇒
+  # dev/build 一启动就 `tsgoChecker: bridge shared library not found`、vite 不监听端口。
+  # 这里用**scope 内 glob**（只有 7 个平台包，同一发布者、同一用途）：写死单个平台名会让
+  # CI（linux-x64）与非 Windows 开发机重蹈覆辙。
+  - '@typescript-native-bridge/*'
 
 # 拒绝"可信度下降"的版本：某包此前由可信发布者发布，现在只剩 provenance 或无可信证据时不安装。
 trustPolicy: no-downgrade
@@ -376,7 +384,7 @@ catalog:
   vite-plugin-banner: 0.8.1
   vite-plugin-bundle-obfuscator: 1.11.0
   vite-plugin-cdn2: 1.1.0
-  vite-plugin-checker: 0.14.5
+  vite-plugin-checker: 1.1.0
   vite-plugin-compression2: 2.5.3
   vite-plugin-csp-guard: 4.0.1
   vite-plugin-devtools-json: 1.0.0

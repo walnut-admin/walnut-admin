@@ -31,6 +31,7 @@
 > **统计（2026-11-28，对 HEAD `de27bfb5` 清点；D02 于 2026-11-28 改判、排序两开关当日决开并实施后）：✅ 20 条 / 🔧 4 条 / 📋 5 条 / 🚫 18 条，共 47 条。
 > §2 的 4 条里有 2 条（B03 / B04）已改判 ✅ 但**留在原段落档**（先例：knip 条目）—— 按段落计仍是 4 条，
 > 已清零的实数因此是 22；条数是清点口径而不是承诺，新增遗留只往本表追加，不另立第二本账。
+> **2026-11-28 追加 A21 后**：✅ 21 条 / 🔧 4 条 / 📋 5 条 / 🚫 18 条，共 48 条；已清零的实数 23。
 >
 > **ID 是稳定引用**：`A` = ✅ 已清零 / `B` = 🔧 进行中 / `C` = 📋 决策点 / `D` = 🚫 做不到，
 > 编号按**表内行序**（2026-11-28 一次成文，A01–A20 / B01–B04 / C01–C05 / D01–D18）。
@@ -63,6 +64,35 @@
 | A18 | P0 基线（admin `vue-tsc`、dist 清单、截图） | ✅ | `dc93c473`；基线落在 gitignored 的 `.zcode/`；批次 8 用同温度对比 | 完成；P5c 的四项读数在 ADR 0031 | 已解除；数据不随仓库保存（D13） |
 | A19 | oxfmt `sortImports`（语句级 import 排序） | ✅ | 决策点 ①：2026-11-28 用户拍板**全开**；实施提交 `e5d145a1` | 已实施：`.oxfmtrc.json` 复刻 antfu 的 perfectionist groups + `newlinesBetween: false` + `partitionByNewline: true`；ESLint 关 `perfectionist/sort-imports`（base / vue / nest 三预设，共用 `tooling/eslint-config/sort-ownership.ts`）；具名 specifier / export 三条规则保留。全仓实测 2 文件 +3/−3（均为 `apps/server` 的 `.d.ts`，因并行「不碰 server」约束留给 server 清理一路） | 已解除；升 oxfmt 时重跑「`eslint --fix` ↔ `oxfmt --write`」两轮循环对照 |
 | A20 | oxfmt `sortPackageJson`（package.json 键序） | ✅ | 决策点 ①：2026-11-28 用户拍板**全开**；实施提交 `e5d145a1` | 已实施：`sortPackageJson: true`（根键序 + `dependencies` 的 asc）；ESLint 侧 `jsonc/sort-keys` 对 `**/package.json` 改为**窄版**（只留 `exports` 条件序与 `resolutions` / `pnpm.overrides` 的 asc —— **oxfmt 不排 `exports` 子键、也不排 overrides 子键**（2026-11-28 实测：`dependencies` 被排成 asc、`pnpm.overrides` 原样）；其余 JSON / tsconfig 的键序规则全部保留）。17 个 `package.json` 键序重排（含根） | 已解除；键序唯一真源是 oxfmt，新增键位以 oxfmt 输出为准 |
+| A21 | dev/build 的 `vite-plugin-checker` × TNB fixture 冲突（vite 不监听端口即死） | ✅ | 2026-11-28 P0 修复（工作区改动，待主对话提交）：`pnpm-workspace.yaml` 的 `publicHoistPattern` 加 `@typescript-native-bridge/*`；catalog `vite-plugin-checker 0.14.5 → 1.1.0`；`tooling/vite-config/src/plugins/checker.ts` 去掉 `typescript: true`、只留 `vueTsc: true`。复验：`/` 与 `/src/main.ts` 200、iconify 虚拟模块 200、vue-tsc / ESLint 0、持续 60s 存活、`turbo run build --filter=@walnut/admin --force` exit 0、`pnpm dev` 双端 + `/api` 代理 200（证据在 gitignored 的 `.zcode/dev-verify/`） | 三件套保持；dev 期类型反馈由 vue-tsc checker 承担（覆盖面与 `types:check` 相同）。升级 / 替换 checker 前先读本条与下方「A21 根因链」 | 上游让 vueTsc fixture 不再整目录复制 TS，或 TNB 支持同进程多 lib 路径；届时才可恢复 `typescript: true` |
+
+**A21 的根因链与上游调研（2026-11-28）**
+
+- **现象**：`pnpm dev` / `pnpm --filter @walnut/admin dev` 在 vite 启动阶段即崩，日志为
+  `tsgoChecker: bridge shared library not found`（或修好解析后的 `SetLibPath ... conflicts`），
+  vite 从未监听 3100；`pnpm build` 同样断在 checker 的 `buildStart`。
+- **根因链（四级）**：① catalog + `overrides` 把 `typescript` 全局指到 TNB；② checker 的
+  `prepareVueTsc` 把解析到的 typescript **整目录复制**到 checker dist 下的 fixture（1.1.0 改成
+  哈希子目录 + 原子 rename，机制不变）；③ TNB 的 native bridge 是 platform optional dep
+  `@typescript-native-bridge/<platform>-<arch>`，本仓 `hoist: false` ⇒ fixture 复制体的解析链上
+  没有它（根 `node_modules` 也没有）；④ 即便 bridge 可解析，`typescript: true` 与 `vueTsc: true`
+  各跑一个 worker 却共享同一进程，而 TNB 的 bridge 是**进程级单例**、`SetLibPath` 只接受一个
+  lib 路径 ⇒ 第二份（fixture 副本）加载直接抛 conflict。
+- **解法（三件套，全部声明式，无脚本 / 复制层垫片）**：`publicHoistPattern` 加
+  `@typescript-native-bridge/*`（scope 内只有 7 个平台包，写 glob 是为覆盖 linux CI 与 mac 开发机）；
+  checker 升 1.1.0；配置只留 `vueTsc: true`。vue-tsc 本身就是 tsc + `.vue` 语言插件，覆盖面与
+  `pnpm types:check`（`vue-tsc --noEmit`）相同。
+- **1.1.0 支持面（R6 跟进结论）**：1.1.0（2026-11-24）的 release notes 没有 pnpm 虚拟存储 /
+  native TS 解析支持，`prepareVueTsc` 仍复制整个 TS 目录；实测双 checker 仍以同一 `SetLibPath`
+  冲突崩溃，撤掉 public hoist 后仍报 bridge not found ⇒ **升级不能替代这两项修复**，只把
+  lockfile 留在活跃上游线（1.x 的新 overlay 模型对本仓配置无破坏）。
+- **Rust / 原生平替调研（2026-11-28）**：`tsrs`（Rust 版 tsc，本仓 `types:check` 已用）的
+  `--watch` 在 Windows 未实现（D03），且它没有 Vite 插件与 dev 浮层；Oxc 的 tsgolint / tsrs 是
+  lint backend（`oxlint --type-aware`），不承担 dev 期 SFC 类型反馈；`vite-plugin-tsgo-checker`
+  （0.1.0，2026-04）与 `@wroud/vite-plugin-tsc`（1.0.1，2026-11）都按「spawn 原生
+  tsgo / tsc 进程」设计、不认 TNB 的 classic API 外壳，也都不做 `.vue`；搜索里出现的
+  `vue-tsc-rs` / `verter-tsc` 等仍处早期、未见 Vite dev 集成。结论：**2026-11 没有可直接替代
+  `vite-plugin-checker` 的 Rust / 原生 dev 态 Vue SFC 类型检查方案**，故保留 checker + 三件套。
 
 ### 2. 🔧 进行中（4 条：2 条在跟、2 条已清零留档）
 
