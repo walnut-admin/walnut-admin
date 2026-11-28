@@ -35,7 +35,8 @@ export default defineConfig({
   entry: entries,
   // 只产 CJS，与现状一致；后端 require 是既成事实
   format: ['cjs'],
-  sourcemap: true,
+  // 包不发布、`types` 指源码、dist 的 `.map` 无消费者 ⇒ 关掉（迁移 Ledger C01 / 决策点 ③）
+  sourcemap: false,
   clean: true,
   // CJS 产物**不要开 minify**：压缩后的 re-export 对 cjs-module-lexer 不可见，
   // ESM 侧具名导入会静默丢失

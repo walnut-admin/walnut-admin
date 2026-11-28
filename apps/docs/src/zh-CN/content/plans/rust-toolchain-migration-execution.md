@@ -28,16 +28,13 @@
 > **四类**：✅ 已清零（有提交或文档证据）｜🔧 进行中（明确哪一路在清）｜📋 决策点（需要人拍板，
 > 含选项与建议）｜🚫 做不到 / 刻意保留（写清为什么、什么条件下重开）。
 >
-> **统计（2026-11-28，对 HEAD `de27bfb5` 清点；D02 于 2026-11-28 改判、排序两开关当日决开并实施后）：✅ 20 条 / 🔧 4 条 / 📋 5 条 / 🚫 18 条，共 47 条。
-> §2 的 4 条里有 2 条（B03 / B04）已改判 ✅ 但**留在原段落档**（先例：knip 条目）—— 按段落计仍是 4 条，
-> 已清零的实数因此是 22；条数是清点口径而不是承诺，新增遗留只往本表追加，不另立第二本账。
-> **2026-11-28 追加 A21 后**：✅ 21 条 / 🔧 4 条 / 📋 5 条 / 🚫 18 条，共 48 条；已清零的实数 23。
-> **2026-11-28 收尾追加 A22–A24 后**：✅ 24 条 / 🔧 4 条 / 📋 5 条 / 🚫 18 条，共 51 条；
-> 已清零的实数 26（§2 的 B03 / B04 仍标记 ✅ 留档；B01 已重封但种子改动未提交 ⇒ 清单 `dataDirty`，
-> 提交后需再跑一轮干净封板才可 restore，详见 B01 行）。
+> **统计（2026-11-28 终态，对 HEAD `a5b2a5ee` 清点）：✅ 28 条（§1 的 24 + §2 的 4，原「进行中」段全部收口留档）/
+> 🔧 0 条 / 📋 5 条（§3：3 条待决 + C01 / C04 两条已决留档）/ 🚫 18 条，共 51 条。**
+> **已清零的实数 30**（上面的 28 + §3 已决的 2）。历史读数留痕：✅ 20 → 21（A21）→ 24（A22–A24）→
+> 28（B01–B04 收口）；🔧 4 → 0。条数是清点口径而不是承诺，新增遗留只往本表追加，不另立第二本账。
 >
-> **ID 是稳定引用**：`A` = ✅ 已清零 / `B` = 🔧 进行中 / `C` = 📋 决策点 / `D` = 🚫 做不到，
-> 编号按**表内行序**（2026-11-28 一次成文，A01–A20 / B01–B04 / C01–C05 / D01–D18）。
+> **ID 是稳定引用**：`A` = ✅ 已清零 / `B` = 🔧 进行中（本表已全部收口，ID 保留作稳定引用）/ `C` = 📋 决策点 /
+> `D` = 🚫 做不到，编号按**表内行序**（2026-11-28 一次成文，A01–A24 / B01–B04 / C01–C05 / D01–D18）。
 > 正文引用一律写 ID（如「另记 D02」）。新增条目**追加在表尾并顺延编号**，不要重排既有行 ——
 > 重排会让全仓所有 ID 引用指错条目，而这种错没有门禁能拦。
 >
@@ -100,23 +97,23 @@
   `vue-tsc-rs` / `verter-tsc` 等仍处早期、未见 Vite dev 集成。结论：**2026-11 没有可直接替代
   `vite-plugin-checker` 的 Rust / 原生 dev 态 Vue SFC 类型检查方案**，故保留 checker + 三件套。
 
-### 2. 🔧 进行中（4 条：2 条在跟、2 条已清零留档）
+### 2. ✅ 已清零（4 条：原「进行中」段，全部收口留档）
 
 | ID | 条目 | 类别 | 证据或提交号 | 跟进方式 | 解除条件 |
 |----|------|------|--------------|----------|----------|
-| B01 | e2e 全 profile 基线重封与全量回归 | 🔧（跑绿；只差提交后的干净重封） | **2026-11-28 全量重封完成（工作区改动，待主对话提交）**：6 个清单全部重封为 `menuRows=172`（A23 删菜单行后）、`dataKey=dfc6560a…`（HEAD 数据树）、各自 `database` 正确；读数：`smoke` 11 passed/1.3m、`risk` 24 passed/6.2m、`network` 2 passed/24.3s、`pages` 9 passed/1.3m（A23 反向断言转正）、`journey` 13 passed/4.6m（J7b 转正，20.2s）、`e2e:default`（smoke+risk+network+mobile）36 passed/5.9m。**6 个清单均为 `dataDirty=true`**：A23 的 seed 删除尚未提交（`git status` 有 1 条数据路径脏），封板脚本按设计只保证「本轮可用」 | 主对话提交后，对 6 个 profile 各跑一轮 `--rebuild-baseline` 生成 `dataDirty=false` 的干净清单（否则下一次 restore 会退出 2 并提示重封）；CI nightly 首跑记录仍待补 | 清单 `dataDirty=false` + dataKey 与当前数据路径一致；`e2e:default` 与命名 profile 全绿；CI nightly 首跑有记录 |
-| B02 | Windows `0xC0000005`（admin 的 eslint / vite 偶发原生崩溃） | 🔧 | `plans/tooling-restructure-plan.md` §14 的排查记录；`plans/e2e-sandbox-plan.md` §7 已知问题；prepush 的 `nativeCrashNote` 只加提示、不改判决 | 另一路 agent 治理；下一步用 WER LocalDumps 抓 node 崩溃转储（需改注册表，留给所有者） | 拿到转储定位到模块，或连续负载复现 0 次并形成可执行的重跑口径；否则保持「重跑」处置 |
-| B03 | `pnpm knip` 红 + 依赖卫生 | ✅ | `knip.config.ts` 顶部判据；`apps/docs/src/zh-CN/content/monorepo/knip.md` 的分类口径 | 已收口（2026-11-28）：`pnpm knip` exit 0；删无用依赖 / 导出与 catalog 条目、补 `entry`/`project`（admin `build/**`、server CLI/worker/migrations/barrel、`.tsx`）；`maxWorkers` 漂移改在 turbo.json 注释对齐事实 | `pnpm knip` exit 0；`ignoreIssues` 仅剩 server 冻结兼容层与 docs 英文站脚手架（逐条理由在配置文件） |
+| B01 | e2e 全 profile 基线重封与全量回归 | ✅（干净重封完成） | **2026-11-28 终验完成**：6 个清单（default / smoke / risk / network / pages / journey）已按 HEAD `a5b2a5ee` 干净重封 —— 全部 `dataDirty=false`、`menuRows=172`、`dataKey=96848cce…` 与 HEAD 数据树一致、`gitCommit` 均为 HEAD。本轮全量回归读数：`smoke` 11 passed/1.3m、`risk` 24 passed/6.2m、`network` 2 passed/24.3s、`pages` 9 passed/1.3m（A23 反向断言转正）、`journey` 13 passed/4.6m（J7b 转正，20.2s）、`e2e:default`（smoke+risk+network+mobile）36 passed/5.9m | 完成；封板与 profile 口径见 `apps/e2e/AGENTS.md`。CI nightly 首跑仍是 GitHub runner 的外部依赖，由 e2e 计划页跟踪，不改变本地终验结论 | 已解除；数据路径（seed / migrations / 封板脚本）再变时重跑 `--rebuild-baseline` |
+| B02 | Windows `0xC0000005`（admin 的 eslint / vite 偶发原生崩溃） | ✅（已拍板：维持 + 重试） | 2026-11-28 所有者拍板**维持 Node 24.21.0 + 重试兜底**，决定已落档 `apps/docs/src/zh-CN/content/monorepo/architecture-todo.md` 的「Windows 本机 Node 原生崩溃」条；缓解已实施 `8e5b5f82`：prepush 对 turbo 重道段（`lint` / `types` / `test`）命中崩溃特征时自动重试一次，结果行标 `[崩溃后重试]` 并在汇总单列。排查记录见 `plans/tooling-restructure-plan.md` §14 与 `plans/e2e-sandbox-plan.md` §7 | 完成；不再追 WER 转储（改注册表需所有者操作，且上游没有「改配置即解」的版本）。**解冻**：Node 上游发布含修复的版本且有连续稳定证据 ⇒ 评估升级；或接受钉 24.14.1（低于 `engines` 线，需跨包决策） | 已解除（已形成可执行的重跑口径）；解冻条件见左 |
+| B03 | `pnpm knip` 红 + 依赖卫生 | ✅ | `413f6ad9`（knip 142 处红 → 0）；`knip.config.ts` 顶部判据；`apps/docs/src/zh-CN/content/monorepo/knip.md` 的分类口径 | 已收口（2026-11-28）：`pnpm knip` exit 0；删无用依赖 / 导出与 catalog 条目、补 `entry`/`project`（admin `build/**`、server CLI/worker/migrations/barrel、`.tsx`）；`maxWorkers` 漂移改在 turbo.json 注释对齐事实 | `pnpm knip` exit 0；`ignoreIssues` 仅剩 server 冻结兼容层与 docs 英文站脚手架（逐条理由在配置文件） |
 | B04 | docs 的 `types:check` 曾是 `echo skipped` | ✅ | `413f6ad9`：改为 `vue-tsc --noEmit`（`apps/docs/package.json`），并把 `eslint.config.ts` 纳入 `apps/docs/tsconfig.json`；9/9 文件 0 诊断；评估 §4.2 已加 2026-11-28 勘误 | 完成；不要用裸 `tsc` 硬开 | 已解除；`build:docs` 绿 |
 
-### 3. 📋 决策点（5 条）
+### 3. 📋 决策点（5 条：3 条待决 + 2 条已决留档）
 
 | ID | 条目 | 类别 | 证据或提交号 | 跟进方式 | 解除条件 |
 |----|------|------|--------------|----------|----------|
-| C01 | tsdown `sourcemap` 评估 | 📋 | 两支 `tsdown.config.ts` 的 `sourcemap: true`；dist 有 19 个 `.map`；contract 的 `dist/index.cjs` 被 barrel 覆盖后没有 `sourceMappingURL`；server 启动脚本不传 `--enable-source-maps` | 建议**关**（低优先）；若调试 CJS 需要则保留，并在 README 写清 | 拍板开 / 关并改一处配置；改后跑构建与 require 冒烟 |
+| C01 | tsdown `sourcemap` 评估 | ✅（已决：关闭） | **2026-11-28 决策：关闭**，理由：包不发布、`types` 指源码、dist 的 `.map` 无消费者（19 个文件纯占位）；落点：`packages/platform-any/{contract,utils-core}/tsdown.config.ts` 的 `sourcemap: false`（工作区改动，待主对话提交）。验证：两包重建后 dist 无 `.map`、`node --check` 产物通过、contract 31 用例绿 | 已实施；将来要 CJS 堆栈调试时再按包打开（改一行） | 已解除；出现真实 dist `.map` 消费者时重开 |
 | C02 | oxlint 首轮关闭的 correctness 规则复议 | 📋 | `.oxlintrc.json` 关掉 `no-unsafe-optional-chaining` / `no-useless-escape` / `unicorn/no-useless-spread` / `unicorn/no-useless-fallback-in-spread` / `unicorn/prefer-string-starts-ends-with`；另有三条因 `eslint-disable` owner 留 ESLint | 建议保持关闭；每次只开一条，先观测零误报再进配置 | 单条规则在双轨对照中零误报，且 owner 与豁免注释同步迁移 |
 | C03 | markdown 是否进 oxfmt | 📋 | `.oxfmtrc.json` 的 `**/*.md` ignore；ADR 0031 记录「markdown 另开一轮」 | 建议后续独立批次：先 `--check` docs，验证 VitePress tabs / mermaid / 容器，再移除 ignore | docs 全量 `oxfmt --check` 绿且 `build:docs` 死链绿 |
-| C04 | `reference-repo-comparison.md` 的时效性 | 📋 | 该页是 2026-09-23 的一次性对比；正文里「格式化由 ESLint stylistic 承担 / 无 oxlint」等口径已被 ADR 0031 取代；页头只有权威边界，没有 as-of 日期 | 建议下次触碰时加一行 as-of + 指向 ADR 0031 / 本 Ledger；纯历史 plan 不追改 | 页头有日期与「工具链结论以 ADR 0031 为准」的声明 |
+| C04 | `reference-repo-comparison.md` 的时效性 | ✅（已决：收口） | **2026-11-28 收口**：页头补 as-of（2026-09-23 快照 + 「工具链结论以 ADR 0031 / 迁移 Ledger 为准」指针）；同步修正三处过时事实 —— 本地规则 2 条 / 3 个 RuleTester 文件（R7 时已改）、catalog 条数改判据式（以 `pnpm-workspace.yaml` 的 `catalog:` 段为准）、`script-exit-code` 改四态（0/1/2/3）（工作区改动，待主对话提交） | 完成；纯历史对比页不追改日常工具链事实 | 已解除；工具链结论再变时只改 ADR 0031 / Ledger，不改本页 |
 | C05 | `@vue/content-mapper` v4 / Vue 官方路线 | 📋 | 评估 §5.7：v4 alpha.3、只支持 TS7.1、取消独立 vue-tsc 二进制、无 stable 日期；Vize / Golar 只观察 | 等上游；不主动接 | v4 stable 后用同一 SFC 基线与 TNB 对比，再决定是否去掉 TNB 的 vue-tsc 依赖 |
 
 ### 4. 🚫 做不到 / 刻意保留（18 条）
@@ -264,16 +261,17 @@ external；`ts-equals-import` 在 oxfmt 的 selector 里没有对应项，只能
 
 ### 7. 其他决策点（③–⑥）的一句话结论
 
-- **③ tsdown `sourcemap`**：当前 `sourcemap: true` 产出 19 个 `.map`；但 contract 的
-  `dist/index.cjs` 被 barrel 覆盖后没有 `sourceMappingURL`，server 的启动脚本也不带
-  `--enable-source-maps` ⇒ 这些 map 目前没有消费者。建议**关闭**（低优先），需要 CJS 堆栈调试时
-  再按包打开；两种选择的成本都只是一行配置。
+- **③ tsdown `sourcemap`**：原判断是「`sourcemap: true` 产出的 19 个 `.map` 没有消费者」——
+  contract 的 `dist/index.cjs` 被 barrel 覆盖后没有 `sourceMappingURL`，server 启动脚本也不带
+  `--enable-source-maps`。**2026-11-28 已拍板关闭**（落点与验证见 C01）；需要 CJS 堆栈调试时
+  再按包打开，成本只是一行配置。
 - **④ oxlint 首轮关闭的 correctness 规则**：保持关闭。它们不是「ESLint 没启用」就是「选项口径
   不同」，双轨期开一条就会制造假红；每次只开一条、先观测零误报，再按 owner 约定迁移豁免注释。
 - **⑤ markdown 进 oxfmt**：留到独立批次。VitePress 的 tabs / mermaid / 容器块在格式化面前风险高，
   先 `--check` docs 并验证 `build:docs`，再移除 `**/*.md` ignore。
-- **⑥ `reference-repo-comparison.md`**：它是 2026-09-23 的一次性快照，不是现行工具链说明；下次触碰
-  时加 as-of 日期与「工具链结论以 ADR 0031 为准」的指针即可，不要为它重跑一轮对比。
+- **⑥ `reference-repo-comparison.md`**：它是 2026-09-23 的一次性快照，不是现行工具链说明。
+  **2026-11-28 已收口**：页头补了 as-of 与「工具链结论以 ADR 0031 为准」的指针（见 C04）；
+  不要为它重跑一轮对比。
 
 ### 8. 维护规则
 
@@ -282,7 +280,7 @@ external；`ts-equals-import` 在 oxfmt 的 selector 里没有对应项，只能
    「什么条件下重开」，否则不算清零。
 3. **状态变更留痕**：📋 拍板后在该行写「决策 + 日期 + 落点提交」，不要删行；🚫 解除时先把对应
    提交补进证据列，再改类别。
-4. **不写会腐烂的计数**：本节的 47 条是 2026-11-28 对 HEAD `de27bfb5` 的清点口径；新增条目时只改
+4. **不写会腐烂的计数**：本节的 51 条是 2026-11-28 对 HEAD `a5b2a5ee` 的清点口径；新增条目时只改
    统计行，不要改历史证据里的版本号与提交号。
 
 ## 1. 执行口径
