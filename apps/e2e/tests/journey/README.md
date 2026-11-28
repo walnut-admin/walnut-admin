@@ -25,8 +25,9 @@
   （Chrome 拒绝 IP 作 RP ID），后端 RP 口径由 `apps/e2e/scripts/env.ts` 的 `backendEnvOverrides` 注入。
 - **`permission-visibility.spec.ts`（J7，E5'）**：菜单给、element 不给（只给 `User` 菜单 +
   `dept:list`）→ `/system/user` 表格挂载但 list 门禁拦请求、表头按钮隐藏；对照 root 全量可见。
-  J7b 是一条 `test.fixme`：**不给 `dept:list` 时 `useDeptTree` 的 40105 未接线 → 全屏致命遮罩**
-  （本轮发现的既有前端缺陷，修复后删掉 `.fixme`）。
+  J7b：**不给 `dept:list` 时 `useDeptTree` 降级为空树、页面照常可用**（2026-11-28 修复了
+  原来的「40105 未接线 → 全屏致命遮罩」；用例断言不发注定被拒的 dept/tree 请求、点查询仍能
+  出无权限提示）。
 - **`role-switch.spec.ts`（J8，E5'）**：双角色账号（A=User+user:list，B=Role+role:list）→ 页头下拉
   切 currentRole（`/auth/permissions` 重算）→ 权限串翻转、本设备权限缓存被覆盖、侧边栏/表格/
   按钮随角色变化、旧路由落 404。

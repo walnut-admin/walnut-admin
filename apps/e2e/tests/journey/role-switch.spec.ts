@@ -31,8 +31,9 @@ import { createJourneyUser } from './journey-support.ts'
  * - `permission.guard` 只认 `AUTH:PERMISSIONS:<userId>:<deviceId>` 缓存 —— 界面可见性跟着
  *   `/auth/permissions` 的重算走，缓存被覆盖成新角色的权限串（旧串必须消失）。
  *
- * 角色设计（两个都带 `system:dept:list`：用户/角色页在 onMounted 无条件拉 dept 树，
- * 缺它会被 40105 + 未接线的 fatal 遮罩打断，详见 permission-visibility.spec.ts 的 fixme）：
+ * 角色设计（两个都带 `system:dept:list`：让用户/角色页的部门树照常加载，J8 只测角色切换；
+ * 缺该权限时 `useDeptTree` 已降级为空树、不再触发致命遮罩 —— 那条链路由
+ * permission-visibility.spec.ts 的 J7b 单独覆盖）：
  * - A：`User` 菜单 + `system:user:list` → 登录后落在 /system/user，表格能出数据；
  * - B：`Role` 菜单 + `system:role:list` → 切换后落在 /system/role，且 `role-create-btn` 隐藏
  *   （没有 `system:role:create`）。

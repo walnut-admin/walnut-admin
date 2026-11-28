@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import type { DefaultTheme } from 'vitepress'
 import { useData, useRoute } from 'vitepress'
-import { onMounted, ref, watch } from 'vue'
+import { computed } from 'vue'
 
 // 显式给 `useData` 传泛型：它的默认参数是 `any`（`useData<T = any>()`），
 // 不传泛型时 `theme.value.nav` 之类全是 any，类型检查等于没接。
 // LINK node_modules/vitepress/dist/client/index.d.ts → `useData<T = any>()`
 const { theme, page, frontmatter } = useData<DefaultTheme.Config>()
 const route = useRoute()
-const pageTitle = ref('')
 
 // 导航节点按 VitePress 的 `NavItem` 三态镜像（**每个成员都有必填属性**，否则是「弱类型」，
 // TS 会对没有共同属性的成员报 TS2559）：
@@ -86,15 +85,17 @@ function getPageTitle(): string {
   return page.value.title || '未设置标题'
 }
 
-// 初始化标题
-onMounted(() => {
-  pageTitle.value = getPageTitle()
-})
-
-// 监听路由变化，更新标题
-watch(route, () => {
-  pageTitle.value = getPageTitle()
-})
+/**
+ * 用 `computed` 而不是「`onMounted` 赋值 + `watch(route)`」：VitePress 是 **SSG** ——
+ * `onMounted` 在构建期（Node 里渲染 HTML）根本不会执行，旧实现产出的静态页 `<h1>` 全是空的
+ * （`v-if="pageTitle"` 落空后走 `v-else` 的 frontmatter 分支，没有 frontmatter.title 的页面
+ * 就渲染成「未设置标题」）。`computed` 在 SSR 与客户端水合时都会求值，且 `route` / `theme` /
+ * `page` 都是响应式的，切页自动重算 —— 不需要手写 `watch`。
+ *
+ * 三态联合类型与两个类型守卫（`NavNode` / `isLinkNode` / `isItemsNode`）保持不变：那是给
+ * VitePress `NavItem` 的三种成员形状建的最小可判别集，不要退回弱类型（注释见上）。
+ */
+const pageTitle = computed(() => getPageTitle())
 </script>
 
 <template>

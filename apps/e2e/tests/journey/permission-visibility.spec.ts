@@ -37,11 +37,10 @@ import { createJourneyUser } from './journey-support.ts'
  *   表头 create 按钮经 `WButton` 的 `auth` prop 整个不渲染（v-if）；
  * - 对照 root：同页同表，list 20000、行内按钮与 create 按钮齐全。
  *
- * 为什么额外授予 `system:dept:list`：用户页在 `onMounted` 里无条件拉 `/system/dept/tree`
- * （`useDeptTree`，用户表单的部门选择器要用）。不授予时该请求 40105，而 hook 没有 catch
- * ⇒ unhandled rejection ⇒ 前端「页面遇到无法恢复的错误」遮罩把整个页面锁死（本文件末尾
- * `test.fixme` 记录了这条缺陷，修复前不把它写进主用例的预期）。dept 是辅助依赖，与
- * 「user 模块的 element 权限是否裁剪界面」是两件事。
+ * 为什么额外授予 `system:dept:list`：用户页会拉 `/system/dept/tree`（`useDeptTree`，用户
+ * 表单的部门选择器要用）。主用例授予它是为了把「user 模块的 element 权限是否裁剪界面」与
+ * 「dept 辅助依赖的降级」两件事隔离开 —— 后者由下方的 J7b 单独覆盖（2026-11-28 已从
+ * 「40105 未接线 → 全屏致命遮罩」的已知缺陷修成「空树降级 + 页面可用」）。
  *
  * 协议侧与 UI 侧都断言：`/auth/permissions` 的 `permissionStrings` 差异（协议）+ 页面真实
  * 裁剪（浏览器）—— 两层缺一不可（UI 隐藏不等于服务端授权，服务端权限串也不等于界面一定
@@ -232,20 +231,22 @@ test.describe('权限可见性 journey', { tag: '@journey' }, () => {
   })
 
   /**
-   * 已知前端缺陷（2026-11-27 本轮发现，**未修**）：菜单给、依赖权限不给 ⇒ 整页致命遮罩。
+   * J7b 菜单给、依赖权限不给：`/system/dept/tree` 是**辅助依赖**，无权限时必须降级。
    *
-   * 复现：角色只挂 `system` catalog + `User` menu（不给任何 element）→ 以该账号 UI 登录。
-   * 用户页 setup 里的 `useDeptTree()` 在 `onMounted` 无条件拉 `/system/dept/tree`，服务端按
-   * `system:dept:list` 返回 40105；hook 只 `await pending`、没有 catch ⇒ unhandled rejection
-   * ⇒ `main.ts` 的 `reportRuntimeFatal(..., 'unhandledrejection')` 弹出全屏
-   * 「页面遇到无法恢复的错误」遮罩（事件源 40105 在 backend.log，页面交互全部被拦）。
+   * 角色只挂 `system` catalog + `User` menu（不给任何 element）→ 以该账号 UI 登录。
+   * 用户页 setup 里的 `useDeptTree()` 需要 `system:dept:list`，而该权限未授予。
    *
-   * 这不是服务端问题（40105 是权限矩阵的正确拒绝），也不在本批 E5' 的改动授权内（本批只加
-   * e2e 用例）。主用例 J7 因此额外授予 `system:dept:list` 把「user 模块可见性」单独隔离出来；
-   * 这条 fixme 是缺陷的可执行复现 —— 前端给 `useDeptTree` 补 catch / 按权限跳过请求后，
-   * 删掉 `.fixme` 即可转为正常回归（判据改为「页面可用且表格空 + 按钮隐藏」）。
+   * 曾经的缺陷（2026-11-27 发现，2026-11-28 修复）：hook 在 `onMounted` 无条件请求、
+   * 只 `await pending`、没有 catch ⇒ 40105 的 rejection 冒到 `main.ts` 的
+   * `reportRuntimeFatal(..., 'unhandledrejection')` ⇒ 全屏「页面遇到无法恢复的错误」遮罩，
+   * 整页交互被锁死。修法（根因，不是绕过）：`useDeptTree` 先按权限点跳过注定被拒的请求
+   * （与 `useTableAPI` 的 list 门禁同一写法），并对权限串 / 服务端缓存漂移时的 40105
+   * 兜底吞掉 —— 两种情况都退化成空树，页面照常可用。
+   *
+   * 判据：**页面可用**（点查询能触发无权限提示 = 遮罩不存在，遮罩会拦截点击）+ 表格空 +
+   * 按钮隐藏 + 没有发出注定 40105 的 dept/tree 请求。
    */
-  test.fixme('J7b 菜单给、依赖权限不给：dept/tree 40105 未接线 → 全屏致命遮罩（已知缺陷）', async ({
+  test('J7b 菜单给、依赖权限不给：dept/tree 降级为空树，页面可用且不弹致命遮罩', async ({
     browser,
   }) => {
     const root = await rootClient()
@@ -274,17 +275,53 @@ test.describe('权限可见性 journey', { tag: '@journey' }, () => {
       })
       try {
         const session = await openDevice(browser, '/auth')
+        const captured = captureEnvelopes(session.page)
         try {
           await loginViaUI(session.page, {
             userName: user.userName,
             password: user.password,
             totpSecret: totpSecret!,
           })
-          // 当前行为：fatal 遮罩出现（缺陷）；修复后这里应改成「没有遮罩 + 表格空」
-          await expect(session.page.getByText('页面遇到无法恢复的错误')).toBeVisible({
-            timeout: 30_000,
-          })
+
+          await expect(
+            session.page.getByTestId('user-list-table'),
+            '菜单已授权，表格应挂载（dept 无权限不应把整页打掉）',
+          ).toBeVisible({ timeout: 30_000 })
+
+          // 「页面可用」的最强判据：遮罩是 fixed inset-0 的拦截层，存在时这步点击会超时。
+          // 点击后无权限提示出现，证明交互链路仍然活着。
+          await session.page.getByTestId('table-query-search').click()
+          await expect(
+            session.page.getByText(NO_AUTHORITY_TEXT).first(),
+            '没有 list 权限时应提示无权限（而不是静默空表）',
+          ).toBeVisible({ timeout: 15_000 })
+
+          // 兜底负断言：致命遮罩的标题一次都不该出现（文案同 RuntimeErrorOverlay 的内置退化文案）
+          await expect(
+            session.page.getByText('页面遇到无法恢复的错误'),
+            'dept/tree 无权限不应进入全屏致命遮罩',
+          ).toHaveCount(0)
+
+          // 与 J7 同口径的可见性裁剪：无 create 权限 ⇒ 表头按钮不渲染；无 list ⇒ 无数据行
+          await expect(
+            session.page.getByTestId('user-create-btn'),
+            '无 create 权限时表头按钮不应渲染',
+          ).toHaveCount(0)
+          await expect(
+            session.page.locator('tbody tr').filter({ hasText: 'admin' }),
+            '无 list 权限时表格不应有数据行',
+          ).toHaveCount(0)
+
+          // 权限门禁在发请求之前：没有 dept:list 就不该打注定 40105 的请求
+          const deptTreeEntry = captured.entries.find((entry) =>
+            entry.url.includes(`${SystemRoutes.DEPT}/tree`),
+          )
+          expect(
+            deptTreeEntry,
+            `无 system:dept:list 时不该发出 dept/tree 请求（实际 ${deptTreeEntry?.url ?? '未发出'}）`,
+          ).toBeUndefined()
         } finally {
+          captured.stop()
           await session.context.close()
         }
       } finally {
