@@ -7,12 +7,12 @@ import { createVitePlugins, createViteProxy, useBuildEnv } from '@walnut/vite-co
 import { globSync } from 'tinyglobby'
 import { NaiveUiResolver } from 'unplugin-vue-components/resolvers'
 import { loadEnv } from 'vite'
-import { envDir, publicDir } from './build/constant'
+import { envDir, publicDir } from './build/constant.ts'
 import { componentsDtsPath } from './build/utils/paths.ts'
-import pkg, { dependencies } from './package.json'
+import pkg from './package.json' with { type: 'json' }
 
 function pathResolve(dir: string) {
-  return resolve(__dirname, '.', dir)
+  return resolve(import.meta.dirname, '.', dir)
 }
 
 /**
@@ -121,7 +121,7 @@ export default ({ mode }: ConfigEnv): UserConfig => {
       alias: {
         '@': pathResolve('src'),
         // https://github.com/axios/axios/issues/5000#issuecomment-1362395864
-        'axios/lib': resolve(__dirname, './node_modules/axios/lib'),
+        'axios/lib': resolve(import.meta.dirname, './node_modules/axios/lib'),
       },
     },
 
@@ -148,7 +148,7 @@ export default ({ mode }: ConfigEnv): UserConfig => {
 
     optimizeDeps: {
       // workspace 包有 source 条件直接消费源码，不应预构建
-      include: Object.keys(dependencies).filter((i) => !i.startsWith('@walnut/')),
+      include: Object.keys(pkg.dependencies).filter((i) => !i.startsWith('@walnut/')),
     },
 
     build: {

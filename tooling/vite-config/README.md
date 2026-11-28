@@ -25,9 +25,9 @@ import type { ViteConfigPackageInfo, ViteConfigPluginsOptions } from '@walnut/vi
 import type { ConfigEnv, UserConfig } from 'vite'
 import { createVitePlugins, createViteProxy, useBuildEnv } from '@walnut/vite-config'
 import { loadEnv } from 'vite'
-import { envDir, publicDir } from './build/constant'
+import { envDir, publicDir } from './build/constant.ts'
 import { componentsDtsPath } from './build/utils/paths.ts'
-import pkg, { dependencies } from './package.json'
+import pkg from './package.json' with { type: 'json' }
 
 const pluginOptions: ViteConfigPluginsOptions = {
   pkg: {
