@@ -245,7 +245,7 @@ catalog:
   '@vitejs/plugin-legacy': 8.0.1
   '@vitejs/plugin-vue': 6.0.6
   '@vitejs/plugin-vue-jsx': 5.1.5
-  '@vitest/coverage-v8': 4.1.2
+  '@vitest/coverage-v8': 5.1.2
   '@vueuse/core': 14.3.0
   '@vueuse/integrations': 14.3.0
   '@zxcvbn-ts/core': 3.0.4
@@ -397,7 +397,9 @@ catalog:
   vitepress-mermaid-renderer: 1.1.5
   vitepress-plugin-pagefind: 0.4.14
   vitepress-plugin-tabs: 0.7.3
-  vitest: 4.1.2
+  # 5.x 与 Vite 8 同一条线（vite 是它的 peer）；4.1.2 → 5.1.2 的 breaking 逐条核对与验收判据见
+  # docs 的 `plans/testing-infrastructure-rust-plan.md` P2。`clearMocks` 默认变 true 是里面有影响的一条。
+  vitest: 5.1.2
   vue: 3.5.34
   vue-codemirror: 6.1.1
   vue-i18n: 11.4.2

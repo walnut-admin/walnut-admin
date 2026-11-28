@@ -405,6 +405,10 @@ const sidebar: DefaultTheme.Sidebar = {
           text: 'Rust 化工具链迁移执行计划',
           link: '/content/plans/rust-toolchain-migration-execution',
         },
+        {
+          text: '测试基建 Rust 化计划',
+          link: '/content/plans/testing-infrastructure-rust-plan',
+        },
       ],
     },
     {
@@ -431,6 +435,10 @@ const sidebar: DefaultTheme.Sidebar = {
         {
           text: 'Rust 化工具链迁移评估',
           link: '/content/industry-research/rust-toolchain-migration-assessment',
+        },
+        {
+          text: '测试基建 Rust 化评估',
+          link: '/content/industry-research/testing-infrastructure-rust-assessment',
         },
       ],
     },
