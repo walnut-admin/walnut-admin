@@ -203,7 +203,10 @@ catalog:
   '@nestjs/websockets': 12.3.2
   # 全链路 E2E（apps/e2e）。CLI 与浏览器修订号由这一个版本决定；`playwright` 由它**传递依赖**，
   # 不单列 catalog —— 单列只会多一个要跟着升的版本号，而它本来就与 @playwright/test 同版。
-  '@playwright/test': 1.59.0
+  # 1.65.1 发布于 2026-11-13（满足 minimumReleaseAge 24h）。跨 1.60–1.65 的 breaking 面已在
+  # 本仓逐条核对：inert 等待 / RFC 6265 cookie / useDefineForClassFields / 空 shard /
+  # params 追加 / test.fixme 描述 —— 本仓无 shard、无 page object 继承、cookie 调用不带 URL 匹配。
+  '@playwright/test': 1.65.1
   '@scalar/nestjs-api-reference': 1.1.5
   '@sentry/vite-plugin': 5.2.1
   '@sentry/vue': 10.52.0

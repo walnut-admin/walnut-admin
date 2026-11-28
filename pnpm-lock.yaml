@@ -312,8 +312,8 @@ catalogs:
       specifier: 12.3.2
       version: 12.3.2
     '@playwright/test':
-      specifier: 1.59.0
-      version: 1.59.0
+      specifier: 1.65.1
+      version: 1.65.1
     '@scalar/nestjs-api-reference':
       specifier: 1.1.5
       version: 1.1.5
@@ -1234,7 +1234,7 @@ importers:
     devDependencies:
       '@playwright/test':
         specifier: 'catalog:'
-        version: 1.59.0
+        version: 1.65.1
       '@serenity-kit/opaque':
         specifier: 'catalog:'
         version: 1.1.0
@@ -1616,7 +1616,7 @@ importers:
         version: 6.1.1(supports-color@5.5.0)(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)(vite@8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))
       vitest:
         specifier: 'catalog:'
-        version: 5.1.2(@types/node@25.5.0)(@vitest/coverage-v8@5.1.2)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))
+        version: 5.1.2(@types/node@25.5.0)(@vitest/coverage-v8@5.1.2)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.4.0(@types/node@25.5.0)(jiti@2.7.0))
 
   packages/generated/api-types:
     devDependencies:
@@ -1668,7 +1668,7 @@ importers:
         version: typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2
       vitest:
         specifier: 'catalog:'
-        version: 5.1.2(@types/node@25.5.0)(@vitest/coverage-v8@5.1.2)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))
+        version: 5.1.2(@types/node@25.5.0)(@vitest/coverage-v8@5.1.2)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.4.0(@types/node@25.5.0)(jiti@2.7.0))
 
   packages/platform-any/types:
     devDependencies:
@@ -1707,7 +1707,7 @@ importers:
         version: typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2
       vitest:
         specifier: 'catalog:'
-        version: 5.1.2(@types/node@25.5.0)(@vitest/coverage-v8@5.1.2)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))
+        version: 5.1.2(@types/node@25.5.0)(@vitest/coverage-v8@5.1.2)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.4.0(@types/node@25.5.0)(jiti@2.7.0))
 
   packages/platform-web/client:
     dependencies:
@@ -1774,7 +1774,7 @@ importers:
         version: 8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0)
       vitest:
         specifier: 'catalog:'
-        version: 5.1.2(@types/node@25.5.0)(@vitest/coverage-v8@5.1.2)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))
+        version: 5.1.2(@types/node@25.5.0)(@vitest/coverage-v8@5.1.2)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.4.0(@types/node@25.5.0)(jiti@2.7.0))
       vue:
         specifier: 'catalog:'
         version: 3.5.34(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)
@@ -1870,7 +1870,7 @@ importers:
         version: typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2
       vitest:
         specifier: 'catalog:'
-        version: 5.1.2(@types/node@25.5.0)(@vitest/coverage-v8@5.1.2)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))
+        version: 5.1.2(@types/node@25.5.0)(@vitest/coverage-v8@5.1.2)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.4.0(@types/node@25.5.0)(jiti@2.7.0))
 
   tooling/release:
     dependencies:
@@ -1904,7 +1904,7 @@ importers:
         version: typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2
       vitest:
         specifier: 'catalog:'
-        version: 5.1.2(@types/node@25.5.0)(@vitest/coverage-v8@5.1.2)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))
+        version: 5.1.2(@types/node@25.5.0)(@vitest/coverage-v8@5.1.2)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.4.0(@types/node@25.5.0)(jiti@2.7.0))
 
   tooling/scripts:
     dependencies:
@@ -1944,7 +1944,7 @@ importers:
         version: 7.1.0-beta.tsrs5
       vitest:
         specifier: 'catalog:'
-        version: 5.1.2(@types/node@25.5.0)(@vitest/coverage-v8@5.1.2)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))
+        version: 5.1.2(@types/node@25.5.0)(@vitest/coverage-v8@5.1.2)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.4.0(@types/node@25.5.0)(jiti@2.7.0))
       yaml:
         specifier: 'catalog:'
         version: 2.9.0
@@ -2070,7 +2070,7 @@ importers:
         version: 8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0)
       vitest:
         specifier: 'catalog:'
-        version: 5.1.2(@types/node@25.5.0)(@vitest/coverage-v8@5.1.2)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))
+        version: 5.1.2(@types/node@25.5.0)(@vitest/coverage-v8@5.1.2)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.4.0(@types/node@25.5.0)(jiti@2.7.0))
       vue:
         specifier: 'catalog:'
         version: 3.5.34(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)
@@ -5655,9 +5655,9 @@ packages:
     resolution: {integrity: sha512-SEeaJLb3qBNF/OaXnaR1NmmBbFYk1zC0ZH/52fATcRPLFg/p791YrcyFFy44Bo9sLaGuSuLp5Q6axbb/O+v/RA==}
     engines: {node: ^14.18.0 || >=16.0.0}
 
-  '@playwright/test@1.59.0':
-    resolution: {integrity: sha512-TOA5sTLd49rTDaZpYpvCQ9hGefHQq/OYOyCVnGqS2mjMfX+lGZv2iddIJd0I48cfxqSPttS9S3OuLKyylHcO1w==}
-    engines: {node: '>=18'}
+  '@playwright/test@1.65.1':
+    resolution: {integrity: sha512-y+NCIRm2LvY4slUVWvGh1nujJ8RF/hEisIsq2mtUPgdQC4L701bq5hZGMhrpeXjACvwvO9tj5dJqhvM6TP9lbw==}
+    engines: {node: '>=20'}
     hasBin: true
 
   '@polka/send-type@0.5.2':
@@ -9935,11 +9935,6 @@ packages:
   fs.realpath@1.0.0:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
 
-  fsevents@2.3.2:
-    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
-    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
-    os: [darwin]
-
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -12483,14 +12478,14 @@ packages:
   platform@1.3.6:
     resolution: {integrity: sha512-fnWVljUchTro6RiCFvCXBbNhJc2NijN7oIQxbwsyL0buWJPG85v81ehlHI9fXrJsMNgTofEoWIQeClKpgxFLrg==}
 
-  playwright-core@1.59.0:
-    resolution: {integrity: sha512-PW/X/IoZ6BMUUy8rpwHEZ8Kc0IiLIkgKYGNFaMs5KmQhcfLILNx9yCQD0rnWeWfz1PNeqcFP1BsihQhDOBCwZw==}
-    engines: {node: '>=18'}
+  playwright-core@1.65.1:
+    resolution: {integrity: sha512-hqPpz7blSMPxWVdoeE1yiBSzXsKiVOd2k+kjCvmUywD2GPO2Dd9HfcWnq9NN0GHbNZDFgZ9JfBFr+X5/BLo0qw==}
+    engines: {node: '>=20'}
     hasBin: true
 
-  playwright@1.59.0:
-    resolution: {integrity: sha512-wihGScriusvATUxmhfENxg0tj1vHEFeIwxlnPFKQTOQVd7aG08mUfvvniRP/PtQOC+2Bs52kBOC/Up1jTXeIbw==}
-    engines: {node: '>=18'}
+  playwright@1.65.1:
+    resolution: {integrity: sha512-vJ1FuoOrNwOKHUIVEvSt3jT1L+wjjDpwhwIstKtfvTh8XIG4FG4bIFuvNdMxi81LGfAhUgUZleVFaOLY4RIUUw==}
+    engines: {node: '>=20'}
     hasBin: true
 
   pluralize@8.0.0:
@@ -19426,9 +19421,9 @@ snapshots:
 
   '@pkgr/core@0.3.6': {}
 
-  '@playwright/test@1.59.0':
+  '@playwright/test@1.65.1':
     dependencies:
-      playwright: 1.59.0
+      playwright: 1.65.1
 
   '@polka/send-type@0.5.2': {}
 
@@ -20903,7 +20898,7 @@ snapshots:
     optionalDependencies:
       '@typescript-eslint/eslint-plugin': 8.65.0(@typescript-eslint/parser@8.65.0(eslint@10.3.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2))(eslint@10.3.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)
       typescript: typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2
-      vitest: 5.1.2(@types/node@25.5.0)(@vitest/coverage-v8@5.1.2)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))
+      vitest: 5.1.2(@types/node@25.5.0)(@vitest/coverage-v8@5.1.2)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.4.0(@types/node@25.5.0)(jiti@2.7.0))
     transitivePeerDependencies:
       - supports-color
 
@@ -24280,9 +24275,6 @@ snapshots:
 
   fs.realpath@1.0.0: {}
 
-  fsevents@2.3.2:
-    optional: true
-
   fsevents@2.3.3:
     optional: true
 
@@ -27658,13 +27650,11 @@ snapshots:
 
   platform@1.3.6: {}
 
-  playwright-core@1.59.0: {}
+  playwright-core@1.65.1: {}
 
-  playwright@1.59.0:
+  playwright@1.65.1:
     dependencies:
-      playwright-core: 1.59.0
-    optionalDependencies:
-      fsevents: 2.3.2
+      playwright-core: 1.65.1
 
   pluralize@8.0.0: {}
 
@@ -30194,29 +30184,6 @@ snapshots:
       - terser
       - typescript
       - universal-cookie
-
-  vitest@5.1.2(@types/node@25.5.0)(@vitest/coverage-v8@5.1.2)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0)):
-    dependencies:
-      '@types/chai': 5.2.3
-      '@vitest/mocker': 5.1.2(vite@8.4.0(@types/node@25.5.0)(jiti@2.7.0))
-      chai: 6.3.0
-      es-module-lexer: 2.3.2
-      expect-type: 1.4.0
-      magic-string: 1.4.5
-      obug: 3.0.0
-      picomatch: 4.0.7
-      std-env: 4.3.0
-      tinybench: 6.2.5
-      tinyexec: 1.4.0
-      tinyglobby: 0.2.17
-      vite: 8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0)
-      why-is-node-running: 3.2.1
-    optionalDependencies:
-      '@types/node': 25.5.0
-      '@vitest/coverage-v8': 5.1.2(vitest@5.1.2)
-      jsdom: 30.0.1(@noble/hashes@2.2.0)
-    transitivePeerDependencies:
-      - msw
 
   vitest@5.1.2(@types/node@25.5.0)(@vitest/coverage-v8@5.1.2)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.4.0(@types/node@25.5.0)(jiti@2.7.0)):
     dependencies:
