@@ -1,22 +1,18 @@
 {
   "name": "@walnut/scripts",
-  "type": "module",
   "version": "0.1.24",
   "private": true,
   "description": "仓库级脚本的通用层：纯逻辑工具（src/lib）、仓库门禁（src/ci）、env 加解密（src/env）。不对外导出成品功能，只导出被其它工具包复用的模块与 bin（清单见下方 bin 字段，别在描述里抄数量）。",
   "license": "MIT",
-  "exports": {
-    "./lib/*": "./src/lib/*.ts"
-  },
   "bin": {
     "walnut-check-adr": "./bin/check-adr.ts",
     "walnut-check-catalog-lockstep": "./bin/check-catalog-lockstep.ts",
     "walnut-check-dist-secrets": "./bin/check-dist-secrets.ts",
     "walnut-check-doc-budgets": "./bin/check-doc-budgets.ts",
     "walnut-check-doc-refs": "./bin/check-doc-refs.ts",
-    "walnut-check-dynamic-imports": "./bin/check-dynamic-imports.ts",
     "walnut-check-doc-ts": "./bin/check-doc-ts.ts",
     "walnut-check-dts": "./bin/check-dts.ts",
+    "walnut-check-dynamic-imports": "./bin/check-dynamic-imports.ts",
     "walnut-check-git-hooks": "./bin/check-git-hooks.ts",
     "walnut-check-nginx-headers": "./bin/check-nginx-headers.ts",
     "walnut-check-package-exports": "./bin/check-package-exports.ts",
@@ -29,9 +25,9 @@
     "walnut-ci-local": "./bin/local-ci.ts",
     "walnut-db-credential-check": "./bin/db-credential-check.ts",
     "walnut-db-export-pg": "./bin/db-export-pg.ts",
+    "walnut-db-seed-pg": "./bin/db-seed-pg.ts",
     "walnut-db-seed-reshape": "./bin/db-seed-reshape.ts",
     "walnut-db-verify-seed": "./bin/db-verify-seed.ts",
-    "walnut-db-seed-pg": "./bin/db-seed-pg.ts",
     "walnut-docs-version": "./bin/docs-version.ts",
     "walnut-lint-emoji": "./bin/check-emoji.ts",
     "walnut-lint-workflows": "./bin/lint-workflows.ts",
@@ -40,9 +36,9 @@
     "walnut-setup-env": "./bin/setup-env.ts",
     "walnut-smoke-dist": "./bin/smoke-dist.ts"
   },
-  "engines": {
-    "node": ">=24.15.0",
-    "pnpm": ">=12.0.0"
+  "type": "module",
+  "exports": {
+    "./lib/*": "./src/lib/*.ts"
   },
   "scripts": {
     "lint": "eslint . --concurrency=4",
@@ -67,6 +63,10 @@
     "tsrs": "catalog:",
     "vitest": "catalog:",
     "yaml": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.15.0",
+    "pnpm": ">=12.0.0"
   },
   "walnut": {
     "platform": "any",

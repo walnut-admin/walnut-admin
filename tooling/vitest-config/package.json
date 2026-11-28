@@ -1,23 +1,16 @@
 {
   "name": "@walnut/vitest-config",
-  "type": "module",
   "version": "0.1.24",
   "description": "共享 Vitest 预设：只收敛「用例发现规则 / 运行环境 / 覆盖率采集范围」三件会漂移的事，plugins 与 root 等交给各包显式传入。",
   "license": "MIT",
+  "type": "module",
   "exports": {
     ".": "./index.ts"
-  },
-  "engines": {
-    "node": ">=24.15.0",
-    "pnpm": ">=12.0.0"
   },
   "scripts": {
     "lint": "eslint . --concurrency=4",
     "lint:fix": "eslint . --fix --concurrency=4",
     "types:check": "tsrs --noEmit --pretty"
-  },
-  "peerDependencies": {
-    "vitest": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
@@ -26,6 +19,13 @@
     "tsrs": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.15.0",
+    "pnpm": ">=12.0.0"
   },
   "walnut": {
     "platform": "any",

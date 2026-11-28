@@ -116,9 +116,10 @@ knip 的核心原理是**从入口文件出发，沿 import 链追踪**。因此
 为什么这一节只写判据、不写读数：**这一面的数字已经腐烂过一次** —— 上一节那张表是 2026-11-02 的快照，
 桶一删就全过期。要现状就跑 `pnpm walnut knip`；要引用数字就得写明是哪天的 `pnpm walnut knip`（历史那份带日期的记录已随 2026-11-04 收尾归档至 git 历史）。
 
-**`ignoreIssues` 只给「工具确实看不见 / 本轮源码冻结」的面**：当前只有 server 的兼容再导出层
-与 docs 的英文站脚手架（逐条理由写在 `knip.config.ts` 的 `ignoreIssues` 段）。不要把公共 barrel
-或普通死导出塞进去 —— 那等于把这一面重新变回盲区。真要接进门禁，先按上面三步分类，只给「真死」开红。
+**`ignoreIssues` 只给「工具确实看不见」的面**：现在只剩 docs 的英文站脚手架一条（逐条理由写在
+`knip.config.ts` 的 `ignoreIssues` 段）；server 的兼容再导出层已在 2026-11-28 的依赖清理批次里
+**直接删源码**，没有变成新的豁免。不要把公共 barrel 或普通死导出塞进去 —— 那等于把这一面重新
+变回盲区。真要接进门禁，先按上面三步分类，只给「真死」开红。
 
 ### 前端应用（apps/admin）
 
@@ -156,9 +157,6 @@ knip 的核心原理是**从入口文件出发，沿 import 链追踪**。因此
   ignore: [
     "**/*.decorator.ts",             // 装饰器公共面（装饰器语法里的消费 knip 看不到）
     "**/test/**",                    // 集成/API 测试 helper（globalSetup 按路径加载）
-    "libs/const/src/app/header.ts",  // 三条 @walnut/contract 兼容再导出 shim（零消费，待删）
-    "libs/const/src/app/lang.ts",
-    "libs/const/src/app/responseCode.ts",
     "**/vitest.config.*.ts",         // e2e / integration 配置由脚本 --config 指定
   ],
 },
@@ -197,7 +195,7 @@ knip 是**静态 import 追踪**工具。2026-11-28 收口时把之前「按框�
 | 机制 | 处理 |
 |------|------|
 | Vue 3 `unplugin-vue-components`（组件按标签名自动注册） | `src/components/**` 整块 ignore —— 组件目录的 `index.ts` 默认导出与 `.vue` 文件的消费者是模板标签，不在 import 图里 |
-| NestJS 装饰器公共面 / 运行时按配置选择的 provider | `**/*.decorator.ts` ignore；腾讯云短信 provider 用 `ignoreIssues: ['files']` 只压「未使用文件」，文件本身仍参与分析（它 import 的 SDK 才算「已使用」） |
+| NestJS 装饰器公共面 | `**/*.decorator.ts` ignore —— 消费发生在装饰器语法里，knip 看不到这层 API 语义 |
 | 测试 helper / vitest 配置 | `**/test/**`、`**/vitest.config.*.ts` ignore —— globalSetup 与 `--config` 都是按路径加载，不是 import |
 
 admin 的 `vite.config.ts` **不再是盲区**：`vite: false` 只阻止 knip 的 Vite 插件用 jiti 执行它，
@@ -244,14 +242,14 @@ workspace bin。现在保留的只有**确实静态看不见**的几类（逐条
 - 命令表 argv：`syncpack` / `taze`（`pnpm walnut <id>` 在运行时拼参数）；
 - pnpm `packageExtensions` 的 peer：`rxjs`；
 - 只在被 ignore 的 components 里被消费：`codemirror` / `@types/codemirror`；
-- 运行时按名字 require：`hbs`（Express 视图引擎）、`tencentcloud-sdk-nodejs`（唯一 importer 是标记为
-  `@deprecated` 的留存文件，删依赖会打爆 server 编译）。
-
-另有一项不是「看不见」而是「本轮不能动」：`raw-body` 在 `apps/server` 的 **prod dependencies** 里，
-实测全仓无静态 import（express 自带自己的 raw-body），删除要等 server 依赖清理批次；配置里显式
-记为待删，避免它变成匿名条目。
+- 运行时按名字 require：`hbs`（Express 视图引擎）。
 
 **别把这张短名单再扩回「历史盲区大全」**：每条都必须能指出静态分析为什么看不见它。
+
+2026-11-28 的 server 依赖与兼容层清理之后，这张表里又拿掉两条：`tencentcloud-sdk-nodejs`
+（唯一 importer 是 `@deprecated` 的腾讯云短信留存文件，依赖与文件一起删）与 `raw-body`
+（prod 依赖、全仓零静态 import，express 自带自己的那份）。同批删掉的还有 `ignoreIssues`
+里的整个 server 段 —— 六处兼容再导出层改为直接删源码（判据见 `knip.config.ts` 头注释）。
 
 ---
 

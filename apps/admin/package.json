@@ -1,31 +1,23 @@
 {
   "name": "@walnut/admin",
-  "type": "module",
   "version": "0.1.24",
   "private": true,
   "description": "An admin template, using `vue3`,`ts`,`vite`,`naive-ui`. Continuously updating...",
+  "homepage": "https://github.com/walnut-admin",
+  "bugs": {
+    "url": "https://github.com/walnut-admin/walnut-admin-client/issues"
+  },
+  "license": "MIT",
   "author": {
     "name": "Zhaocl1997",
     "email": "zhaocl97@foxmail.com",
     "url": "https://github.com/Zhaocl1997"
   },
-  "license": "MIT",
-  "homepage": "https://github.com/walnut-admin",
   "repository": {
     "type": "git",
     "url": "https://github.com/walnut-admin/walnut-admin.git"
   },
-  "bugs": {
-    "url": "https://github.com/walnut-admin/walnut-admin-client/issues"
-  },
-  "urls": {
-    "doc": "https://walnut-admin-doc.netlify.app",
-    "demo": "https://www.walnut-admin.com"
-  },
-  "engines": {
-    "node": ">=24.15.0",
-    "pnpm": ">=12.0.0"
-  },
+  "type": "module",
   "scripts": {
     "predev": "node build/generate/index.ts",
     "dev": "node scripts/wait-backend-ready.ts && vite",
@@ -133,5 +125,13 @@
     "vite": "catalog:",
     "vue-tsc": "catalog:",
     "web-vitals": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.15.0",
+    "pnpm": ">=12.0.0"
+  },
+  "urls": {
+    "doc": "https://walnut-admin-doc.netlify.app",
+    "demo": "https://www.walnut-admin.com"
   }
 }

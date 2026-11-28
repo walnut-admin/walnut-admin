@@ -3,22 +3,19 @@
   "version": "0.1.24",
   "private": true,
   "description": "An admin template, using `vue3`,`ts`,`vite`,`naive-ui`. Continuously updating...",
+  "homepage": "https://github.com/walnut-admin",
+  "bugs": {
+    "url": "https://github.com/walnut-admin/walnut-admin-server/issues"
+  },
+  "license": "MIT",
   "author": {
     "name": "zhaocl97",
     "email": "zhaocl97@foxmail.com",
     "url": "https://github.com/Zhaocl1997"
   },
-  "config": {
-    "domain": "walnut-admin.com"
-  },
-  "license": "MIT",
-  "homepage": "https://github.com/walnut-admin",
   "repository": {
     "type": "git",
     "url": "https://github.com/walnut-admin/walnut-admin.git"
-  },
-  "bugs": {
-    "url": "https://github.com/walnut-admin/walnut-admin-server/issues"
   },
   "scripts": {
     "build": "cross-env NODE_ENV=production nest build api -c infra/nest/prod.json && node infra/scripts/verify-build-assets.ts dist",
@@ -118,7 +115,6 @@
     "passport-oauth2": "catalog:",
     "pg": "catalog:",
     "qrcode": "catalog:",
-    "raw-body": "catalog:",
     "redis": "catalog:",
     "reflect-metadata": "catalog:",
     "response-time": "catalog:",
@@ -126,7 +122,6 @@
     "serve-favicon": "catalog:",
     "socket.io": "catalog:",
     "systeminformation": "catalog:",
-    "tencentcloud-sdk-nodejs": "catalog:",
     "tinyglobby": "catalog:",
     "typeorm": "catalog:",
     "ua-parser-js": "catalog:",
@@ -168,6 +163,9 @@
     "unplugin-swc": "catalog:",
     "vite-tsconfig-paths": "catalog:",
     "vitest": "catalog:"
+  },
+  "config": {
+    "domain": "walnut-admin.com"
   },
   "engines": {
     "node": ">=24.15.0",

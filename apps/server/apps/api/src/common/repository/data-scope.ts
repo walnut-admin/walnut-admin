@@ -1,9 +1,4 @@
-import type {
-  IWalnutAdminDataScopeDeptUpdateDecision,
-  IWalnutAdminDataScopeEntityConfig,
-  IWalnutAdminDataScopeSqlPredicate,
-  WalnutDataScopeFindWhere,
-} from '@walnut-server/repository'
+import type { IWalnutAdminDataScopeEntityConfig } from '@walnut-server/repository'
 import type { EntityTarget, ObjectLiteral } from 'typeorm'
 import {
   AppDemoEntity,
@@ -75,12 +70,7 @@ import {
  * `scopeColumn IS NULL`：未登录访客没有 owner，归为共享匿名行。
  */
 
-export type {
-  IWalnutAdminDataScopeDeptUpdateDecision,
-  IWalnutAdminDataScopeEntityConfig,
-  IWalnutAdminDataScopeSqlPredicate,
-  WalnutDataScopeFindWhere,
-}
+export type { IWalnutAdminDataScopeEntityConfig }
 
 /**
  * 注册清单（带 owner / dept 语义的业务表）。
@@ -232,19 +222,12 @@ export function getWalnutDataScopeEntityConfig(
   return WALNUT_DATA_SCOPE_ENTITIES.find((config) => config.entity === entity)
 }
 
-export function isWalnutDataScopeRegisteredEntity(
-  entity: EntityTarget<ObjectLiteral> | undefined,
-): boolean {
-  return getWalnutDataScopeEntityConfig(entity) !== undefined
-}
-
 // 批 7：谓词/RLS 纯函数随 data-scope 模块下沉 libs/system；这里 re-export 保持既有 import 面
-// （common/repository/data-scope.spec.ts、eslint drift spec、策略实现体）不变。
+// （common/repository/data-scope.spec.ts 与策略实现体）不变。
 export {
   applyWalnutDataScopePredicate,
   buildWalnutDataScopeFindWhere,
   buildWalnutDataScopeSqlPredicate,
-  isWalnutDataScopeRootRole,
   mergeWalnutDataScopeFindWhere,
   resolveWalnutDataScopeDeptUpdate,
   toWalnutDataScopeMode,

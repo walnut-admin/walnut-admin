@@ -1,16 +1,12 @@
 {
   "name": "@walnut/client",
-  "type": "module",
   "version": "0.1.24",
   "description": "Vue 3 composables and browser utilities for Walnut Admin frontend",
   "license": "MIT",
+  "type": "module",
   "exports": {
     "./*": "./src/*.ts",
     "./types/*": "./src/types/*.d.ts"
-  },
-  "engines": {
-    "node": ">=24.15.0",
-    "pnpm": ">=12.0.0"
   },
   "scripts": {
     "build": "echo 'composables: pure source, no build needed'",
@@ -21,10 +17,6 @@
     "test:watch": "vitest",
     "clean": "rimraf dist",
     "clean:all": "rimraf dist node_modules"
-  },
-  "peerDependencies": {
-    "pinia": "catalog:",
-    "vue": "catalog:"
   },
   "dependencies": {
     "@vueuse/core": "catalog:",
@@ -51,6 +43,14 @@
     "vite": "catalog:",
     "vitest": "catalog:",
     "vue": "catalog:"
+  },
+  "peerDependencies": {
+    "pinia": "catalog:",
+    "vue": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.15.0",
+    "pnpm": ">=12.0.0"
   },
   "walnut": {
     "platform": "web",

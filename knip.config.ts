@@ -71,9 +71,14 @@ import type { KnipConfig } from 'knip'
  *      API 面；`apps/{cli,worker}/src/main.ts` 与 `apps/api/migrations/**` 是**被命令行执行**的入口 ——
  *      knip 只看 import 图，看不见「谁在命令行里跑它」。
  *
- * **`ignoreIssues` 只给「工具确实看不见 / 本轮源码冻结」的面**（逐条理由见下面 `ignoreIssues`
+ * **`ignoreIssues` 只给「工具确实看不见」的面**（逐条理由见下面 `ignoreIssues`
  * 段）：不要把公共 barrel 或普通死导出塞进去 —— 那等于把这一面重新变回盲区。真要进门禁，
  * 先按上面三步分类，只给「真死」开红。
+ *
+ * 2026-11-28 server 依赖与兼容层清理之后，`ignoreIssues` 里的**整个 server 段已删除**：
+ * 六处兼容再导出层（pg-list.builder / data-scope / config·utils·env / socket.const /
+ * libs/const 三条 contract shim）逐处 grep 到零消费后删的是**源码**，不是又加一层豁免。
+ * 现在只剩 docs 英文站脚手架一条（有意保留、暂不启用）。
  *
  * 逐条读数与归因**不写在这里**（数会变）：真要引用数字，就写明是哪天的 `pnpm knip` ——
  * 历史上那份带日期的记录已随 2026-11-04 收尾归档至 git 历史；
@@ -144,13 +149,6 @@ const config: KnipConfig = {
         '**/*.decorator.ts',
         // 集成/API 测试的 helper 由 vitest 的 globalSetup / 用例按路径加载，不是 import 图。
         '**/test/**',
-        // `libs/const` 的 barrel 是 `export {}`，三条历史兼容 shim 只把 `@walnut/contract`
-        // 原样再导出一次（文件头写着 "Consumers should prefer direct import"），全仓零消费。
-        // 它们属于 server 源码面，删除不在本轮 knip 收口范围；先按"待删兼容层"显式豁免，
-        // 下次动 server 时直接删文件并把这三行一起删掉。
-        'libs/const/src/app/header.ts',
-        'libs/const/src/app/lang.ts',
-        'libs/const/src/app/responseCode.ts',
         // e2e / integration 的 vitest 配置由包脚本显式 `--config` 指定，不是被 import 的模块。
         '**/vitest.config.*.ts',
       ],
@@ -226,35 +224,13 @@ const config: KnipConfig = {
   },
 
   // ============================================================
-  // 文件级豁免（只给「工具看不见」或「本轮不能动」的公共面）
+  // 文件级豁免（只给「工具看不见」的公共面）
   // ============================================================
   //
   // 语义比 `ignoreDependencies` 窄：只关掉指定文件的指定问题类型，文件本身仍在程序里，
   // 它的 import 边照常参与分析。**新增条目必须能说出「为什么删不掉」**，否则先按文件头
   // 的三条判据分类；能靠 `entry` / `project` 表达的就不要写到这里。
   ignoreIssues: {
-    // ---- server：源码面本轮冻结，下列都是「兼容再导出 / 被 .d.ts 消费」的公共面 ----
-    // （下一批动 server 时优先删这些兼容层，然后连条目一起删）
-
-    // 「兼容旧 import 面」re-export：算子真源已迁 pg-column-op，全仓已无消费者。
-    'apps/server/libs/repository/src/pg-list.builder.ts': ['exports'],
-    // 批 7 下沉后的兼容 re-export 面（谓词真源在 @walnut-server/system）；
-    // 两个查询函数已无任何消费者（spec 也改用 system 的谓词），属待删兼容层。
-    'apps/server/apps/api/src/common/repository/data-scope.ts': ['exports', 'types'],
-    // 兼容入口：既有公共导入路径 `@walnut-server/config/utils/env`；isStage / WalnutAdminEnv
-    // 已无消费者，但整条转发面保留（删它属于 server 调用点迁移）。
-    'apps/server/libs/config/src/utils/env.ts': ['exports'],
-    // `IWalnutAdminSocketEvents` 已由 `types.d.ts` 声明成全局类型、`socket.service.ts` 按全局名
-    // 消费；从这里（socket.const）的 re-export 已无直接消费者 —— 保留为兼容面，删它要动 server。
-    'apps/server/apps/api/src/socket/socket.const.ts': ['types'],
-    // 腾讯云短信 provider 由运行时按配置选择（不是静态 import），但文件本身**要参与分析**：
-    // 它 import 的 `tencentcloud-sdk-nodejs` 只有这样才能被认成"已使用"。
-    'apps/server/libs/sms/src/tencent/tencent.sms.service.ts': ['files'],
-    // `libs/const` 的 const 值有用，派生的类型别名目前无消费者；server 源码冻结期先留。
-    'apps/server/libs/const/src/app/setting.ts': ['types'],
-    'apps/server/libs/const/src/app/dataScope.ts': ['types'],
-    'apps/server/libs/const/src/app/event.ts': ['types'],
-
     // ---- docs：英文站配置整块保留但有意不启用（2026-09-23 裁决「不要英文站」）----
     // `en.ts` 的 `search` 仍被 index.ts 使用；导出的 `en` 是将来启用时的完整配置对象。
     'apps/docs/.vitepress/config/en.ts': ['exports'],
@@ -321,15 +297,6 @@ const config: KnipConfig = {
     // --- 运行时按名字 require ---
     // Express 的 app.setViewEngine('hbs') 由 Express 在运行期 require 该包。
     'hbs',
-    // 唯一 importer 是 libs/sms/src/tencent/tencent.sms.service.ts —— 该文件自述 @deprecated
-    // 「仅作为代码留存，不再被任何模块引入」，barrel 也刻意不导出它。依赖与文件必须一起留
-    // （删依赖会让 nest build / tsrs 在编译这个留存文件时解析失败）；本轮 server 源码冻结，
-    // 下次删该文件时把这条一起删掉。
-    'tencentcloud-sdk-nodejs',
-    // `apps/server` 的 **prod dependencies** 本轮不在授权范围（只允许动 devDeps）；
-    // 实测全仓无静态 import（express 自带自己的 raw-body），但删除要等下一次 server 依赖清理。
-    // 先显式记录为待删，避免它变成「没人知道为什么在」的匿名条目。
-    'raw-body',
   ],
 }
 

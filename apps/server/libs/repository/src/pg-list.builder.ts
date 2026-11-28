@@ -46,9 +46,6 @@ import {
  *   已知风险（P2，本批不做）。
  */
 
-/** 兼容旧 import 面：转义口径已迁 `pg-column-op`，此处 re-export */
-export { escapeLikePattern, ILIKE_ESCAPE_REGEX } from './pg-column-op'
-
 /**
  * 服务端范围的 list 入参。
  *

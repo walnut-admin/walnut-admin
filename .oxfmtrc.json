@@ -10,10 +10,36 @@
   "printWidth": 100,
   // 对齐 antfu 的 `style/comma-dangle=always-multiline`；不同会与 ESLint 打架。
   "trailingComma": "all",
-  // 首轮关闭：默认 true 会重排所有 package.json，与 catalog 的既有顺序规则打架。
-  "sortPackageJson": false,
-  // 刻意不写 sortImports（默认关）：要开是后续独立一步、单独回滚（Sentry 有 customGroups
-  // 排序回归实录）。排序暂留 ESLint 的 perfectionist。
+  // ── 排序唯一真源移交 oxfmt（2026-11-28 决策）──────────────────────────────
+  // 语句级 import 排序与 package.json 键序都由这里负责：ESLint 侧已关
+  // `perfectionist/sort-imports`（base / vue / nest 三预设）与 `package.json` 的
+  // `jsonc/sort-keys`（`sort-ownership.ts`）。oxfmt 不做具名 specifier / export 语句
+  // 排序，那三样（sort-named-imports / sort-named-exports / sort-exports）仍归 ESLint。
+  // 回滚这两个开关必须成对：只改这里会让 ESLint 把顺序改回去（反之亦然）。
+  "sortPackageJson": true,
+  // groups 逐组复刻 @antfu/eslint-config 8.2.0 的 perfectionist 配置（2026-11-28
+  // `--print-config` 实测）；两处差异都是 oxfmt 的能力边界：
+  //   · `ts-equals-import` 没有对应 selector ⇒ 落 `unknown`（与 perfectionist 的末组同位）；
+  //   · perfectionist 的 `newlinesBetween: "ignore"` 在 oxfmt 只有布尔值 ⇒ false（不增删空行）。
+  "sortImports": {
+    // 逐组照抄 antfu 的 perfectionist 配置（组名同义）；唯一替换是 `side-effect` → 预定义组
+    // `side_effect`（oxfmt 用下划线）。首组必须是 `type-import` 这个 catch-all —— 写成 `type`
+    // selector 会把 type-internal / type-sibling 一起吞掉，实测会让 200+ 文件重排。
+    "groups": [
+      "type-import",
+      ["type-parent", "type-sibling", "type-index", "type-internal"],
+      "value-builtin",
+      "value-external",
+      "value-internal",
+      ["value-parent", "value-sibling", "value-index"],
+      "side_effect",
+      "unknown"
+    ],
+    "newlinesBetween": false,
+    // 空行即分区：没有它，组内跨空行重排会吃掉 398 个文件的空行（2026-11-28 探针，
+    // 数据在 plans/rust-toolchain-migration-execution.md §5）。开了它 = 2 文件 +3/−3。
+    "partitionByNewline": true
+  },
   "ignorePatterns": [
     "**/dist/**",
     "**/dist-staging/**",

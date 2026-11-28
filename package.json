@@ -1,24 +1,19 @@
 {
   "name": "walnut-admin",
-  "type": "module",
   "version": "0.0.1",
   "private": true,
-  "packageManager": "pnpm@12.5.1",
   "description": "Walnut Admin Monorepo",
+  "license": "MIT",
   "author": {
     "name": "Zhaocl1997",
     "email": "zhaocl97@foxmail.com",
     "url": "https://github.com/Zhaocl1997"
   },
-  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/walnut-admin/walnut-admin.git"
   },
-  "engines": {
-    "node": ">=24.15.0",
-    "pnpm": ">=12.0.0"
-  },
+  "type": "module",
   "scripts": {
     "walnut": "node tooling/scripts/bin/run.ts",
     "dev": "turbo dev --filter=@walnut/admin --filter=@walnut/server",
@@ -60,5 +55,10 @@
       "oxlint --fix",
       "eslint --fix --concurrency=4"
     ]
-  }
+  },
+  "engines": {
+    "node": ">=24.15.0",
+    "pnpm": ">=12.0.0"
+  },
+  "packageManager": "pnpm@12.5.1"
 }

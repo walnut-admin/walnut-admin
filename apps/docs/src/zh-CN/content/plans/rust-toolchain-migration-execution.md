@@ -27,7 +27,7 @@
 > **四类**：✅ 已清零（有提交或文档证据）｜🔧 进行中（明确哪一路在清）｜📋 决策点（需要人拍板，
 > 含选项与建议）｜🚫 做不到 / 刻意保留（写清为什么、什么条件下重开）。
 >
-> **统计（2026-11-28，对 HEAD `de27bfb5` 清点）**：✅ 18 条 / 🔧 4 条 / 📋 8 条 / 🚫 17 条，共 47 条。
+> **统计（2026-11-28，对 HEAD `de27bfb5` 清点；C03 于 2026-11-28 改判、排序两开关当日决开并实施后）：✅ 20 条 / 🔧 4 条 / 📋 5 条 / 🚫 18 条，共 47 条。
 > 条数是清点口径而不是承诺；新增遗留只往本表追加，不另立第二本账。
 >
 > **证据口径**：提交号优先；只有文档结论的写文件与章节。探针类数字都带测量方法，引用时看判据不看绝对值。
@@ -46,7 +46,7 @@
 | server 的 `ts/consistent-type-imports` 关闭 | ✅ | `6ee45d62`；`tooling/eslint-config/nest.ts:110`；理由：autofix 会删 DI 需要的 import（Twenty 记录 3,814 例） | 完成；若 ADR 0007 的元数据边界与 lint 边界合并后再评估 | 已解除；重开必须同时满足「不破坏 emitDecoratorMetadata」与 lint-staged 安全 |
 | tsdown 接管共享包（utils-core / contract）、barrel 与 drift/default 断言 | ✅ | `55258b80`（批次 6）；两支 `tsdown.config.ts`；`entries.drift.test.ts` + `dist-exports.test.ts`；有意省略 `platform` 以避开 tsdown#1111 告警 | 完成；后端逐子路径 require 冒烟 | 已解除；升级 0.x 走独立批次（D14） |
 | tsrs 影子 → 整批转正；本地 watch 留 tsc | ✅ | `60860886`（P5a）+ `6e0e68db`（P5b）；12 个包的 `types:check` 主脚本；server 的 `tsBuildInfoFile` 分离 | 完成；回滚一行改回 tsc | 已解除；#1114 与 Windows watch 见 D02 / D03 |
-| TNB 作为 `typescript` 包面；nest-on-TNB PoC 五项 | ✅ | `fc786d47`（批次 8）；ADR 0031；`nest build` / `nest start --watch` / `createProgram` / `design:paramtypes` / `openapi:check:export` 全绿 | 完成；回滚分「全局」与「仅 nest」两档 | 已解除；project-mode 缺陷另记 C03 |
+| TNB 作为 `typescript` 包面；nest-on-TNB PoC 五项 | ✅ | `fc786d47`（批次 8）；ADR 0031；`nest build` / `nest start --watch` / `createProgram` / `design:paramtypes` / `openapi:check:export` 全绿 | 完成；回滚分「全局」与「仅 nest」两档 | 已解除；project-mode 使用形态约束另记 C03 |
 | vue-tsc 3.3.14 + `JSONEditor` 的 TS2322 | ✅ | `25cd245c`；先修源码再升级，升级后基线仍 0 诊断 | 完成；升级前后都有读数 | 已解除 |
 | tsrs 退出码笔误（诊断失败 / Windows watch） | ✅ | 评估 §5.5 已订正为「诊断失败 = 2、Windows watch = 5」；执行计划 §9.1 / §9.4 同口径 | 文档完成；脚本解析按新口径 | 已解除 |
 | `eslint-disable` 归属约定 | ✅ | `apps/docs/src/zh-CN/content/monorepo/eslint.md` 的「eslint-disable 归属约定」；ADR 0031 Decision 2 | 文档完成；新规则按 owner 写注释 | 已解除 |
@@ -54,6 +54,8 @@
 | ADR 0031 记录迁移决策、三份文档收口 | ✅ | `039fd6d4`；ADR 0031 Accepted；评估 / 阶段计划 / 执行计划互相引用 | 完成 | 已解除 |
 | 旧页 `apps/docs/src/zh-CN/guide/lint.md` 的过时事实 | ✅ | 本次 Ledger 随附（保留「旧文档保留作对照」横幅） | 已更新四组事实：格式化真源、lint-staged 顺序、stylelint / prettier 段、手动命令 | 已解除；该页仍是历史对照，不追新功能 |
 | P0 基线（admin `vue-tsc`、dist 清单、截图） | ✅ | `dc93c473`；基线落在 gitignored 的 `.zcode/`；批次 8 用同温度对比 | 完成；P5c 的四项读数在 ADR 0031 | 已解除；数据不随仓库保存（D12） |
+| oxfmt `sortImports`（语句级 import 排序） | ✅ | 决策点 ①：2026-11-28 用户拍板**全开**；实施提交号由主对话回填 | 已实施：`.oxfmtrc.json` 复刻 antfu 的 perfectionist groups + `newlinesBetween: false` + `partitionByNewline: true`；ESLint 关 `perfectionist/sort-imports`（base / vue / nest 三预设，共用 `tooling/eslint-config/sort-ownership.ts`）；具名 specifier / export 三条规则保留。全仓实测 2 文件 +3/−3（均为 `apps/server` 的 `.d.ts`，因并行「不碰 server」约束留给 server 清理一路） | 已解除；升 oxfmt 时重跑「`eslint --fix` ↔ `oxfmt --write`」两轮循环对照 |
+| oxfmt `sortPackageJson`（package.json 键序） | ✅ | 决策点 ①：2026-11-28 用户拍板**全开**；实施提交号由主对话回填 | 已实施：`sortPackageJson: true`；ESLint 只对 `**/package.json` 关 `jsonc/sort-keys`（其余 JSON / tsconfig 的键序规则保留）。17 个 `package.json` 键序重排（含根）；`dependencies` / `overrides` 的 asc 由 oxfmt 同样执行 | 已解除；键序唯一真源是 oxfmt，新增键位以 oxfmt 输出为准 |
 
 ### 2. 🔧 进行中（4 条）
 
@@ -64,24 +66,22 @@
 | `pnpm knip` 红 + 依赖卫生 | ✅ | `knip.config.ts` 顶部判据；`apps/docs/src/zh-CN/content/monorepo/knip.md` 的分类口径 | 已收口（2026-11-28）：`pnpm knip` exit 0；删无用依赖 / 导出与 catalog 条目、补 `entry`/`project`（admin `build/**`、server CLI/worker/migrations/barrel、`.tsx`）；`maxWorkers` 漂移改在 turbo.json 注释对齐事实 | `pnpm knip` exit 0；`ignoreIssues` 仅剩 server 冻结兼容层与 docs 英文站脚手架（逐条理由在配置文件） |
 | docs 的 `types:check` 曾是 `echo skipped` | 🔧 | 工作区已由并行 agent 改为 `vue-tsc --noEmit`（`apps/docs/package.json`），并把 `eslint.config.ts` 纳入 `apps/docs/tsconfig.json`；首跑 0 诊断；评估 §4.2 已加 2026-11-28 勘误 | 等该路 agent 提交并跑全仓门禁；不要用裸 `tsc` 硬开 | docs 的 `types:check` 进门禁且 0 诊断、`build:docs` 绿；否则保留 skipped 并写理由 |
 
-### 3. 📋 决策点（8 条）
+### 3. 📋 决策点（5 条）
 
 | 条目 | 类别 | 证据或提交号 | 跟进方式 | 解除条件 |
 |------|------|--------------|----------|----------|
-| oxfmt `sortImports` 是否开 | 📋 | 决策点 ①：0.80.0 的 schema 能力 + 本仓 2378 文件探针 | 建议**不开**；理由与数据见 ① | oxfmt 支持 `newlinesBetween: ignore` 且覆盖 named import / export，或团队决定放弃 perfectionist；届时单独批次 + 全量 diff |
-| oxfmt `sortPackageJson` 是否开 | 📋 | 决策点 ①：17 个 package.json / 127 行键位移；与 ESLint `jsonc/sort-keys` 直接冲突 | 建议**不开**；理由见 ① | oxfmt 支持自定义键序并与 antfu 顺序对齐，或明确删掉 ESLint 根键序规则；单独批次 |
-| TNB project-mode 缺陷是否给上游提 issue | 📋 | 决策点 ②：最小复现与英文全文草稿已备好，未提交 | 建议**提**；等用户批准后由人发到 `typescript-native-bridge` | issue 已发并收到上游回应，或上游新版本修复并回归通过 |
 | tsdown `sourcemap` 评估 | 📋 | 两支 `tsdown.config.ts` 的 `sourcemap: true`；dist 有 19 个 `.map`；contract 的 `dist/index.cjs` 被 barrel 覆盖后没有 `sourceMappingURL`；server 启动脚本不传 `--enable-source-maps` | 建议**关**（低优先）；若调试 CJS 需要则保留，并在 README 写清 | 拍板开 / 关并改一处配置；改后跑构建与 require 冒烟 |
 | oxlint 首轮关闭的 correctness 规则复议 | 📋 | `.oxlintrc.json` 关掉 `no-unsafe-optional-chaining` / `no-useless-escape` / `unicorn/no-useless-spread` / `unicorn/no-useless-fallback-in-spread` / `unicorn/prefer-string-starts-ends-with`；另有三条因 `eslint-disable` owner 留 ESLint | 建议保持关闭；每次只开一条，先观测零误报再进配置 | 单条规则在双轨对照中零误报，且 owner 与豁免注释同步迁移 |
 | markdown 是否进 oxfmt | 📋 | `.oxfmtrc.json` 的 `**/*.md` ignore；ADR 0031 记录「markdown 另开一轮」 | 建议后续独立批次：先 `--check` docs，验证 VitePress tabs / mermaid / 容器，再移除 ignore | docs 全量 `oxfmt --check` 绿且 `build:docs` 死链绿 |
 | `reference-repo-comparison.md` 的时效性 | 📋 | 该页是 2026-09-23 的一次性对比；正文里「格式化由 ESLint stylistic 承担 / 无 oxlint」等口径已被 ADR 0031 取代；页头只有权威边界，没有 as-of 日期 | 建议下次触碰时加一行 as-of + 指向 ADR 0031 / 本 Ledger；纯历史 plan 不追改 | 页头有日期与「工具链结论以 ADR 0031 为准」的声明 |
 | `@vue/content-mapper` v4 / Vue 官方路线 | 📋 | 评估 §5.7：v4 alpha.3、只支持 TS7.1、取消独立 vue-tsc 二进制、无 stable 日期；Vize / Golar 只观察 | 等上游；不主动接 | v4 stable 后用同一 SFC 基线与 TNB 对比，再决定是否去掉 TNB 的 vue-tsc 依赖 |
 
-### 4. 🚫 做不到 / 刻意保留（17 条）
+### 4. 🚫 做不到 / 刻意保留（18 条）
 
 | 条目 | 类别 | 证据或提交号 | 跟进方式 | 解除条件 |
 |------|------|--------------|----------|----------|
 | 裸装 `typescript@7` | 🚫 | 评估 §5.4 / §8.1；nest-cli #3479 open、PR #3554 未批；vue-tsc 的 peer `<7` | 不装；TNB 外壳是当前唯一合法形态；每季度复核上游 | nest-cli 支持 7.1 API（含 watch / paths）且 vue-tsc peer 放宽 |
+| TNB project-mode 的处置（原「是否给上游提 issue」） | 🚫 | 决策点 ②：2026-11-28 用户决定**不提**上游 issue；复现矩阵 17 种形态证明是使用形态约束而非引擎缺陷；两条绕法实测可用（classic 风格；project + 显式 host + 物化） | 不主动追上游；新消费者按 ADR 0031 的约束条款走 classic，确需 project 语义时显式 host + 物化 | 上游自行修复「无 host 的 emit 静默 0 文件」或 `getSourceFiles()` 薄桩并回归通过；届时复评（不主动提 issue） |
 | tsrs 在 Windows 的 `--watch` | 🚫 | 评估 §5.5：NotImplemented，退出码 5；缺 fswatch 后端与 LSP watchdog，无跟踪 issue、无 ETA | 本地 `typecheck:watch` 永久用 tsc（Zerion 模式） | 上游补齐 fswatch / LSP watchdog |
 | tsrs #1114 约 1% 随机失败 | 🚫 | 评估 §5.5：1,240 次里 12 次；团队决策只跟踪、不加双跑门禁 | 转正后保留「一行改回 tsc」的回滚；出现可复现模式再复评 | issue 关闭，或锁定触发条件并给出可靠绕法 |
 | tsrs prerelease 的版本纪律 | 🚫 | `7.1.0-beta.tsrs5` 精确锁；无 `next` tag、`tsrsN` 排序只到 9、packaged validation 仍 pending | catalog 禁范围；升级单独批次并跑全量诊断 diff | 发布 stable 且 packaged validation 转正 |
@@ -89,7 +89,7 @@
 | 五条本地规则留在 ESLint | 🚫 | `walnut-comment/no-emoji`、`walnut-script/script-header`、`walnut-script/script-exit-code`、`local/sort-nestjs-decorators`、`local/no-cross-lib-relative-import`；jsPlugins 仍是 alpha | 保留；不移植 | jsPlugins 稳定且能用 RuleTester 平移 |
 | oxlint type-aware 不进门禁 | 🚫 | `pnpm exec oxlint --type-aware` 仅是观测；monorepo 需先构建依赖 d.ts，而共享包 `types` 指源码、dist d.ts 已无 | 只观测；不接门禁 | 有真实 d.ts 管线，或 oxlint 支持源码类型；先观测零误报 |
 | 不全量替换 ESLint | 🚫 | 评估 §7.1 / §10；Vue 模板、本地规则、类型感知分层至少一项留 ESLint | 双轨是终点，不是过渡态 | 不重开；三项都被替代后才复议 |
-| admin 的两条 typescript 链 | 🚫 | `fc786d47`；vue-tsc / ESLint 走 TNB classic，`apps/admin/build/generate/genJSONSchemas.ts` 走 `tsrs/sync` | 保持；生成器产物与基线逐字节对齐 | TNB project-mode 修复并通过同一基线；届时评估合并，但不强制 |
+| admin 的两条 typescript 链 | 🚫 | `fc786d47`；vue-tsc / ESLint 走 TNB（各自带 host 的 project / watch 形态），`apps/admin/build/generate/genJSONSchemas.ts` 走 `tsrs/sync` | 保持；生成器产物与基线逐字节对齐；project 形态已可用（显式 host + 物化），但外部 TJS 不会主动物化薄桩，故不以「搬回 TJS」为目标 | 外部 TJS 若支持预建 program 或自动物化，且产物过同一字节基线；不强制 |
 | `dts: false` / `dist/*.d.ts` 消失 | 🚫 | 评估 §4.4 / §7.3；`types` 条件指源码，dist d.ts 无消费者 | 不偷偷开 dts；这是预期变化 | 出现真实 dist d.ts 消费者，另立项目并处理 rolldown-plugin-dts |
 | `publint` / `attw` 不作门禁 | 🚫 | 两者在 `exports` 指 `.ts` 时必然假阳性；执行计划 §8.3 | 关闭；临时跑过只记假阳性类型 | `exports` 改成指 dist |
 | P0 基线数据不随仓库保存 | 🚫 | `dc93c473`；基线落在 gitignored 的 `.zcode/`，含机器耗时与截图 | 保留判据与提交号在文档；绝对值只在本机 | 需要跨机对比时改存归一化诊断清单，不存耗时 |
@@ -101,7 +101,24 @@
 
 ### 5. 决策点 ①：oxfmt 的 `sortImports` / `sortPackageJson` 要不要现在开
 
-**建议：两个都先不开。** 现在开 `sortImports` 的代价不是「一次性重排」，而是**排序所有权分裂**；
+**2026-11-28 决策：两个都开（全开），已实施。** 下面这段分析保留作历史依据；实施结果：
+
+- `sortImports`：`.oxfmtrc.json` 的 groups 逐组复刻 antfu 的 perfectionist 配置（首组
+  `type-import` 是 catch-all，按 selector 优先级让 type-internal / -sibling / -parent / -index
+  归第二组；写成 `type` 会把它们吞进首组，实测 232 文件）、`newlinesBetween: false`、
+  `partitionByNewline: true`（空行即分区）。ESLint 只关 `perfectionist/sort-imports`，
+  `sort-named-imports` / `sort-named-exports` / `sort-exports` 保留（三个预设共用
+  `tooling/eslint-config/sort-ownership.ts`）。全仓实测 **2 文件 +3/−3**，都在
+  `apps/server` 的两个 `.d.ts`（oxfmt 不读 tsconfig paths，`@walnut(-server)/*` 落
+  external 组，而 perfectionist 按 internal 处理）—— 按并行「不碰 server」约束本次未落盘。
+- `sortPackageJson`：`true`；ESLint 只对 `**/package.json` 关 `jsonc/sort-keys`，其他 JSON /
+  tsconfig 的键序规则不动。全仓 **17 个 `package.json`** 键序重排。oxfmt 同样排
+  `dependencies` / `overrides`；不排 `exports` 子键与 `files` 数组（`files` 仍归
+  `jsonc/sort-array-values`）。
+- 循环对照：`eslint --fix` 与 `oxfmt --write` 交替两轮，受影响文件的 sha256 全程不变。
+- 回滚必须成对：`.oxfmtrc.json` 两个开关 + `sort-ownership.ts` 两条关闭，单改一边会互相改回去。
+
+**（以下为决策前分析）建议：两个都先不开。** 现在开 `sortImports` 的代价不是「一次性重排」，而是**排序所有权分裂**；
 现在开 `sortPackageJson` 会与 ESLint 的 `jsonc/sort-keys` **互相改回去**（实测见下）。
 
 **测量方法**：把 HEAD 的 tracked tree 导出到仓库外的临时目录（不碰工作区），用本仓安装的
@@ -146,153 +163,59 @@ external；`ts-equals-import` 在 oxfmt 的 selector 里没有对应项，只能
    的 asc 子规则），接受一次 17 文件的键位移；不要只开 oxfmt 而留着根键序规则。
 3. 两个开关的回滚都是改一行配置，但**首轮 diff 要单独成提交**，否则无法判断回归来自排序还是逻辑。
 
-### 6. 决策点 ②：TNB 的 project-mode 缺陷要不要给上游提 issue
+### 6. 决策点 ②：TNB project-mode 的处置（用户决策：不提上游 issue）
 
-**建议：提。** 理由三条：
+**决策（2026-11-28）：不提上游 issue。** 用户明确否决，理由是「可能看得不够全面，没准有其他方向或配置能解决」。本轮把本地解法空间挖到底后，结论支持这个判断：**project mode 不是不可用，而是有两条使用形态约束；约束之外（tsgo 引擎、checker、emit 内容）与 classic 一致**。因此把「缺陷」定性降级为「使用形态约束 + 已验证绕法」，英文 issue 草稿不再维护。
 
-1. 这是**桥接层的确定性缺陷**，不是本仓用法问题：标准 `getParsedCommandLineOfConfigFile` 路径
-   就会设置 `options.configFilePath`，任何 project-mode 的 codegen / emit 消费者都会踩到。
-2. 本仓已经用 `tsrs/sync` 绕开（`genJSONSchemas.ts`），但绕行让 admin 多了一条 typescript 链
-   （D09）；上游修好之前，每个新消费者都要重新发现一次「`emitSkipped: false` 但 0 个文件」。
-3. 缺陷的危险形态是**静默**：`emit()` 不抛错、`emitSkipped` 为 false，只有产物清单能发现。
+**复现矩阵（本机 2026-11-28 实测；TNB `6.0.3-bridge.19.tsgo.7.0.2` / Node 24.21.0 / Windows x64；fixture 3 个源文件，tsconfig 为 ES2022 + CommonJS + declaration + strict）**：
 
-**最小复现（本机 2026-11-28 实测，TNB `6.0.3-bridge.19.tsgo.7.0.2` / Node 24.21.0 / Windows x64）**：
-用 `parseJsonConfigFileContent(config, sys, dir, {}, configPath)` 得到带 `configFilePath` 的 options，
-再 `createProgram(fileNames, options)`；同一组 options 删掉 `configFilePath` 作为 classic 对照。
+| # | 调用形态 | sourceFiles | `getSourceFiles()` statements | `emit()`（无 host、无 writeFile） | `emit(writeFile)` 或显式 host | 备注 |
+|---|----------|-------------|-------------------------------|-----------------------------------|------------------------------|------|
+| 1 | `parseJsonConfigFileContent(json, sys, dir)` **无 configFileName** → `createProgram` | 66 | 完整（2 / 1 / 3） | 写 6 个文件 | 6 | classic 基线（含 lib） |
+| 2 | `parseJsonConfigFileContent(..., configFileName)` → `createProgram` | 3 | 0（薄桩） | **0 个文件，静默** | 6 | `emitSkipped:false`、零诊断 |
+| 3 | `getParsedCommandLineOfConfigFile` → `createProgram` | 3 | 0 | **0，静默** | 6 | 同上 |
+| 4 | classic options + 手工塞 `configFilePath` | 3 | 0 | **0，静默** | 6 | 触发器就是 `options.configFilePath` 本身 |
+| 5 | `createProgram({ rootNames, options })`（project） | 3 | 0 | **0，静默** | 6 | options 对象形态同 |
+| 6 | project + `getSourceFile(name)` 逐个物化根文件 | 3 | 物化后完整（2 / 1 / 3） | **仍 0，静默** | 6 | 物化只修 AST，不修 emit |
+| 7 | project + `ts.createCompilerHost(options)` 传入 `createProgram` | 3 | 数组仍是薄桩；逐文件 `getSourceFile` 后完整 | **写 6 个文件（fixture-paths 含 `.js.map`）** | 6 | **推荐的 project 形态** |
+| 8 | project + host 但 host 无 `writeFile` | 3 | — | **0，静默** | — | 写入口只认 `host.writeFile` / `emit(writeFile)` |
+| 9 | project + `emit(sourceFile)` 定向发射 | 3 | — | **0，静默** | 2（js + d.ts） | 定向发射同样需要写入口 |
+| 10 | project + `emitOnlyDtsFiles` / `forceDtsEmit` | 3 | — | — | 3 个 `.d.ts` | 支持 |
+| 11 | project + `customTransformers` | 3 | — | 抛错（tsgo 不执行 JS transformer） | — | classic 正常；这是引擎边界，不是 project 专属 |
+| 12 | `createWatchProgram` 形态 | 3 | 数组薄桩；`getSourceFile` 完整 | **写 6 个文件** | 6 | watch host 自带写入口 |
+| 13 | `createEmitAndSemanticDiagnosticsBuilderProgram`（显式 host） | 3 | 同上 | **写 6 个文件** | 6 | builder 形态可用 |
+| 14 | project options 删除 `configFilePath`（保留 paths / lib / types） | 66 | 完整 | 写 6 个文件 | 6 | 等效 classic；有 `rootDir` 时产物逐字节一致 |
+| 15 | project + 空 `rootNames` / 伪造 `rootNames` | 3 | 文件集仍来自 tsconfig 磁盘内容 | — | — | 成员资格由 Go 读配置决定，`rootNames` 只影响根标记 |
+| 16 | `createSourceFile` / `parseJsonText` | — | — | — | — | 全仓另一类用法，走 classic 解析器，安全 |
+| 17 | `createSolutionBuilder` / `createSolutionBuilderWithWatch`（`tsc -b` 形态，host 由 builder 提供） | — | builder 内部按 project 形态 | 写 `src/index.js` / `src/index.d.ts` / `tsconfig.tsbuildinfo` | — | exit 0；`moduleResolution: node10` 在此路径会被 tsgo 判 TS5108（fixture 改用 NodeNext），与 project mode 的普通 program 不同 |
 
-````text
-project-mode: getSourceFiles() returns stub SourceFiles and emit() silently writes 0 files
+诊断：1–14 与 17 的 syntactic / semantic / options / config 均为 0（fixture 加了 `ignoreDeprecations: "6.0"` 关掉 TS5107 弃用提示；不加时 classic 会多 1 条 options 诊断、project mode 不报，与本议题无关；17 的 fixture 用 NodeNext 避开 tsgo build 的 TS5108）。`sourceFiles` 的 3 vs 66 是 project mode 在普通脚本里跳过 host lib 文件（`isHostLibFile` 过滤），不是丢文件；`getSourceFile(defaultLib)` 仍可拿到 lib 的 SourceFile，但它只有薄桩（statements 为 0）。
 
-## Summary
+**根因（本地安装包代码阅读 + 实测）**：`createProgram` 在 `options.configFilePath` 存在时提前返回 `createTsgoProgram(...)`，把**调用方传入的 host（可能为 `undefined`）**原样交给 tsgo 分支；classic 分支则会 `host || createCompilerHost(options)` 兜底。`emit` 的写入端只认 `emit(writeFile)` 或 `host.writeFile`，两者都没有时，Go 侧仍算出 outputFiles，JS 侧直接丢弃 —— 所以 `emitSkipped:false`、零诊断、零文件；打开 `listEmittedFiles` 时还会列出 6 个从未写盘的路径。薄桩则是有意设计（共享 light stub，避免为每个文件物化 AST）：`getSourceFile(name)` 会返回物化后的完整 SourceFile，并把该文件回填进后续的 `getSourceFiles()` 读数。
 
-When a program is created from a parsed project config (the standard
-`getParsedCommandLineOfConfigFile` / `parseJsonConfigFileContent(..., configFileName)` path, so
-`options.configFilePath` is set), `program.getSourceFiles()` returns `SourceFile` objects whose
-`statements` array is empty, and `program.emit()` reports `emitSkipped: false` but writes zero
-files. The same `fileNames` and compiler options without `configFilePath` work (classic path).
-`program.getSourceFile(name)` can still materialize one file, but that does not fix `emit()`.
+**两条可靠绕法**：
 
-With TNB this breaks any codegen consumer that walks `program.getSourceFiles()` (for example
-`ts-json-schema-generator`).
+1. **classic 风格调用（本仓现行口径，默认选择）**：解析 tsconfig 时**不传 `configFileName`**，并在传给 `createProgram` 前确认 `options.configFilePath` 不存在。`parseJsonConfigFileContent(json, sys, dir)` 实测 `configFilePath === undefined`，`createProgram` 走 classic：完整 AST、无需 host 即可 emit。适合只读类型图的 codegen / 检查。代价：`rootDir` 未显式设置时，`outDir` 的目录层级与 project mode 不同（stock TS 的 `getCommonSourceDirectory` 语义，不是 TNB 特有）；本仓没有 emit 型消费者，不受影响。
+2. **project 形态（需要配置语义时）**：`ts.createProgram(rootNames, options, ts.createCompilerHost(options))`；读 AST 前对每个要读的文件调用 `program.getSourceFile(name)`，或至少给 `emit` 传 `writeFile`。实测保留 `include` / `exclude`、`paths`、`types`、`lib`、`sourceMap`、`rootDir` 与输出布局；fixture 的 checker 图与 classic 逐项一致，`fixture-paths` 的 `.js` / `.d.ts` / `.js.map` 与 classic **逐字节相同**，三个真实包的语义诊断数与 classic 相同。
 
-## Environment
+**本仓消费面审计（2026-11-28，逐个文件核对调用形态）**：
 
-- typescript-native-bridge: 6.0.3-bridge.19.tsgo.7.0.2
-- Node.js: 24.21.0
-- OS: Windows 11 x64 (reported by a downstream consumer; no custom host or module resolvers)
-- Usage: plain `require('typescript')` plus `ts.createProgram(fileNames, options)`
+| 消费者 | 调用形态 | TNB 下结论 |
+|--------|----------|-----------|
+| `tooling/scripts/src/ci/check-doc-ts.ts` | `createSourceFile` / `parseJsonText` | 安全（不建 Program） |
+| `tooling/scripts/src/ci/check-handwritten-dts.ts` | `parseJsonConfigFileContent` 无 configFileName → `createProgram` | 安全（classic；14 个手写 `.d.ts` 零错误） |
+| `tooling/scripts/src/ci/check-turbo-cache.ts` | `parseJsonConfigFileContent` 无 configFileName，只读 `options.outDir` | 安全（不建 Program） |
+| `tooling/scripts/src/ci/__tests__/check-handwritten-dts.test.ts` | `createSourceFile` | 安全 |
+| `apps/server/apps/api/test/architecture/orphan-module.drift.spec.ts` | `createSourceFile` | 安全 |
+| `apps/server/apps/api/test/architecture/repo-global.drift.spec.ts` | `createSourceFile` | 安全 |
+| `apps/admin/build/generate/genJSONSchemas.ts` | 不走 `typescript`，走 `tsrs/sync` | 不受影响 |
+| vue-tsc / ESLint（typescript-eslint）/ Nest CLI | 第三方；均自带 host / watch host | 不踩薄桩数组与无写入口形态（批次 8 五项 PoC + 本轮代码核对） |
 
-## Minimal reproduction
+**给后来者的约束（已同步进 ADR 0031）**：任何新引入的 `typescript` API 消费者默认用 **classic 风格调用**，不要把 `configFilePath` 带进 `options`；确需 project 语义时必须显式传 `ts.createCompilerHost(options)`，并在读 `statements` 前逐文件 `getSourceFile(name)`；**禁止**「`createProgram` 不传 host + `emit()` 不传 `writeFile`」这一组合 —— 这是唯一会静默丢产物的形态。
 
-Files:
+**未来 codegen 回 TNB 的备选路径（只评估，不实施）**：project 形态（显式 host + 物化）已具备完整能力 —— 配置语义、checker 图、emit 文本（含 sourceMap）都过基线。实测规模（本机单次读数，引用看判据不看绝对值）：`utils-core` 176 个文件建 program 61ms、全量物化 474ms、语义诊断 9ms（classic 551ms / 234ms）；`tooling/scripts` 367 个文件 63ms / 365ms / 134ms（classic 604ms / 1831ms）。代价与边界：`getSourceFiles()` 数组要先物化、lib 文件只有薄桩（`getSourceFile(lib)` 的 statements 为 0，全局类型仍需 checker）、`customTransformers` 不支持、`getFilesByNameMap()` 为空。若将来要把 `tsrs/sync` 生成器搬回 TNB，按两条做：①显式 host + 全量物化；②产物对同一字节基线。当前不搬：`ts-json-schema-generator` 是外部库、不会主动物化数组里的文件，改它不如保留已逐字节对齐的 tsrs 生成器；ADR 0031 的「admin 两条链」结论不变。
 
-    tsconfig.json
-    input.ts
-    probe.cjs
-
-`tsconfig.json`:
-
-    {
-      "compilerOptions": {
-        "target": "ES2022",
-        "module": "CommonJS",
-        "moduleResolution": "Node",
-        "declaration": true,
-        "outDir": "out-project",
-        "strict": true
-      },
-      "include": ["input.ts"]
-    }
-
-`input.ts`:
-
-    export interface Iface {
-      b: string
-    }
-
-    export const answer: number = 42
-
-`probe.cjs`:
-
-    const fs = require('node:fs')
-    const path = require('node:path')
-    const ts = require('typescript')
-
-    const configPath = path.join(__dirname, 'tsconfig.json')
-    const config = ts.readConfigFile(configPath, ts.sys.readFile)
-    const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, __dirname, {}, configPath)
-
-    console.log('ts.version =', ts.version)
-    console.log('options.configFilePath =', parsed.options.configFilePath)
-
-    function report(label, program, outDir) {
-      const own = program.getSourceFiles().filter(f => !f.fileName.includes('node_modules') && !f.isDeclarationFile)
-      console.log(`[${label}] sourceFiles=${program.getSourceFiles().length} own=${own.length}`)
-      for (const sf of own) {
-        console.log(`  ${sf.fileName} statements=${sf.statements ? sf.statements.length : 'undefined'} textLen=${sf.text.length}`)
-      }
-      program.emit()
-      const files = fs.existsSync(outDir) ? fs.readdirSync(outDir) : []
-      console.log(`  emit -> ${outDir}: ${files.length} files [${files.join(', ')}]`)
-    }
-
-    report('project-mode', ts.createProgram(parsed.fileNames, parsed.options), path.join(__dirname, 'out-project'))
-
-    const classicOptions = { ...parsed.options }
-    delete classicOptions.configFilePath
-    classicOptions.outDir = path.join(__dirname, 'out-classic')
-    report('classic', ts.createProgram(parsed.fileNames, classicOptions), path.join(__dirname, 'out-classic'))
-
-## Actual output
-
-    ts.version = 6.0.3
-    options.configFilePath = D:/tmp/tnb-repro/tsconfig.json
-    [project-mode] sourceFiles=1 own=1
-      D:/tmp/tnb-repro/input.ts statements=0 textLen=73
-      emit -> out-project: 0 files []
-    [classic] sourceFiles=64 own=1
-      D:/tmp/tnb-repro/input.ts statements=2 textLen=73
-      emit -> out-classic: 2 files [input.d.ts, input.js]
-
-Note the source-file count itself differs (1 vs 64) before any filtering.
-
-## Expected output
-
-Project mode should behave like the classic path: `input.ts` has 2 statements and `emit()` writes
-`input.js` plus `input.d.ts`.
-
-## Impact
-
-- `ts-json-schema-generator` iterates `program.getSourceFiles()` and reads `node.symbol` /
-  `node.localSymbol`; with stub SourceFiles it fails with `RootlessError: No root type "<name>"
-  found`. In the affected repository this broke the admin `predev` / `prebuild` /
-  `pretypes:check` chain.
-- Any other project-mode consumer that emits or walks the AST is affected. `vue-tsc`, `tsc
-  --noEmit`, and `nest build` are not affected because they use different paths.
-- The silent `emit()` no-op is the dangerous part: there is no diagnostic and `emitSkipped` is
-  false, so a caller only notices by checking the output directory.
-
-## Additional observations
-
-- In a larger project the project-mode program reported 4336 source files vs 1311 on the classic
-  path; `.d.ts` files in `getSourceFiles()` had empty `statements` while their `text` was present.
-- `program.getSourceFile(fileName)` returns a materialized SourceFile (statements present), so the
-  stub seems specific to the project-mode array. Re-materializing files does not fix `emit()`.
-- No custom `resolveModuleNames` / `resolveModuleNameLiterals` are involved.
-
-## Questions
-
-1. Is project mode a supported surface for the bridge? If not, please document it in the support
-   matrix / README so consumers can avoid it.
-2. If it is supported, can this be fixed (materialize SourceFiles and emit in project mode) with a
-   regression test that sets `configFilePath`?
-3. Is there a recommended workaround besides dropping `configFilePath` (which changes path
-   resolution semantics)?
-````
-
-**发之前**：目标仓库是 `johnsoncodehk/typescript-native-bridge`（发之前按当时的 issue 列表核对过，
-未见同题）；标题用上面第一行；正文就是上面整段（已按最小复现整理，不含本仓内部路径与业务代码）。
-按用户要求**未发布**，等批准。
+**解除条件**：上游自行修掉「无 host 的 emit 静默 0 文件」或让 `getSourceFiles()` 直接返回完整 AST，并有一个可复现的回归用例；届时复评是否合并两条链。不主动追、不提 issue。探针与原始矩阵落在 gitignored 的 `.zcode/rust-migration/tnb-project-mode/`（本机，不随仓库）。
 
 ### 7. 其他决策点（③–⑥）的一句话结论
 

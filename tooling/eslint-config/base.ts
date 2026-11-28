@@ -12,6 +12,7 @@ import { commentPolicyConfig } from './comment-rules'
 // `allowImportingTsExtensions` —— 带扩展名会让 `@walnut/server` 的 types:check 报 TS5097。
 // 本文件由 jiti 加载（不经 Node 的类型剥离），扩展名推断由它负责。
 import scriptRules from './script-rules'
+import { sortOwnershipConfig } from './sort-ownership'
 import { turboEnvVarsConfig } from './turbo-env-vars'
 
 /**
@@ -150,6 +151,10 @@ export default function baseConfig(options: OptionsConfig = {}): WalnutEslintCon
     // ── oxlint 去重段 ── 把 oxlint 已覆盖的规则在 ESLint 侧关掉（只关规则、不摘插件注册）。
     // 位置固定：各包自己的配置之后、prettier 兜底之前（见文件上方两段式说明）。
     ...oxlintRules,
+    // ── 排序所有权 ── 语句级 import 排序与 `package.json` 键序归 oxfmt（根 `.oxfmtrc.json`）；
+    // 具名 specifier / export 语句的排序仍归 ESLint。分工与理由见 sort-ownership.ts 顶部。
+    // 放在各包配置之后：调用方不能把它改回去，否则会与 oxfmt 互相改写。
+    ...sortOwnershipConfig(),
     // 兜底：万一有格式化规则漏网（第三方预设自带、或某条 ours 显式打开），由它关掉，
     // 防止两个工具互相改回去。**必须最后**：flat config 后份覆盖前份。
     eslintConfigPrettier,

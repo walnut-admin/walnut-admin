@@ -142,15 +142,27 @@ TNB（typescript-native-bridge）对外是 classic 6.0.3 API 外壳，对内是�
   type 别名发出求值为 `Object` 的受保护引用，是既有形态，不是元数据丢失）、
   `openapi:check:export` 导出零 diff（schema 数量随代码变化，判据是 diff 不是常数）。
   HTTP 冒烟无 500、日志无 undefined 错误。
-- **TNB project-mode 缺陷（已知，等上游）**：在设置 `configFilePath` 的 project mode 下，
-  `program.getSourceFiles()` 返回的 SourceFile 是空壳（`.d.ts` 的 statements 为空），
-  `program.emit()` 静默写 0 个文件；`program.getSourceFile(name)` 物化后的文件正常，不带
-  `configFilePath` 的 classic 路径也正常。受影响的消费者是 admin 生成链的
-  `ts-json-schema-generator`（admin 的 `predev` / `prebuild` / `pretypes:check` 会一起断）。
-- **绕行方式**：admin 的 `.vscode/settings-dev.schema.json` 生成器改为 `tsrs/sync` 的 checker
-  直接读类型图（TS 7.1 形状的 JS API），产物与迁移前基线**逐字节一致**（同一 hash，换生成器
-  不允许出现任何 schema 变化）。这是 admin 的**第二条 typescript 链**：vue-tsc / ESLint 走 TNB
-  的 classic 外壳，生成器走 tsrs 的 7.1 API。
+- **project mode 是「使用形态约束」，不是引擎缺陷（2026-11-28 复核）**：设置 `configFilePath`
+  后，`program.getSourceFiles()` 返回共享薄桩（`statements` 为空），读 AST 前需要对每个文件调用
+  `program.getSourceFile(name)` 物化；`program.emit()` 在 **`createProgram` 没传 host 且 `emit`
+  没传 `writeFile`** 时会静默写 0 个文件（`emitSkipped:false`、零诊断）—— 因为 tsgo 分支不构造
+  默认 host，写入端只认 `host.writeFile` / `emit(writeFile)`。绕法已验证：①classic 风格（解析时
+  不传 `configFileName`，`options.configFilePath` 不存在）——本仓自己写的运行时消费者全部走这条
+  （第三方工具链自带 host，见执行计划 §6（C03）的审计表）；
+  ②project 语义 + 显式 `ts.createCompilerHost(options)`（或给 `emit` 传 `writeFile`）+ 读 AST 前
+  逐文件物化 —— 配置语义（`include` / `exclude` / `paths` / `types` / `lib` / `sourceMap` /
+  `rootDir`）在 fixture 上逐项验证；checker 图与 emit 文本（含 `.js.map`）与 classic 逐字节一致，
+  真实包的语义诊断数也与 classic 相同。**用户决定不提上游 issue
+  （2026-11-28）**，英文草稿不再维护；完整复现矩阵与消费面审计见执行计划 §6（C03）。
+- **约束条款（给后来者）**：任何新引入的 `typescript` API 消费者必须默认用 classic 风格调用
+  （不要把 `configFilePath` 带进 `options`）；确需 project 语义时，必须显式传
+  `ts.createCompilerHost(options)`，并在读 `statements` 前对每个文件调用
+  `program.getSourceFile(name)`；**禁止**「`createProgram` 不传 host + `emit()` 不传 `writeFile`」
+  这一组合 —— 它是唯一会静默丢产物的形态。
+- **生成器的绕行方式**：admin 的 `.vscode/settings-dev.schema.json` 生成器改为 `tsrs/sync` 的
+  checker 直接读类型图（TS 7.1 形状的 JS API），产物与迁移前基线**逐字节一致**（同一 hash，
+  换生成器不允许出现任何 schema 变化）。这是 admin 的**第二条 typescript 链**：vue-tsc / ESLint
+  走 TNB 各自带 host 的调用形态，生成器走 tsrs 的 7.1 API。
 - **admin 的 vue-tsc 已升到 3.3.14**（2026-11-28，`25cd245c`）：升之前先修掉 3.3.14 在
   **stock TS6 下也会**多出的 1 条真实诊断（`JSONEditor/index.vue` 的 TS2322，与 TNB 无关）；
   同一基线仍是 0 诊断。迁移期 3.2.8 的对照读数是换 TNB 后暖跑 1.7x、冷跑 2.2x。
@@ -200,19 +212,23 @@ tsrs 与 TNB 都只替换检查引擎，不改变「哪些代码能直接被 Nod
 - **产物不变**：nest 构建产物与 `verify-build-assets` 通过，`openapi.json` 导出零 diff，
   admin 的 schema 生成物与 HEAD 基线逐字节一致（hash 同值）；批次 8 回归时全仓测试绿，
   syncpack / lockfile / `install --frozen-lockfile` 等门禁绿。收尾提交把生成链换成 tsrs checker 后，
-  admin 的 `predev` / `prebuild` / `pretypes:check` 不再被 TNB 的 project-mode 缺陷挡住。
+  admin 的 `predev` / `prebuild` / `pretypes:check` 不再被 project mode 的薄 AST 形态挡住。
 - **格式与 lint 各有一个可机械核对的真源**：`oxfmt --check` 判格式，oxlint 的 correctness 兜底
   在 CI 与 pre-commit 先跑；两份配置（`.oxfmtrc.json` / `.oxlintrc.json`）与各自的 ignore 面
   是唯一需要维护的清单。
 
 **已知代价**：
 
-- **admin 有两条 typescript 链**（TNB 的 classic 外壳 + tsrs 的 7.1 API）。两条链的版本语义不同，
-  生成器的产物必须与基线逐字节对齐；TNB 修好 project-mode 之前，新生成器不要建立在
-  project-mode 的 `getSourceFiles()` / `emit()` 上。
-- **TNB 的 project-mode 缺陷待上游**：`emit` 在 project mode 下静默写 0 个文件是最危险的形态
-  （没有报错），排查时先确认「有没有产物」，不要只看 `emitSkipped`。TNB 是第三方桥接包、不是
-  官方发行版；Alpine / musl 不可用，Node RSS 约 1.4x。
+- **admin 有两条 typescript 链**（TNB 外壳 + tsrs 的 7.1 API）。两条链的版本语义不同，
+  生成器的产物必须与基线逐字节对齐。project mode 已有可用形态（显式 host + 逐文件物化），但
+  `ts-json-schema-generator` 是外部库、不会主动物化 `getSourceFiles()` 的薄桩，所以生成器继续走
+  tsrs；将来若要合并，按上面的约束条款做同一字节基线。
+- **project mode 的静默形态是已知约束**：`createProgram` 不传 host 且 `emit()` 不传 `writeFile`
+  时，产物会被静默丢弃（`emitSkipped:false`、零诊断；打开 `listEmittedFiles` 还会列出未写盘的
+  路径）。排查时先确认「有没有产物」，不要只看 `emitSkipped`；按约束条款传 host / writeFile 即可。
+  TNB 是第三方桥接包、不是官方发行版；Alpine / musl 不可用，Node RSS 约 1.4x。
+- **不提上游 issue（2026-11-28 用户决策）**：本地解法空间已挖透，project mode 的两条绕法都过了
+  复现矩阵与同一字节基线；后续不主动追上游，等其自行修复再复评。
 - **oxlint 已进 prepush（2026-11-28 批次 9B）**：双轨期仍要观察误报；`--fix` 的退出码不能当判据；
   规则所有权表（`.oxlintrc.json` 的逐条关闭理由 + ESLint 侧的 `oxlintRules` 段）需要人维护。
 - **tsrs 是 prerelease**：锁精确版本；已整批转正为 12 包的 `types:check` 主脚本；Windows 无 watch，

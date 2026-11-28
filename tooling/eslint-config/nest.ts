@@ -12,6 +12,7 @@ import { buildOxlintIgnores, oxlintRules } from './base'
 // ESLint 经 jiti 加载本文件，扩展名推断由它负责 ⇒ 不带扩展名两边都能解析。
 import { commentPolicyConfig } from './comment-rules'
 import localRules from './nest-local-rules'
+import { sortOwnershipConfig } from './sort-ownership'
 import { turboEnvVarsConfig } from './turbo-env-vars'
 
 /**
@@ -164,6 +165,10 @@ export default function nestConfig(options: OptionsConfig = {}): WalnutEslintCon
     // apps/server/eslint.config.ts 在预设之后 `.append()` 的 libs 分层配置只剩
     // no-restricted-imports / no-restricted-syntax / 本地规则 —— 都不在 oxlint 的覆盖面里。
     ...oxlintRules,
+    // ── 排序所有权 ── 语句级 import 排序归 oxfmt（根 `.oxfmtrc.json`）；具名 specifier /
+    // export 语句的排序仍归 ESLint。本预设 `jsonc: false`，所以不生成 package.json 的
+    // `jsonc/sort-keys` 段（未注册的插件不能出现在 rules 里）—— 见 sort-ownership.ts 顶部。
+    ...sortOwnershipConfig({ packageJsonKeyOrder: false }),
     // 兜底：关掉任何漏网的格式化规则（必须最后，flat config 后份覆盖前份）。
     // 格式的唯一真源是 oxfmt（根 `.oxfmtrc.json`）。
     eslintConfigPrettier,

@@ -329,7 +329,6 @@ catalog:
   pinia: 3.0.4
   qrcode: 1.5.4
   qs: 6.15.1
-  raw-body: 3.0.2
   redis: 5.11.0
   reflect-metadata: 0.2.2
   response-time: 2.3.4
@@ -347,7 +346,6 @@ catalog:
   syncpack: 15.3.2
   systeminformation: 5.31.5
   taze: 19.11.0
-  tencentcloud-sdk-nodejs: 4.1.204
   tinyglobby: 0.2.16
   tinymce: 8.5.0
   # 共享包（platform-any/{utils-core,contract}）的 lib 打包器，替代 Vite lib 模式 + vite-plugin-dts。

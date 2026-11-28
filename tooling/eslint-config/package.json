@@ -1,17 +1,13 @@
 {
   "name": "@walnut/eslint-config",
-  "type": "module",
   "version": "0.1.24",
   "description": "共享 ESLint 预设（flat config，基于 @antfu/eslint-config）：base（平台无关）/ vue（浏览器+Vue）/ nest（NestJS 后端，带本地装饰器排序规则）。",
   "license": "MIT",
+  "type": "module",
   "exports": {
     "./base": "./base.ts",
     "./vue": "./vue.ts",
     "./nest": "./nest.ts"
-  },
-  "engines": {
-    "node": ">=24.15.0",
-    "pnpm": ">=12.0.0"
   },
   "scripts": {
     "lint": "eslint . --concurrency=4",
@@ -19,9 +15,6 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "types:check": "tsrs --noEmit --pretty"
-  },
-  "peerDependencies": {
-    "eslint": "catalog:"
   },
   "dependencies": {
     "@antfu/eslint-config": "catalog:",
@@ -38,6 +31,13 @@
     "tsrs": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "eslint": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.15.0",
+    "pnpm": ">=12.0.0"
   },
   "walnut": {
     "platform": "any",
