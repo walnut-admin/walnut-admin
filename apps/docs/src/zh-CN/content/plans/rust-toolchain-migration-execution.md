@@ -32,6 +32,9 @@
 > §2 的 4 条里有 2 条（B03 / B04）已改判 ✅ 但**留在原段落档**（先例：knip 条目）—— 按段落计仍是 4 条，
 > 已清零的实数因此是 22；条数是清点口径而不是承诺，新增遗留只往本表追加，不另立第二本账。
 > **2026-11-28 追加 A21 后**：✅ 21 条 / 🔧 4 条 / 📋 5 条 / 🚫 18 条，共 48 条；已清零的实数 23。
+> **2026-11-28 收尾追加 A22–A24 后**：✅ 24 条 / 🔧 4 条 / 📋 5 条 / 🚫 18 条，共 51 条；
+> 已清零的实数 26（§2 的 B03 / B04 仍标记 ✅ 留档；B01 已重封但种子改动未提交 ⇒ 清单 `dataDirty`，
+> 提交后需再跑一轮干净封板才可 restore，详见 B01 行）。
 >
 > **ID 是稳定引用**：`A` = ✅ 已清零 / `B` = 🔧 进行中 / `C` = 📋 决策点 / `D` = 🚫 做不到，
 > 编号按**表内行序**（2026-11-28 一次成文，A01–A20 / B01–B04 / C01–C05 / D01–D18）。
@@ -40,7 +43,7 @@
 >
 > **证据口径**：提交号优先；只有文档结论的写文件与章节。探针类数字都带测量方法，引用时看判据不看绝对值。
 
-### 1. ✅ 已清零（20 条）
+### 1. ✅ 已清零（24 条）
 
 | ID | 条目 | 类别 | 证据或提交号 | 跟进方式 | 解除条件 |
 |----|------|------|--------------|----------|----------|
@@ -65,6 +68,9 @@
 | A19 | oxfmt `sortImports`（语句级 import 排序） | ✅ | 决策点 ①：2026-11-28 用户拍板**全开**；实施提交 `e5d145a1` | 已实施：`.oxfmtrc.json` 复刻 antfu 的 perfectionist groups + `newlinesBetween: false` + `partitionByNewline: true`；ESLint 关 `perfectionist/sort-imports`（base / vue / nest 三预设，共用 `tooling/eslint-config/sort-ownership.ts`）；具名 specifier / export 三条规则保留。全仓实测 2 文件 +3/−3（均为 `apps/server` 的 `.d.ts`，因并行「不碰 server」约束留给 server 清理一路） | 已解除；升 oxfmt 时重跑「`eslint --fix` ↔ `oxfmt --write`」两轮循环对照 |
 | A20 | oxfmt `sortPackageJson`（package.json 键序） | ✅ | 决策点 ①：2026-11-28 用户拍板**全开**；实施提交 `e5d145a1` | 已实施：`sortPackageJson: true`（根键序 + `dependencies` 的 asc）；ESLint 侧 `jsonc/sort-keys` 对 `**/package.json` 改为**窄版**（只留 `exports` 条件序与 `resolutions` / `pnpm.overrides` 的 asc —— **oxfmt 不排 `exports` 子键、也不排 overrides 子键**（2026-11-28 实测：`dependencies` 被排成 asc、`pnpm.overrides` 原样）；其余 JSON / tsconfig 的键序规则全部保留）。17 个 `package.json` 键序重排（含根） | 已解除；键序唯一真源是 oxfmt，新增键位以 oxfmt 输出为准 |
 | A21 | dev/build 的 `vite-plugin-checker` × TNB fixture 冲突（vite 不监听端口即死） | ✅ | 2026-11-28 P0 修复（工作区改动，待主对话提交）：`pnpm-workspace.yaml` 的 `publicHoistPattern` 加 `@typescript-native-bridge/*`；catalog `vite-plugin-checker 0.14.5 → 1.1.0`；`tooling/vite-config/src/plugins/checker.ts` 去掉 `typescript: true`、只留 `vueTsc: true`。复验：`/` 与 `/src/main.ts` 200、iconify 虚拟模块 200、vue-tsc / ESLint 0、持续 60s 存活、`turbo run build --filter=@walnut/admin --force` exit 0、`pnpm dev` 双端 + `/api` 代理 200（证据在 gitignored 的 `.zcode/dev-verify/`） | 三件套保持；dev 期类型反馈由 vue-tsc checker 承担（覆盖面与 `types:check` 相同）。升级 / 替换 checker 前先读本条与下方「A21 根因链」 | 上游让 vueTsc fixture 不再整目录复制 TS，或 TNB 支持同进程多 lib 路径；届时才可恢复 `typescript: true` |
+| A22 | J7b：`useDeptTree` 的 40105 未接线（缺 `system:dept:list` 时整页致命遮罩） | ✅ | 2026-11-28 修复（工作区改动，待主对话提交）：`apps/admin/src/hooks/core/useDeptTree.ts` 加权限门禁（`system:dept:list`，与 `useTableAPI` 的 list 门禁同型）+ 按 `IAppResponseError.code` 兜底 40105，两种情况都降级空树并清模块缓存；`apps/e2e/tests/journey/permission-visibility.spec.ts` 的 J7b 由 `test.fixme` 转正式用例（断言页面可用、无致命遮罩、无 dept/tree 请求、按钮隐藏/无数据行）。实测 `E2E_STACK_PROFILE=journey … --rebuild-baseline` 13 passed（J7b 20.2s） | 完成；错误形态对齐拦截器既有契约（`@/utils/axios/types` 的 `code` 字段），不新增请求层机制。其它错误仍走全局致命遮罩 | 已解除；若再出现「辅助依赖失败 ⇒ 整页遮罩」的同类形态，按同一「权限门禁 + 预期码兜底」模式补 |
+| A23 | 废弃菜单 `demo/table/base` 的 seed 漂移（`component` 指向不存在的 `baseTable`） | ✅ | 2026-11-28 用户拍板按「功能已废弃」处理（工作区改动，待主对话提交）：`apps/server/db/seed/sys_menu.json` 删该菜单行（173→172；父级 `DemoTable` 仍有 `hook` 子项，无级联删除；`sys_role_menu` 无引用、`lint:seed` 引用完整性绿）；`apps/e2e/tests/pages/reachability.spec.ts` 的 `test.fixme` 改为正式**反向断言**（应用内导航到 `/demo/table/base` 必须落 404）；`E2E_STACK_PROFILE=pages … --rebuild-baseline` 9 passed（原 8 passed + 1 skipped） | 完成；菜单行、路由与 `import.meta.glob` 解析三处都不再暴露该页。字典里的 `sys.menu.comp.table.base` 语言包条目保留（不是菜单项、无渲染入口） | 已解除；若要恢复该演示页：先补真实组件，再加 seed 行，并同步改反向断言（否则 pages 用例会红） |
+| A24 | docs `PageTitle` 的 SSG 标题为空（`onMounted` 在构建期不执行） | ✅ | 2026-11-28：`apps/docs/.vitepress/components/PageTitle.vue` 的 nav/sidebar 解析由「`onMounted` 赋值 + `watch(route)`」改为 `computed`（保留 `NavNode` 三态联合与 `isLinkNode` / `isItemsNode` 两个类型守卫）；`pnpm walnut build:docs` exit 0（含死链门禁），`dist` 271 个 HTML 中 270 个带真实标题（`axios` / `Cap.js简易人机验证` / `wsl` 等抽查命中 nav 或 sidebar 文案），唯一占位 `content.html` 是未登记 nav/sidebar 的 `/content` 落地页（无标题来源，兜底文案按设计保留） | 完成；新增页面仍要登记进 nav 或 sidebar，否则会落到兜底文案 | 已解除；VitePress 升级改变 `useData()` 的 SSR 行为时，重跑 `build:docs` 并抽查 nav / sidebar 两棵树各一页 |
 
 **A21 的根因链与上游调研（2026-11-28）**
 
@@ -98,7 +104,7 @@
 
 | ID | 条目 | 类别 | 证据或提交号 | 跟进方式 | 解除条件 |
 |----|------|------|--------------|----------|----------|
-| B01 | e2e 全 profile 基线重封与全量回归 | 🔧 | 本次清点：`.e2e/{smoke,risk,network,pages,journey}/baseline.manifest.json` 已在 2026-11-28 重封，dataKey 同为 `dfc6560a…`；`.e2e/baseline.manifest.json`（default）仍是 2026-11-27、dataKey 为 `85ee618c…` | 另一路 agent 在跑 `e2e:default`（smoke / risk / network / mobile 四 project）与命名 profile；完成后回填读数 | 所有 profile 清单的 dataKey 与当前数据路径一致；`e2e:default` 与命名 profile 全绿；CI nightly 首跑有记录 |
+| B01 | e2e 全 profile 基线重封与全量回归 | 🔧（跑绿；只差提交后的干净重封） | **2026-11-28 全量重封完成（工作区改动，待主对话提交）**：6 个清单全部重封为 `menuRows=172`（A23 删菜单行后）、`dataKey=dfc6560a…`（HEAD 数据树）、各自 `database` 正确；读数：`smoke` 11 passed/1.3m、`risk` 24 passed/6.2m、`network` 2 passed/24.3s、`pages` 9 passed/1.3m（A23 反向断言转正）、`journey` 13 passed/4.6m（J7b 转正，20.2s）、`e2e:default`（smoke+risk+network+mobile）36 passed/5.9m。**6 个清单均为 `dataDirty=true`**：A23 的 seed 删除尚未提交（`git status` 有 1 条数据路径脏），封板脚本按设计只保证「本轮可用」 | 主对话提交后，对 6 个 profile 各跑一轮 `--rebuild-baseline` 生成 `dataDirty=false` 的干净清单（否则下一次 restore 会退出 2 并提示重封）；CI nightly 首跑记录仍待补 | 清单 `dataDirty=false` + dataKey 与当前数据路径一致；`e2e:default` 与命名 profile 全绿；CI nightly 首跑有记录 |
 | B02 | Windows `0xC0000005`（admin 的 eslint / vite 偶发原生崩溃） | 🔧 | `plans/tooling-restructure-plan.md` §14 的排查记录；`plans/e2e-sandbox-plan.md` §7 已知问题；prepush 的 `nativeCrashNote` 只加提示、不改判决 | 另一路 agent 治理；下一步用 WER LocalDumps 抓 node 崩溃转储（需改注册表，留给所有者） | 拿到转储定位到模块，或连续负载复现 0 次并形成可执行的重跑口径；否则保持「重跑」处置 |
 | B03 | `pnpm knip` 红 + 依赖卫生 | ✅ | `knip.config.ts` 顶部判据；`apps/docs/src/zh-CN/content/monorepo/knip.md` 的分类口径 | 已收口（2026-11-28）：`pnpm knip` exit 0；删无用依赖 / 导出与 catalog 条目、补 `entry`/`project`（admin `build/**`、server CLI/worker/migrations/barrel、`.tsx`）；`maxWorkers` 漂移改在 turbo.json 注释对齐事实 | `pnpm knip` exit 0；`ignoreIssues` 仅剩 server 冻结兼容层与 docs 英文站脚手架（逐条理由在配置文件） |
 | B04 | docs 的 `types:check` 曾是 `echo skipped` | ✅ | `413f6ad9`：改为 `vue-tsc --noEmit`（`apps/docs/package.json`），并把 `eslint.config.ts` 纳入 `apps/docs/tsconfig.json`；9/9 文件 0 诊断；评估 §4.2 已加 2026-11-28 勘误 | 完成；不要用裸 `tsc` 硬开 | 已解除；`build:docs` 绿 |
