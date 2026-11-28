@@ -26,16 +26,12 @@ const cropperValue = ref<string>()
           <WJSON :value="{ srcValue, cropperValue }" />
 
           <div class="flex flex-nowrap">
-            <img :src="srcValue" alt="cropper demo" class="mr-4 h-48 w-auto">
-            <img :src="cropperValue" alt="cropper demo" class="h-48 w-auto">
+            <img :src="srcValue" alt="cropper demo" class="mr-4 h-48 w-auto" />
+            <img :src="cropperValue" alt="cropper demo" class="h-48 w-auto" />
           </div>
         </div>
 
-        <WCropper
-          v-model:value="cropperValue"
-          v-model:src="srcValue"
-          alt="cropper-demo"
-        />
+        <WCropper v-model:value="cropperValue" v-model:src="srcValue" alt="cropper-demo" />
       </n-list-item>
     </n-list>
   </WDemoCard>

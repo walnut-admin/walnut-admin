@@ -1,13 +1,24 @@
-import type {
-  IWalnutAdminDataScopeDeptUpdateDecision,
-  IWalnutAdminDataScopeEntityConfig,
-  IWalnutAdminDataScopeSqlPredicate,
-  WalnutDataScopeFindWhere,
-} from '@walnut-server/repository'
+import type { IWalnutAdminDataScopeEntityConfig } from '@walnut-server/repository'
 import type { EntityTarget, ObjectLiteral } from 'typeorm'
-import { AppDemoEntity, AppErrorEntity, AppKeyEntity, AppMonitorUserEntity, AppSettingEntity, SharedAreaEntity } from '@walnut-server/app-domain'
+import {
+  AppDemoEntity,
+  AppErrorEntity,
+  AppKeyEntity,
+  AppMonitorUserEntity,
+  AppSettingEntity,
+  SharedAreaEntity,
+} from '@walnut-server/app-domain'
 import { AuthRefreshTokenEntity } from '@walnut-server/auth'
-import { SysUserDeviceEntity, SysUserEntity, SysUserIdentityEntity, SysUserLockEntity, SysUserMfaEntity, SysUserOauthEntity, SysUserPreferenceEntity, SysUserRoleEntity } from '@walnut-server/identity'
+import {
+  SysUserDeviceEntity,
+  SysUserEntity,
+  SysUserIdentityEntity,
+  SysUserLockEntity,
+  SysUserMfaEntity,
+  SysUserOauthEntity,
+  SysUserPreferenceEntity,
+  SysUserRoleEntity,
+} from '@walnut-server/identity'
 import { SysDeletedEntity } from '@walnut-server/repository'
 import {
   SysDeptEntity,
@@ -59,12 +70,7 @@ import {
  * `scopeColumn IS NULL`：未登录访客没有 owner，归为共享匿名行。
  */
 
-export type {
-  IWalnutAdminDataScopeDeptUpdateDecision,
-  IWalnutAdminDataScopeEntityConfig,
-  IWalnutAdminDataScopeSqlPredicate,
-  WalnutDataScopeFindWhere,
-}
+export type { IWalnutAdminDataScopeEntityConfig }
 
 /**
  * 注册清单（带 owner / dept 语义的业务表）。
@@ -136,32 +142,74 @@ export interface IWalnutAdminDataScopeExemptEntity {
  */
 export const WALNUT_DATA_SCOPE_EXEMPT_ENTITIES: ReadonlyArray<IWalnutAdminDataScopeExemptEntity> = [
   // ── ① 全局共享 / 配置表 ──────────────────────────────────────────────────
-  { entity: SysRoleEntity, reason: '角色定义是全局共享配置（谁能看哪些角色不是行级数据）；角色本身的维护靠功能权限' },
+  {
+    entity: SysRoleEntity,
+    reason: '角色定义是全局共享配置（谁能看哪些角色不是行级数据）；角色本身的维护靠功能权限',
+  },
   { entity: SysMenuEntity, reason: '菜单/权限点是全局共享配置；角色授权经 sys_role_menu' },
   { entity: SysDictTypeEntity, reason: '字典类型是全局共享配置' },
   { entity: SysDictDataEntity, reason: '字典数据是全局共享配置' },
   { entity: SysLangEntity, reason: '语言清单是全局共享配置' },
   { entity: SysLocaleEntity, reason: '语言包是全局共享配置（前端所有用户同一份）' },
   { entity: SharedAreaEntity, reason: '行政区划是全局共享参考数据（66 万行，无归属）' },
-  { entity: AppSettingEntity, reason: '应用设置是全局配置（含 created_by 但语义是变更记录，不是数据归属）' },
+  {
+    entity: AppSettingEntity,
+    reason: '应用设置是全局配置（含 created_by 但语义是变更记录，不是数据归属）',
+  },
   { entity: AppKeyEntity, reason: '密钥材料是系统级配置（current/rotate 由守卫与内部任务消费）' },
-  { entity: AppErrorEntity, reason: '错误监控是系统旁路采集（user_id 只是现场快照），排障需要跨用户读' },
-  { entity: AuthRefreshTokenEntity, reason: '登录会话表：auth 链路（refresh/revoke/purge）在请求上下文之外读写，纳入 scope 会断登录' },
+  {
+    entity: AppErrorEntity,
+    reason: '错误监控是系统旁路采集（user_id 只是现场快照），排障需要跨用户读',
+  },
+  {
+    entity: AuthRefreshTokenEntity,
+    reason:
+      '登录会话表：auth 链路（refresh/revoke/purge）在请求上下文之外读写，纳入 scope 会断登录',
+  },
   // ── ② 登录/安全面系统表 ───────────────────────────────────────────────────
-  { entity: SysUserDeviceEntity, reason: '用户-设备绑定是安全面数据（device/lock/signout 链路按 userId+deviceId 点查），一期不纳入行级 scope' },
-  { entity: SysUserIdentityEntity, reason: '登录凭据（口令/手机/邮箱）属于安全面：只按 userId 点查，纳入列表 scope 无收益且有断登录风险' },
+  {
+    entity: SysUserDeviceEntity,
+    reason:
+      '用户-设备绑定是安全面数据（device/lock/signout 链路按 userId+deviceId 点查），一期不纳入行级 scope',
+  },
+  {
+    entity: SysUserIdentityEntity,
+    reason:
+      '登录凭据（口令/手机/邮箱）属于安全面：只按 userId 点查，纳入列表 scope 无收益且有断登录风险',
+  },
   { entity: SysUserLockEntity, reason: '锁屏偏好属于安全面：按 userId+deviceId 点查' },
   { entity: SysUserMfaEntity, reason: 'MFA 凭据属于安全面：按 userId 点查（含密文列）' },
-  { entity: SysUserOauthEntity, reason: 'OAuth 绑定属于安全面：按 provider+providerId / userId 点查' },
+  {
+    entity: SysUserOauthEntity,
+    reason: 'OAuth 绑定属于安全面：按 provider+providerId / userId 点查',
+  },
   { entity: SysUserPreferenceEntity, reason: '用户偏好属于自服务面：按 userId 点查' },
-  { entity: SysDeviceEntity, reason: 'sys_device 无 user_id 列（设备归属在 sys_user_device 关联表）；一期登记豁免，二期与设备维度一起设计' },
+  {
+    entity: SysDeviceEntity,
+    reason:
+      'sys_device 无 user_id 列（设备归属在 sys_user_device 关联表）；一期登记豁免，二期与设备维度一起设计',
+  },
   // ── ③ 组织维度（部门树本身是全局组织数据，不是业务行）─────────────────────
-  { entity: SysDeptEntity, reason: '部门树是全局组织数据：数据权限以它为维度（DEPT/DEPT_AND_CHILD 的解析输入），而不是对它做行级过滤' },
+  {
+    entity: SysDeptEntity,
+    reason:
+      '部门树是全局组织数据：数据权限以它为维度（DEPT/DEPT_AND_CHILD 的解析输入），而不是对它做行级过滤',
+  },
   { entity: SysPostEntity, reason: '岗位是全局组织数据（平表），不参与行级过滤；职工主表已注册' },
   // ── junction（随主行 CASCADE 生灭）────────────────────────────────────────
-  { entity: SysUserRoleEntity, reason: 'sys_user_role 是 junction：随 user/role 主行生灭，不是业务数据行' },
-  { entity: SysRoleMenuEntity, reason: 'sys_role_menu 是 junction：随 role/menu 主行生灭，不是业务数据行' },
-  { entity: SysRoleDeptEntity, reason: 'sys_role_dept 是 junction：CUSTOM 档位的部门清单，随 role/dept 主行生灭；由解析器经 repo 读取，不参与行级过滤' },
+  {
+    entity: SysUserRoleEntity,
+    reason: 'sys_user_role 是 junction：随 user/role 主行生灭，不是业务数据行',
+  },
+  {
+    entity: SysRoleMenuEntity,
+    reason: 'sys_role_menu 是 junction：随 role/menu 主行生灭，不是业务数据行',
+  },
+  {
+    entity: SysRoleDeptEntity,
+    reason:
+      'sys_role_dept 是 junction：CUSTOM 档位的部门清单，随 role/dept 主行生灭；由解析器经 repo 读取，不参与行级过滤',
+  },
 ]
 
 /**
@@ -171,20 +219,15 @@ export const WALNUT_DATA_SCOPE_EXEMPT_ENTITIES: ReadonlyArray<IWalnutAdminDataSc
 export function getWalnutDataScopeEntityConfig(
   entity: EntityTarget<ObjectLiteral> | undefined,
 ): IWalnutAdminDataScopeEntityConfig | undefined {
-  return WALNUT_DATA_SCOPE_ENTITIES.find(config => config.entity === entity)
-}
-
-export function isWalnutDataScopeRegisteredEntity(entity: EntityTarget<ObjectLiteral> | undefined): boolean {
-  return getWalnutDataScopeEntityConfig(entity) !== undefined
+  return WALNUT_DATA_SCOPE_ENTITIES.find((config) => config.entity === entity)
 }
 
 // 批 7：谓词/RLS 纯函数随 data-scope 模块下沉 libs/system；这里 re-export 保持既有 import 面
-// （common/repository/data-scope.spec.ts、eslint drift spec、策略实现体）不变。
+// （common/repository/data-scope.spec.ts 与策略实现体）不变。
 export {
   applyWalnutDataScopePredicate,
   buildWalnutDataScopeFindWhere,
   buildWalnutDataScopeSqlPredicate,
-  isWalnutDataScopeRootRole,
   mergeWalnutDataScopeFindWhere,
   resolveWalnutDataScopeDeptUpdate,
   toWalnutDataScopeMode,

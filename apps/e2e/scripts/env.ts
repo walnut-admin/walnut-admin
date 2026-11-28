@@ -53,9 +53,15 @@ export const SERVER_MAIN_FILE = path.join(SERVER_DIST_DIR, 'apps/api/src/main.js
  * 缺了它 webServer 启动时才会报模块找不到（Playwright 表现为 180s 超时）—— preflight 要把
  * 这类失败提前成退出码 2。
  */
-export const UTILS_SIGN_RAW_DIST_FILE = path.join(REPO_ROOT, 'packages/platform-any/utils-core/dist/sign-raw.cjs')
+export const UTILS_SIGN_RAW_DIST_FILE = path.join(
+  REPO_ROOT,
+  'packages/platform-any/utils-core/dist/sign-raw.cjs',
+)
 /** `@walnut/contract` 的 CJS 产物（`lib/protocol/contract.ts` 的 require 消费；同上） */
-export const CONTRACT_DIST_FILE = path.join(REPO_ROOT, 'packages/platform-any/contract/dist/index.cjs')
+export const CONTRACT_DIST_FILE = path.join(
+  REPO_ROOT,
+  'packages/platform-any/contract/dist/index.cjs',
+)
 
 /** 运行态目录：凭据（gitignored）与栈信息；命名 profile 各用子目录（default 保持 `.e2e` / `.auth`） */
 export const AUTH_DIR = path.join(E2E_ROOT, STACK_PROFILE.authDir)
@@ -167,14 +173,14 @@ export const RT_JTI_COOKIE_NAME = WalnutAdminConstCookieKeys.RT_JTI
 export function assertE2eDatabase(database: string): void {
   if (!E2E_DATABASE_PATTERN.test(database)) {
     throw new E2ePreconditionError(
-      `[e2e/safety] 拒绝对库 \`${database}\` 执行破坏性操作：库名形态必须是 \`walnut_e2e\` 或 \`walnut_e2e_<小写>\`。`
-      + '（dev 的 walnut_pg 与本栈共用一套脚本的话，任何一次误跑都会清掉开发数据）',
+      `[e2e/safety] 拒绝对库 \`${database}\` 执行破坏性操作：库名形态必须是 \`walnut_e2e\` 或 \`walnut_e2e_<小写>\`。` +
+        '（dev 的 walnut_pg 与本栈共用一套脚本的话，任何一次误跑都会清掉开发数据）',
     )
   }
   if (database !== E2E_PG_DB) {
     throw new E2ePreconditionError(
-      `[e2e/safety] 拒绝对库 \`${database}\` 执行破坏性操作：当前 profile \`${STACK_PROFILE.name}\` 只允许 \`${E2E_PG_DB}\`。`
-      + `\n  换 profile 用 E2E_STACK_PROFILE=${STACK_PROFILE.name}（或不设 = default）；不要手工改库名。`,
+      `[e2e/safety] 拒绝对库 \`${database}\` 执行破坏性操作：当前 profile \`${STACK_PROFILE.name}\` 只允许 \`${E2E_PG_DB}\`。` +
+        `\n  换 profile 用 E2E_STACK_PROFILE=${STACK_PROFILE.name}（或不设 = default）；不要手工改库名。`,
     )
   }
 }
@@ -182,14 +188,18 @@ export function assertE2eDatabase(database: string): void {
 /** 安全闸：PG 端口必须是独立栈的 5433（同 {@link assertE2eDatabase} 的口径：常量实参时是机械标记） */
 export function assertE2ePgPort(port: number): void {
   if (port !== E2E_PG_PORT) {
-    throw new Error(`[e2e/safety] 拒绝在 PG 端口 ${port} 上跑 E2E：只允许 ${E2E_PG_PORT}（dev 是 5432）`)
+    throw new Error(
+      `[e2e/safety] 拒绝在 PG 端口 ${port} 上跑 E2E：只允许 ${E2E_PG_PORT}（dev 是 5432）`,
+    )
   }
 }
 
 /** 安全闸：Redis 端口必须是独立栈的 6380（同 {@link assertE2eDatabase} 的口径：常量实参时是机械标记） */
 export function assertE2eRedisPort(port: number): void {
   if (port !== E2E_REDIS_PORT) {
-    throw new Error(`[e2e/safety] 拒绝在 Redis 端口 ${port} 上跑 E2E：只允许 ${E2E_REDIS_PORT}（dev 是 6379）`)
+    throw new Error(
+      `[e2e/safety] 拒绝在 Redis 端口 ${port} 上跑 E2E：只允许 ${E2E_REDIS_PORT}（dev 是 6379）`,
+    )
   }
 }
 
@@ -198,14 +208,15 @@ export function parseEnvFile(text: string): Record<string, string> {
   const env: Record<string, string> = {}
   for (const raw of text.split(/\r?\n/)) {
     const lineText = raw.trim()
-    if (lineText === '' || lineText.startsWith('#'))
-      continue
+    if (lineText === '' || lineText.startsWith('#')) continue
     const eq = lineText.indexOf('=')
-    if (eq <= 0)
-      continue
+    if (eq <= 0) continue
     const key = lineText.slice(0, eq).trim()
     let value = lineText.slice(eq + 1).trim()
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith('\'') && value.endsWith('\'')))
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    )
       value = value.slice(1, -1)
     env[key] = value
   }

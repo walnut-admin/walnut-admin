@@ -1,5 +1,14 @@
-import type { IWalnutAdminDataScopeDescriptor, IWalnutAdminDataScopeRlsSettings } from '@walnut-server/db'
-import type { EntityManager, EntityTarget, FindOptionsWhere, ObjectLiteral, SelectQueryBuilder } from 'typeorm'
+import type {
+  IWalnutAdminDataScopeDescriptor,
+  IWalnutAdminDataScopeRlsSettings,
+} from '@walnut-server/db'
+import type {
+  EntityManager,
+  EntityTarget,
+  FindOptionsWhere,
+  ObjectLiteral,
+  SelectQueryBuilder,
+} from 'typeorm'
 
 /**
  * 数据权限端口（libs 解耦批 5 的依赖反转）。
@@ -86,10 +95,10 @@ export interface IWalnutAdminDataScopeSqlPredicate {
 }
 
 /** FindOptionsWhere 形态的 scope 面：null = 不限制；'deny' = 默认拒绝 */
-export type WalnutDataScopeFindWhere<Entity extends ObjectLiteral>
-  = | FindOptionsWhere<Entity>[]
-    | 'deny'
-    | null
+export type WalnutDataScopeFindWhere<Entity extends ObjectLiteral> =
+  | FindOptionsWhere<Entity>[]
+  | 'deny'
+  | null
 
 /** update 路径对 deptColumn 的处理决策：放行 / 从 DTO 剔除 / 按越权拒绝（404） */
 export type IWalnutAdminDataScopeDeptUpdateDecision = 'allow' | 'strip' | 'deny'
@@ -103,7 +112,9 @@ export type IWalnutAdminDataScopeDeptUpdateDecision = 'allow' | 'strip' | 'deny'
  */
 export interface IWalnutAdminDataScopePolicy {
   /** 实体 → 注册项（未注册 = 显式豁免，返回 undefined） */
-  getEntityConfig: (entityTarget: EntityTarget<ObjectLiteral> | undefined) => IWalnutAdminDataScopeEntityConfig | undefined
+  getEntityConfig: (
+    entityTarget: EntityTarget<ObjectLiteral> | undefined,
+  ) => IWalnutAdminDataScopeEntityConfig | undefined
   /** 构造 Repository.find/findOne 用的 scope where 数组（OR 关系） */
   buildFindWhere: <Entity extends ObjectLiteral>(
     config: IWalnutAdminDataScopeEntityConfig,
@@ -134,7 +145,7 @@ export interface IWalnutAdminDataScopePolicy {
   buildRlsSettings: (
     descriptor: IWalnutAdminDataScopeDescriptor | undefined,
     userId: string | undefined,
-    options?: { systemChannel?: boolean, userDeptId?: string | null },
+    options?: { systemChannel?: boolean; userDeptId?: string | null },
   ) => IWalnutAdminDataScopeRlsSettings
   /** create 的行级部门回填腿：取某账号的职工部门（无职工行 → null） */
   findOwnerDeptId: (userId: string, em?: EntityManager) => Promise<string | null>

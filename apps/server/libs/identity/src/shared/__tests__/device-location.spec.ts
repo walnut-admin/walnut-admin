@@ -12,14 +12,20 @@ describe('getDeviceLocationString', () => {
   })
 
   it('国市区齐全 → 空格拼接', () => {
-    expect(getDeviceLocationString({ locationInfo: { country: '中国', region: '广东', city: '深圳' } })).toBe('中国 广东 深圳')
+    expect(
+      getDeviceLocationString({ locationInfo: { country: '中国', region: '广东', city: '深圳' } }),
+    ).toBe('中国 广东 深圳')
   })
 
   it('region === city → 去重（国 + 区）', () => {
-    expect(getDeviceLocationString({ locationInfo: { country: '中国', region: '深圳', city: '深圳' } })).toBe('中国 深圳')
+    expect(
+      getDeviceLocationString({ locationInfo: { country: '中国', region: '深圳', city: '深圳' } }),
+    ).toBe('中国 深圳')
   })
 
   it('country 缺省 → filter(Boolean) 丢弃，不打 undefined', () => {
-    expect(getDeviceLocationString({ locationInfo: { region: '广东', city: '深圳' } })).toBe('广东 深圳')
+    expect(getDeviceLocationString({ locationInfo: { region: '广东', city: '深圳' } })).toBe(
+      '广东 深圳',
+    )
   })
 })

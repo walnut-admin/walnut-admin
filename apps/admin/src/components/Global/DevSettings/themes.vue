@@ -200,8 +200,7 @@ const [register] = useForm<typeof lightThemeRelatives.value>({
           <AppSettingsDevColors
             v-model={[formData.invertedColor, 'value']}
             disabled={isDark.value}
-          >
-          </AppSettingsDevColors>
+          ></AppSettingsDevColors>
         ),
       },
     },
@@ -211,16 +210,8 @@ const [register] = useForm<typeof lightThemeRelatives.value>({
 
 <template>
   <!-- @vue-generic {typeof darkThemeRelatives.value} -->
-  <WForm
-    v-if="isDark"
-    :model="darkThemeRelatives"
-    @hook="register"
-  />
+  <WForm v-if="isDark" :model="darkThemeRelatives" @hook="register" />
 
   <!-- @vue-generic {typeof lightThemeRelatives.value} -->
-  <WForm
-    v-else
-    :model="lightThemeRelatives"
-    @hook="register"
-  />
+  <WForm v-else :model="lightThemeRelatives" @hook="register" />
 </template>

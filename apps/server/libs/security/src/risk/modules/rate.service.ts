@@ -4,7 +4,12 @@ import { AppTechRedisService } from '@walnut-server/cache'
 import { SharedIpService } from '@walnut-server/ip'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { isNil } from 'lodash'
-import { calcScoreAndLevel, SecurityRiskConfigService, WalnutAdminConstRiskFactor, WalnutAdminConstRiskType } from '../risk.config.service'
+import {
+  calcScoreAndLevel,
+  SecurityRiskConfigService,
+  WalnutAdminConstRiskFactor,
+  WalnutAdminConstRiskType,
+} from '../risk.config.service'
 
 @Injectable()
 export class SecurityRiskRateService {
@@ -53,7 +58,7 @@ export class SecurityRiskRateService {
   }
 
   async collectPostAuth(path: string, userId: string): Promise<void> {
-    if (this.sharedBLPathService.shouldSkip (path)) {
+    if (this.sharedBLPathService.shouldSkip(path)) {
       return
     }
 
@@ -131,7 +136,7 @@ export class SecurityRiskRateService {
     ipCheckResult: IWalnutAdminRateRiskCheckResult | null
     deviceCheckResult: IWalnutAdminRateRiskCheckResult | null
     userCheckResult: IWalnutAdminRateRiskCheckResult | null
-  }): { score: number, factors: string[] } {
+  }): { score: number; factors: string[] } {
     const { ipCheckResult, deviceCheckResult, userCheckResult } = params
 
     let totalScore = 0
@@ -149,9 +154,9 @@ export class SecurityRiskRateService {
       factors.push(WalnutAdminConstRiskFactor.RATE_LIMIT_EXCEEDED)
 
       this.logger.debug(
-        `IP rate limit hit - Current: ${ipCheckResult.current}, `
-        + `Threshold: ${ipCheckResult.threshold}, Ratio: ${ratio.toFixed(2)}, `
-        + `Score: ${dimensionScore.toFixed(2)}`,
+        `IP rate limit hit - Current: ${ipCheckResult.current}, ` +
+          `Threshold: ${ipCheckResult.threshold}, Ratio: ${ratio.toFixed(2)}, ` +
+          `Score: ${dimensionScore.toFixed(2)}`,
       )
     }
 
@@ -168,9 +173,9 @@ export class SecurityRiskRateService {
       }
 
       this.logger.debug(
-        `Device rate limit hit - Current: ${deviceCheckResult.current}, `
-        + `Threshold: ${deviceCheckResult.threshold}, Ratio: ${ratio.toFixed(2)}, `
-        + `Score: ${dimensionScore.toFixed(2)}`,
+        `Device rate limit hit - Current: ${deviceCheckResult.current}, ` +
+          `Threshold: ${deviceCheckResult.threshold}, Ratio: ${ratio.toFixed(2)}, ` +
+          `Score: ${dimensionScore.toFixed(2)}`,
       )
     }
 
@@ -187,9 +192,9 @@ export class SecurityRiskRateService {
       }
 
       this.logger.debug(
-        `User rate limit hit - Current: ${userCheckResult.current}, `
-        + `Threshold: ${userCheckResult.threshold}, Ratio: ${ratio.toFixed(2)}, `
-        + `Score: ${dimensionScore.toFixed(2)}`,
+        `User rate limit hit - Current: ${userCheckResult.current}, ` +
+          `Threshold: ${userCheckResult.threshold}, Ratio: ${ratio.toFixed(2)}, ` +
+          `Score: ${dimensionScore.toFixed(2)}`,
       )
     }
 
@@ -227,9 +232,7 @@ export class SecurityRiskRateService {
   }
 
   private getMinuteKey(offsetMinute = 0): string {
-    return AppDayjs()
-      .subtract(offsetMinute, 'minute')
-      .format('YYYYMMDDHHmm')
+    return AppDayjs().subtract(offsetMinute, 'minute').format('YYYYMMDDHHmm')
   }
 
   private async buildKey(
@@ -238,18 +241,14 @@ export class SecurityRiskRateService {
     minuteKey: string,
   ): Promise<string> {
     const key = this.configService.redis.ratePrefix
-    const normalizedIdentifier = type === 'ip'
-      ? await this.sharedIpService.normalizeIp(identifier)
-      : identifier
+    const normalizedIdentifier =
+      type === 'ip' ? await this.sharedIpService.normalizeIp(identifier) : identifier
     return `${key}:${type}:${normalizedIdentifier}:${minuteKey}`
   }
 
   // ==================== Query Methods ====================
 
-  async getCurrentMinuteCount(
-    type: 'ip' | 'device' | 'user',
-    identifier: string,
-  ): Promise<number> {
+  async getCurrentMinuteCount(type: 'ip' | 'device' | 'user', identifier: string): Promise<number> {
     const minuteKey = this.getMinuteKey()
     const key = await this.buildKey(type, identifier, minuteKey)
     const count = await this.redis.get(key)
@@ -309,16 +308,14 @@ export class SecurityRiskRateService {
 
     if (hit) {
       this.logger.warn(
-        `Rate limit hit - ${type}:${identifier}, `
-        + `current=${current}, threshold=${threshold}, `
-        + `window=${windowMinutes}m`,
+        `Rate limit hit - ${type}:${identifier}, ` +
+          `current=${current}, threshold=${threshold}, ` +
+          `window=${windowMinutes}m`,
       )
     }
 
-    const returnIdentifier
-      = type === 'ip'
-        ? await this.sharedIpService.normalizeIp(identifier) as string
-        : identifier
+    const returnIdentifier =
+      type === 'ip' ? ((await this.sharedIpService.normalizeIp(identifier)) as string) : identifier
 
     return {
       hit,

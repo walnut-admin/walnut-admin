@@ -6,7 +6,12 @@ import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.e
 import { ValueOf } from 'easy-fns-ts'
 
 import { SysUserDeviceRepositoryService } from '../user_device/repo/user_device.repo.service'
-import { SysUserLockDoLockDto, SysUserLockPreferenceDTO, SysUserLockPreferenceUpdateDto, SysUserLockUnLockDto } from './dto/user_lock.dto'
+import {
+  SysUserLockDoLockDto,
+  SysUserLockPreferenceDTO,
+  SysUserLockPreferenceUpdateDto,
+  SysUserLockUnLockDto,
+} from './dto/user_lock.dto'
 import { LockModeConst } from './lock.const'
 import { SysUserLockRepositoryService } from './repo/user_lock.repo.service'
 import { SysUserLockSharedService } from './shared/user_lock.shared.service'
@@ -105,15 +110,21 @@ export class SysUserLockService {
     const trimmedPwd = typeof dto.lockPwdHash === 'string' ? dto.lockPwdHash : undefined
     // 空串 / 纯空白 = 不修改（D2：旧实现把 '' 原样写进 overwriteColumns，security 模式
     // 会因此变成「空哈希 + 永久解不开」）。长度校验是 DTO 之后的第二道（非 HTTP 调用方）。
-    const hasSubmittedPwd = trimmedPwd !== undefined && trimmedPwd !== null && trimmedPwd.trim() !== ''
-    const hasStoredPwd = existing?.lockPwdHash !== undefined && existing?.lockPwdHash !== null && existing.lockPwdHash !== ''
+    const hasSubmittedPwd =
+      trimmedPwd !== undefined && trimmedPwd !== null && trimmedPwd.trim() !== ''
+    const hasStoredPwd =
+      existing?.lockPwdHash !== undefined &&
+      existing?.lockPwdHash !== null &&
+      existing.lockPwdHash !== ''
 
     if (hasSubmittedPwd && (trimmedPwd.length < 6 || trimmedPwd.length > 64)) {
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.user.unLock.pwdLength' })
     }
 
     if (dto.lockMode === LockModeConst.SECURITY && !hasSubmittedPwd && !hasStoredPwd) {
-      throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.user.unLock.pwdRequired' })
+      throw new WalnutAdminExceptionBadRequest({
+        errMsg: 'business.system.user.unLock.pwdRequired',
+      })
     }
 
     // **null 必须一起摘掉**（2026-11-27 实测的既有缺陷）：DTO 的布尔字段 transformer
@@ -124,7 +135,7 @@ export class SysUserLockService {
     const payload: Partial<SysUserLockPreferenceUpdateDto> = {}
     for (const [key, value] of Object.entries(dto)) {
       if (value !== undefined && value !== null) {
-        (payload as Record<string, unknown>)[key] = value
+        ;(payload as Record<string, unknown>)[key] = value
       }
     }
 
@@ -148,22 +159,50 @@ export class SysUserLockService {
   /**
    * @description lock user account
    */
-  async lock(userId: string, deviceId: string, fingerprint: string, { lockRoute }: SysUserLockDoLockDto, em?: EntityManager) {
+  async lock(
+    userId: string,
+    deviceId: string,
+    fingerprint: string,
+    { lockRoute }: SysUserLockDoLockDto,
+    em?: EntityManager,
+  ) {
     return this.userLockSharedService.lockUserDevice(userId, deviceId, fingerprint, lockRoute!, em)
   }
 
   /**
    * @description unlock user account, if lockMode is security, then check password
    */
-  async unlock(userId: string, deviceId: string, fingerprint: string, { lockPwdHash }: SysUserLockUnLockDto, em?: EntityManager) {
-    return this.userLockSharedService.unLockUserDevice(userId, deviceId, fingerprint, lockPwdHash!, em)
+  async unlock(
+    userId: string,
+    deviceId: string,
+    fingerprint: string,
+    { lockPwdHash }: SysUserLockUnLockDto,
+    em?: EntityManager,
+  ) {
+    return this.userLockSharedService.unLockUserDevice(
+      userId,
+      deviceId,
+      fingerprint,
+      lockPwdHash!,
+      em,
+    )
   }
 
   /**
    * 方案①：登录口令（OPAQUE）验证通过后就地解锁（`POST /system/user/lock/verify/finish`）。
    */
-  async unlockAfterCredentialVerified(userId: string, deviceId: string, fingerprint: string, em?: EntityManager) {
-    return this.userLockSharedService.unlockAfterCredentialVerified(userId, deviceId, fingerprint, em)
+  async unlockAfterCredentialVerified(
+    userId: string,
+    deviceId: string,
+    fingerprint: string,
+    em?: EntityManager,
+  ) {
+    return this.userLockSharedService.unlockAfterCredentialVerified(
+      userId,
+      deviceId,
+      fingerprint,
+      em,
+    )
   }
 
   /**

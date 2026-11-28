@@ -16,10 +16,13 @@ import { PreconditionError } from '../../lib/errors.ts'
 import { main } from '../main.ts'
 
 /** 固定的挑选结果（null = 取消，[] = 空选） */
-const pick = (ids: readonly string[] | null): CommandPicker => async () => ids
+const pick =
+  (ids: readonly string[] | null): CommandPicker =>
+  async () =>
+    ids
 
 describe('main —— 没有给 id 时的交互多选', () => {
-  let written: { fd: number, text: string }[]
+  let written: { fd: number; text: string }[]
   let executed: string[]
 
   beforeEach(() => {
@@ -36,7 +39,11 @@ describe('main —— 没有给 id 时的交互多选', () => {
     vi.restoreAllMocks()
   })
 
-  const stdoutText = (): string => written.filter(item => item.fd !== 2).map(item => item.text).join('')
+  const stdoutText = (): string =>
+    written
+      .filter((item) => item.fd !== 2)
+      .map((item) => item.text)
+      .join('')
   const fakeExecute: CommandExecutor = async (command) => {
     executed.push(command.id)
   }
@@ -45,44 +52,50 @@ describe('main —— 没有给 id 时的交互多选', () => {
   }
 
   it('取消（picker 返回 null）：不执行、不抛错，只打一行「已取消」', async () => {
-    await expect(main([], { isInteractive: () => true, picker: pick(null), execute: fakeExecute }))
-      .resolves
-      .toBeUndefined()
+    await expect(
+      main([], { isInteractive: () => true, picker: pick(null), execute: fakeExecute }),
+    ).resolves.toBeUndefined()
     expect(executed).toEqual([])
     expect(stdoutText()).toContain('已取消，什么都没跑')
   })
 
   it('空选（picker 返回空数组）：不执行、不抛错，只打一行「没有选中任何命令」', async () => {
-    await expect(main([], { isInteractive: () => true, picker: pick([]), execute: fakeExecute }))
-      .resolves
-      .toBeUndefined()
+    await expect(
+      main([], { isInteractive: () => true, picker: pick([]), execute: fakeExecute }),
+    ).resolves.toBeUndefined()
     expect(executed).toEqual([])
     expect(stdoutText()).toContain('没有选中任何命令，什么都没跑')
   })
 
   it('选中若干条：按表顺序执行（勾选顺序不作数）', async () => {
-    await main([], { isInteractive: () => true, picker: pick(['lint:doc-ts', 'lint:adr']), execute: fakeExecute })
+    await main([], {
+      isInteractive: () => true,
+      picker: pick(['lint:doc-ts', 'lint:adr']),
+      execute: fakeExecute,
+    })
     expect(executed).toEqual(['lint:adr', 'lint:doc-ts'])
     expect(stdoutText()).toContain('2 段：2 段真跑通过')
   })
 
   it('非终端：前置条件错误（退出码 2 的来源），且根本不起界面', async () => {
-    await expect(main([], { isInteractive: () => false, picker: neverPick }))
-      .rejects
-      .toBeInstanceOf(PreconditionError)
+    await expect(
+      main([], { isInteractive: () => false, picker: neverPick }),
+    ).rejects.toBeInstanceOf(PreconditionError)
     expect(stdoutText()).toContain('用法：pnpm walnut')
     // 老行为照旧：清单也要打出来
     expect(stdoutText()).toContain('lint:adr')
   })
 
   it('--dry-run 不带 id：不进多选（不探测 TTY），行为与 3.1 一致', async () => {
-    await expect(main(['--dry-run'], { isInteractive: () => true, picker: neverPick }))
-      .rejects
-      .toBeInstanceOf(PreconditionError)
+    await expect(
+      main(['--dry-run'], { isInteractive: () => true, picker: neverPick }),
+    ).rejects.toBeInstanceOf(PreconditionError)
   })
 
   it('--list 不起界面（多选只在「没有给 id 且非 dry-run」时才可能发生）', async () => {
-    await expect(main(['--list'], { isInteractive: () => true, picker: neverPick })).resolves.toBeUndefined()
+    await expect(
+      main(['--list'], { isInteractive: () => true, picker: neverPick }),
+    ).resolves.toBeUndefined()
     expect(stdoutText()).toContain('lint:adr')
   })
 })

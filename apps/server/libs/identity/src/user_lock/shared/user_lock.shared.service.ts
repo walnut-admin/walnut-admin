@@ -31,7 +31,14 @@ export class SysUserLockSharedService {
    * 在别处直接 UPDATE `sys_user_device.locked` 或直接写 Redis（管理员重置是唯一的
    * 「无视偏好、全设备」例外，见 `resetUserLockByAdmin`）。
    */
-  private async lockUserDeviceMainLogic(userId: string, deviceId: string, fingerprint: string, locked: boolean, lockPreference: SysUserLockEntity, em?: EntityManager) {
+  private async lockUserDeviceMainLogic(
+    userId: string,
+    deviceId: string,
+    fingerprint: string,
+    locked: boolean,
+    lockPreference: SysUserLockEntity,
+    em?: EntityManager,
+  ) {
     const emitEvent = locked ? WalnutAdminSocketEvents.LOCK : WalnutAdminSocketEvents.UNLOCK
     const isCrossDevice = lockPreference.lockCrossDevice
 
@@ -42,10 +49,14 @@ export class SysUserLockSharedService {
 
       // send socket emit to all auth online monitors
       await this.notifier.sendSocketEventToUserAllMonitors(userId, emitEvent)
-    }
-    else {
+    } else {
       // update current user's current device lock stauts
-      await this.userDeviceRepo.updateLockStatusForThisUserAndThisDevice(userId, deviceId, locked, em)
+      await this.userDeviceRepo.updateLockStatusForThisUserAndThisDevice(
+        userId,
+        deviceId,
+        locked,
+        em,
+      )
 
       // send specific socket event to current user device
       // 空 fingerprint = 调用方没有「当前浏览器」的指纹（登录即解锁路径）：该设备刚完成
@@ -63,9 +74,19 @@ export class SysUserLockSharedService {
     return true
   }
 
-  async lockUserDevice(userId: string, deviceId: string, fingerprint: string, lockRoute: object, em?: EntityManager) {
+  async lockUserDevice(
+    userId: string,
+    deviceId: string,
+    fingerprint: string,
+    lockRoute: object,
+    em?: EntityManager,
+  ) {
     // 客户端未带路由时落 DB 默认空对象（jsonb '{}'），对齐实体的非空不变量
-    const lockPreference = await this.userLockRepo.insertOrUpdateUserLockPre(userId, { lockRoute: lockRoute ?? {} }, em)
+    const lockPreference = await this.userLockRepo.insertOrUpdateUserLockPre(
+      userId,
+      { lockRoute: lockRoute ?? {} },
+      em,
+    )
     return this.lockUserDeviceMainLogic(userId, deviceId, fingerprint, true, lockPreference, em)
   }
 
@@ -127,7 +148,13 @@ export class SysUserLockSharedService {
     this.assertNotInUnlockBackoff(lockPreference)
   }
 
-  async unLockUserDevice(userId: string, deviceId: string, fingerprint: string, lockPwdHash: string, em?: EntityManager) {
+  async unLockUserDevice(
+    userId: string,
+    deviceId: string,
+    fingerprint: string,
+    lockPwdHash: string,
+    em?: EntityManager,
+  ) {
     const lockPreference = await this.userLockRepo.findUserLockPreByUserId(userId, em)
     if (!lockPreference) {
       throw new WalnutAdminExceptionDataNotFound()
@@ -149,7 +176,9 @@ export class SysUserLockSharedService {
       const unlockAuth = await this.lockCacheService.consumeUnlockAuthCache(userId, deviceId)
 
       if (unlockAuth === null) {
-        throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.user.unLock.pwdRequired' })
+        throw new WalnutAdminExceptionBadRequest({
+          errMsg: 'business.system.user.unLock.pwdRequired',
+        })
       }
 
       await this.userLockRepo.clearUnlockFailure(userId, em)
@@ -164,7 +193,10 @@ export class SysUserLockSharedService {
         throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.user.unLock.pwdErr' })
       }
 
-      const isLockPwdValid = await this.userLockRepo.compareLockPwdHash(lockPwdHash, lockPreference.lockPwdHash)
+      const isLockPwdValid = await this.userLockRepo.compareLockPwdHash(
+        lockPwdHash,
+        lockPreference.lockPwdHash,
+      )
       if (!isLockPwdValid) {
         // 计次只针对 security 模式（设计稿 §6.7：两个可爆破入口共用一套计数）
         if (isSecurityMode) {
@@ -187,7 +219,12 @@ export class SysUserLockSharedService {
    * **不经过** `unLockUserDevice` 的密码比对 —— 凭据已在 OPAQUE 腿验证过，不要在同一条链
    * 上再要求一次锁屏口令。幂等：未锁也返回 true（偏好行缺失仍 40401，与 unlock 同语义）。
    */
-  async unlockAfterCredentialVerified(userId: string, deviceId: string, fingerprint: string, em?: EntityManager) {
+  async unlockAfterCredentialVerified(
+    userId: string,
+    deviceId: string,
+    fingerprint: string,
+    em?: EntityManager,
+  ) {
     const lockPreference = await this.userLockRepo.findUserLockPreByUserId(userId, em)
     if (!lockPreference) {
       throw new WalnutAdminExceptionDataNotFound()
@@ -195,7 +232,14 @@ export class SysUserLockSharedService {
 
     await this.userLockRepo.clearUnlockFailure(userId, em)
 
-    const result = await this.lockUserDeviceMainLogic(userId, deviceId, fingerprint, false, lockPreference, em)
+    const result = await this.lockUserDeviceMainLogic(
+      userId,
+      deviceId,
+      fingerprint,
+      false,
+      lockPreference,
+      em,
+    )
 
     // sensitive_op 式的「解锁授权」：**单次消费、60s TTL、设备作用域**。它不改变解锁的
     // 真源（DB/执行腿已生效），只给「verify 成功但响应在网络上丢了」的客户端留一次

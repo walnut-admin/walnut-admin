@@ -78,6 +78,14 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      # 与 CI 的 quality job / 发版电池同口径的两道快速闸。发版是低频动作，
+      # 这里跑的是「发布出去的这批提交」，不能只靠本地 prepush（它可能被 --no-verify 绕过）。
+      - name: Lint (oxlint)
+        run: pnpm walnut lint:oxlint
+
+      - name: Format check (oxfmt)
+        run: pnpm walnut format:check
+
       - name: Type check
         run: pnpm types:check
 
@@ -128,6 +136,15 @@ jobs:
 
       - name: Build admin
         run: pnpm exec turbo run build --filter=@walnut/admin
+
+      # 与 ci.yml 的 quality job 同口径：构建成功不等于跑得起来，也不等于产物里没有后端 env。
+      # 必须紧跟 Build admin（扫的就是 dist），且必须在下面 `pnpm deploy --prod` 之前 ——
+      # deploy 是本 job 最后一个 pnpm 命令（见文件顶部 env 注释）。
+      - name: Smoke test the built admin bundle
+        run: pnpm walnut smoke:dist
+
+      - name: Dist secret scan
+        run: pnpm walnut lint:dist
 
       - name: Stage backend runtime (pnpm deploy --prod)
         run: |

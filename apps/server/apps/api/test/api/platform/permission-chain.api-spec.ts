@@ -5,7 +5,10 @@ import type { SeedPermissionChainFixture } from '../helpers/seed-permissions'
 import { Buffer } from 'node:buffer'
 import { randomUUID } from 'node:crypto'
 import { ConfigService } from '@nestjs/config'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppSettingKeys,
+} from '@walnut-server/const/app/cache'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { Role } from '@walnut/contract'
@@ -13,7 +16,12 @@ import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from '../helpers/api-client'
 import { overrideAppSettings } from '../helpers/app-settings'
-import { attemptHttpOpaqueLogin, performHttpOpaqueLogin, registerRootUserFixture, WALNUT_DEFAULT_VISITOR_ROLE_UUID } from '../helpers/auth-login'
+import {
+  attemptHttpOpaqueLogin,
+  performHttpOpaqueLogin,
+  registerRootUserFixture,
+  WALNUT_DEFAULT_VISITOR_ROLE_UUID,
+} from '../helpers/auth-login'
 import { createApiApp } from '../helpers/create-api-app'
 import { cleanupPermissionChainSeed, seedPermissionChainUser } from '../helpers/seed-permissions'
 
@@ -41,7 +49,7 @@ interface PermissionsData {
 }
 
 interface DemoListData {
-  data: Array<{ id: string, demoString?: string }>
+  data: Array<{ id: string; demoString?: string }>
   total: number
 }
 
@@ -102,7 +110,10 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     }
   }
 
-  function permissionCacheKey(fixture: SeedPermissionChainFixture, client: WalnutApiClient): string {
+  function permissionCacheKey(
+    fixture: SeedPermissionChainFixture,
+    client: WalnutApiClient,
+  ): string {
     return `${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:${fixture.userId}:${client.deviceId}`
   }
 
@@ -173,8 +184,7 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
       if (insertedVisitorRows.length > 0) {
         visitorRoleId = insertedVisitorRows[0].id
         createdVisitorRoleId = visitorRoleId
-      }
-      else {
+      } else {
         const fallbackRows: Array<{ id: string }> = await admin.pgDataSource.query(
           'SELECT id FROM sys_role WHERE role_name = $1',
           [Role.VISITOR],
@@ -187,10 +197,10 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
       'INSERT INTO sys_user_role (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
       [seedVisitorFixture.userId, visitorRoleId],
     )
-    await admin.pgDataSource.query(
-      'UPDATE sys_user SET current_role_id = $2 WHERE id = $1',
-      [seedVisitorFixture.userId, visitorRoleId],
-    )
+    await admin.pgDataSource.query('UPDATE sys_user SET current_role_id = $2 WHERE id = $1', [
+      seedVisitorFixture.userId,
+      visitorRoleId,
+    ])
     // 复用 admin 的已握手设备做 visitor 登录（独立 WalnutApiClient 会再打一次
     // device/initial —— 该端点 throttle 限 4 次/分钟，本 spec 已有 4 个客户端；
     // 登录令牌单独保存，P2-20 用例期间临时切换 admin.setAuth）。
@@ -202,7 +212,11 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     admin.setAuth(rootTokens)
 
     // demo 行（read/delete 的靶子，root 唯一写入口）
-    const createRes = await admin.root('POST', admin.apiPath('/app/demo'), demoPayload(`${demoGroup}-ROW`))
+    const createRes = await admin.root(
+      'POST',
+      admin.apiPath('/app/demo'),
+      demoPayload(`${demoGroup}-ROW`),
+    )
     expectOk(createRes, 'demo create (admin)')
     demoId = bodyOf<{ id: string }>(createRes).data.id
   })
@@ -218,8 +232,12 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
       await admin.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [rootFixture.roleId])
       await cleanupPermissionChainSeed(
         admin,
-        [seedFixture, seed2Fixture, seed3Fixture, seedVisitorFixture].filter((i): i is SeedPermissionChainFixture => i !== null),
-        [admin.deviceId, user?.deviceId, user2?.deviceId, user3?.deviceId].filter((i): i is string => typeof i === 'string'),
+        [seedFixture, seed2Fixture, seed3Fixture, seedVisitorFixture].filter(
+          (i): i is SeedPermissionChainFixture => i !== null,
+        ),
+        [admin.deviceId, user?.deviceId, user2?.deviceId, user3?.deviceId].filter(
+          (i): i is string => typeof i === 'string',
+        ),
       )
       if (createdVisitorRoleId !== null) {
         await admin.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [createdVisitorRoleId])
@@ -232,27 +250,35 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     const fixture = seedFixture!
     const pg = admin.pgDataSource
 
-    const userRows: Array<{ role_mode: string, current_role_id: string, mfa_setup: boolean }>
-      = await pg.query('SELECT role_mode, current_role_id, mfa_setup FROM sys_user WHERE id = $1', [fixture.userId])
+    const userRows: Array<{ role_mode: string; current_role_id: string; mfa_setup: boolean }> =
+      await pg.query('SELECT role_mode, current_role_id, mfa_setup FROM sys_user WHERE id = $1', [
+        fixture.userId,
+      ])
     expect(userRows[0].role_mode).toBe(WalnutAdminConstRoleMode.COMBINE)
     expect(userRows[0].current_role_id).toBe(fixture.mainRoleId)
     expect(userRows[0].mfa_setup).toBe(true)
 
     // 用户 junction 只剩种子主角色（visitor 兜底 junction 已删 —— AT payload roleNames 干净）
-    const userRoleRows: Array<{ role_id: string }>
-      = await pg.query('SELECT role_id FROM sys_user_role WHERE user_id = $1', [fixture.userId])
-    expect(userRoleRows.map(r => r.role_id)).toEqual([fixture.mainRoleId])
+    const userRoleRows: Array<{ role_id: string }> = await pg.query(
+      'SELECT role_id FROM sys_user_role WHERE user_id = $1',
+      [fixture.userId],
+    )
+    expect(userRoleRows.map((r) => r.role_id)).toEqual([fixture.mainRoleId])
 
     // 角色 junction 恰好挂授予集的 element 行（一行一权限点）
     const elementIds = fixture.menuIds.slice(0, fixture.grantedPermissions.length)
-    const roleMenuRows: Array<{ menu_id: string }>
-      = await pg.query('SELECT menu_id FROM sys_role_menu WHERE role_id = $1', [fixture.mainRoleId])
-    expect(roleMenuRows.map(r => r.menu_id).sort()).toEqual([...elementIds].sort())
+    const roleMenuRows: Array<{ menu_id: string }> = await pg.query(
+      'SELECT menu_id FROM sys_role_menu WHERE role_id = $1',
+      [fixture.mainRoleId],
+    )
+    expect(roleMenuRows.map((r) => r.menu_id).sort()).toEqual([...elementIds].sort())
 
     // permission 列即权限串（meta 拍平列，`*:*:*` 形态直存）
-    const menuRows: Array<{ permission: string }>
-      = await pg.query('SELECT permission FROM sys_menu WHERE id = ANY($1::uuid[])', [elementIds])
-    expect(menuRows.map(r => r.permission).sort()).toEqual([...fixture.grantedPermissions].sort())
+    const menuRows: Array<{ permission: string }> = await pg.query(
+      'SELECT permission FROM sys_menu WHERE id = ANY($1::uuid[])',
+      [elementIds],
+    )
+    expect(menuRows.map((r) => r.permission).sort()).toEqual([...fixture.grantedPermissions].sort())
   })
 
   it('GET /auth/permissions（非 root）：权限串恰为授予集 + 权限缓存键写入 + element 不进菜单树', async () => {
@@ -287,15 +313,19 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     try {
       // visitor：全量菜单树（含 permission 串）对 visitor 关闭
       const visitorTree = await admin.root('GET', admin.apiPath('/system/menu/tree'))
-      expect(bodyOf(visitorTree).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_NO_PERMISSION)
+      expect(bodyOf(visitorTree).code).toBe(
+        WalnutAdminConstAppResponseCode.UNAUTHORIZED_NO_PERMISSION,
+      )
 
       // dict/type/s：登录即可读启用字典（公共消费通道，显式登记为设计豁免；
       // 列表本身只回启用行/启用 data，不是管理面数据）
-      const visitorDict = await admin.root('GET', admin.apiPath('/system/dict/type/s?types=p2-20-not-exist'))
+      const visitorDict = await admin.root(
+        'GET',
+        admin.apiPath('/system/dict/type/s?types=p2-20-not-exist'),
+      )
       expectOk(visitorDict, 'dict type s (visitor)')
       expect(bodyOf<unknown[]>(visitorDict).data).toEqual([])
-    }
-    finally {
+    } finally {
       admin.setAuth(rootTokens)
     }
 
@@ -305,7 +335,10 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     expectOk(userTree, 'menu tree (seeded non-root user)')
     expect(Array.isArray(bodyOf<{ fullTree: unknown[] }>(userTree).data.fullTree)).toBe(true)
 
-    const userDict = await user.root('GET', user.apiPath('/system/dict/type/s?types=p2-20-not-exist'))
+    const userDict = await user.root(
+      'GET',
+      user.apiPath('/system/dict/type/s?types=p2-20-not-exist'),
+    )
     expectOk(userDict, 'dict type s (seeded non-root user)')
   })
 
@@ -323,7 +356,9 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     const readRes = await user.root('GET', user.apiPath(`/app/demo/${demoId}`))
     expectOk(readRes, 'demo read (seeded user, granted app:demo:read)')
     // demoString 出参被 DTO 折成小写（demo.api-spec 同款口径：比较前 toUpperCase）
-    expect(bodyOf<{ id: string, demoString?: string }>(readRes).data.demoString?.toUpperCase()).toBe(`${demoGroup}-ROW`)
+    expect(
+      bodyOf<{ id: string; demoString?: string }>(readRes).data.demoString?.toUpperCase(),
+    ).toBe(`${demoGroup}-ROW`)
   })
 
   it('拒绝路径：未授予的权限点 40105（缓存命中但全串不匹配），行未被软删', async () => {
@@ -372,7 +407,9 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     const res = await user2.root('GET', user2.apiPath('/auth/permissions'))
     expectOk(res, 'auth permissions (default combinable)')
     const strings = bodyOf<PermissionsData>(res).data.permissionStrings
-    expect(strings).toEqual(expect.arrayContaining([...fixture.grantedPermissions, ...fixture.secondRolePermissions]))
+    expect(strings).toEqual(
+      expect.arrayContaining([...fixture.grantedPermissions, ...fixture.secondRolePermissions]),
+    )
   })
 
   it('SWITCH/COMBINE 对照（LOCAL scope）：COMBINE 合并双角色、SWITCH 只看 current_role', async () => {
@@ -392,15 +429,17 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
       const combineRes = await user2.root('GET', user2.apiPath('/auth/permissions'))
       expectOk(combineRes, 'auth permissions (combine leg)')
       const combineStrings = bodyOf<PermissionsData>(combineRes).data.permissionStrings
-      expect(combineStrings).toEqual(expect.arrayContaining([...fixture.grantedPermissions, ...fixture.secondRolePermissions]))
+      expect(combineStrings).toEqual(
+        expect.arrayContaining([...fixture.grantedPermissions, ...fixture.secondRolePermissions]),
+      )
 
       // SWITCH 腿：role_mode 落库改 switchable + 重新登录（AT payload 登录时固化，必须重签）。
       // 重登前先走真实 signout 撤本设备 RT —— login/finish 的 duplicate 判据是
       // (userId, deviceId) 存在未撤销 RT 行 → 40109（refresh.shared.service generateRefreshToken）
-      await admin.pgDataSource.query(
-        'UPDATE sys_user SET role_mode = $2 WHERE id = $1',
-        [fixture.userId, WalnutAdminConstRoleMode.SWITCH],
-      )
+      await admin.pgDataSource.query('UPDATE sys_user SET role_mode = $2 WHERE id = $1', [
+        fixture.userId,
+        WalnutAdminConstRoleMode.SWITCH,
+      ])
       const signoutRes = await user2.root('POST', user2.apiPath('/auth/signout'))
       expectOk(signoutRes, 'signout before re-login')
       user2.setAuth(null)
@@ -413,8 +452,7 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
       const switchStrings = bodyOf<PermissionsData>(switchRes).data.permissionStrings
       expect(switchStrings).toEqual(expect.arrayContaining(fixture.grantedPermissions))
       expect(switchStrings).not.toContain(fixture.secondRolePermissions[0])
-    }
-    finally {
+    } finally {
       await restore()
     }
   })
@@ -438,11 +476,15 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     expectOk(pull, 'auth permissions before role menu change')
     expect(await user.hasWalnutCacheKey(permissionCacheKey(fixture, user))).toBe(true)
 
-    const roleRows: Array<{ role_name: string, description: string | null, sort_order: number | null, status: boolean }>
-      = await admin.pgDataSource.query(
-        'SELECT role_name, description, sort_order, status FROM sys_role WHERE id = $1',
-        [fixture.mainRoleId],
-      )
+    const roleRows: Array<{
+      role_name: string
+      description: string | null
+      sort_order: number | null
+      status: boolean
+    }> = await admin.pgDataSource.query(
+      'SELECT role_name, description, sort_order, status FROM sys_role WHERE id = $1',
+      [fixture.mainRoleId],
+    )
 
     // 角色授权整组替换：menus: []（该角色的用户权限串全部消失）；update DTO 的
     // roleName/description/order/status 是必填（非 partial），按现值回填
@@ -515,8 +557,9 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
 
     const rePull = await user2.root('GET', user2.apiPath('/auth/permissions'))
     expectOk(rePull, 'auth permissions after re-login')
-    expect([...bodyOf<PermissionsData>(rePull).data.permissionStrings].sort())
-      .toEqual([...fixture.secondRolePermissions].sort())
+    expect([...bodyOf<PermissionsData>(rePull).data.permissionStrings].sort()).toEqual(
+      [...fixture.secondRolePermissions].sort(),
+    )
 
     // second 角色授予的 read 放行、list（已随 main 移出）拒绝
     const readRes = await user2.root('GET', user2.apiPath(`/app/demo/${demoId}`))
@@ -536,8 +579,9 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     // roleIds/currentRole 也是 main —— 登录时快照）
     const pull = await user3.root('GET', user3.apiPath('/auth/permissions'))
     expectOk(pull, 'auth permissions before role removal (user3)')
-    expect([...bodyOf<PermissionsData>(pull).data.permissionStrings].sort())
-      .toEqual([...fixture.grantedPermissions].sort())
+    expect([...bodyOf<PermissionsData>(pull).data.permissionStrings].sort()).toEqual(
+      [...fixture.grantedPermissions].sort(),
+    )
 
     // admin 移除全部角色（junction 清空），不重新登录 —— 旧 AT 仍是登录时快照
     const updateRes = await admin.root('PUT', admin.apiPath(`/system/user/${fixture.userId}`), {
@@ -573,7 +617,7 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     expectOk(deleteRes, 'user soft delete (user3)')
 
     const snapshotRows: Array<{ id: string }> = await admin.pgDataSource.query(
-      'SELECT id FROM sys_deleted WHERE deleted_id = $1 AND model_name = \'SysUser\'',
+      "SELECT id FROM sys_deleted WHERE deleted_id = $1 AND model_name = 'SysUser'",
       [fixture.userId],
     )
     expect(snapshotRows).toHaveLength(1)
@@ -603,7 +647,7 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
 
     // 前置自检：P2-18 的 identity 联动恢复在场（否则 40103 会掩盖「roles 为空」的判据）
     const identityRows: Array<{ c: number }> = await admin.pgDataSource.query(
-      'SELECT count(*)::int AS c FROM sys_user_identity WHERE user_id = $1 AND type = \'password\' AND purpose = \'login\'',
+      "SELECT count(*)::int AS c FROM sys_user_identity WHERE user_id = $1 AND type = 'password' AND purpose = 'login'",
       [fixture.userId],
     )
     expect(identityRows[0].c).toBe(1)
@@ -629,10 +673,10 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
   it('G10 root SWITCH 短路：role_mode=switchable 重登 → 受控端点 20000 且仍无权限缓存键', async () => {
     // permission.guard 有两条 root 短路：COMBINE + roleNames[0]===root（上一条用例）、
     // SWITCH + currentRoleName===root（本用例）。后者必须重登换 AT payload（roleMode 登录时固化）。
-    await admin.pgDataSource.query(
-      'UPDATE sys_user SET role_mode = $2 WHERE id = $1',
-      [rootFixture!.userId, WalnutAdminConstRoleMode.SWITCH],
-    )
+    await admin.pgDataSource.query('UPDATE sys_user SET role_mode = $2 WHERE id = $1', [
+      rootFixture!.userId,
+      WalnutAdminConstRoleMode.SWITCH,
+    ])
 
     // B7（批次 7）：signout 凭 **RT cookie 的行**认人（AT 不参与）。visitor 在 beforeAll 里用过同一个
     // admin 客户端，jar 里的 RT_JTI 是 visitor 那枚 —— 不种回 root 的就会撤错人（root 的现役 RT 仍在
@@ -653,7 +697,9 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     await admin.seedMfaVerifiedCache(rootFixture!.userId)
 
     // AT payload 自洽：switchable + currentRoleName=root
-    const payload = JSON.parse(Buffer.from(switchRootTokens.accessToken.split('.')[1], 'base64url').toString('utf8')) as {
+    const payload = JSON.parse(
+      Buffer.from(switchRootTokens.accessToken.split('.')[1], 'base64url').toString('utf8'),
+    ) as {
       roleMode: string
       currentRoleName: string
     }

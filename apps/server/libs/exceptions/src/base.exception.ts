@@ -36,20 +36,16 @@ export class WalnutAdminExceptionUnauthorized extends UnauthorizedException {
 
 export class WalnutAdminExceptionForbidden extends ForbiddenException {
   constructor(payload?: IWalnutAdminExceptionConstructor) {
-    const {
-      errCode = WalnutAdminConstAppResponseCode.FORBIDDEN,
-      errMsg = `response.${errCode}`,
-    } = payload || {}
+    const { errCode = WalnutAdminConstAppResponseCode.FORBIDDEN, errMsg = `response.${errCode}` } =
+      payload || {}
     super({ errType: ForbiddenException.name, errCode, errMsg })
   }
 }
 
 export class WalnutAdminExceptionNotFound extends NotFoundException {
   constructor(payload?: IWalnutAdminExceptionConstructor) {
-    const {
-      errCode = WalnutAdminConstAppResponseCode.NOT_FOUND,
-      errMsg = `response.${errCode}`,
-    } = payload || {}
+    const { errCode = WalnutAdminConstAppResponseCode.NOT_FOUND, errMsg = `response.${errCode}` } =
+      payload || {}
     super({ errType: NotFoundException.name, errCode, errMsg })
   }
 }

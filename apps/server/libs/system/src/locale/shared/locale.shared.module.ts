@@ -9,9 +9,7 @@ import { SysLocaleSharedService } from './locale.shared.service'
  * B2 迁移：Mongo forFeature 摘除，换 PG forFeature（B1 确立的接线形态）。
  */
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([SysLocaleEntity], WalnutPGConnectionName),
-  ],
+  imports: [TypeOrmModule.forFeature([SysLocaleEntity], WalnutPGConnectionName)],
   controllers: [],
   providers: [SysLocaleBasicRepository, SysLocaleSharedService],
   exports: [SysLocaleSharedService],

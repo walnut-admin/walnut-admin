@@ -14,12 +14,7 @@ defineOptions({
 </script>
 
 <template>
-  <n-grid
-    cols="1 s:1 m:1 l:2 xl:2 2xl:2"
-    :x-gap="4"
-    :y-gap="4"
-    responsive="screen"
-  >
+  <n-grid cols="1 s:1 m:1 l:2 xl:2 2xl:2" :x-gap="4" :y-gap="4" responsive="screen">
     <n-grid-item>
       <n-grid cols="1" :x-gap="4" :y-gap="4" responsive="screen">
         <n-grid-item>

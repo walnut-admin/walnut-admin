@@ -31,7 +31,7 @@ function commit(scope: string | null, type = 'fix'): ParsedCommit {
 
 describe('sCOPE_TO_PACKAGE —— scope 兜底表的不变量', () => {
   it('表里每个值都是真实存在的 workspace 包（没有幽灵包名）', () => {
-    const real = new Set(workspacePackages().map(pkg => pkg.name))
+    const real = new Set(workspacePackages().map((pkg) => pkg.name))
     expect(real.size).toBeGreaterThan(0)
     const ghosts = Object.entries(SCOPE_TO_PACKAGE)
       .filter(([, pkgName]) => !real.has(pkgName))
@@ -55,9 +55,13 @@ describe('sCOPE_TO_PACKAGE —— scope 兜底表的不变量', () => {
       'pnpm',
       'release',
     ])
-    const packageNames = new Set(workspacePackages().map(pkg => pkg.name.replace(/^@walnut\//, '')))
+    const packageNames = new Set(
+      workspacePackages().map((pkg) => pkg.name.replace(/^@walnut\//, '')),
+    )
     for (const scope of Object.keys(SCOPE_TO_PACKAGE))
-      expect(allowed.has(scope) && packageNames.has(scope), `${scope} 既不在白名单也不是包名`).toBe(true)
+      expect(allowed.has(scope) && packageNames.has(scope), `${scope} 既不在白名单也不是包名`).toBe(
+        true,
+      )
   })
 })
 
@@ -65,17 +69,24 @@ describe('attributeCommit —— 路径优先、scope 兜底、否则不发版',
   const context = buildAttributionContext()
 
   it('路径命中时按最长前缀归属，忽略 scope', () => {
-    expect(attributeCommit(commit('docs'), ['tooling/release/src/release/steps.ts'], context))
-      .toEqual(['@walnut/release'])
+    expect(
+      attributeCommit(commit('docs'), ['tooling/release/src/release/steps.ts'], context),
+    ).toEqual(['@walnut/release'])
   })
 
   it('一个提交可以命中多个包', () => {
-    const got = attributeCommit(commit('admin'), ['apps/admin/src/main.ts', 'packages/platform-any/contract/src/index.ts'], context)
+    const got = attributeCommit(
+      commit('admin'),
+      ['apps/admin/src/main.ts', 'packages/platform-any/contract/src/index.ts'],
+      context,
+    )
     expect(got).toEqual(['@walnut/admin', '@walnut/contract'])
   })
 
   it('路径一个包都没命中时用 scope 兜底', () => {
-    expect(attributeCommit(commit('contract'), ['turbo.json'], context)).toEqual(['@walnut/contract'])
+    expect(attributeCommit(commit('contract'), ['turbo.json'], context)).toEqual([
+      '@walnut/contract',
+    ])
   })
 
   it('基础设施 scope 挂到载体包（见 INFRA_CARRIER：pnpm 只接受本 workspace 的真实包名）', () => {
@@ -88,8 +99,9 @@ describe('attributeCommit —— 路径优先、scope 兜底、否则不发版',
   })
 
   it('scope=tooling 但改了工具链包时，仍然按**路径**归属', () => {
-    expect(attributeCommit(commit('tooling'), ['tooling/scripts/src/lib/git.ts'], context))
-      .toEqual(['@walnut/scripts'])
+    expect(attributeCommit(commit('tooling'), ['tooling/scripts/src/lib/git.ts'], context)).toEqual(
+      ['@walnut/scripts'],
+    )
   })
 
   it('未在册的 scope 只要改了文件也挂载体包（静默丢弃会让"修了却发不出去"）', () => {
@@ -112,7 +124,9 @@ describe('describeAttributionSkip —— 日志里要能看懂为什么没意图
   })
 
   it('类型本身是 skip 的（docs / chore / …）说清是类型挡的，而不是路径', () => {
-    expect(describeAttributionSkip(commit('release', 'chore'), ['turbo.json'])).toContain('类型 chore')
+    expect(describeAttributionSkip(commit('release', 'chore'), ['turbo.json'])).toContain(
+      '类型 chore',
+    )
   })
 
   it('仍未归因时，指出它本该挂到载体包（说明这是不该发生的情况）', () => {

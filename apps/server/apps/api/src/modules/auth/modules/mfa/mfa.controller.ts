@@ -1,11 +1,23 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { AuthCookieService, AuthMfaService, AuthMfaStatusDTO, AuthMfaVerifyDTO, AuthSuccessDTO } from '@walnut-server/auth'
+import {
+  AuthCookieService,
+  AuthMfaService,
+  AuthMfaStatusDTO,
+  AuthMfaVerifyDTO,
+  AuthSuccessDTO,
+} from '@walnut-server/auth'
 
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminExceptionAccessTokenExpired } from '@walnut-server/exceptions/business/auth'
-import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorJti, WalnutAdminDecoratorUser, WalnutAdminGuardLockFree, WalnutAdminGuardMFAFree } from '@walnut-server/guards'
+import {
+  WalnutAdminDecoratorDeviceId,
+  WalnutAdminDecoratorJti,
+  WalnutAdminDecoratorUser,
+  WalnutAdminGuardLockFree,
+  WalnutAdminGuardMFAFree,
+} from '@walnut-server/guards'
 import { AuthRoutes } from '@walnut/contract'
 
 @Controller(AuthRoutes.MFA)
@@ -16,14 +28,13 @@ export class AuthMfaController {
   constructor(
     private readonly authMfaService: AuthMfaService,
     private readonly authCookieService: AuthCookieService,
-  ) { }
+  ) {}
 
   @Get('status')
   @HttpCode(HttpStatus.OK)
   @WalnutTx()
   @ApiWalnutOkResponse({
-    description:
-      'get available mfa methods and status',
+    description: 'get available mfa methods and status',
     DTO: AuthMfaStatusDTO,
     isArray: true,
   })
@@ -33,15 +44,14 @@ export class AuthMfaController {
     @WalnutTxSession() ctx: WalnutTxContext,
   ) {
     const res = await this.authMfaService.getMfaStatus(user.userId, deviceId, ctx.em)
-    return res.map(item => new AuthMfaStatusDTO(item))
+    return res.map((item) => new AuthMfaStatusDTO(item))
   }
 
   @Post('verify')
   @HttpCode(HttpStatus.OK)
   @WalnutTx()
   @ApiWalnutOkResponse({
-    description:
-      'verify mfa status and return new accessToken when setup mfa',
+    description: 'verify mfa status and return new accessToken when setup mfa',
     DTO: AuthSuccessDTO,
   })
   async verify(
@@ -65,7 +75,14 @@ export class AuthMfaController {
     // B7b 归一：mfa 状态读腿 / user.mfaSetup 写腿 / post verification 全为 PG —— 单 em
     // revoke-and-insert（2026-10-27）：verify 链轮换 RT —— 新 jti 必须回种 cookie
     // （原地换锁时代旧 jti 恒有效所以本端点从不需要设 cookie，该侥幸随行级撤销终止）
-    const { accessToken, jti: newJti } = await this.authMfaService.verifyMfaStatus(jti, dto, user.userId, sessionId, deviceId, ctx.em)
+    const { accessToken, jti: newJti } = await this.authMfaService.verifyMfaStatus(
+      jti,
+      dto,
+      user.userId,
+      sessionId,
+      deviceId,
+      ctx.em,
+    )
     this.authCookieService.setRTJtiCookie(req, newJti)
     return new AuthSuccessDTO({ accessToken })
   }

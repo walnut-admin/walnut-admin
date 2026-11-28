@@ -29,9 +29,7 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
 
   getters: {
     getCurrentIndex(state): number {
-      return state.tabs.findIndex(
-        i => AppRouter.currentRoute.value.name === i.name,
-      )
+      return state.tabs.findIndex((i) => AppRouter.currentRoute.value.name === i.name)
     },
 
     getCurrentTab(state): IStoreApp.Tab.Item {
@@ -49,8 +47,7 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
      * @description set single tab state through index in tabs
      */
     setTabByIndex(index: number, payload: Partial<IStoreApp.Tab.Item>) {
-      if (index < 0 || index >= this.tabs.length)
-        return
+      if (index < 0 || index >= this.tabs.length) return
 
       const newTab = cloneDeep(this.tabs[index])
 
@@ -63,19 +60,17 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
      * @description set single tab state through name in tabs
      */
     setTabByName(name: string, payload: Partial<IStoreApp.Tab.Item>) {
-      const index = this.tabs.findIndex(i => i.name === name)
-      if (index !== -1)
-        this.setTabByIndex(index, payload)
+      const index = this.tabs.findIndex((i) => i.name === name)
+      if (index !== -1) this.setTabByIndex(index, payload)
     },
 
     /**
      * @description set single tab meta data
      */
     setTabMeta(name: string, meta: IStoreApp.Tab.Meta) {
-      const index = this.tabs.findIndex(i => i.name === name)
+      const index = this.tabs.findIndex((i) => i.name === name)
 
-      if (index === -1)
-        return
+      if (index === -1) return
 
       this.setTabByIndex(index, {
         meta,
@@ -93,15 +88,10 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
      * @description set tab dynamic title
      * support speed and title horizontal scrolling
      */
-    setTabTitle(
-      name: string,
-      title: string,
-      options?: IStoreApp.Tab.MetaExtendTitleOptions,
-    ) {
-      const index = this.tabs.findIndex(i => i.name === name)
+    setTabTitle(name: string, title: string, options?: IStoreApp.Tab.MetaExtendTitleOptions) {
+      const index = this.tabs.findIndex((i) => i.name === name)
 
-      if (index === -1)
-        return
+      if (index === -1) return
 
       this.setTabByIndex(index, {
         meta: {
@@ -126,10 +116,9 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
      * @description recover tab title
      */
     recoverTabTitle(name: string) {
-      const index = this.tabs.findIndex(i => i.name === name)
+      const index = this.tabs.findIndex((i) => i.name === name)
 
-      if (index === -1)
-        return
+      if (index === -1) return
 
       this.setTabByIndex(index, {
         meta: {
@@ -145,10 +134,7 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
      * @description set current tab dynamic title
      * support timeout and title scrolling
      */
-    setCurrentTabTitle(
-      title: string,
-      options?: IStoreApp.Tab.MetaExtendTitleOptions,
-    ) {
+    setCurrentTabTitle(title: string, options?: IStoreApp.Tab.MetaExtendTitleOptions) {
       this.setTabTitle(this.tabs[this.getCurrentIndex].name, title, options)
     },
 
@@ -163,15 +149,10 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
      * @description set tab dynamic icon
      * support timeout and bounce animate
      */
-    setTabIcon(
-      name: string,
-      icon: string,
-      options?: IStoreApp.Tab.MetaExtendIconOptions,
-    ) {
-      const index = this.tabs.findIndex(i => i.name === name)
+    setTabIcon(name: string, icon: string, options?: IStoreApp.Tab.MetaExtendIconOptions) {
+      const index = this.tabs.findIndex((i) => i.name === name)
 
-      if (index === -1)
-        return
+      if (index === -1) return
 
       this.setTabByIndex(index, {
         meta: {
@@ -196,10 +177,9 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
      * @description recover tab icon
      */
     recoverTabIcon(name: string) {
-      const index = this.tabs.findIndex(i => i.name === name)
+      const index = this.tabs.findIndex((i) => i.name === name)
 
-      if (index === -1)
-        return
+      if (index === -1) return
 
       this.setTabByIndex(index, {
         meta: {
@@ -216,10 +196,7 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
      * @description set current tab dynamic icon
      * support timeout and bounce animate
      */
-    setCurrentTabIcon(
-      icon: string,
-      options?: IStoreApp.Tab.MetaExtendIconOptions,
-    ) {
+    setCurrentTabIcon(icon: string, options?: IStoreApp.Tab.MetaExtendIconOptions) {
       this.setTabIcon(this.tabs[this.getCurrentIndex].name, icon, options)
     },
 
@@ -238,7 +215,7 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
       // set visited tabs
       this.visitedTabs.set(
         AppConstSymbolKey.TABS_KEY,
-        this.tabs.map(item => item.name),
+        this.tabs.map((item) => item.name),
       )
     },
 
@@ -260,10 +237,9 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
      */
     createTabs(payload: IStoreApp.Tab.Item, method: 'push' | 'unshift' = 'push') {
       // redirect/404 etc pages do not need to add into tab
-      if (this.getTabBlackListName.includes(payload.name))
-        return
+      if (this.getTabBlackListName.includes(payload.name)) return
 
-      const index = this.tabs.findIndex(item => item.name === payload.name)
+      const index = this.tabs.findIndex((item) => item.name === payload.name)
 
       // not found
       if (index === -1) {
@@ -272,9 +248,7 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
         // TODO what if detail page multiple ? cannot just use name as a key, maybe should use fullPath
 
         // use payload.name to splice the existed one in tabs
-        const index1 = this.tabs.findIndex(
-          i => i.meta.menuActiveName === payload.name,
-        )
+        const index1 = this.tabs.findIndex((i) => i.meta.menuActiveName === payload.name)
 
         if (index1 !== -1 && this.tabs[index1].meta.menuActiveSameTab) {
           this.tabs.splice(index1, 1, payload)
@@ -282,17 +256,14 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
         }
 
         // use payload.meta.menuActiveName to splice the existed one in tabs
-        const index2 = this.tabs.findIndex(
-          i => i.name === payload.meta.menuActiveName,
-        )
+        const index2 = this.tabs.findIndex((i) => i.name === payload.meta.menuActiveName)
 
         if (index2 !== -1 && payload.meta.menuActiveSameTab) {
           this.tabs.splice(index2, 1, payload)
           return
         }
 
-        if (!cached || (cached && !cached.includes(payload.name)))
-          this.tabs[method](payload)
+        if (!cached || (cached && !cached.includes(payload.name))) this.tabs[method](payload)
       }
       // else {
       //   // if found, update tab
@@ -306,7 +277,7 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
      * @description delete multiple tabs based on name list
      */
     deleteTabsByNameList(lists: string[]) {
-      this.tabs = this.tabs.filter(i => !lists.includes(i.name))
+      this.tabs = this.tabs.filter((i) => !lists.includes(i.name))
     },
 
     /**
@@ -319,10 +290,9 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
       const { currentRoute } = AppRouter
       const currentRouteName = currentRoute.value.name as string
 
-      const index = this.tabs.findIndex(item => item.name === name)
+      const index = this.tabs.findIndex((item) => item.name === name)
 
-      if (index === -1)
-        return
+      if (index === -1) return
 
       const currentTab = this.tabs[index]
 
@@ -331,21 +301,17 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
           // if close current tab, router push forward or backward
           if (currentRouteName === name) {
             if (currentTab.meta.leaveTip) {
-              const { confirmed } = await useAppConfirm(
-                AppI18n().global.t('app.base.leaveTip'),
-                {
-                  closable: false,
-                  closeOnEsc: false,
-                  maskClosable: false,
-                },
-              )
+              const { confirmed } = await useAppConfirm(AppI18n().global.t('app.base.leaveTip'), {
+                closable: false,
+                closeOnEsc: false,
+                maskClosable: false,
+              })
 
               if (confirmed) {
                 // simple splice
                 this.tabs.splice(index, 1)
               }
-            }
-            else {
+            } else {
               // simple splice
               this.tabs.splice(index, 1)
             }
@@ -360,8 +326,7 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
               next ? next.query : previous.query,
               next ? next.params : previous.params,
             )
-          }
-          else {
+          } else {
             // simple splice
             this.tabs.splice(index, 1)
           }
@@ -372,8 +337,7 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
             const nameList: string[] = []
 
             this.tabs.forEach((item, i) => {
-              if (i < index && !item.meta.affix)
-                nameList.push(item.name)
+              if (i < index && !item.meta.affix) nameList.push(item.name)
             })
 
             // If left include current page, we need to push to target route
@@ -389,8 +353,7 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
             const nameList: string[] = []
 
             this.tabs.forEach((item, i) => {
-              if (i > index && !item.meta.affix)
-                nameList.push(item.name)
+              if (i > index && !item.meta.affix) nameList.push(item.name)
             })
 
             // If right include current page, we need to push to target route
@@ -407,8 +370,7 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
 
             this.tabs.forEach((item) => {
               // find no affixed tabs except self
-              if (item.name !== name && !item.meta.affix)
-                nameList.push(item.name)
+              if (item.name !== name && !item.meta.affix) nameList.push(item.name)
             })
 
             // If the closed one is not current route, we need to push to target route
@@ -426,16 +388,11 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
 
             this.tabs.forEach((item) => {
               // find all not affixed tabs
-              if (!item.meta.affix)
-                nameList.push(item.name)
+              if (!item.meta.affix) nameList.push(item.name)
             })
 
             // Just back to index page
-            await this.goTab(
-              appStoreMenu.getIndexMenuName!,
-              currentTab.query,
-              currentTab.params,
-            )
+            await this.goTab(appStoreMenu.getIndexMenuName!, currentTab.query, currentTab.params)
 
             this.deleteTabsByNameList(nameList)
           }
@@ -461,9 +418,7 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
      * @description sort tabs based on affixed tabs
      */
     sortTabs() {
-      this.tabs = this.tabs.sort(
-        (a, b) => Number(b.meta.affix) - Number(a.meta.affix),
-      )
+      this.tabs = this.tabs.sort((a, b) => Number(b.meta.affix) - Number(a.meta.affix))
     },
 
     /**
@@ -481,7 +436,7 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
      * @description set initial affixed tabs
      */
     setAffixedTabs(payload: IStoreApp.Tab.Item[]) {
-      payload.map(tab => this.createTabs(tab, 'unshift'))
+      payload.map((tab) => this.createTabs(tab, 'unshift'))
     },
 
     /**
@@ -504,8 +459,7 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
       }
 
       // first ten tabs just don't scroll anyway
-      if (index < 10)
-        return 0
+      if (index < 10) return 0
 
       return index
     },
@@ -515,7 +469,6 @@ const useAppStoreTabInside = defineStore(StoreKeys.APP_TAB, {
 const useAppStoreTabOutside = () => useAppStoreTabInside(store)
 
 export function useAppStoreTab() {
-  if (getCurrentInstance())
-    return useAppStoreTabInside()
+  if (getCurrentInstance()) return useAppStoreTabInside()
   return useAppStoreTabOutside()
 }

@@ -16,17 +16,13 @@ const state = reactive<Recordable>({})
 
     <n-list>
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Basic Usage
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Basic Usage </WTitle>
 
         <WColorPicker v-model:value="state.color1" />
       </n-list-item>
 
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Eyedropper support
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Eyedropper support </WTitle>
 
         <WColorPicker v-model:value="state.color2" eye-dropper />
       </n-list-item>

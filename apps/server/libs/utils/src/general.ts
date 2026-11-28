@@ -19,7 +19,7 @@ export function generateVerifyCode(length = 6) {
 }
 
 export async function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 /**

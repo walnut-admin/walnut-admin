@@ -3,7 +3,17 @@ import type { IconifyPluginOptions } from './types.ts'
 import path from 'node:path'
 import process from 'node:process'
 import { handleProductionMode } from './build.ts'
-import { DEFAULT_ICONIFY_OPTIONS, iconBundleCodeMap, iconListCodeMap, RESOLVED_VIRTUAL_MODULE_ICON_BUNDLE, RESOLVED_VIRTUAL_MODULE_ICON_LIST, RESOLVED_VIRTUAL_MODULE_ICON_SET, VIRTUAL_MODULE_ICON_BUNDLE, VIRTUAL_MODULE_ICON_LIST, VIRTUAL_MODULE_ICON_SET } from './const.ts'
+import {
+  DEFAULT_ICONIFY_OPTIONS,
+  iconBundleCodeMap,
+  iconListCodeMap,
+  RESOLVED_VIRTUAL_MODULE_ICON_BUNDLE,
+  RESOLVED_VIRTUAL_MODULE_ICON_LIST,
+  RESOLVED_VIRTUAL_MODULE_ICON_SET,
+  VIRTUAL_MODULE_ICON_BUNDLE,
+  VIRTUAL_MODULE_ICON_LIST,
+  VIRTUAL_MODULE_ICON_SET,
+} from './const.ts'
 import { handleDevelopmentMode, handleHotUpdate } from './dev.ts'
 
 /**
@@ -92,12 +102,10 @@ export function IconifyPlugin(options?: IconifyPluginOptions): Plugin {
 
         if (isDev) {
           await handleDevelopmentMode(getCurrentOpts())
-        }
-        else {
+        } else {
           await handleProductionMode(getCurrentOpts(), this)
         }
-      }
-      catch (err) {
+      } catch (err) {
         this.error(`Icon processing failed: ${err instanceof Error ? err.message : String(err)}`)
       }
     },

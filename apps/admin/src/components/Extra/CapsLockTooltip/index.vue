@@ -13,13 +13,10 @@ const isFocus = ref(false)
 const capsLockState = useKeyModifier('CapsLock')
 
 function onShowTooltip() {
-  if (!isFocus.value)
-    return
+  if (!isFocus.value) return
 
-  if (capsLockState.value)
-    tooltipShow.value = true
-  else
-    tooltipShow.value = false
+  if (capsLockState.value) tooltipShow.value = true
+  else tooltipShow.value = false
 }
 
 watchEffect(onShowTooltip)

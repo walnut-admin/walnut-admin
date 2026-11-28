@@ -3,7 +3,11 @@ import { HttpStatus, Logger } from '@nestjs/common'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract'
 import { I18nContext } from 'nestjs-i18n'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { WalnutAdminExceptionBadRequest, WalnutAdminExceptionInternalServerError, WalnutAdminExceptionUnauthorized } from '../base.exception'
+import {
+  WalnutAdminExceptionBadRequest,
+  WalnutAdminExceptionInternalServerError,
+  WalnutAdminExceptionUnauthorized,
+} from '../base.exception'
 import { shouldReportException, WalnutAdminFilterExceptionAll } from '../exception.filter'
 
 /**
@@ -88,8 +92,7 @@ describe('shouldReportException：只有 5xx / 未预期异常入库', () => {
       WalnutAdminConstAppResponseCode.TOO_MANY_REQUESTS,
     ]
 
-    for (const code of clientCodes)
-      expect(shouldReportException(code)).toBe(false)
+    for (const code of clientCodes) expect(shouldReportException(code)).toBe(false)
   })
 
   it('5xxxx（服务端 / 依赖故障）入库', () => {
@@ -100,8 +103,7 @@ describe('shouldReportException：只有 5xx / 未预期异常入库', () => {
       WalnutAdminConstAppResponseCode.GATEWAY_TIMEOUT,
     ]
 
-    for (const code of serverCodes)
-      expect(shouldReportException(code)).toBe(true)
+    for (const code of serverCodes) expect(shouldReportException(code)).toBe(true)
   })
 
   it('判不出响应码时保守入库（宁可多一条，不漏真故障）', () => {
@@ -115,9 +117,7 @@ describe('全局异常过滤器：按判据分流', () => {
 
   beforeEach(() => {
     loggerError = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined)
-    vi
-      .spyOn(I18nContext, 'current')
-      .mockReturnValue({ t: (key: string) => key } as never)
+    vi.spyOn(I18nContext, 'current').mockReturnValue({ t: (key: string) => key } as never)
   })
 
   afterEach(() => {

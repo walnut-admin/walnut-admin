@@ -26,20 +26,22 @@ describe('crypto transformer — base64', () => {
 
   it('roundtrips ArrayBuffer through base64', () => {
     const buf = new Uint8Array([1, 2, 3]).buffer
-    expect(new Uint8Array(base64ToArrayBuffer(arrayBufferToBase64(buf)))).toEqual(new Uint8Array([1, 2, 3]))
+    expect(new Uint8Array(base64ToArrayBuffer(arrayBufferToBase64(buf)))).toEqual(
+      new Uint8Array([1, 2, 3]),
+    )
   })
 })
 
 describe('crypto transformer — hex', () => {
   it('roundtrips known vectors', () => {
-    const data = new Uint8Array([0x00, 0x0F, 0x10, 0xFF])
+    const data = new Uint8Array([0x00, 0x0f, 0x10, 0xff])
     expect(uint8ArrayToHex(data)).toBe('000f10ff')
     expect(hexToUint8Array('000f10ff')).toEqual(data)
     expect(hexToUint8Array('FF')).toEqual(new Uint8Array([255]))
   })
 
   it('handles ArrayBuffer input', () => {
-    expect(arrayBufferToHex(new Uint8Array([0xDE, 0xAD, 0xBE, 0xEF]).buffer)).toBe('deadbeef')
+    expect(arrayBufferToHex(new Uint8Array([0xde, 0xad, 0xbe, 0xef]).buffer)).toBe('deadbeef')
   })
 
   it('throws TypeError on odd-length hex strings', () => {

@@ -17,8 +17,7 @@ async function _request(payload?: AxiosRequestConfig) {
   if (withToken.value) {
     const res = await HelloWithTokenAPI(payload!)
     useAppMsgSuccess(res)
-  }
-  else {
+  } else {
     const res = await HelloAPI(payload!)
     useAppMsgSuccess(res)
   }
@@ -41,9 +40,9 @@ const pool: Record<number, Fn> = {
     _request({ _carryToken: false })
   },
   9: () => {
-    _request({ })
-    _request({ })
-    _request({ })
+    _request({})
+    _request({})
+    _request({})
 
     const id = setTimeout(() => {
       removeLatestRequest()
@@ -95,9 +94,7 @@ const items = [
   <WDemoCard title="Axios (See network tab)">
     <n-list>
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Send request with custum config
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Send request with custum config </WTitle>
 
         <n-radio-group v-model:value="withToken" name="radiogroup">
           <n-space>
@@ -107,39 +104,25 @@ const items = [
           </n-space>
         </n-radio-group>
 
-        <br>
+        <br />
 
         <n-button-group vertical size="large">
-          <n-button @click="onSend(1)">
-            Send Request normally
-          </n-button>
-          <n-button @click="onSend(2)">
-            Send Request with cache support
-          </n-button>
+          <n-button @click="onSend(1)"> Send Request normally </n-button>
+          <n-button @click="onSend(2)"> Send Request with cache support </n-button>
           <n-button @click="onSend(3)">
             Send Request with throttle support (only GET method)
           </n-button>
           <!-- <n-button @click="onSend(4)">
             Send Request with retry support
           </n-button> -->
-          <n-button @click="onSend(5)">
-            Send Request with timestamp query
-          </n-button>
-          <n-button @click="onSend(6)">
-            Send Request with not carry token
-          </n-button>
+          <n-button @click="onSend(5)"> Send Request with timestamp query </n-button>
+          <n-button @click="onSend(6)"> Send Request with not carry token </n-button>
           <!-- <n-button @click="onSend(8)">
             Send Request with sleep miliseconds(endpoint support)
           </n-button> -->
-          <n-button @click="onSend(9)">
-            Send Request with cancel support
-          </n-button>
-          <n-button @click="onSend(10)">
-            Send Request with batch cancel support
-          </n-button>
-          <n-button @click="onSend(11)">
-            Send Same Request Same time
-          </n-button>
+          <n-button @click="onSend(9)"> Send Request with cancel support </n-button>
+          <n-button @click="onSend(10)"> Send Request with batch cancel support </n-button>
+          <n-button @click="onSend(11)"> Send Same Request Same time </n-button>
         </n-button-group>
       </n-list-item>
     </n-list>

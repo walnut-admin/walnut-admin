@@ -14,7 +14,7 @@ defineOptions({
 const props = withDefaults(defineProps<ICompVendorSignPadProps>(), {
   width: '100%',
   height: '100%',
-  colors: () => ([
+  colors: () => [
     'rgb(0,0,0)',
     'rgb(255,193,7)',
     'rgb(255,87,34)',
@@ -22,8 +22,7 @@ const props = withDefaults(defineProps<ICompVendorSignPadProps>(), {
     'rgb(103,58,183)',
     'rgb(0,188,212)',
     'rgb(239,239,239)',
-
-  ]),
+  ],
   options: () => ({}),
 })
 
@@ -39,15 +38,12 @@ const pencil = ref<number>(2)
 const isEmpty = () => signPadInst.value?.isEmpty()
 
 watchEffect(() => {
-  if (props.disabled)
-    signPadInst.value?.off()
-  else
-    signPadInst.value?.on()
+  if (props.disabled) signPadInst.value?.off()
+  else signPadInst.value?.on()
 })
 
 function onResize(c: HTMLCanvasElement) {
-  if (!isEmpty())
-    url.value = save()
+  if (!isEmpty()) url.value = save()
 
   const ratio = Math.max(window.devicePixelRatio || 1, 1)
 
@@ -65,14 +61,11 @@ function onResize(c: HTMLCanvasElement) {
 
   clear()
 
-  if (props.defaultUrl || url.value)
-    fromDataURL(props.defaultUrl || url.value!)
+  if (props.defaultUrl || url.value) fromDataURL(props.defaultUrl || url.value!)
 }
 
 function onInit() {
-  const canvas = document.getElementById(
-    signPadId.value,
-  )! as HTMLCanvasElement
+  const canvas = document.getElementById(signPadId.value)! as HTMLCanvasElement
 
   signPadInst.value = new SignaturePad(
     canvas,
@@ -101,9 +94,7 @@ function clear() {
 }
 
 function save(format?: string) {
-  return format
-    ? signPadInst.value?.toDataURL(format)
-    : signPadInst.value?.toDataURL()
+  return format ? signPadInst.value?.toDataURL(format) : signPadInst.value?.toDataURL()
 }
 
 async function onFinalAction(type: 'png' | 'jpeg' = 'png', way: 'download' | 'get' = 'download') {
@@ -113,8 +104,7 @@ async function onFinalAction(type: 'png' | 'jpeg' = 'png', way: 'download' | 'ge
   const filter = (node: Element) => {
     const exclusionClasses = ['signpad-utils']
     return !exclusionClasses.some((classname) => {
-      if (node.classList)
-        return Array.from(node.classList).includes(classname)
+      if (node.classList) return Array.from(node.classList).includes(classname)
       return false
     })
   }
@@ -122,19 +112,15 @@ async function onFinalAction(type: 'png' | 'jpeg' = 'png', way: 'download' | 'ge
   if (type === 'png') {
     const res = await toPng(target, { filter })
 
-    if (way === 'download')
-      downloadByBase64(res)
-    else
-      return res
+    if (way === 'download') downloadByBase64(res)
+    else return res
   }
 
   if (type === 'jpeg') {
     const res = await toJpeg(target, { filter })
 
-    if (way === 'download')
-      downloadByBase64(res)
-    else
-      return res
+    if (way === 'download') downloadByBase64(res)
+    else return res
   }
 }
 
@@ -180,30 +166,16 @@ defineExpose({
     :rotate="-15"
     :style="{ width, height }"
   >
-    <div
-      class="relative"
-      :style="{ width, height }"
-      @touchmove.prevent
-    >
-      <canvas
-        :id="signPadId"
-        class="h-full w-full"
-        :data-uid="signPadId"
-        :disabled="disabled"
-      />
+    <div class="relative" :style="{ width, height }" @touchmove.prevent>
+      <canvas :id="signPadId" class="h-full w-full" :data-uid="signPadId" :disabled="disabled" />
 
       <!-- left utils -->
-      <div
-        class="signpad-utils absolute left-4 top-1/2 z-1 -translate-y-1/2"
-      >
+      <div class="signpad-utils absolute left-4 top-1/2 z-1 -translate-y-1/2">
         <n-space vertical>
           <n-tooltip :disabled="disabled" trigger="click" placement="right">
             <template #trigger>
               <n-button :disabled="disabled" type="primary" text>
-                <WIcon
-                  icon="ant-design:font-colors-outlined"
-                  width="20"
-                />
+                <WIcon icon="ant-design:font-colors-outlined" width="20" />
               </n-button>
             </template>
 
@@ -225,21 +197,17 @@ defineExpose({
           <n-tooltip :disabled="disabled" trigger="click" placement="right">
             <template #trigger>
               <n-button :disabled="disabled" type="info" text>
-                <WIcon
-                  icon="ant-design:bg-colors-outlined"
-                  width="20"
-                />
+                <WIcon icon="ant-design:bg-colors-outlined" width="20" />
               </n-button>
             </template>
 
             <template #default>
               <div class="h-48 vstack gap-1">
                 <div
-                  v-for="(item, index) in props.colors" :key="index"
+                  v-for="(item, index) in props.colors"
+                  :key="index"
                   class="h-6 w-6"
-                  :class="[
-                    { 'shadow-2xl brightness-50 contrast-50': item === color },
-                  ]"
+                  :class="[{ 'shadow-2xl brightness-50 contrast-50': item === color }]"
                   :style="{ backgroundColor: item }"
                   @click="onChangeColor(item)"
                 />
@@ -258,28 +226,16 @@ defineExpose({
       </div>
 
       <!-- right utils -->
-      <div
-        class="signpad-utils z-{9999} absolute right-2 top-1/2 -translate-y-1/2"
-      >
+      <div class="signpad-utils z-{9999} absolute right-2 top-1/2 -translate-y-1/2">
         <n-space vertical>
-          <n-button
-            :disabled="disabled"
-            type="primary"
-            text
-            @click="onFinalAction('png')"
-          >
+          <n-button :disabled="disabled" type="primary" text @click="onFinalAction('png')">
             <div class="hstack items-center justify-center gap-2">
               <span> png </span>
               <WIcon icon="ant-design:download-outlined" width="20" />
             </div>
           </n-button>
 
-          <n-button
-            :disabled="disabled"
-            type="primary"
-            text
-            @click="onFinalAction('jpeg')"
-          >
+          <n-button :disabled="disabled" type="primary" text @click="onFinalAction('jpeg')">
             <div class="hstack items-center justify-center gap-2">
               <span> jpeg </span>
               <WIcon icon="ant-design:download-outlined" width="20" />

@@ -1,5 +1,8 @@
 import type { IWalnutAdminConstAppSettingForceQuitStrategy } from '@walnut/contract/setting'
-import type { IWalnutAdminSocketEventDataMap, IWalnutAdminSocketEvents } from '@walnut/contract/socket'
+import type {
+  IWalnutAdminSocketEventDataMap,
+  IWalnutAdminSocketEvents,
+} from '@walnut/contract/socket'
 import type { Socket } from 'socket.io-client'
 import { WalnutAdminConstAppSettingForceQuitStrategy as ForceQuitStrategy } from '@walnut/contract/setting'
 import { io } from 'socket.io-client'
@@ -24,7 +27,10 @@ const eventHandlers: Map<IWalnutAdminSocketEvents, (payload: any) => void> = new
 /**
  * 注册事件处理器（可以在 Vue 组件中调用）
  */
-export function registerSocketEvent(event: IWalnutAdminSocketEvents, handler: (payload: any) => void) {
+export function registerSocketEvent(
+  event: IWalnutAdminSocketEvents,
+  handler: (payload: any) => void,
+) {
   eventHandlers.set(event, handler)
 
   // 如果 socket 已经初始化，立即注册
@@ -73,25 +79,30 @@ export function setupSocket() {
   })
 
   // 注册 FORCE_QUIT 事件
-  socket.on(AppSocketEvents.FORCE_QUIT, async (payload: IWalnutAdminSocketEventDataMap['force:quit']) => {
-    console.log('[Socket] FORCE_QUIT received:', payload.strategy)
+  socket.on(
+    AppSocketEvents.FORCE_QUIT,
+    async (payload: IWalnutAdminSocketEventDataMap['force:quit']) => {
+      console.log('[Socket] FORCE_QUIT received:', payload.strategy)
 
-    const strategyMap: Record<IWalnutAdminConstAppSettingForceQuitStrategy, () => Promise<void> | void> = {
-      [ForceQuitStrategy.FORCE_IMMEDIATE_SIGNOUT]: async () => {
-        await useAppStoreUserAuth().Signout()
-      },
-      [ForceQuitStrategy.FORCE_COUNTDOWN_MODAL]: () => {
-        useStoreCompForceQuit().onOpenForceQuitModal()
-      },
-      [ForceQuitStrategy.MANUAL_COUNTDOWN_MODAL]: () => {
-        useStoreCompForceQuit().onOpenForceQuitModal(true)
-      },
-    }
+      const strategyMap: Record<
+        IWalnutAdminConstAppSettingForceQuitStrategy,
+        () => Promise<void> | void
+      > = {
+        [ForceQuitStrategy.FORCE_IMMEDIATE_SIGNOUT]: async () => {
+          await useAppStoreUserAuth().Signout()
+        },
+        [ForceQuitStrategy.FORCE_COUNTDOWN_MODAL]: () => {
+          useStoreCompForceQuit().onOpenForceQuitModal()
+        },
+        [ForceQuitStrategy.MANUAL_COUNTDOWN_MODAL]: () => {
+          useStoreCompForceQuit().onOpenForceQuitModal(true)
+        },
+      }
 
-    const handler = strategyMap[payload.strategy]
-    if (handler)
-      await handler()
-  })
+      const handler = strategyMap[payload.strategy]
+      if (handler) await handler()
+    },
+  )
 
   // 重新注册所有已注册的事件
   eventHandlers.forEach((handler, event) => {

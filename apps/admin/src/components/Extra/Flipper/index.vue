@@ -23,25 +23,22 @@ const flipped = ref(false)
 
 const getStyle = computed(() => ({
   wrapper: { width, height } as CSSProperties,
-  face:
-      {
-        transitionDuration: duration,
-        transitionTimingFunction,
-        borderRadius: '20px',
-        boxShadow: '0 3px 15px rgba(64, 64, 64, 0.45)',
-      } as CSSProperties,
+  face: {
+    transitionDuration: duration,
+    transitionTimingFunction,
+    borderRadius: '20px',
+    boxShadow: '0 3px 15px rgba(64, 64, 64, 0.45)',
+  } as CSSProperties,
 }))
 
 function onClick(e: MouseEvent) {
-  if (trigger === 'click')
-    flipped.value = !flipped.value
+  if (trigger === 'click') flipped.value = !flipped.value
 
   emits('click', e)
 }
 
 function onMouseEnterAndLeave() {
-  if (trigger === 'hover')
-    flipped.value = !flipped.value
+  if (trigger === 'hover') flipped.value = !flipped.value
 }
 
 defineExpose({

@@ -65,9 +65,9 @@ describe('functional guard：设置值坏 JSON 的兜底（F-24）', () => {
       detailKey: DETAIL_KEY,
     })
 
-    await expect(guard.canActivate(createContext()))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionEndPointUnavailable)
+    await expect(guard.canActivate(createContext())).rejects.toBeInstanceOf(
+      WalnutAdminExceptionEndPointUnavailable,
+    )
   })
 
   it('坏 JSON + 非 defaultClosed → 按「设置缺失」放行（历史口径不变）', async () => {
@@ -90,9 +90,9 @@ describe('functional guard：设置值坏 JSON 的兜底（F-24）', () => {
       settings: { [MAIN_KEY]: JSON.stringify({ [DETAIL_KEY]: 0 }) },
       detailKey: DETAIL_KEY,
     })
-    await expect(disabled.canActivate(createContext()))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionEndPointUnavailable)
+    await expect(disabled.canActivate(createContext())).rejects.toBeInstanceOf(
+      WalnutAdminExceptionEndPointUnavailable,
+    )
   })
 
   it('合法 JSON 但缺 detailKey：非 defaultClosed 放行 / defaultClosed 50301（缺失语义不变）', async () => {
@@ -107,9 +107,9 @@ describe('functional guard：设置值坏 JSON 的兜底（F-24）', () => {
       defaultClosed: true,
       detailKey: DETAIL_KEY,
     })
-    await expect(closedGuard.canActivate(createContext()))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionEndPointUnavailable)
+    await expect(closedGuard.canActivate(createContext())).rejects.toBeInstanceOf(
+      WalnutAdminExceptionEndPointUnavailable,
+    )
   })
 
   it('值不是字符串（对象 / 数组 / 标量 / null）→ 同样按缺失语义收口，不抛 TypeError', async () => {
@@ -128,9 +128,9 @@ describe('functional guard：设置值坏 JSON 的兜底（F-24）', () => {
       detailKey: DETAIL_KEY,
     })
 
-    await expect(closed.canActivate(createContext()))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionEndPointUnavailable)
+    await expect(closed.canActivate(createContext())).rejects.toBeInstanceOf(
+      WalnutAdminExceptionEndPointUnavailable,
+    )
   })
 
   it('一级开关（无 detailKey）的既有口径不变：值为 1 放行、缺失即 50301', async () => {
@@ -138,8 +138,8 @@ describe('functional guard：设置值坏 JSON 的兜底（F-24）', () => {
     await expect(enabled.canActivate(createContext())).resolves.toBe(true)
 
     const missing = createGuard({ settings: {}, defaultClosed: true })
-    await expect(missing.canActivate(createContext()))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionEndPointUnavailable)
+    await expect(missing.canActivate(createContext())).rejects.toBeInstanceOf(
+      WalnutAdminExceptionEndPointUnavailable,
+    )
   })
 })

@@ -106,12 +106,14 @@ interface IWalnutDataScopePolicyExpression {
   withCheck: string
 }
 
-const POLICY_EXPRESSIONS: Record<typeof RLS_TABLES[number], IWalnutDataScopePolicyExpression> = {
+const POLICY_EXPRESSIONS: Record<(typeof RLS_TABLES)[number], IWalnutDataScopePolicyExpression> = {
   // sys_user：SELF = 本人账号行（id 即 owner）；部门系档位按 dept_id
   sys_user: {
-    using: 'app.data_scope_allow_all() OR id = app.data_scope_user_id() OR dept_id = ANY(app.data_scope_dept_ids())',
+    using:
+      'app.data_scope_allow_all() OR id = app.data_scope_user_id() OR dept_id = ANY(app.data_scope_dept_ids())',
     // WITH CHECK：部门腿放行；本人行要求新 dept 与账号当前 dept 一致（防横向改部门）
-    withCheck: 'app.data_scope_allow_all() OR dept_id = ANY(app.data_scope_dept_ids()) OR (id = app.data_scope_user_id() AND dept_id IS NOT DISTINCT FROM app.data_scope_user_dept_id())',
+    withCheck:
+      'app.data_scope_allow_all() OR dept_id = ANY(app.data_scope_dept_ids()) OR (id = app.data_scope_user_id() AND dept_id IS NOT DISTINCT FROM app.data_scope_user_dept_id())',
   },
   // 操作日志：按操作者过滤；无部门列（应用层部门系档位恒假）
   sys_log_operate: {
@@ -126,7 +128,8 @@ const POLICY_EXPRESSIONS: Record<typeof RLS_TABLES[number], IWalnutDataScopePoli
   // 在线监控：匿名访客行（user_id IS NULL）对浏览者共享（应用层 allowAnonymous）
   app_monitor_user: {
     using: 'app.data_scope_allow_all() OR user_id = app.data_scope_user_id() OR user_id IS NULL',
-    withCheck: 'app.data_scope_allow_all() OR user_id = app.data_scope_user_id() OR user_id IS NULL',
+    withCheck:
+      'app.data_scope_allow_all() OR user_id = app.data_scope_user_id() OR user_id IS NULL',
   },
   // 回收站：按删除者过滤
   sys_deleted: {
@@ -135,14 +138,18 @@ const POLICY_EXPRESSIONS: Record<typeof RLS_TABLES[number], IWalnutDataScopePoli
   },
   // 示范表：owner + 行级部门归属（二期方案 A）
   app_demo: {
-    using: 'app.data_scope_allow_all() OR created_by = app.data_scope_user_id() OR dept_id = ANY(app.data_scope_dept_ids())',
-    withCheck: 'app.data_scope_allow_all() OR created_by = app.data_scope_user_id() OR dept_id = ANY(app.data_scope_dept_ids())',
+    using:
+      'app.data_scope_allow_all() OR created_by = app.data_scope_user_id() OR dept_id = ANY(app.data_scope_dept_ids())',
+    withCheck:
+      'app.data_scope_allow_all() OR created_by = app.data_scope_user_id() OR dept_id = ANY(app.data_scope_dept_ids())',
   },
   // 职工：绑定账号（owner）或所属部门
   sys_employee: {
-    using: 'app.data_scope_allow_all() OR user_id = app.data_scope_user_id() OR dept_id = ANY(app.data_scope_dept_ids())',
+    using:
+      'app.data_scope_allow_all() OR user_id = app.data_scope_user_id() OR dept_id = ANY(app.data_scope_dept_ids())',
     // WITH CHECK：部门腿放行；本人行要求新 dept 与账号当前 dept 一致（防横向改部门）
-    withCheck: 'app.data_scope_allow_all() OR dept_id = ANY(app.data_scope_dept_ids()) OR (user_id = app.data_scope_user_id() AND dept_id IS NOT DISTINCT FROM app.data_scope_user_dept_id())',
+    withCheck:
+      'app.data_scope_allow_all() OR dept_id = ANY(app.data_scope_dept_ids()) OR (user_id = app.data_scope_user_id() AND dept_id IS NOT DISTINCT FROM app.data_scope_user_dept_id())',
   },
 }
 
@@ -211,9 +218,9 @@ const UP_SQL: string[] = [
   // ============================================================
   // 3. 七张注册表：ENABLE + FORCE + RESTRICTIVE 策略
   // ============================================================
-  ...RLS_TABLES.map(table => `ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY`),
-  ...RLS_TABLES.map(table => `ALTER TABLE ${table} FORCE ROW LEVEL SECURITY`),
-  ...RLS_TABLES.flatMap(table => [
+  ...RLS_TABLES.map((table) => `ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY`),
+  ...RLS_TABLES.map((table) => `ALTER TABLE ${table} FORCE ROW LEVEL SECURITY`),
+  ...RLS_TABLES.flatMap((table) => [
     // 基线 PERMISSIVE：PG 的规则是「RESTRICTIVE 只做 AND、不能单独授予访问」——
     // 只有 RESTRICTIVE 策略时默认拒绝（0 行 / INSERT 全撞策略）。这一条显式授予
     // 全表访问，真正的天花板由下面的 RESTRICTIVE 收窄。未来新增的宽策略（PERMISSIVE）
@@ -236,7 +243,7 @@ const UP_SQL: string[] = [
 ]
 
 const DOWN_SQL: string[] = [
-  ...RLS_TABLES.flatMap(table => [
+  ...RLS_TABLES.flatMap((table) => [
     `DROP POLICY IF EXISTS p_data_scope_ceiling ON ${table}`,
     `DROP POLICY IF EXISTS p_data_scope_access ON ${table}`,
     `ALTER TABLE ${table} DISABLE ROW LEVEL SECURITY`,

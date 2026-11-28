@@ -13,10 +13,8 @@ export const deletedAPI = new BaseAPI<SystemDeleted>({
  * @description recover for manage
  */
 export function recoverAPI(data: IRequestPayload.System.Deleted.Recover) {
-  return AppAxios.post<boolean>(
-    {
-      url: SystemEndpointRoutes.DELETED_RECOVER,
-      data,
-    },
-  )
+  return AppAxios.post<boolean>({
+    url: SystemEndpointRoutes.DELETED_RECOVER,
+    data,
+  })
 }

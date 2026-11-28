@@ -31,7 +31,7 @@ export class AppMonitorUserService {
 
     private readonly appMonitorUserRepoService: AppMonitorUserRepositoryService,
     private readonly signoutService: AuthSignoutService,
-  ) { }
+  ) {}
 
   /**
    * @description main service to update user state（心跳 upsert）
@@ -154,7 +154,8 @@ export class AppMonitorUserService {
    * @description force quit through userId & deviceId, used for socket initial connection
    */
   async handleSocketInitForceQuit(userId: string, deviceId: string) {
-    const { revoked, revokeReason } = await this.authRefreshSharedService.getTokenRevokedByDeviceIdAndUserId(deviceId, userId)
+    const { revoked, revokeReason } =
+      await this.authRefreshSharedService.getTokenRevokedByDeviceIdAndUserId(deviceId, userId)
 
     if (revoked) {
       this.logger.log(
@@ -182,12 +183,14 @@ export class AppMonitorUserService {
   async read(id: string) {
     const monitor = await this.appMonitorUserBasicRepo.readById(id)
 
-    const device = monitor.deviceId !== null
-      ? await this.deviceRepoService.findDeviceByDeviceId(monitor.deviceId)
-      : null
-    const user = monitor.userId !== null
-      ? await this.appMonitorUserRepoService.findUserBriefById(monitor.userId)
-      : null
+    const device =
+      monitor.deviceId !== null
+        ? await this.deviceRepoService.findDeviceByDeviceId(monitor.deviceId)
+        : null
+    const user =
+      monitor.userId !== null
+        ? await this.appMonitorUserRepoService.findUserBriefById(monitor.userId)
+        : null
 
     return { ...monitor, device, user }
   }

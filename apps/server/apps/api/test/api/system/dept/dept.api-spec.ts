@@ -66,7 +66,10 @@ describe('组织基础表：system/dept CRUD + 树 + RESTRICT + 权限（真实 
     }
   }
 
-  async function createDept(tag: string, overrides: Record<string, unknown> = {}): Promise<DeptRow> {
+  async function createDept(
+    tag: string,
+    overrides: Record<string, unknown> = {},
+  ): Promise<DeptRow> {
     const res = await api.root('POST', api.apiPath('/system/dept'), deptPayload(tag, overrides))
     expectOk(res, `dept create ${tag}`)
     return bodyOf<DeptRow>(res).data
@@ -101,7 +104,9 @@ describe('组织基础表：system/dept CRUD + 树 + RESTRICT + 权限（真实 
 
   /** FK 安全清理：先删职工，再由叶到根逐层删部门（单条 DELETE 的行序不保证） */
   async function purgeDeptRows() {
-    await api.pgDataSource.query('DELETE FROM sys_employee WHERE employee_no LIKE $1', [`${employeePrefix}%`])
+    await api.pgDataSource.query('DELETE FROM sys_employee WHERE employee_no LIKE $1', [
+      `${employeePrefix}%`,
+    ])
 
     for (let i = 0; i < 10; i++) {
       const left: Array<{ c: number }> = await api.pgDataSource.query(
@@ -140,14 +145,20 @@ describe('组织基础表：system/dept CRUD + 树 + RESTRICT + 权限（真实 
 
   afterEach(async () => {
     await purgeDeptRows()
-    await api.pgDataSource.query('DELETE FROM sys_deleted WHERE content->>\'deptCode\' LIKE $1', [`${deptPrefix}%`])
-    await api.pgDataSource.query('DELETE FROM sys_deleted WHERE content->>\'employeeNo\' LIKE $1', [`${employeePrefix}%`])
+    await api.pgDataSource.query("DELETE FROM sys_deleted WHERE content->>'deptCode' LIKE $1", [
+      `${deptPrefix}%`,
+    ])
+    await api.pgDataSource.query("DELETE FROM sys_deleted WHERE content->>'employeeNo' LIKE $1", [
+      `${employeePrefix}%`,
+    ])
   })
 
   afterAll(async () => {
     if (api !== undefined && fixture !== null) {
       await purgeDeptRows()
-      await api.pgDataSource.query('DELETE FROM sys_deleted WHERE content->>\'deptCode\' LIKE $1', [`${deptPrefix}%`])
+      await api.pgDataSource.query("DELETE FROM sys_deleted WHERE content->>'deptCode' LIKE $1", [
+        `${deptPrefix}%`,
+      ])
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
       await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [api.deviceId])
@@ -199,12 +210,16 @@ describe('组织基础表：system/dept CRUD + 树 + RESTRICT + 权限（真实 
       page: { page: 1, pageSize: 10 },
     })
     expectOk(listRes, 'dept list')
-    const list = bodyOf<{ data: DeptRow[], total: number }>(listRes).data
+    const list = bodyOf<{ data: DeptRow[]; total: number }>(listRes).data
     expect(list.total).toBe(1)
     expect(list.data[0].id).toBe(created.id)
 
     // 非法状态值 → 40099（IsEnum）
-    const badStatus = await api.root('POST', api.apiPath('/system/dept'), deptPayload('R2', { status: 'frozen' }))
+    const badStatus = await api.root(
+      'POST',
+      api.apiPath('/system/dept'),
+      deptPayload('R2', { status: 'frozen' }),
+    )
     expect(bodyOf(badStatus).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
   })
 
@@ -225,16 +240,22 @@ describe('组织基础表：system/dept CRUD + 树 + RESTRICT + 权限（真实 
     const rootRes = await api.root('GET', api.apiPath('/system/dept/children'))
     expectOk(rootRes, 'dept children root')
     const roots = bodyOf<DeptRow[]>(rootRes).data
-    expect(roots.some(n => n.id === parent.id)).toBe(true)
-    expect(roots.some(n => n.id === child.id)).toBe(false)
+    expect(roots.some((n) => n.id === parent.id)).toBe(true)
+    expect(roots.some((n) => n.id === child.id)).toBe(false)
 
-    const childrenRes = await api.root('GET', api.apiPath(`/system/dept/children?parentId=${parent.id}`))
+    const childrenRes = await api.root(
+      'GET',
+      api.apiPath(`/system/dept/children?parentId=${parent.id}`),
+    )
     expectOk(childrenRes, 'dept children by parent')
     const children = bodyOf<DeptRow[]>(childrenRes).data
-    expect(children.map(n => n.id)).toEqual([child.id])
+    expect(children.map((n) => n.id)).toEqual([child.id])
 
     // 非法 parentId → 40002
-    const badChildren = await api.root('GET', api.apiPath('/system/dept/children?parentId=not-a-uuid'))
+    const badChildren = await api.root(
+      'GET',
+      api.apiPath('/system/dept/children?parentId=not-a-uuid'),
+    )
     expect(bodyOf(badChildren).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_INVALID_ID)
 
     // 递归 CTE 子树：根带两层 children
@@ -246,15 +267,23 @@ describe('组织基础表：system/dept CRUD + 树 + RESTRICT + 权限（真实 
     expect(subtree.children?.[0]?.children?.[0]?.id).toBe(grandchild.id)
 
     // 防环：把父部门挂到自己的孙部门下 → 40000
-    const cycleRes = await api.root('PUT', api.apiPath(`/system/dept/${parent.id}`), deptPayload('T1', {
-      parentId: grandchild.id,
-    }))
+    const cycleRes = await api.root(
+      'PUT',
+      api.apiPath(`/system/dept/${parent.id}`),
+      deptPayload('T1', {
+        parentId: grandchild.id,
+      }),
+    )
     expect(bodyOf(cycleRes).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
 
     // 自身为父 → 40000
-    const selfRes = await api.root('PUT', api.apiPath(`/system/dept/${parent.id}`), deptPayload('T1', {
-      parentId: parent.id,
-    }))
+    const selfRes = await api.root(
+      'PUT',
+      api.apiPath(`/system/dept/${parent.id}`),
+      deptPayload('T1', {
+        parentId: parent.id,
+      }),
+    )
     expect(bodyOf(selfRes).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
   })
 
@@ -264,16 +293,24 @@ describe('组织基础表：system/dept CRUD + 树 + RESTRICT + 权限（真实 
     const dup = await api.root('POST', api.apiPath('/system/dept'), deptPayload('U1'))
     expect(bodyOf(dup).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_EXISTS)
 
-    const missingParent = await api.root('POST', api.apiPath('/system/dept'), deptPayload('U2', {
-      parentId: randomUUID(),
-    }))
+    const missingParent = await api.root(
+      'POST',
+      api.apiPath('/system/dept'),
+      deptPayload('U2', {
+        parentId: randomUUID(),
+      }),
+    )
     expect(bodyOf(missingParent).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
 
     // 更新成已存在的编码同样受控
     const another = await createDept('U3')
-    const dupUpdate = await api.root('PUT', api.apiPath(`/system/dept/${another.id}`), deptPayload('U3', {
-      deptCode: `${deptPrefix}-U1`,
-    }))
+    const dupUpdate = await api.root(
+      'PUT',
+      api.apiPath(`/system/dept/${another.id}`),
+      deptPayload('U3', {
+        deptCode: `${deptPrefix}-U1`,
+      }),
+    )
     expect(bodyOf(dupUpdate).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_EXISTS)
   })
 

@@ -1,8 +1,7 @@
 import { useScriptTag } from '@vueuse/core'
 
 function getDebugInfo(name: string, attribution: any) {
-  if (!attribution)
-    return { debug_target: '(not set)' }
+  if (!attribution) return { debug_target: '(not set)' }
 
   switch (name) {
     case 'LCP':
@@ -46,10 +45,10 @@ function sendToGoogleAnalytics({ name, delta, value, id, attribution }: any) {
 }
 
 export async function setupGoogleAnalytics() {
-  if (!import.meta.env.VITE_GA_ID)
-    return
+  if (!import.meta.env.VITE_GA_ID) return
 
-  const WV_URL = 'https://cdn.jsdmirror.com/npm/web-vitals@5.1.0/dist/web-vitals.attribution.iife.js'
+  const WV_URL =
+    'https://cdn.jsdmirror.com/npm/web-vitals@5.1.0/dist/web-vitals.attribution.iife.js'
   useScriptTag(
     WV_URL,
     () => {

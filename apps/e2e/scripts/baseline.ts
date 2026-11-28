@@ -36,7 +36,15 @@
 import type { BaselineManifest } from './baseline-manifest.ts'
 import { execSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import path from 'node:path'
 import { Client } from 'pg'
 import { isBaselineManifest, MANIFEST_VERSION, manifestVersionOf } from './baseline-manifest.ts'
@@ -71,24 +79,20 @@ export { MANIFEST_VERSION } from './baseline-manifest.ts'
  * `BASELINE_CREDENTIALS_FILE`）：测试进程（失败现场 attach）也要读封板清单，不该为一条路径
  * 把本文件的 pg / redis / prepare-db 依赖链拖进每个 worker。
  */
-export {
-  BASELINE_CREDENTIALS_FILE,
-  BASELINE_DUMP_FILE,
-  BASELINE_MANIFEST_FILE,
-} from './env.ts'
+export { BASELINE_CREDENTIALS_FILE, BASELINE_DUMP_FILE, BASELINE_MANIFEST_FILE } from './env.ts'
 
 /** 基线可用性判定（{@link baselineUsable}）—— 每一条都对应一种处置方式 */
-export type BaselineUsage
-  = | { kind: 'usable', manifest: BaselineManifest }
+export type BaselineUsage =
+  | { kind: 'usable'; manifest: BaselineManifest }
   /** 没有清单也没有残留文件：按「首次运行」处理，全量 prepare 后重新封板 */
-    | { kind: 'missing' }
+  | { kind: 'missing' }
   /** 清单 / 文件 / 形态对不上（含旧版本、半成品）：当环境问题拒绝执行，提示重新封板 */
-    | { kind: 'invalid', reason: string }
+  | { kind: 'invalid'; reason: string }
   /**
    * 数据源相对封板时变了：dataKey 不一致，或数据路径有未提交改动。
    * 两种都拒绝执行并提示重新封板（退出码 2）。
    */
-    | { kind: 'drifted', manifest: BaselineManifest, dataKey: string, dirtyPaths: string[] }
+  | { kind: 'drifted'; manifest: BaselineManifest; dataKey: string; dirtyPaths: string[] }
 
 /** 本轮库准备的方式（{@link ensureTestDatabase} 的返回值，日志里也会体现） */
 export type DatabaseMode = 'restore' | 'prepare' | 'prepare+seal'
@@ -108,10 +112,10 @@ interface BaselineCredentials {
 }
 
 /** 清单的读取结果（三种「不可用」分开报：缺失 / 旧格式 / 损坏，处置措辞不同） */
-type ManifestState
-  = | { kind: 'ok', manifest: BaselineManifest }
-    | { kind: 'missing' }
-    | { kind: 'unusable', reason: string }
+type ManifestState =
+  | { kind: 'ok'; manifest: BaselineManifest }
+  | { kind: 'missing' }
+  | { kind: 'unusable'; reason: string }
 
 function log(message: string): void {
   console.log(`[e2e/baseline] ${message}`)
@@ -138,8 +142,7 @@ function gitHead(): string {
       stdio: ['ignore', 'pipe', 'ignore'],
       windowsHide: true,
     }).trim()
-  }
-  catch (error) {
+  } catch (error) {
     throw new E2ePreconditionError(
       `读不到 git HEAD（封板清单的展示字段依赖它）：${error instanceof Error ? error.message : String(error)}`,
     )
@@ -152,7 +155,7 @@ function sha256File(file: string): string {
 
 /** 没有清单时可能残留的两个文件：有它们说明上一次封板走到了中途（半成品） */
 function residualBaselineFiles(): string[] {
-  return [BASELINE_DUMP_FILE, BASELINE_CREDENTIALS_FILE].filter(file => existsSync(file))
+  return [BASELINE_DUMP_FILE, BASELINE_CREDENTIALS_FILE].filter((file) => existsSync(file))
 }
 
 /**
@@ -170,8 +173,9 @@ function readManifestState(): ManifestState {
     if (residuals.length > 0) {
       return {
         kind: 'unusable',
-        reason: `封板清单缺失，但残留 ${residuals.map(file => path.basename(file)).join(' / ')}`
-          + '（上一次封板在写清单之前中断，这是半成品）',
+        reason:
+          `封板清单缺失，但残留 ${residuals.map((file) => path.basename(file)).join(' / ')}` +
+          '（上一次封板在写清单之前中断，这是半成品）',
       }
     }
     return { kind: 'missing' }
@@ -180,8 +184,7 @@ function readManifestState(): ManifestState {
   let parsed: unknown
   try {
     parsed = JSON.parse(readFileSync(BASELINE_MANIFEST_FILE, 'utf8'))
-  }
-  catch (error) {
+  } catch (error) {
     return {
       kind: 'unusable',
       reason: `读不了封板清单 ${BASELINE_MANIFEST_FILE}：${error instanceof Error ? error.message : String(error)}`,
@@ -192,10 +195,11 @@ function readManifestState(): ManifestState {
   if (version !== MANIFEST_VERSION) {
     return {
       kind: 'unusable',
-      reason: version === null
-        ? `封板清单没有可识别的 manifestVersion（文件损坏？）：${BASELINE_MANIFEST_FILE}`
-        : `封板清单是旧格式（manifestVersion=${version}，当前 ${MANIFEST_VERSION}）。`
-          + '旧版本不做迁移（v1 缺 dataKey / credentials 的 sha；v2 缺 profile / database，无法证明跨 profile 配对）',
+      reason:
+        version === null
+          ? `封板清单没有可识别的 manifestVersion（文件损坏？）：${BASELINE_MANIFEST_FILE}`
+          : `封板清单是旧格式（manifestVersion=${version}，当前 ${MANIFEST_VERSION}）。` +
+            '旧版本不做迁移（v1 缺 dataKey / credentials 的 sha；v2 缺 profile / database，无法证明跨 profile 配对）',
     }
   }
   if (!isBaselineManifest(parsed)) {
@@ -227,7 +231,9 @@ export function readManifest(): BaselineManifest | null {
 /** 基线文件与清单记录配对校验（sha / 字节数）；不通过按前置条件抛出（退出码 2） */
 function assertBaselineFilesMatch(manifest: BaselineManifest): void {
   if (!existsSync(BASELINE_DUMP_FILE)) {
-    throw new E2ePreconditionError(`清单在，但基线文件 ${BASELINE_DUMP_FILE} 不在 —— 用 --rebuild-baseline 重新封板`)
+    throw new E2ePreconditionError(
+      `清单在，但基线文件 ${BASELINE_DUMP_FILE} 不在 —— 用 --rebuild-baseline 重新封板`,
+    )
   }
   const dumpBytes = statSync(BASELINE_DUMP_FILE).size
   if (dumpBytes !== manifest.dumpBytes) {
@@ -236,7 +242,9 @@ function assertBaselineFilesMatch(manifest: BaselineManifest): void {
     )
   }
   if (sha256File(BASELINE_DUMP_FILE) !== manifest.dumpSha256) {
-    throw new E2ePreconditionError('基线文件的 sha256 与清单记录不符（被替换 / 半写）—— 用 --rebuild-baseline 重新封板')
+    throw new E2ePreconditionError(
+      '基线文件的 sha256 与清单记录不符（被替换 / 半写）—— 用 --rebuild-baseline 重新封板',
+    )
   }
 
   if (!existsSync(BASELINE_CREDENTIALS_FILE)) {
@@ -251,7 +259,9 @@ function assertBaselineFilesMatch(manifest: BaselineManifest): void {
     )
   }
   if (sha256File(BASELINE_CREDENTIALS_FILE) !== manifest.credentialsSha256) {
-    throw new E2ePreconditionError('封板口令文件的 sha256 与清单记录不符 —— 用 --rebuild-baseline 重新封板')
+    throw new E2ePreconditionError(
+      '封板口令文件的 sha256 与清单记录不符 —— 用 --rebuild-baseline 重新封板',
+    )
   }
 }
 
@@ -276,7 +286,8 @@ export function baselineUsable(): BaselineUsage {
   if (manifest.dataDirty) {
     return {
       kind: 'invalid',
-      reason: '封板清单记录了 dataDirty=true（封板时数据路径有未提交改动）—— 这份基线的数据无法证明与仓库一致',
+      reason:
+        '封板清单记录了 dataDirty=true（封板时数据路径有未提交改动）—— 这份基线的数据无法证明与仓库一致',
     }
   }
 
@@ -285,9 +296,10 @@ export function baselineUsable(): BaselineUsage {
   if (manifest.profile !== STACK_PROFILE.name || manifest.database !== E2E_PG_DB) {
     return {
       kind: 'invalid',
-      reason: `封板清单属于 profile=${manifest.profile} / 库=${manifest.database}，`
-        + `而当前是 profile=${STACK_PROFILE.name} / 库=${E2E_PG_DB} —— 跨 profile 的基线不能恢复`
-        + '（设计稿 P1-6：每个 profile 一套基线三件套）',
+      reason:
+        `封板清单属于 profile=${manifest.profile} / 库=${manifest.database}，` +
+        `而当前是 profile=${STACK_PROFILE.name} / 库=${E2E_PG_DB} —— 跨 profile 的基线不能恢复` +
+        '（设计稿 P1-6：每个 profile 一套基线三件套）',
     }
   }
 
@@ -302,8 +314,14 @@ export function baselineUsable(): BaselineUsage {
 
 function readBaselineCredentials(manifest: BaselineManifest): BaselineCredentials {
   assertBaselineFilesMatch(manifest)
-  const parsed = JSON.parse(readFileSync(BASELINE_CREDENTIALS_FILE, 'utf8')) as Partial<BaselineCredentials>
-  if (typeof parsed.userName !== 'string' || typeof parsed.password !== 'string' || parsed.password === '') {
+  const parsed = JSON.parse(
+    readFileSync(BASELINE_CREDENTIALS_FILE, 'utf8'),
+  ) as Partial<BaselineCredentials>
+  if (
+    typeof parsed.userName !== 'string' ||
+    typeof parsed.password !== 'string' ||
+    parsed.password === ''
+  ) {
     throw new E2ePreconditionError(
       `${BASELINE_CREDENTIALS_FILE} 里没有 userName/password —— 用 --rebuild-baseline 重新封板`,
     )
@@ -334,11 +352,16 @@ async function assertCurrentDatabase(client: Client): Promise<void> {
 }
 
 /** 封板前读一遍库内事实（迁移头 / 菜单行数）；顺带确认迁移真的跑过 */
-async function readSealFacts(): Promise<{ migrationsHead: BaselineManifest['migrationsHead'], menuRows: number }> {
+async function readSealFacts(): Promise<{
+  migrationsHead: BaselineManifest['migrationsHead']
+  menuRows: number
+}> {
   const db = await connectDatabase()
   try {
     await assertCurrentDatabase(db)
-    const head = await db.query<{ id: number, name: string }>('SELECT id, name FROM migrations ORDER BY id DESC LIMIT 1')
+    const head = await db.query<{ id: number; name: string }>(
+      'SELECT id, name FROM migrations ORDER BY id DESC LIMIT 1',
+    )
     const row = head.rows[0]
     if (row === undefined) {
       throw new Error('库里没有 migrations 行 —— 封板前必须先跑完迁移（全量 prepare）')
@@ -349,8 +372,7 @@ async function readSealFacts(): Promise<{ migrationsHead: BaselineManifest['migr
       throw new Error('sys_menu 是空的 —— seed 没播成功，拒绝封板')
     }
     return { migrationsHead: { id: row.id, name: row.name }, menuRows }
-  }
-  finally {
+  } finally {
     await db.end()
   }
 }
@@ -380,7 +402,9 @@ async function finalizeRestoredDatabase(manifest: BaselineManifest): Promise<{ m
 
     const admin = await db.query('SELECT 1 FROM sys_user WHERE user_name = $1', ['admin'])
     if ((admin.rowCount ?? 0) === 0) {
-      throw new Error('恢复后的库里没有 admin 账号 —— 基线内容不完整，用 --rebuild-baseline 重新封板')
+      throw new Error(
+        '恢复后的库里没有 admin 账号 —— 基线内容不完整，用 --rebuild-baseline 重新封板',
+      )
     }
 
     const menus = await db.query<{ count: number }>('SELECT count(*)::int AS count FROM sys_menu')
@@ -391,19 +415,24 @@ async function finalizeRestoredDatabase(manifest: BaselineManifest): Promise<{ m
       )
     }
 
-    const head = await db.query<{ id: number, name: string }>('SELECT id, name FROM migrations ORDER BY id DESC LIMIT 1')
+    const head = await db.query<{ id: number; name: string }>(
+      'SELECT id, name FROM migrations ORDER BY id DESC LIMIT 1',
+    )
     const row = head.rows[0]
-    if (row === undefined || row.id !== manifest.migrationsHead.id || row.name !== manifest.migrationsHead.name) {
+    if (
+      row === undefined ||
+      row.id !== manifest.migrationsHead.id ||
+      row.name !== manifest.migrationsHead.name
+    ) {
       throw new Error(
-        `恢复后的迁移头（${row?.id ?? '无'} / ${row?.name ?? '无'}）与清单记录（${manifest.migrationsHead.id} / ${manifest.migrationsHead.name}）不一致 `
-        + '—— dump 与清单不是一对，用 --rebuild-baseline 重新封板',
+        `恢复后的迁移头（${row?.id ?? '无'} / ${row?.name ?? '无'}）与清单记录（${manifest.migrationsHead.id} / ${manifest.migrationsHead.name}）不一致 ` +
+          '—— dump 与清单不是一对，用 --rebuild-baseline 重新封板',
       )
     }
 
     await resetRuntimeRolePassword(db)
     return { menuRows }
-  }
-  finally {
+  } finally {
     await db.end()
   }
 }
@@ -439,19 +468,29 @@ export async function sealBaseline(): Promise<void> {
 
   // 先把口令读出来：它缺失时要在**动基线文件之前**失败，否则会出现「新 dump + 旧清单」的半截状态
   if (!existsSync(CREDENTIALS_FILE)) {
-    throw new Error(`封板前必须有 ${CREDENTIALS_FILE}（prepareDatabase 会写）—— 找不到说明 prepare 没跑完`)
+    throw new Error(
+      `封板前必须有 ${CREDENTIALS_FILE}（prepareDatabase 会写）—— 找不到说明 prepare 没跑完`,
+    )
   }
-  const credentials = JSON.parse(readFileSync(CREDENTIALS_FILE, 'utf8')) as Partial<BaselineCredentials>
-  if (typeof credentials.userName !== 'string' || typeof credentials.password !== 'string' || credentials.password === '') {
-    throw new Error(`${CREDENTIALS_FILE} 里没有 userName/password —— 拒绝封板（快照里的口令身份需要它）`)
+  const credentials = JSON.parse(
+    readFileSync(CREDENTIALS_FILE, 'utf8'),
+  ) as Partial<BaselineCredentials>
+  if (
+    typeof credentials.userName !== 'string' ||
+    typeof credentials.password !== 'string' ||
+    credentials.password === ''
+  ) {
+    throw new Error(
+      `${CREDENTIALS_FILE} 里没有 userName/password —— 拒绝封板（快照里的口令身份需要它）`,
+    )
   }
 
   const snapshot = currentDataSnapshot()
   if (snapshot.dirtyPaths.length > 0) {
     warn(
-      '封板时数据路径有未提交改动（清单会记 dataDirty=true，之后 restore 会拒绝这份基线）：\n'
-      + `  ${snapshot.dirtyPaths.join('\n  ')}\n`
-      + '  处置：提交 / 还原这些改动后重新封板（本轮仍会跑完用例，但这份基线只用于本轮）。',
+      '封板时数据路径有未提交改动（清单会记 dataDirty=true，之后 restore 会拒绝这份基线）：\n' +
+        `  ${snapshot.dirtyPaths.join('\n  ')}\n` +
+        '  处置：提交 / 还原这些改动后重新封板（本轮仍会跑完用例，但这份基线只用于本轮）。',
     )
   }
 
@@ -465,10 +504,11 @@ export async function sealBaseline(): Promise<void> {
   const dumpStarted = Date.now()
   try {
     runPgDumpToFile(container, tmpDump)
-  }
-  catch (error) {
+  } catch (error) {
     removeTempFiles(tempFiles)
-    throw new Error(`pg_dump 失败，基线未更新：${error instanceof Error ? error.message : String(error)}`)
+    throw new Error(
+      `pg_dump 失败，基线未更新：${error instanceof Error ? error.message : String(error)}`,
+    )
   }
   const dumpMs = Date.now() - dumpStarted
 
@@ -502,7 +542,10 @@ export async function sealBaseline(): Promise<void> {
     credentialsBytes,
     menuRows: facts.menuRows,
   }
-  writeFileSync(tmpManifest, `${JSON.stringify(manifest, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 })
+  writeFileSync(tmpManifest, `${JSON.stringify(manifest, null, 2)}\n`, {
+    encoding: 'utf8',
+    mode: 0o600,
+  })
 
   // ── 原子提交：先撤旧清单，再逐个 rename；任何故障都不会留下「新 dump + 旧清单」 ──
   try {
@@ -510,17 +553,20 @@ export async function sealBaseline(): Promise<void> {
     renameSync(tmpDump, BASELINE_DUMP_FILE)
     renameSync(tmpCredentials, BASELINE_CREDENTIALS_FILE)
     renameSync(tmpManifest, BASELINE_MANIFEST_FILE)
-  }
-  catch (error) {
+  } catch (error) {
     removeTempFiles(tempFiles)
     throw new Error(
-      `封板提交阶段失败（旧清单已撤下，盘上是没有清单的半成品；下一次 run 会拒绝使用并提示重封板）：`
-      + `${error instanceof Error ? error.message : String(error)}`,
+      `封板提交阶段失败（旧清单已撤下，盘上是没有清单的半成品；下一次 run 会拒绝使用并提示重封板）：` +
+        `${error instanceof Error ? error.message : String(error)}`,
     )
   }
 
-  log(`seal 完成：${path.basename(BASELINE_DUMP_FILE)} ${dumpBytes} B（pg_dump ${formatSeconds(dumpMs)}，容器 ${container}，总 ${formatSeconds(Date.now() - started)}）`)
-  log(`清单 v${MANIFEST_VERSION}：profile=${manifest.profile}、库=${manifest.database}、HEAD ${shortSha(manifest.gitCommit)}、dataKey ${shortSha(manifest.dataKey)}${manifest.dataDirty ? '（脏）' : ''}、迁移头 ${facts.migrationsHead.id}（${facts.migrationsHead.name}）、菜单 ${facts.menuRows} 行、dump sha ${dumpSha256.slice(0, 12)}…、credentials sha ${credentialsSha256.slice(0, 12)}…`)
+  log(
+    `seal 完成：${path.basename(BASELINE_DUMP_FILE)} ${dumpBytes} B（pg_dump ${formatSeconds(dumpMs)}，容器 ${container}，总 ${formatSeconds(Date.now() - started)}）`,
+  )
+  log(
+    `清单 v${MANIFEST_VERSION}：profile=${manifest.profile}、库=${manifest.database}、HEAD ${shortSha(manifest.gitCommit)}、dataKey ${shortSha(manifest.dataKey)}${manifest.dataDirty ? '（脏）' : ''}、迁移头 ${facts.migrationsHead.id}（${facts.migrationsHead.name}）、菜单 ${facts.menuRows} 行、dump sha ${dumpSha256.slice(0, 12)}…、credentials sha ${credentialsSha256.slice(0, 12)}…`,
+  )
   log(`基线文件与清单都在 gitignored 的 ${ARTIFACT_DIR}/（不入库）：${BASELINE_DUMP_FILE}`)
 }
 
@@ -539,16 +585,19 @@ export async function restoreBaseline(options: { maintenance: Client }): Promise
 
   const state = readManifestState()
   if (state.kind !== 'ok') {
-    const detail = state.kind === 'unusable' ? state.reason : `没有封板清单（${BASELINE_MANIFEST_FILE}）`
-    throw new E2ePreconditionError(`${detail} —— 用 \`node scripts/run.ts --rebuild-baseline\` 重新封板`)
+    const detail =
+      state.kind === 'unusable' ? state.reason : `没有封板清单（${BASELINE_MANIFEST_FILE}）`
+    throw new E2ePreconditionError(
+      `${detail} —— 用 \`node scripts/run.ts --rebuild-baseline\` 重新封板`,
+    )
   }
   const manifest = state.manifest
   // 直接调用 restoreBaseline 的路径（不带 baselineUsable）也要过 profile 配对：跨 profile 的 dump
   // 即使 sha 全对，也不能恢复进当前库。
   if (manifest.profile !== STACK_PROFILE.name || manifest.database !== E2E_PG_DB) {
     throw new E2ePreconditionError(
-      `拒绝恢复：封板清单属于 profile=${manifest.profile} / 库=${manifest.database}，`
-      + `当前是 profile=${STACK_PROFILE.name} / 库=${E2E_PG_DB}`,
+      `拒绝恢复：封板清单属于 profile=${manifest.profile} / 库=${manifest.database}，` +
+        `当前是 profile=${STACK_PROFILE.name} / 库=${E2E_PG_DB}`,
     )
   }
   const credentials = readBaselineCredentials(manifest)
@@ -559,15 +608,16 @@ export async function restoreBaseline(options: { maintenance: Client }): Promise
   await options.maintenance.query(`DROP DATABASE IF EXISTS "${E2E_PG_DB}" WITH (FORCE)`)
   await options.maintenance.query(`CREATE DATABASE "${E2E_PG_DB}"`)
 
-  log(`pg_restore（容器 ${container}，${path.basename(BASELINE_DUMP_FILE)} ${manifest.dumpBytes} B）`)
+  log(
+    `pg_restore（容器 ${container}，${path.basename(BASELINE_DUMP_FILE)} ${manifest.dumpBytes} B）`,
+  )
   try {
     runPgRestoreFromFile(container, readFileSync(BASELINE_DUMP_FILE))
-  }
-  catch (error) {
+  } catch (error) {
     throw new Error(
-      `从基线恢复失败：${error instanceof Error ? error.message : String(error)}\n`
-      + '  基线只对「同一套数据栈 + 同一份封板清单」有效；换过数据卷 / 清过库时旧基线不再适用 '
-      + '—— 用 `node scripts/run.ts --rebuild-baseline` 重新封板',
+      `从基线恢复失败：${error instanceof Error ? error.message : String(error)}\n` +
+        '  基线只对「同一套数据栈 + 同一份封板清单」有效；换过数据卷 / 清过库时旧基线不再适用 ' +
+        '—— 用 `node scripts/run.ts --rebuild-baseline` 重新封板',
     )
   }
 
@@ -576,8 +626,8 @@ export async function restoreBaseline(options: { maintenance: Client }): Promise
   await clearAppSettingCache()
 
   log(
-    `restore 完成（${formatSeconds(Date.now() - started)}）：迁移头 ${manifest.migrationsHead.id}、菜单 ${facts.menuRows} 行、admin 存在；`
-    + `已重置 ${E2E_PG_APP_USER} 口令、清 Redis 设置缓存、写 ${CREDENTIALS_FILE}（口令取封板时那一份）`,
+    `restore 完成（${formatSeconds(Date.now() - started)}）：迁移头 ${manifest.migrationsHead.id}、菜单 ${facts.menuRows} 行、admin 存在；` +
+      `已重置 ${E2E_PG_APP_USER} 口令、清 Redis 设置缓存、写 ${CREDENTIALS_FILE}（口令取封板时那一份）`,
   )
 }
 
@@ -593,14 +643,16 @@ export async function restoreBaseline(options: { maintenance: Client }): Promise
  * | 基线文件 / 清单对不上（含旧版本 / 半成品） | **抛前置错误（退出码 2）**，提示重新封板 |
  * | 基线有效且 dataKey 一致且数据路径干净 | restore（不跑迁移 / seed） |
  */
-export async function ensureTestDatabase(options: EnsureTestDatabaseOptions): Promise<DatabaseMode> {
+export async function ensureTestDatabase(
+  options: EnsureTestDatabaseOptions,
+): Promise<DatabaseMode> {
   assertE2eDatabase(E2E_PG_DB)
   assertE2ePgPort(E2E_PG_PORT)
 
   if (options.skipBaseline === true && options.rebuild === true) {
     throw new E2ePreconditionError(
-      'E2E_SKIP_BASELINE=1 与 --rebuild-baseline / E2E_REBUILD_BASELINE=1 互斥：'
-      + '前者「忽略基线」，后者「重新封板」，同时给无法判断你想要哪个。去掉一个再跑。',
+      'E2E_SKIP_BASELINE=1 与 --rebuild-baseline / E2E_REBUILD_BASELINE=1 互斥：' +
+        '前者「忽略基线」，后者「重新封板」，同时给无法判断你想要哪个。去掉一个再跑。',
     )
   }
 
@@ -621,9 +673,9 @@ export async function ensureTestDatabase(options: EnsureTestDatabaseOptions): Pr
 
   if (usage.kind === 'usable') {
     log(
-      `基线有效（封板于 ${usage.manifest.sealedAt}，profile ${usage.manifest.profile}，HEAD ${shortSha(usage.manifest.gitCommit)}，`
-      + `dataKey ${shortSha(usage.manifest.dataKey)}，迁移头 ${usage.manifest.migrationsHead.id}，菜单 ${usage.manifest.menuRows} 行）`
-      + '→ 从基线恢复（不跑迁移 / seed）',
+      `基线有效（封板于 ${usage.manifest.sealedAt}，profile ${usage.manifest.profile}，HEAD ${shortSha(usage.manifest.gitCommit)}，` +
+        `dataKey ${shortSha(usage.manifest.dataKey)}，迁移头 ${usage.manifest.migrationsHead.id}，菜单 ${usage.manifest.menuRows} 行）` +
+        '→ 从基线恢复（不跑迁移 / seed）',
     )
     await restoreBaseline({ maintenance: options.maintenance })
     return 'restore'
@@ -638,19 +690,20 @@ export async function ensureTestDatabase(options: EnsureTestDatabaseOptions): Pr
 
   if (usage.kind === 'invalid') {
     throw new E2ePreconditionError(
-      `基线不可用：${usage.reason}。\n`
-      + '  运行 `node scripts/run.ts --rebuild-baseline` 重新封板（或 `E2E_SKIP_BASELINE=1` 跳过基线、退回全量 prepare）',
+      `基线不可用：${usage.reason}。\n` +
+        '  运行 `node scripts/run.ts --rebuild-baseline` 重新封板（或 `E2E_SKIP_BASELINE=1` 跳过基线、退回全量 prepare）',
     )
   }
 
-  const dirty = usage.dirtyPaths.length > 0
-    ? `\n  数据路径有未提交改动（先提交 / 还原，或直接 --rebuild-baseline）：\n    ${usage.dirtyPaths.join('\n    ')}`
-    : ''
+  const dirty =
+    usage.dirtyPaths.length > 0
+      ? `\n  数据路径有未提交改动（先提交 / 还原，或直接 --rebuild-baseline）：\n    ${usage.dirtyPaths.join('\n    ')}`
+      : ''
   throw new E2ePreconditionError(
-    `迁移 / seed 等数据路径相对封板时已变化（封板 HEAD ${shortSha(usage.manifest.gitCommit)} / dataKey ${shortSha(usage.manifest.dataKey)}，`
-    + `当前 dataKey ${shortSha(usage.dataKey)}）。${dirty}\n`
-    + '  一条命令重建基线并继续：`pnpm --filter @walnut/e2e e2e -- --rebuild-baseline`（或 `node apps/e2e/scripts/run.ts --rebuild-baseline`）\n'
-    + `  数据路径清单见 apps/e2e/scripts/e2e-data-paths.ts 的 E2E_DATA_PATHS（${DATA_PATHS.length} 项）；`
-    + '`E2E_SKIP_BASELINE=1` 可临时跳过基线、退回全量 prepare（不封板）',
+    `迁移 / seed 等数据路径相对封板时已变化（封板 HEAD ${shortSha(usage.manifest.gitCommit)} / dataKey ${shortSha(usage.manifest.dataKey)}，` +
+      `当前 dataKey ${shortSha(usage.dataKey)}）。${dirty}\n` +
+      '  一条命令重建基线并继续：`pnpm --filter @walnut/e2e e2e -- --rebuild-baseline`（或 `node apps/e2e/scripts/run.ts --rebuild-baseline`）\n' +
+      `  数据路径清单见 apps/e2e/scripts/e2e-data-paths.ts 的 E2E_DATA_PATHS（${DATA_PATHS.length} 项）；` +
+      '`E2E_SKIP_BASELINE=1` 可临时跳过基线、退回全量 prepare（不封板）',
   )
 }

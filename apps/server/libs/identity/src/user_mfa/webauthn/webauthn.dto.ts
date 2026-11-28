@@ -1,7 +1,4 @@
-import type {
-  AuthenticationResponseJSON,
-  RegistrationResponseJSON,
-} from '@simplewebauthn/server'
+import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/server'
 import { ApiProperty } from '@nestjs/swagger'
 import { WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
@@ -10,7 +7,9 @@ import { Expose } from 'class-transformer'
 import { SysUserDeviceDTO } from '../../user_device/dto/user_device.dto'
 import { SysUserMfaDTOBase } from '../dto/user_mfa.dto'
 
-export class SysUserMfaWebauthnRegisterOptionsDTO extends RealPickType(SysUserMfaDTOBase, ['name'] as const) {}
+export class SysUserMfaWebauthnRegisterOptionsDTO extends RealPickType(SysUserMfaDTOBase, [
+  'name',
+] as const) {}
 
 // ------------------------------------------------------------------ WebAuthn 选项
 //
@@ -35,7 +34,15 @@ export class SysUserMfaWebauthnRegisterOptionsDTO extends RealPickType(SysUserMf
 // 保留形态、只做显式登记；等 @simplewebauthn 官方导出等价 DTO 时再收编。
 
 /** 认证器 transport 联合（@simplewebauthn 的 AuthenticatorTransportFuture）。 */
-const WebauthnAuthenticatorTransports = ['ble', 'cable', 'hybrid', 'internal', 'nfc', 'smart-card', 'usb']
+const WebauthnAuthenticatorTransports = [
+  'ble',
+  'cable',
+  'hybrid',
+  'internal',
+  'nfc',
+  'smart-card',
+  'usb',
+]
 
 /** 认证器提示联合（@simplewebauthn 的 PublicKeyCredentialHint）。 */
 const WebauthnPublicKeyCredentialHints = ['hybrid', 'security-key', 'client-device']
@@ -160,7 +167,10 @@ export class SysUserMfaWebauthnCreationOptionsDTO {
   @Expose()
   user: SysUserMfaWebauthnUserEntityDTO
 
-  @ApiProperty({ type: () => [SysUserMfaWebauthnPubKeyCredParamDTO], description: 'acceptable public key algorithms' })
+  @ApiProperty({
+    type: () => [SysUserMfaWebauthnPubKeyCredParamDTO],
+    description: 'acceptable public key algorithms',
+  })
   @Expose()
   pubKeyCredParams: SysUserMfaWebauthnPubKeyCredParamDTO[]
 
@@ -177,15 +187,27 @@ export class SysUserMfaWebauthnCreationOptionsDTO {
   @Expose()
   attestation?: string
 
-  @ApiProperty({ type: () => [SysUserMfaWebauthnCredentialDescriptorDTO], description: 'credentials already registered by the user', required: false })
+  @ApiProperty({
+    type: () => [SysUserMfaWebauthnCredentialDescriptorDTO],
+    description: 'credentials already registered by the user',
+    required: false,
+  })
   @Expose()
   excludeCredentials?: SysUserMfaWebauthnCredentialDescriptorDTO[]
 
-  @ApiProperty({ type: () => SysUserMfaWebauthnAuthenticatorSelectionDTO, description: 'authenticator selection criteria', required: false })
+  @ApiProperty({
+    type: () => SysUserMfaWebauthnAuthenticatorSelectionDTO,
+    description: 'authenticator selection criteria',
+    required: false,
+  })
   @Expose()
   authenticatorSelection?: SysUserMfaWebauthnAuthenticatorSelectionDTO
 
-  @ApiProperty({ type: () => SysUserMfaWebauthnExtensionInputsDTO, description: 'client extension inputs', required: false })
+  @ApiProperty({
+    type: () => SysUserMfaWebauthnExtensionInputsDTO,
+    description: 'client extension inputs',
+    required: false,
+  })
   @Expose()
   extensions?: SysUserMfaWebauthnExtensionInputsDTO
 
@@ -213,7 +235,11 @@ export class SysUserMfaWebauthnRequestOptionsDTO {
   @Expose()
   rpId?: string
 
-  @ApiProperty({ type: () => [SysUserMfaWebauthnCredentialDescriptorDTO], description: 'credentials the client may use', required: false })
+  @ApiProperty({
+    type: () => [SysUserMfaWebauthnCredentialDescriptorDTO],
+    description: 'credentials the client may use',
+    required: false,
+  })
   @Expose()
   allowCredentials?: SysUserMfaWebauthnCredentialDescriptorDTO[]
 
@@ -226,7 +252,11 @@ export class SysUserMfaWebauthnRequestOptionsDTO {
   @Expose()
   userVerification?: string
 
-  @ApiProperty({ type: () => SysUserMfaWebauthnExtensionInputsDTO, description: 'client extension inputs', required: false })
+  @ApiProperty({
+    type: () => SysUserMfaWebauthnExtensionInputsDTO,
+    description: 'client extension inputs',
+    required: false,
+  })
   @Expose()
   extensions?: SysUserMfaWebauthnExtensionInputsDTO
 
@@ -245,7 +275,10 @@ export class SysUserMfaWebauthnRegisterResponseDTO {
     Object.assign(this, partial)
   }
 
-  @ApiProperty({ type: () => SysUserMfaWebauthnCreationOptionsDTO, description: 'WebAuthn Register Options' })
+  @ApiProperty({
+    type: () => SysUserMfaWebauthnCreationOptionsDTO,
+    description: 'WebAuthn Register Options',
+  })
   @Expose()
   options: SysUserMfaWebauthnCreationOptionsDTO
 
@@ -255,7 +288,9 @@ export class SysUserMfaWebauthnRegisterResponseDTO {
   deviceName: string
 }
 
-export class SysUserMfaWebauthnRegisterVerifyDTO extends RealPickType(SysUserMfaDTOBase, ['name'] as const) {
+export class SysUserMfaWebauthnRegisterVerifyDTO extends RealPickType(SysUserMfaDTOBase, [
+  'name',
+] as const) {
   @WalnutAdminDecoratorFieldObject(Object, {
     swaggerOptions: { description: 'WebAuthn 注册响应' },
     validateOptions: {
@@ -270,12 +305,17 @@ export class SysUserMfaWebauthnAuthenticateOptionsDTO {
     Object.assign(this, partial)
   }
 
-  @ApiProperty({ type: () => SysUserMfaWebauthnRequestOptionsDTO, description: 'WebAuthn Authenticate Options' })
+  @ApiProperty({
+    type: () => SysUserMfaWebauthnRequestOptionsDTO,
+    description: 'WebAuthn Authenticate Options',
+  })
   @Expose()
   options: SysUserMfaWebauthnRequestOptionsDTO
 }
 
-export class SysUserMfaWebauthnAuthenticateVerifyDTO extends RealPickType(SysUserDeviceDTO, ['trusted'] as const) {
+export class SysUserMfaWebauthnAuthenticateVerifyDTO extends RealPickType(SysUserDeviceDTO, [
+  'trusted',
+] as const) {
   @WalnutAdminDecoratorFieldObject(Object, {
     swaggerOptions: { description: 'WebAuthn 认证响应' },
     validateOptions: {

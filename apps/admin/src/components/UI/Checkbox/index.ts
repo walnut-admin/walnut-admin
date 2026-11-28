@@ -7,6 +7,7 @@ import RawWCheckBox from './index.vue'
 export default WithValue<ICompUICheckboxProps>(RawWCheckBox)
 
 // TODO 000
-export interface ICompUICheckboxProps extends /* @vue-ignore */ CheckboxProps, /* @vue-ignore */ Omit<WithValueProp, 'value'> {
+export interface ICompUICheckboxProps
+  extends /* @vue-ignore */ CheckboxProps, /* @vue-ignore */ Omit<WithValueProp, 'value'> {
   options: CheckboxProps[]
 }

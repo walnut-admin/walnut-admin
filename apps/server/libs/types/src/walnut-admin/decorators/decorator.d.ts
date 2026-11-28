@@ -14,10 +14,7 @@ declare global {
     res?: S
   }
 
-  interface IWalnutAdminDecoratorBasicOptions<
-    ValidateOptions,
-    TransformOptions,
-  > {
+  interface IWalnutAdminDecoratorBasicOptions<ValidateOptions, TransformOptions> {
     default?: any
     isArray?: boolean
     arrayOptions?: IWalnutAdminDecoratorArrayOptions

@@ -52,7 +52,13 @@ describe('decrypt 镜像与记录形状', () => {
 describe('analyzePasswordIdentity：stale 三类判定', () => {
   it('ok：密文可解 + valueHash 一致 ⇒ 不报问题，建议列是 —', () => {
     const result = analyzePasswordIdentity(row(), KEYS)
-    expect(result).toMatchObject({ userName: 'alice', userId: USER_ID, format: 'ok', hashMatch: true, suggestion: '—' })
+    expect(result).toMatchObject({
+      userName: 'alice',
+      userId: USER_ID,
+      format: 'ok',
+      hashMatch: true,
+      suggestion: '—',
+    })
     expect(hasCredentialProblem(result)).toBe(false)
   })
 
@@ -102,7 +108,14 @@ describe('analyzePasswordIdentity：stale 三类判定', () => {
 describe('formatCredentialCheckReport：输出行构造', () => {
   it('表头 + 每行账号 / userId / 格式 / valueHash / 建议；不出现密文与明文', () => {
     const ok = analyzePasswordIdentity(row(), KEYS)
-    const stale = analyzePasswordIdentity(row({ userName: 'visitor', userId: '22222222-2222-4222-8222-222222222222', value: FAKE_RECORD }), KEYS)
+    const stale = analyzePasswordIdentity(
+      row({
+        userName: 'visitor',
+        userId: '22222222-2222-4222-8222-222222222222',
+        value: FAKE_RECORD,
+      }),
+      KEYS,
+    )
 
     const lines = formatCredentialCheckReport([ok, stale])
 
@@ -112,12 +125,12 @@ describe('formatCredentialCheckReport：输出行构造', () => {
     expect(lines[0]).toContain('valueHash')
     expect(lines[0]).toContain('建议')
 
-    const okLine = lines.find(line => line.includes('alice'))!
+    const okLine = lines.find((line) => line.includes('alice'))!
     expect(okLine).toContain(USER_ID)
     expect(okLine).toContain('ok')
     expect(okLine).toContain('一致')
 
-    const staleLine = lines.find(line => line.includes('visitor'))!
+    const staleLine = lines.find((line) => line.includes('visitor'))!
     expect(staleLine).toContain('stale-format')
     expect(staleLine).toContain('不可校验')
 
@@ -139,8 +152,14 @@ describe('formatCredentialCheckReport：输出行构造', () => {
 describe('parseCredentialCheckArgs', () => {
   it('支持 --pg-db / --env-file（与 db:seed:pg 同风格），默认 envFile 为空（走 NODE_ENV 解析）', () => {
     expect(parseCredentialCheckArgs([])).toEqual({ envFile: '' })
-    expect(parseCredentialCheckArgs(['--pg-db', 'walnut_pg', '--env-file', 'apps/server/env-local/.env.development']))
-      .toEqual({ pgDbName: 'walnut_pg', envFile: 'apps/server/env-local/.env.development' })
+    expect(
+      parseCredentialCheckArgs([
+        '--pg-db',
+        'walnut_pg',
+        '--env-file',
+        'apps/server/env-local/.env.development',
+      ]),
+    ).toEqual({ pgDbName: 'walnut_pg', envFile: 'apps/server/env-local/.env.development' })
   })
 
   it('未知参数与缺值都明确报错（不静默吞掉）', () => {

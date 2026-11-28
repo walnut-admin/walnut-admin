@@ -18,7 +18,8 @@ async function onGoIndex() {
     <div
       v-if="appStoreSettingDev.getLogoShow"
       :id="appStoreSettingDev.getLogoId"
-      class="cursor-pointer whitespace-nowrap px-6 transition-all" :class="[
+      class="cursor-pointer whitespace-nowrap px-6 transition-all"
+      :class="[
         {
           '!px-0': appStoreMenu.getCollapse,
           '!fixed': appStoreSettingDev.getLogoFixed,
@@ -32,13 +33,10 @@ async function onGoIndex() {
       @click="onGoIndex"
     >
       <div class="h-full w-full hstack items-center justify-around">
-        <img src="/logo.png" :alt="`${AppTitle} Logo`" class="h-9">
+        <img src="/logo.png" :alt="`${AppTitle} Logo`" class="h-9" />
 
         <WTransition transition-name="zoom-down">
-          <div
-            v-show="!appStoreMenu.getCollapse"
-            class="text-center text-xl font-bold not-italic"
-          >
+          <div v-show="!appStoreMenu.getCollapse" class="text-center text-xl font-bold not-italic">
             {{ AppTitle }}
           </div>
         </WTransition>

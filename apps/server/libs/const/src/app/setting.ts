@@ -2,9 +2,10 @@ import type { ValueOf } from 'easy-fns-ts'
 
 // force-quit 的 wire 值集已上收 @walnut/contract（前端 socket 同源消费）；
 // 本文件只保留 server-only 的 setting key / revoke 类型字面量。
+// 类型面只转出 `IWalnutAdminConstAppSettingForceQuit`（libs/cache 从这条路径消费）；
+// `IWalnutAdminConstAppSettingForceQuitStrategy` 全仓零消费，已随兼容层清理删除（2026-11-28）。
 export {
   type IWalnutAdminConstAppSettingForceQuit,
-  type IWalnutAdminConstAppSettingForceQuitStrategy,
   WalnutAdminConstAppSettingForceQuitStrategy,
 } from '@walnut/contract/setting'
 
@@ -13,7 +14,9 @@ export const WalnutAdminConstAppSettingScopeType = {
   LOCAL: 'local',
 } as const
 
-export type IWalnutAdminConstAppSettingScopeType = ValueOf<typeof WalnutAdminConstAppSettingScopeType>
+export type IWalnutAdminConstAppSettingScopeType = ValueOf<
+  typeof WalnutAdminConstAppSettingScopeType
+>
 
 // system setting type, extend this as need grow
 export const WalnutAdminConstAppSettingType = {
@@ -120,12 +123,16 @@ export interface IWalnutAdminScopeResolverConfig<T> {
 }
 
 // functional role setting keys
-export interface IWalnutAdminConstAppSettingFunctionalRoleKeys<T> extends IWalnutAdminScopeResolverConfig<T> {
+export interface IWalnutAdminConstAppSettingFunctionalRoleKeys<
+  T,
+> extends IWalnutAdminScopeResolverConfig<T> {
   defaultRole: string
 }
 
 // functional frontend scope setting keys
-export interface IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys<T> extends IWalnutAdminScopeResolverConfig<T> {
+export interface IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys<
+  T,
+> extends IWalnutAdminScopeResolverConfig<T> {
   status: boolean
 }
 

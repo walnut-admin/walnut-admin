@@ -5,7 +5,7 @@ import { Injectable, Logger } from '@nestjs/common'
 export class SysDeviceSettingService implements IWalnutAdminThrottleConfigProvider {
   private readonly logger = new Logger(SysDeviceSettingService.name)
 
-  constructor() { }
+  constructor() {}
 
   // implement IThrottleConfigProvider methods
   async getThrottleLimit() {

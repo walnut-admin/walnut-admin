@@ -4,12 +4,19 @@ import { ApiParam, ApiTags } from '@nestjs/swagger'
 import { JwtAccessGuard } from '@walnut-server/auth'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 import { WalnutCrudDecorators } from '@walnut-server/crud'
-import {
-  WalnutAdminDecoratorParamUuid,
-} from '@walnut-server/decorators/params'
+import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminDecoratorHasPermission } from '@walnut-server/guards'
-import { assembleSysDevice, SysDeviceDTOReadResponse, SysLogOperateDTO, SysLogOperateDTOListRequest, SysLogOperateDTOListResponse, SysLogOperateDTOReadResponse, SysLogOperateDTOSnapshotResponse, SysLogOperateService } from '@walnut-server/system'
+import {
+  assembleSysDevice,
+  SysDeviceDTOReadResponse,
+  SysLogOperateDTO,
+  SysLogOperateDTOListRequest,
+  SysLogOperateDTOListResponse,
+  SysLogOperateDTOReadResponse,
+  SysLogOperateDTOSnapshotResponse,
+  SysLogOperateService,
+} from '@walnut-server/system'
 import { SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 
@@ -20,16 +27,15 @@ const Permissions = {
   GET_DEVICE: 'system:log:operate:getDevice',
 } as const
 
-const { WalnutAdminDecoratorRead, WalnutAdminDecoratorList }
-  = WalnutCrudDecorators({
-    title: WalnutAdminConstDecoratorLogOperateTitle.LOG_OPERATE,
-    DTO: SysLogOperateDTO,
-    // list 行是 RealPartialType(SysLogOperateDTOSafe)：字段集一致、全部可选（P2-6 收尾）。
-    listResponseDTO: SysLogOperateDTOListResponse,
-    extra: {
-      needOperateLog: false,
-    },
-  })
+const { WalnutAdminDecoratorRead, WalnutAdminDecoratorList } = WalnutCrudDecorators({
+  title: WalnutAdminConstDecoratorLogOperateTitle.LOG_OPERATE,
+  DTO: SysLogOperateDTO,
+  // list 行是 RealPartialType(SysLogOperateDTOSafe)：字段集一致、全部可选（P2-6 收尾）。
+  listResponseDTO: SysLogOperateDTOListResponse,
+  extra: {
+    needOperateLog: false,
+  },
+})
 
 /**
  * B8 迁移（controller 层，B1 模板）：路由参数 ParamMongoId → uuid 参数装饰器；
@@ -41,7 +47,7 @@ const { WalnutAdminDecoratorRead, WalnutAdminDecoratorList }
 @ApiTags('system/log/operate')
 @UseGuards(JwtAccessGuard)
 export class SysLogOperateController {
-  constructor(private readonly logOperateService: SysLogOperateService) { }
+  constructor(private readonly logOperateService: SysLogOperateService) {}
 
   @Get(':id/device')
   @HttpCode(HttpStatus.OK)
@@ -59,10 +65,7 @@ export class SysLogOperateController {
   async getDevice(@WalnutAdminDecoratorParamUuid() id: string) {
     const device = await this.logOperateService.getDeviceByLogOperateId(id)
 
-    return plainToInstance(
-      SysDeviceDTOReadResponse,
-      device ? assembleSysDevice(device) : null,
-    )
+    return plainToInstance(SysDeviceDTOReadResponse, device ? assembleSysDevice(device) : null)
   }
 
   @Get(':id/snapshot')
@@ -88,18 +91,12 @@ export class SysLogOperateController {
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
   @WalnutAdminDecoratorRead()
   async read(@WalnutAdminDecoratorParamUuid() id: string) {
-    return plainToInstance(
-      SysLogOperateDTOReadResponse,
-      await this.logOperateService.read(id),
-    )
+    return plainToInstance(SysLogOperateDTOReadResponse, await this.logOperateService.read(id))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
   @WalnutAdminDecoratorList()
   async list(@Body() payload: SysLogOperateDTOListRequest) {
-    return plainToInstance(
-      SysLogOperateDTOListResponse,
-      await this.logOperateService.list(payload),
-    )
+    return plainToInstance(SysLogOperateDTOListResponse, await this.logOperateService.list(payload))
   }
 }

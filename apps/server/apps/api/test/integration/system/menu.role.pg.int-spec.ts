@@ -6,7 +6,15 @@ import { randomUUID } from 'node:crypto'
 
 import { WalnutAdminConstAppPermissionType } from '@walnut-server/const/app/permission'
 
-import { assembleSysMenuMeta, SysMenuRepositoryService, SysMenuService, SysMenuSharedService, SysRoleBasicRepository, SysRoleRepoService, SysRoleService } from '@walnut-server/system'
+import {
+  assembleSysMenuMeta,
+  SysMenuRepositoryService,
+  SysMenuService,
+  SysMenuSharedService,
+  SysRoleBasicRepository,
+  SysRoleRepoService,
+  SysRoleService,
+} from '@walnut-server/system'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createIntegrationApp, getWalnutPgAdminDataSource } from '../helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from '../helpers/integration.const'
@@ -28,13 +36,14 @@ interface ITreeNodeLike {
   id: string
   name: string | null
   title: string | null
-  meta: { order: number | null, transition: string, permission: string | null }
+  meta: { order: number | null; transition: string; permission: string | null }
   children?: ITreeNodeLike[]
 }
 
 function findTreeNode(nodes: ITreeNodeLike[], id: string): ITreeNodeLike | undefined {
-  return nodes.find(n => n.id === id)
-    ?? nodes.flatMap(n => findTreeNode(n.children ?? [], id))[0]
+  return (
+    nodes.find((n) => n.id === id) ?? nodes.flatMap((n) => findTreeNode(n.children ?? [], id))[0]
+  )
 }
 
 describe('B5 sys_menu / sys_role (on real PG)', () => {
@@ -50,7 +59,11 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
   const uniqueName = (prefix: string) => `${prefix}-${randomUUID().replaceAll('-', '').slice(0, 8)}`
 
   // SysRoleDTOCreateRequest 的 Pick 侧（roleName/description/order/status）全必填（与 admin 表单一致）
-  const rolePayload = (overrides: { roleName: string, description?: string, menus?: string[] }) => ({
+  const rolePayload = (overrides: {
+    roleName: string
+    description?: string
+    menus?: string[]
+  }) => ({
     roleName: overrides.roleName,
     description: (overrides.description ?? null) as unknown as string,
     order: null as unknown as number,
@@ -157,7 +170,9 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
         meta: { order: 1, cache: true } as IWalnutAdminMenuMeta,
       })
 
-      const updated = await menuService.update(created.id, { meta: { order: 9 } as IWalnutAdminMenuMeta })
+      const updated = await menuService.update(created.id, {
+        meta: { order: 9 } as IWalnutAdminMenuMeta,
+      })
 
       // 整组替换：未给的 cache 回默认 false（对齐 Mongo 版 meta 子文档整体替换）
       expect(updated.order).toBe(9)
@@ -186,7 +201,10 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
       const deleted = await menuService.delete(created.id, created.id, 0)
       expect(deleted.id).toBe(created.id)
 
-      const gone = await pgDataSource.query<Array<{ c: number }>>('SELECT count(*)::int AS c FROM sys_menu WHERE id = $1', [created.id])
+      const gone = await pgDataSource.query<Array<{ c: number }>>(
+        'SELECT count(*)::int AS c FROM sys_menu WHERE id = $1',
+        [created.id],
+      )
       expect(gone[0].c).toBe(0)
 
       const snapshot = await pgDataSource.query<Array<{ c: number }>>(
@@ -205,9 +223,15 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
 
     it('list：{ data, total } 出参 + 行可组装回 meta 形态', async () => {
       const name = uniqueName('b5-list')
-      await menuService.create({ type: 'catalog', name, meta: { order: 5 } as IWalnutAdminMenuMeta })
+      await menuService.create({
+        type: 'catalog',
+        name,
+        meta: { order: 5 } as IWalnutAdminMenuMeta,
+      })
 
-      const res = await menuService.list({ filters: [{ field: 'name', op: 'like', value: name }] } as never)
+      const res = await menuService.list({
+        filters: [{ field: 'name', op: 'like', value: name }],
+      } as never)
       expect(res.total).toBe(1)
       expect(res.data[0].name).toBe(name)
       expect(res.data[0].order).toBe(5)
@@ -261,15 +285,15 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
 
       // children 按 meta.order 升序：element(0) → menu2(1) → menu(2)
       expect(node!.children).toHaveLength(3)
-      expect(node!.children!.map(c => c.id)).toEqual([
+      expect(node!.children!.map((c) => c.id)).toEqual([
         elementChild.id,
         menuChild2.id,
         menuChild.id,
       ])
-      expect(node!.children!.map(c => c.meta.order)).toEqual([0, 1, 2])
+      expect(node!.children!.map((c) => c.meta.order)).toEqual([0, 1, 2])
 
       // meta 对象在树节点上形态保真
-      const menuNode = node!.children!.find(c => c.id === menuChild.id)
+      const menuNode = node!.children!.find((c) => c.id === menuChild.id)
       expect(menuNode!.title).toBe('b5.tree.menu')
       expect(menuNode!.meta.transition).toBe('fade')
 
@@ -282,7 +306,7 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
       expect(withoutElement).not.toContain(elementChild.id)
 
       // menuActiveNamesOptions 只收 type=menu
-      const options = res.menuActiveNamesOptions.filter(i => i.title === 'b5.tree.menu')
+      const options = res.menuActiveNamesOptions.filter((i) => i.title === 'b5.tree.menu')
       expect(options).toHaveLength(1)
       expect(options[0].name).toBe(menuChild.name)
     })
@@ -293,11 +317,13 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
       const menuA = await menuService.create({ type: 'catalog', name: uniqueName('b5-role-menu') })
       const menuB = await menuService.create({ type: 'catalog', name: uniqueName('b5-role-menu') })
 
-      const created = await roleService.create(rolePayload({
-        roleName: uniqueName('b5-role'),
-        description: 'B5 int-spec',
-        menus: [menuA.id, menuB.id],
-      }))
+      const created = await roleService.create(
+        rolePayload({
+          roleName: uniqueName('b5-role'),
+          description: 'B5 int-spec',
+          menus: [menuA.id, menuB.id],
+        }),
+      )
 
       expect(created.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
       expect([...created.menus].sort()).toEqual([menuA.id, menuB.id].sort())
@@ -321,7 +347,9 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
     it('update：menus 整组替换（delete+insert 同事务）；未给 menus 时不动', async () => {
       const menuA = await menuService.create({ type: 'catalog', name: uniqueName('b5-role-menu') })
       const menuB = await menuService.create({ type: 'catalog', name: uniqueName('b5-role-menu') })
-      const role = await roleService.create(rolePayload({ roleName: uniqueName('b5-role'), menus: [menuA.id] }))
+      const role = await roleService.create(
+        rolePayload({ roleName: uniqueName('b5-role'), menus: [menuA.id] }),
+      )
 
       const updated = await roleService.update(role.id, {
         roleName: role.roleName,
@@ -336,7 +364,7 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
         'SELECT menu_id FROM sys_role_menu WHERE role_id = $1',
         [role.id],
       )
-      expect(junction.map(r => r.menu_id)).toEqual([menuB.id])
+      expect(junction.map((r) => r.menu_id)).toEqual([menuB.id])
 
       // 未给 menus：junction 原样（对齐 Mongo 逐字段赋值语义）
       const untouched = await roleService.update(role.id, {
@@ -380,12 +408,14 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
          SELECT id FROM sys_role WHERE role_name = 'root'
          LIMIT 1`,
       )
-      await expect(roleService.update(rootRows[0].id, {
-        roleName: 'root',
-        description: 'x',
-        order: null as unknown as number,
-        status: true,
-      })).rejects.toThrow()
+      await expect(
+        roleService.update(rootRows[0].id, {
+          roleName: 'root',
+          description: 'x',
+          order: null as unknown as number,
+          status: true,
+        }),
+      ).rejects.toThrow()
     })
 
     it('findByIds：In(uuid[]) 批查', async () => {
@@ -393,7 +423,7 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
       const b = await roleBasicRepo.create({ roleName: uniqueName('b5-role') })
 
       const found = await roleRepoService.findByIds([a.id, b.id])
-      expect(found.map(i => i.id).sort()).toEqual([a.id, b.id].sort())
+      expect(found.map((i) => i.id).sort()).toEqual([a.id, b.id].sort())
     })
 
     it('menusList：junction JOIN 组装 + match meta.status=true + meta 对象保真', async () => {
@@ -408,10 +438,12 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
         meta: { status: false } as IWalnutAdminMenuMeta,
       })
 
-      const role = await roleService.create(rolePayload({
-        roleName: uniqueName('b5-role'),
-        menus: [visible.id, hidden.id],
-      }))
+      const role = await roleService.create(
+        rolePayload({
+          roleName: uniqueName('b5-role'),
+          menus: [visible.id, hidden.id],
+        }),
+      )
 
       const roles = await roleRepoService.findRolesWithPopulatedMenus([role.id])
 
@@ -433,7 +465,9 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
       const roleName = uniqueName('b5-role-list')
       await roleService.create(rolePayload({ roleName }))
 
-      const res = await roleService.list({ filters: [{ field: 'roleName', op: 'like', value: roleName }] } as never)
+      const res = await roleService.list({
+        filters: [{ field: 'roleName', op: 'like', value: roleName }],
+      } as never)
       expect(res.total).toBe(1)
       expect(res.data[0].usersCount).toBe(0)
     })
@@ -459,10 +493,12 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
         } as IWalnutAdminMenuMeta,
       })
 
-      const role = await roleService.create(rolePayload({
-        roleName: uniqueName('b5-role-core'),
-        menus: [permMenu.id],
-      }))
+      const role = await roleService.create(
+        rolePayload({
+          roleName: uniqueName('b5-role-core'),
+          menus: [permMenu.id],
+        }),
+      )
 
       const user = {
         userId: randomUUID(),
@@ -476,17 +512,20 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
         `INSERT INTO sys_user (id, user_name, role_mode, current_role_id) VALUES ($1, $2, 'combinable', $3)`,
         [user.userId, uniqueName('b5-perm-user'), role.id],
       )
-      await pgDataSource.query(
-        'INSERT INTO sys_user_role (user_id, role_id) VALUES ($1, $2)',
-        [user.userId, role.id],
-      )
+      await pgDataSource.query('INSERT INTO sys_user_role (user_id, role_id) VALUES ($1, $2)', [
+        user.userId,
+        role.id,
+      ])
 
       try {
-        const res = await menuSharedService.getCorePermissions(user, WalnutAdminConstAppPermissionType.ALL)
+        const res = await menuSharedService.getCorePermissions(
+          user,
+          WalnutAdminConstAppPermissionType.ALL,
+        )
 
         expect(res.permissionStrings).toContain('b5:core:read')
         expect(res.keepAliveNames).toContain(permMenu.name)
-        expect(res.affixedTabs.map(i => i.name)).toContain(permMenu.name)
+        expect(res.affixedTabs.map((i) => i.name)).toContain(permMenu.name)
         expect(res.internalIframeList).toEqual([
           { name: permMenu.name, url: 'https://b5.example.com', cache: true },
         ])
@@ -495,8 +534,7 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
         const routeNode = JSON.stringify(res.permissionRouteTree)
         expect(routeNode).toContain(permMenu.name)
         expect(routeNode).toContain('"ternal":"internal"')
-      }
-      finally {
+      } finally {
         await pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [user.userId])
       }
     })

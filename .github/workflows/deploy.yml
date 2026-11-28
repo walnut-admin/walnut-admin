@@ -136,7 +136,7 @@ jobs:
           host: ${{ secrets.PROD_SERVER_HOST }}
           username: ${{ secrets.PROD_SERVER_USERNAME }}
           password: ${{ secrets.PROD_SERVER_PASSWORD }}
-          source: "deploy-files/"
+          source: deploy-files/
           target: /home/ubuntu/walnut-admin/deploy/
 
       # 证据链：部署前后各打印一次容器→镜像映射，避免"4 秒就成功"这种无法自证的部署
@@ -356,7 +356,7 @@ jobs:
           host: ${{ secrets.PROD_SERVER_HOST }}
           username: ${{ secrets.PROD_SERVER_USERNAME }}
           password: ${{ secrets.PROD_SERVER_PASSWORD }}
-          source: "seed-asset/"
+          source: seed-asset/
           target: /home/ubuntu/walnut-admin/deploy/
 
       - name: Seed reference data on server

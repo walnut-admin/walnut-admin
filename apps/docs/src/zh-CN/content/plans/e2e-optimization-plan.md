@@ -784,6 +784,10 @@ URL 未被权限守卫重定向、组件挂载（`#<route.name>-content` 有元�
   只命中 seed 提交，从未有过该文件）。语义不明（该指向 `useTable` 还是 `index` 无法从仓库内
   确定），**不改 seed**，用 `test.fixme` 留下可执行的复现（含通用挂载判据）；修正 seed / 补上
   组件后删掉 `.fixme` 即转绿。
+  **2026-11-28 处置更新（用户拍板）**：按「功能已废弃」处理 —— 从
+  `apps/server/db/seed/sys_menu.json` 删掉该菜单行（父级 `DemoTable` 仍有 `hook` 子项，无级联
+  删除；菜单 173 → 172 行），`test.fixme` 改为**正式反向断言**（应用内导航到 `/demo/table/base`
+  必须落 404，防止菜单行被误加回来）。
 - **负对照**：(a) 把 `demo/table/base` 的 `.fixme` 临时去掉 ⇒ `element(s) not found` 15s 红
   （证明挂载判据能抓「菜单指向不存在的组件」；也暴露了 `out-in` 过渡期间旧 DOM 残留的假阴性，
   修法是先标记旧根、等它离场再判新页）；(b) 把缓存用例的 `APP:SETTING` 断言从 1 改成 0 ⇒
@@ -807,7 +811,8 @@ fixture）。五个文件与断言落点：
   （credentialId = base64url、公钥密文非空、counter 递增、`last_used_at` 落库）。
 - `permission-visibility.spec.ts`（J7）：菜单给、element 不给 → 表格挂载但 list 门禁**不发请求**并
   提示无权限、表头 create 按钮不渲染；协议侧权限串无 `system:user:*`、路由树有 `User`；对照 root
-  全量可见。J7b 用 `test.fixme` 钉住本轮发现的缺陷（见下）。
+  全量可见。J7b 用 `test.fixme` 钉住本轮发现的缺陷（见下）。**2026-11-28 已修**：J7b 转正式
+  用例（`useDeptTree` 权限门禁 + 40105 兜底，见下方「两个既有前端缺陷」的收尾记录）。
 - `role-switch.spec.ts`（J8）：页头下拉切 currentRole → `/auth/permissions` 重算（权限串 A→B）、
   本设备权限缓存被覆盖、菜单/表格随角色变化、`role-create-btn` 隐藏、旧路由落 404；协议侧重签 AT
   后同样翻转。
@@ -837,6 +842,9 @@ fixture）。五个文件与断言落点：
      `/system/dept/tree`，40105 没有 catch ⇒ unhandled rejection ⇒「页面遇到无法恢复的错误」。
      这正是「菜单给、element 不给」形态，J7 主用例因此额外授予 `dept:list` 隔离 user 模块，
      J7b 留 `test.fixme` 可执行复现。
+     **2026-11-28 已修（根因）**：`useDeptTree` 先按 `system:dept:list` 做权限门禁（无权限不发
+     注定 40105 的请求、并清掉旧角色缓存），再对权限串 / 服务端缓存漂移时的 40105 兜底 —— 两种情况
+     都降级成空树；J7b 转正式用例（断言页面可用、无致命遮罩、无 dept/tree 请求）。
   2. **`app_monitor_user.visitor_id` 的唯一约束与「同浏览器多设备」冲突**：真机指纹是浏览器安装级
      稳定值，E2E 多 context 共用同一指纹 ⇒ 第二个 context 的心跳 upsert 走 INSERT 撞 `uq_monitor_visitor`
      （心跳 40000、monitor 行缺失，在线监控/强踢/锁屏广播都找不到那台设备）。实测单独跑 J5 绿、

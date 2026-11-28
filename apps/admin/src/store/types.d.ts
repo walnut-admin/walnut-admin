@@ -1,12 +1,35 @@
-import type { SystemMenu, SystemMenuMeta, SystemUser, SystemUserLockStatus } from '@walnut/api-types'
+import type {
+  SystemMenu,
+  SystemMenuMeta,
+  SystemUser,
+  SystemUserLockStatus,
+} from '@walnut/api-types'
 import type { IFontSizeConst } from '@walnut/contract/preference'
 import type { Nullable, OptionDataItem, Recordable, TreeNodeItem } from 'easy-fns-ts'
-import type { MessageReactive, NotificationPlacement, NotificationReactive, WatermarkProps } from 'naive-ui'
+import type {
+  MessageReactive,
+  NotificationPlacement,
+  NotificationReactive,
+  WatermarkProps,
+} from 'naive-ui'
 import type { CSSProperties, Ref } from 'vue'
 import type { RouteMeta, RouteRecordNameGeneric } from 'vue-router'
 import type { IRequestPayload } from '@/api/request'
 import type { VerifyAuthOptions, VerifyAuthResult } from '@/components/Global/VerifyAuth/types'
-import type { ValueOfAppConstBasicMode, ValueOfAppConstCollapseMode, ValueOfAppConstColorMode, ValueOfAppConstDevice, ValueOfAppConstLayoutMode, ValueOfAppConstLocale, ValueOfAppConstTabAffixMode, ValueOfAppConstTabCloseMode, ValueOfAppConstTabStyleMode, ValueOfAppConstTabUtilsShowMode, ValueOfAppConstTransitionName, ValueOfAppCVD } from '@/const'
+import type {
+  ValueOfAppConstBasicMode,
+  ValueOfAppConstCollapseMode,
+  ValueOfAppConstColorMode,
+  ValueOfAppConstDevice,
+  ValueOfAppConstLayoutMode,
+  ValueOfAppConstLocale,
+  ValueOfAppConstTabAffixMode,
+  ValueOfAppConstTabCloseMode,
+  ValueOfAppConstTabStyleMode,
+  ValueOfAppConstTabUtilsShowMode,
+  ValueOfAppConstTransitionName,
+  ValueOfAppCVD,
+} from '@/const'
 
 export namespace IStoreApp {
   /**
@@ -407,7 +430,7 @@ export namespace IStoreUser {
    * User scroll state
    */
   export interface Scroll {
-    scrollEntries: Ref<[string, { top: number, left?: number }][] | null>
+    scrollEntries: Ref<[string, { top: number; left?: number }][] | null>
   }
 }
 

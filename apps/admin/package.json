@@ -1,31 +1,23 @@
 {
   "name": "@walnut/admin",
-  "type": "module",
   "version": "0.1.24",
   "private": true,
   "description": "An admin template, using `vue3`,`ts`,`vite`,`naive-ui`. Continuously updating...",
+  "homepage": "https://github.com/walnut-admin",
+  "bugs": {
+    "url": "https://github.com/walnut-admin/walnut-admin-client/issues"
+  },
+  "license": "MIT",
   "author": {
     "name": "Zhaocl1997",
     "email": "zhaocl97@foxmail.com",
     "url": "https://github.com/Zhaocl1997"
   },
-  "license": "MIT",
-  "homepage": "https://github.com/walnut-admin",
   "repository": {
     "type": "git",
     "url": "https://github.com/walnut-admin/walnut-admin.git"
   },
-  "bugs": {
-    "url": "https://github.com/walnut-admin/walnut-admin-client/issues"
-  },
-  "urls": {
-    "doc": "https://walnut-admin-doc.netlify.app",
-    "demo": "https://www.walnut-admin.com"
-  },
-  "engines": {
-    "node": ">=24.15.0",
-    "pnpm": ">=12.0.0"
-  },
+  "type": "module",
   "scripts": {
     "predev": "node build/generate/index.ts",
     "dev": "node scripts/wait-backend-ready.ts && vite",
@@ -64,7 +56,6 @@
     "@tinymce/tinymce-vue": "catalog:",
     "@vueuse/core": "catalog:",
     "@vueuse/integrations": "catalog:",
-    "@vueuse/router": "catalog:",
     "@walnut/api-types": "workspace:*",
     "@walnut/client": "workspace:*",
     "@walnut/contract": "workspace:*",
@@ -77,9 +68,7 @@
     "axios": "catalog:",
     "codemirror": "catalog:",
     "colorizr": "catalog:",
-    "compare-versions": "catalog:",
     "cropperjs": "catalog:",
-    "detectincognitojs": "catalog:",
     "driver.js": "catalog:",
     "easy-fns-ts": "catalog:",
     "echarts": "catalog:",
@@ -87,7 +76,6 @@
     "fuse.js": "catalog:",
     "highlight.js": "catalog:",
     "html-to-image": "catalog:",
-    "idb": "catalog:",
     "js-base64": "catalog:",
     "json-editor-vue": "catalog:",
     "libphonenumber-js": "catalog:",
@@ -101,7 +89,6 @@
     "signature_pad": "catalog:",
     "socket.io-client": "catalog:",
     "sortablejs": "catalog:",
-    "superjson": "catalog:",
     "untyper": "catalog:",
     "vue": "catalog:",
     "vue-codemirror": "catalog:",
@@ -115,28 +102,22 @@
     "@types/ali-oss": "catalog:",
     "@types/codemirror": "catalog:",
     "@types/gtag.js": "catalog:",
-    "@types/intro.js": "catalog:",
     "@types/lodash-es": "catalog:",
     "@types/markdown-it": "catalog:",
     "@types/node": "catalog:",
     "@types/qs": "catalog:",
     "@types/sortablejs": "catalog:",
-    "@unocss/preset-icons": "catalog:",
     "@unocss/reset": "catalog:",
-    "@unocss/transformer-variant-group": "catalog:",
     "@walnut/eslint-config": "workspace:*",
     "@walnut/tsconfig": "workspace:*",
     "@walnut/vite-config": "workspace:*",
     "cross-env": "catalog:",
     "eslint": "catalog:",
-    "javascript-obfuscator": "catalog:",
-    "mockjs": "catalog:",
     "rimraf": "catalog:",
     "sass": "catalog:",
-    "sharp-ico": "catalog:",
     "tinyglobby": "catalog:",
     "tinymce": "catalog:",
-    "ts-json-schema-generator": "catalog:",
+    "tsrs": "catalog:",
     "typescript": "catalog:",
     "unocss": "catalog:",
     "unplugin-info": "catalog:",
@@ -145,5 +126,13 @@
     "vite": "catalog:",
     "vue-tsc": "catalog:",
     "web-vitals": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.15.0",
+    "pnpm": ">=12.0.0"
+  },
+  "urls": {
+    "doc": "https://walnut-admin-doc.netlify.app",
+    "demo": "https://www.walnut-admin.com"
   }
 }

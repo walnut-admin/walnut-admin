@@ -42,12 +42,7 @@ export const BUMP_MAP: Record<string, string> = {
 export const BREAKING_BUMP = 'major'
 
 /** 噪声关键词前缀（忽略匹配的 commit） */
-const NOISE_PATTERNS = [
-  /^(?:wip|WIP):/,
-  /^(?:fixup!|squash!)/,
-  /^tmp\b/i,
-  /^draft\b/i,
-]
+const NOISE_PATTERNS = [/^(?:wip|WIP):/, /^(?:fixup!|squash!)/, /^tmp\b/i, /^draft\b/i]
 
 export interface ParsedCommit {
   /** `git log --format=%h` 的短 hash */
@@ -69,21 +64,17 @@ export interface ParsedCommit {
  * `wip:` / `fixup!` / `squash!` / `tmp` / `draft` 这些草稿形态。
  */
 export function isNoise(message: string): boolean {
-  if (message.trim().length < 4)
-    return true
-  if (/^\d+(?:\.\d+)*$/.test(message.trim()))
-    return true
-  return NOISE_PATTERNS.some(pattern => pattern.test(message.trim()))
+  if (message.trim().length < 4) return true
+  if (/^\d+(?:\.\d+)*$/.test(message.trim())) return true
+  return NOISE_PATTERNS.some((pattern) => pattern.test(message.trim()))
 }
 
 /**
  * 解析一条 `%h<US>%s` 形态的提交；无约定式前缀时 `type` 为 null（仍保留，由调用方决定要不要发版）。
  */
 export function parseCommit(hash: string, subject: string): ParsedCommit | null {
-  if (hash === '' || subject === '')
-    return null
-  if (isNoise(subject))
-    return null
+  if (hash === '' || subject === '') return null
+  if (isNoise(subject)) return null
 
   const conventional = /^(\w+)(?:\(([^)]*)\))?(!)?:([\s\S]*)$/.exec(subject)
   if (conventional) {
@@ -102,10 +93,8 @@ export function parseCommit(hash: string, subject: string): ParsedCommit | null 
 
 /** 该提交对应的 bump 档位；`skip` = 不发版、不进 changelog */
 export function getBump(parsed: ParsedCommit): string {
-  if (parsed.breaking)
-    return BREAKING_BUMP
-  if (parsed.type && BUMP_MAP[parsed.type] !== undefined)
-    return BUMP_MAP[parsed.type]
+  if (parsed.breaking) return BREAKING_BUMP
+  if (parsed.type && BUMP_MAP[parsed.type] !== undefined) return BUMP_MAP[parsed.type]
   // 无前缀 → patch（保证变异不丢失）；未在册的 type 同样落这里
   return 'patch'
 }
@@ -136,8 +125,7 @@ export function hashesInIntentBodies(bodies: string[]): Set<string> {
   for (const body of bodies) {
     for (const line of body.split('\n')) {
       const hash = hashFromIntentBody(line)
-      if (hash)
-        hashes.add(hash)
+      if (hash) hashes.add(hash)
     }
   }
   return hashes

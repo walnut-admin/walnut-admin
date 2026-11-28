@@ -19,8 +19,10 @@ function socketAdminUiErrors(value: Record<string, unknown>) {
   return validateSync(
     plainToClass(EnvironmentVariables, value, { enableImplicitConversion: true }),
     { skipMissingProperties: false },
-  ).filter(error =>
-    error.property === 'SOCKET_ADMIN_UI_USER' || error.property === 'SOCKET_ADMIN_UI_PASSWORD')
+  ).filter(
+    (error) =>
+      error.property === 'SOCKET_ADMIN_UI_USER' || error.property === 'SOCKET_ADMIN_UI_PASSWORD',
+  )
 }
 
 describe('env schema：socket admin UI 可选对（F-01）', () => {
@@ -29,10 +31,12 @@ describe('env schema：socket admin UI 可选对（F-01）', () => {
   })
 
   it('user + bcrypt hash → 零错误', () => {
-    expect(socketAdminUiErrors({
-      SOCKET_ADMIN_UI_USER: 'admin',
-      SOCKET_ADMIN_UI_PASSWORD: BCRYPT_HASH,
-    })).toEqual([])
+    expect(
+      socketAdminUiErrors({
+        SOCKET_ADMIN_UI_USER: 'admin',
+        SOCKET_ADMIN_UI_PASSWORD: BCRYPT_HASH,
+      }),
+    ).toEqual([])
   })
 
   it('明文强口令作为 PASSWORD → Matches 报错（bcrypt hash 要求）', () => {
@@ -75,7 +79,7 @@ function trustProxyHopsErrors(value: Record<string, unknown>) {
   return validateSync(
     plainToClass(EnvironmentVariables, value, { enableImplicitConversion: true }),
     { skipMissingProperties: false },
-  ).filter(error => error.property === 'APP_TRUST_PROXY_HOPS')
+  ).filter((error) => error.property === 'APP_TRUST_PROXY_HOPS')
 }
 
 describe('env schema：APP_TRUST_PROXY_HOPS（F-11 trust proxy 跳数）', () => {
@@ -87,7 +91,11 @@ describe('env schema：APP_TRUST_PROXY_HOPS（F-11 trust proxy 跳数）', () =>
 
   it('配置 "3" → 隐式转成数字 3（不是字符串，Express 会把字符串当 IP 网段）', () => {
     expect(trustProxyHopsErrors({ APP_TRUST_PROXY_HOPS: '3' })).toEqual([])
-    const config = plainToClass(EnvironmentVariables, { APP_TRUST_PROXY_HOPS: '3' }, { enableImplicitConversion: true })
+    const config = plainToClass(
+      EnvironmentVariables,
+      { APP_TRUST_PROXY_HOPS: '3' },
+      { enableImplicitConversion: true },
+    )
     expect(config.APP_TRUST_PROXY_HOPS).toBe(3)
     expect(typeof config.APP_TRUST_PROXY_HOPS).toBe('number')
   })
@@ -131,7 +139,7 @@ function secretErrors(value: Record<string, unknown>, field: string) {
   return validateSync(
     plainToClass(EnvironmentVariables, value, { enableImplicitConversion: true }),
     { skipMissingProperties: false },
-  ).filter(error => error.property === field)
+  ).filter((error) => error.property === field)
 }
 
 describe('env schema：密钥类 env 最小长度（F-42）', () => {
@@ -161,7 +169,7 @@ describe('env schema：密钥类 env 最小长度（F-42）', () => {
     )
 
     for (const field of SECRET_FIELDS) {
-      const target = errors.filter(error => error.property === field)
+      const target = errors.filter((error) => error.property === field)
       expect(target, field).toHaveLength(1)
 
       // class-validator 对 undefined 也会跑 MinLength（同一属性的失败约束合并进一个错误），

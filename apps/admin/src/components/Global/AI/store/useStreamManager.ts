@@ -29,13 +29,18 @@ function getStreamState(id: string): StreamState {
 }
 
 export const useStreamManager = createGlobalState(() => {
-  const { conversations, currentId, scheduleSave, saveConversations, appendLastMessage } = useConversationStore()
+  const { conversations, currentId, scheduleSave, saveConversations, appendLastMessage } =
+    useConversationStore()
 
   // -- computed (for current active conversation) --
 
   const isLoading = computed(() => getStreamState(currentId.value).isLoading.value)
-  const currentStreamingContent = computed(() => getStreamState(currentId.value).streamingContent.value)
-  const currentThinkingContent = computed(() => getStreamState(currentId.value).thinkingContent.value)
+  const currentStreamingContent = computed(
+    () => getStreamState(currentId.value).streamingContent.value,
+  )
+  const currentThinkingContent = computed(
+    () => getStreamState(currentId.value).thinkingContent.value,
+  )
 
   // -- Clean up inactive stream states on conversation switch --
 
@@ -56,7 +61,7 @@ export const useStreamManager = createGlobalState(() => {
   // -- helpers --
 
   function getLastAssistantMessage(conversationId: string): IAIMessage | undefined {
-    const conv = conversations.value.find(c => c.id === conversationId)
+    const conv = conversations.value.find((c) => c.id === conversationId)
     const lastMsg = conv?.messages[conv.messages.length - 1]
     return lastMsg?.role === 'assistant' ? lastMsg : undefined
   }
@@ -107,8 +112,7 @@ export const useStreamManager = createGlobalState(() => {
               if (bc) {
                 lastMsg.businessContent = bc
                 lastMsg.content = getBusinessSummary(bc)
-              }
-              else {
+              } else {
                 lastMsg.content = parsed.content as string
               }
             }
@@ -119,14 +123,12 @@ export const useStreamManager = createGlobalState(() => {
             scheduleSave()
             return
           }
-        }
-        catch {
+        } catch {
           // JSON parse failed — keep accumulating
         }
       }
 
-      if (isBufferWaitingForJSON(buf))
-        return
+      if (isBufferWaitingForJSON(buf)) return
     }
 
     // Only send the delta since last patch, not the full buffer (O(n) instead of O(n²))
@@ -140,8 +142,7 @@ export const useStreamManager = createGlobalState(() => {
   /** Mark conversation as finished streaming, persist thinking content, and clean up stream state */
   function finishStreaming(conversationId: string, reason: 'done' | 'abort' | 'error' = 'done') {
     const state = streamStates.get(conversationId)
-    if (!state)
-      return
+    if (!state) return
 
     const lastMsg = getLastAssistantMessage(conversationId)
 
@@ -163,8 +164,9 @@ export const useStreamManager = createGlobalState(() => {
               lastMsg.businessContent = bc
               lastMsg.content = getBusinessSummary(bc)
             }
+          } catch {
+            /* JSON 解析失败，忽略 */
           }
-          catch { /* JSON 解析失败，忽略 */ }
         }
       }
     }
@@ -174,7 +176,7 @@ export const useStreamManager = createGlobalState(() => {
     state.thinkingContent.value = ''
     state.abortController = null
 
-    const conv = conversations.value.find(c => c.id === conversationId)
+    const conv = conversations.value.find((c) => c.id === conversationId)
     if (conv) {
       conv.updatedAt = Date.now()
       saveConversations(conversations.value, (pruned) => {
@@ -186,8 +188,7 @@ export const useStreamManager = createGlobalState(() => {
   /** Abort an active stream via AbortController. State cleanup is handled by finishStreaming('abort') in the onError callback */
   function abortStreaming(conversationId: string) {
     const state = streamStates.get(conversationId)
-    if (!state)
-      return
+    if (!state) return
     state.isLoading.value = false
     state.abortController?.abort()
   }

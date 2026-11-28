@@ -62,7 +62,13 @@ import {
   SERVER_STAGE_ENV_FILE,
 } from './env.ts'
 import { E2ePreconditionError, reportFailure } from './failure.ts'
-import { acquirePgLock, connectMaintenance, E2E_PG_LOCK_KEY, E2E_PROFILE_LOCK_KEY, releasePgLock } from './pg-lock.ts'
+import {
+  acquirePgLock,
+  connectMaintenance,
+  E2E_PG_LOCK_KEY,
+  E2E_PROFILE_LOCK_KEY,
+  releasePgLock,
+} from './pg-lock.ts'
 import { runPnpm } from './pnpm.ts'
 import { clearAppSettingCache, resetRuntimeRolePassword } from './runtime-reset.ts'
 import { STACK_PROFILE } from './stack-profiles.ts'
@@ -149,11 +155,16 @@ function writeSeedEnv(): void {
 
   mkdirSync(ARTIFACT_DIR, { recursive: true })
   writeFileSync(E2E_ENV_FILE, `${kept.join('\n')}\n`, { encoding: 'utf8', mode: 0o600 })
-  log(`已写 ${E2E_ENV_FILE}（.env.stage 副本 + 独立库覆盖；含 AUTH_OPAQUE_SECRET，gitignored，0600）`)
+  log(
+    `已写 ${E2E_ENV_FILE}（.env.stage 副本 + 独立库覆盖；含 AUTH_OPAQUE_SECRET，gitignored，0600）`,
+  )
 
   // 自检：覆盖真的写进去了（免得 seed 静默连到 dev）
   const parsed = parseEnvFile(readFileSync(E2E_ENV_FILE, 'utf8'))
-  if (parsed.DATABASE_PG_NAME !== E2E_PG_DB || Number.parseInt(parsed.DATABASE_PG_PORT) !== E2E_PG_PORT) {
+  if (
+    parsed.DATABASE_PG_NAME !== E2E_PG_DB ||
+    Number.parseInt(parsed.DATABASE_PG_PORT) !== E2E_PG_PORT
+  ) {
     throw new Error('生成的 seed env 指向了非 E2E 库 —— 覆盖失败，拒绝继续')
   }
   assertE2eDatabase(parsed.DATABASE_PG_NAME)
@@ -168,21 +179,33 @@ function writeSeedEnv(): void {
  *   实时算 roleNames，残留会在 root 前面出现；
  * - `sys_role_menu` 补齐：菜单树 / 侧边栏按 junction 算（root 只短路**权限字符串**）。
  */
-async function promoteAdminToRoot(client: Client, userName: string): Promise<{ userId: string, roleId: string }> {
-  const userRows = await client.query<{ id: string }>('SELECT id FROM sys_user WHERE user_name = $1', [userName])
+async function promoteAdminToRoot(
+  client: Client,
+  userName: string,
+): Promise<{ userId: string; roleId: string }> {
+  const userRows = await client.query<{ id: string }>(
+    'SELECT id FROM sys_user WHERE user_name = $1',
+    [userName],
+  )
   const userId = userRows.rows[0]?.id
   if (userId === undefined) {
     throw new Error(`seed 之后库里没有账号 ${userName}（seed 的 sys_user.json 应含 admin）`)
   }
 
-  const roleRows = await client.query<{ id: string }>('SELECT id FROM sys_role WHERE role_name = $1', ['root'])
+  const roleRows = await client.query<{ id: string }>(
+    'SELECT id FROM sys_role WHERE role_name = $1',
+    ['root'],
+  )
   const roleId = roleRows.rows[0]?.id
   if (roleId === undefined) {
     throw new Error('seed 之后库里没有 root 角色（sys_role.json 应有 role_name=root）')
   }
 
   await client.query('DELETE FROM sys_user_role WHERE user_id = $1', [userId])
-  await client.query('INSERT INTO sys_user_role (user_id, role_id) VALUES ($1, $2)', [userId, roleId])
+  await client.query('INSERT INTO sys_user_role (user_id, role_id) VALUES ($1, $2)', [
+    userId,
+    roleId,
+  ])
   await client.query(
     `UPDATE sys_user
         SET role_mode = 'combinable', current_role_id = $2, mfa_setup = false, status = true
@@ -194,7 +217,9 @@ async function promoteAdminToRoot(client: Client, userName: string): Promise<{ u
     [roleId],
   )
 
-  log(`admin → root 完成：user=${userId} role=${roleId}，补齐 sys_role_menu ${menuResult.rowCount ?? 0} 行`)
+  log(
+    `admin → root 完成：user=${userId} role=${roleId}，补齐 sys_role_menu ${menuResult.rowCount ?? 0} 行`,
+  )
   return { userId, roleId }
 }
 
@@ -231,7 +256,10 @@ async function relaxCapForTests(client: Client): Promise<void> {
   const config = JSON.parse(raw) as Record<string, unknown>
   config.throttleLimit = 10000
   config.difficulty = 2
-  await client.query('UPDATE app_setting SET setting_value = $1 WHERE setting_key = $2', [JSON.stringify(config), key])
+  await client.query('UPDATE app_setting SET setting_value = $1 WHERE setting_key = $2', [
+    JSON.stringify(config),
+    key,
+  ])
   log(`已放宽 ${key}：throttleLimit → 10000、difficulty → 2（仅本栈库；E2E 仍完整走 CAP 协议）`)
 }
 
@@ -275,9 +303,13 @@ export async function prepareDatabase(options: { lockHeld?: boolean } = {}): Pro
     // 迁移：typeorm CLI 只读 env-local/.env.e2e（见 writeServerMigrationEnv）
     log('跑迁移（NODE_ENV=e2e → apps/server/env-local/.env.e2e）')
     try {
-      runPnpm(['run', 'migration:run'], SERVER_ROOT, { ...process.env, NODE_ENV: 'e2e' }, 'migration:run')
-    }
-    finally {
+      runPnpm(
+        ['run', 'migration:run'],
+        SERVER_ROOT,
+        { ...process.env, NODE_ENV: 'e2e' },
+        'migration:run',
+      )
+    } finally {
       // 迁移通道文件含 DB 口令：一跑完（无论成败）就删，与 .e2e/e2e.env 同处置
       rmSync(SERVER_E2E_ENV_FILE, { force: true })
     }
@@ -287,13 +319,21 @@ export async function prepareDatabase(options: { lockHeld?: boolean } = {}): Pro
     log('播 seed + 建 admin 口令身份（db:seed:pg --admin admin）')
     try {
       runPnpm(
-        ['exec', 'walnut-db-seed-pg', '--env-file', E2E_ENV_FILE, '--admin', 'admin', '--password', password],
+        [
+          'exec',
+          'walnut-db-seed-pg',
+          '--env-file',
+          E2E_ENV_FILE,
+          '--admin',
+          'admin',
+          '--password',
+          password,
+        ],
         REPO_ROOT,
         { ...process.env },
         'db:seed:pg --admin',
       )
-    }
-    finally {
+    } finally {
       rmSync(E2E_ENV_FILE, { force: true })
     }
 
@@ -310,8 +350,7 @@ export async function prepareDatabase(options: { lockHeld?: boolean } = {}): Pro
       await relaxCapForTests(db)
       // 运行时角色口令不在快照里（角色是集群级的），每轮由这里/restore 重置
       await resetRuntimeRolePassword(db)
-    }
-    finally {
+    } finally {
       await db.end()
     }
 
@@ -322,9 +361,10 @@ export async function prepareDatabase(options: { lockHeld?: boolean } = {}): Pro
     )
     log(`已写 ${CREDENTIALS_FILE}（口令随机生成、0600；TOTP secret 由 stack.setup 绑定后补上）`)
     await clearAppSettingCache()
-    log(`完成：库已重建、seed 已播、admin 已提升为 root、CAP 已放宽（节流 + 难度；全量 prepare 耗时 ${((Date.now() - started) / 1000).toFixed(1)}s）`)
-  }
-  finally {
+    log(
+      `完成：库已重建、seed 已播、admin 已提升为 root、CAP 已放宽（节流 + 难度；全量 prepare 耗时 ${((Date.now() - started) / 1000).toFixed(1)}s）`,
+    )
+  } finally {
     // seed env 含 AUTH_OPAQUE_SECRET、迁移 env 含 DB 口令：正常路径下各自一结束就删了，
     // 这里是异常路径（提前抛错）的兜底 —— 不让这两份副本在盘上多留一轮。
     rmSync(E2E_ENV_FILE, { force: true })
@@ -340,8 +380,8 @@ export async function prepareDatabase(options: { lockHeld?: boolean } = {}): Pro
 }
 
 /** 独立入口才跑（`scripts/run.ts` 会 import 本文件的 prepareDatabase，不能连带着执行一次） */
-const invokedDirectly = process.argv[1] !== undefined
-  && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+const invokedDirectly =
+  process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 
 if (invokedDirectly) {
   prepareDatabase().catch((error) => {

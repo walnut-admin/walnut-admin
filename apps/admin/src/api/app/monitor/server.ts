@@ -30,11 +30,9 @@ export function getOSInfoAPI() {
 }
 
 export function getSysInfoAPI() {
-  return AppAxios.get<AppMonitorServerSystem>(
-    {
-      url: AppRoutes.MONITOR_SERVER_SYS,
-    },
-  )
+  return AppAxios.get<AppMonitorServerSystem>({
+    url: AppRoutes.MONITOR_SERVER_SYS,
+  })
 }
 
 export function getDiskInfoAPI() {
@@ -56,9 +54,7 @@ export function getTimeInfoAPI() {
 }
 
 export function getNetworkInfoAPI() {
-  return AppAxios.get<AppMonitorServerNetwork>(
-    {
-      url: AppRoutes.MONITOR_SERVER_NETWORK,
-    },
-  )
+  return AppAxios.get<AppMonitorServerNetwork>({
+    url: AppRoutes.MONITOR_SERVER_NETWORK,
+  })
 }

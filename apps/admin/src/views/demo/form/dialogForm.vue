@@ -38,7 +38,7 @@ const [register1] = useForm<typeof configData.value>({
       },
       componentProp: {
         button: true,
-        options: ['drawer', 'modal'].map(i => ({
+        options: ['drawer', 'modal'].map((i) => ({
           label: i,
           value: i,
         })),
@@ -190,9 +190,7 @@ function onOpenAdvacned() {
 
     <WJSON :value="formData" />
 
-    <n-button @click="onOpenAdvacned">
-      Open Dialog Form
-    </n-button>
+    <n-button @click="onOpenAdvacned"> Open Dialog Form </n-button>
 
     <WForm :model="formData" @hook="register2" />
   </WDemoCard>

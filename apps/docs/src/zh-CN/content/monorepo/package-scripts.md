@@ -69,6 +69,7 @@ pnpm walnut             # 人在终端里：上下键移动、空格勾选、回
     "lint:root": "eslint *.ts *.json *.yaml --concurrency=4", // 根 turbo 的 //#lint:root 任务需要它
     "types:check": "turbo types:check",
     "test": "turbo test",
+    "check": "walnut-check",           // 完整本地检查：三步表在 tooling/scripts/src/ci/check.ts
     "prepush": "walnut-prepush",        // 门禁表在 tooling/scripts/src/ci/prepush.ts
     "setup-env": "walnut-setup-env decrypt",
     "release": "walnut-release"
@@ -96,22 +97,24 @@ pnpm walnut             # 人在终端里：上下键移动、空格勾选、回
 
 | 包类型 | build | types:check | dev |
 |--------|-------|-----------|-----|
-| Vue 应用 (`@walnut/admin`) | `vite build` | `vue-tsc --noEmit` | `vite` |
-| 文档站 (`@walnut/docs`) | `vitepress build` | `echo skipped` | `vitepress` |
-| NestJS (`@walnut/server`) | `nest build`（SWC，按 `infra/nest/*.json`） | `tsc --noEmit` | `nest start api --watch` |
-| 平台无关包 (`@walnut/utils`、`@walnut/contract`) | `vite build`（产出 CJS dist；contract 之后还跑 `node scripts/build-barrel.ts`） | `tsc --noEmit` | 无 `dev` 脚本 |
-| 源码直消费 (`@walnut/client`、`@walnut/http`、`@walnut/types`) | 不构建（`echo` 占位） | `tsc --noEmit` | 无 `dev` 脚本 |
-| 其余工具链包 (`tooling/` 下，`@walnut/tsconfig` 除外) | 无 | `tsc --noEmit` | 无 `dev` 脚本 |
+| Vue 应用 (`@walnut/admin`) | `vite build` | `vue-tsc --noEmit`（TNB 引擎） | `vite` |
+| 文档站 (`@walnut/docs`) | `vitepress build` | `vue-tsc --noEmit`（TNB 引擎） | `vitepress` |
+| NestJS (`@walnut/server`) | `nest build`（SWC，按 `infra/nest/*.json`） | `tsrs --noEmit --pretty` | `nest start api --watch` |
+| 平台无关包 (`@walnut/utils`、`@walnut/contract`) | `tsdown`（产出 CJS dist；contract 之后还跑 `node scripts/build-barrel.ts`） | `tsrs --noEmit --pretty` | 无 `dev` 脚本 |
+| 源码直消费 (`@walnut/client`、`@walnut/http`) | 不构建（`echo` 占位） | `tsrs --noEmit --pretty` | 无 `dev` 脚本 |
+| 纯类型包 (`@walnut/types`) | 不构建（`echo` 占位） | `tsc --noEmit` | 无 `dev` 脚本 |
+| 其余工具链包 (`tooling/` 下，`@walnut/tsconfig` 与 `@walnut/commitlint-config` 除外) | 无 | `tsrs --noEmit --pretty` | 无 `dev` 脚本 |
+| `@walnut/commitlint-config` | 无 | `tsc --noEmit` | 无 `dev` 脚本 |
 | `@walnut/tsconfig` | 无（纯 JSON 预设） | `echo`（无源码可查） | 无 `dev` 脚本 |
 
-前端构建的特殊性：admin 的 `build` 就是纯 `vite build`（不再含 `vue-tsc`，Vite 构建本身不做类型检查），类型检查由独立的 `types:check` 任务（`vue-tsc --noEmit`）承担。docs 的 `types:check` 是 `echo skipped`（文档站没有需要类型检查的 TS 逻辑）。**没有 `build` 产物的包不是"漏了脚本"**：它们的 `build` 是一句 `echo` 占位，只为让 turbo 的 `build` 任务拓扑（`dependsOn: ["^build"]`）在整图上成立。
+前端构建的特殊性：admin 的 `build` 就是纯 `vite build`（不再含 `vue-tsc`，Vite 构建本身不做类型检查），类型检查由独立的 `types:check` 任务（`vue-tsc --noEmit`，经 TNB 的 classic 外壳走 tsgo 7.x 引擎）承担。docs 的 `types:check` 也是 `vue-tsc --noEmit`（2026-11-28 从 `echo skipped` 接上）：文档站**有**要查的 TS 逻辑 —— `.vitepress/config/**`、`.vitepress/theme/index.ts`、3 个 `.vue` 组件、以及 `eslint.config.ts`；不能用 `tsrs`/`tsc` 只是因为它们不认 `.vue` 导入（对主题里那三个组件会报 `TS2307`，见 [TypeScript 配置](/content/monorepo/typescript)）。12 个包的 `types:check` 已整批切到 `tsrs --noEmit --pretty`（2026-11-28 转正，[ADR-0031](/content/adr/0031-rust-toolchain-migration.md)）；本地 `typecheck:watch` 仍用 `tsc`——tsrs 在 Windows 上 watch 是 NotImplemented（退出码 5）。**没有 `build` 产物的包不是"漏了脚本"**：它们的 `build` 是一句 `echo` 占位，只为让 turbo 的 `build` 任务拓扑（`dependsOn: ["^build"]`）在整图上成立。
 
 ### 4. Git Hooks
 
 钩子内容的唯一真源是根 `lefthook.yml`（lefthook，不再是 `simple-git-hooks`，见 [ADR 0018](/content/adr/0018-git-hooks-lefthook)）：
 
 ```
-pre-commit → pnpm exec lint-staged（ESLint fix on staged files，秒级）
+pre-commit → pnpm exec lint-staged（oxlint --fix → eslint --fix → oxfmt --write on staged files，秒级）
 commit-msg → pnpm exec commitlint --edit {1}（提交信息规范检查）
 pre-push   → pnpm --silent prepush（单条聚合门禁：跑一张门禁表，并行、每段报耗时）
 ```
@@ -121,7 +124,7 @@ pre-push   → pnpm --silent prepush（单条聚合门禁：跑一张门禁表�
 不用再在长串里找位置。整表耗时看那段输出自己报（`✅ N 段全部通过（总 Xs）`），**别在本页抄数量**
 —— 它随门禁增删而变，抄了必腐烂。
 
-`pre-commit` 只跑 ESLint fix，不做类型检查（太慢，阻塞 commit 体验）；`commit-msg` 由 commitlint 校验提交信息格式；其余的静态检查全部放在 `pre-push`。pre-push 刻意只调**单条命令**，且钩子文件里没有可截断的命令链 —— 清单在跟踪面里的一张表上，改动在 diff 里看得见，完整性由 `prepush.test.ts` 机械拦（它断言表里每一段的首词都能落到真实存在的可执行名字上：保留的根脚本或命令表 id）。
+`pre-commit` 只跑 lint-staged 的三步（`oxlint --fix` → `eslint --fix` → `oxfmt --write`；格式化器收尾，理由见 [ESLint 配置](./eslint.md)），不做类型检查（太慢，阻塞 commit 体验）；`commit-msg` 由 commitlint 校验提交信息格式；其余的静态检查全部放在 `pre-push`。需要「本地完整检查」而不带推送前全量门禁时用 `pnpm check`（ESLint 轨 + 类型 + 测试 + oxlint 轨 + 格式）。pre-push 刻意只调**单条命令**，且钩子文件里没有可截断的命令链 —— 清单在跟踪面里的一张表上，改动在 diff 里看得见，完整性由 `prepush.test.ts` 机械拦（它断言表里每一段的首词都能落到真实存在的可执行名字上：保留的根脚本或命令表 id）。
 
 > 注意 `lint:root` 是**命令表**里的一项（`pnpm walnut lint:root`），同时根 `turbo.json` 已存在 `//#lint:root` 任务（`//#` 前缀表示根任务）。因此 `pnpm walnut lint:root` 与 `turbo run lint:root` 都能调用，后者还会命中 turbo 缓存；`lint:root` 不会跟着任何包的 `lint` 跑。
 

@@ -48,7 +48,8 @@ const [register1] = useForm<typeof configFormData.value>({
       formProp: {
         label: 'Global Transition',
         path: 'transitionNameGlobal',
-        labelHelpMessage: 'Rules is simple, scoped filed in form item has higher priority than global field in form prop',
+        labelHelpMessage:
+          'Rules is simple, scoped filed in form item has higher priority than global field in form prop',
       },
       componentProp: {},
     },
@@ -57,7 +58,8 @@ const [register1] = useForm<typeof configFormData.value>({
       formProp: {
         label: 'Global Visible Mode',
         path: 'visibleModeGlobal',
-        labelHelpMessage: 'Rules is simple, scoped filed in form item has higher priority than global field in form prop',
+        labelHelpMessage:
+          'Rules is simple, scoped filed in form item has higher priority than global field in form prop',
       },
       componentProp: {},
     },
@@ -215,7 +217,7 @@ const [register1] = useForm<typeof configFormData.value>({
 })
 
 const [register2] = useForm<typeof formData.value>({
-  transitionName: computed(() => configFormData.value.transitionNameGlobal ? 'slide-down' : ''),
+  transitionName: computed(() => (configFormData.value.transitionNameGlobal ? 'slide-down' : '')),
   visibleMode: computed(() => configFormData.value.visibleMode),
   showFeedback: computed(() => configFormData.value.showFeedback),
   span: computed(() => configFormData.value.span),
@@ -228,7 +230,9 @@ const [register2] = useForm<typeof formData.value>({
       formProp: {
         label: computed(() => configFormData.value.inputOneLabel),
         path: 'input1',
-        labelHelpMessage: ['Input 1 has scoped visible mode, will always move forward no matter global visible mode'],
+        labelHelpMessage: [
+          'Input 1 has scoped visible mode, will always move forward no matter global visible mode',
+        ],
       },
       componentProp: {
         clearable: true,
@@ -266,9 +270,7 @@ const [register2] = useForm<typeof formData.value>({
         label: 'Input 3',
         path: 'input3',
         labelHelpMessage: computed(() =>
-          configFormData.value.labelHelpMessage
-            ? 'Input 4 will show once Input 3 has value.'
-            : '',
+          configFormData.value.labelHelpMessage ? 'Input 4 will show once Input 3 has value.' : '',
         ),
       },
       componentProp: {

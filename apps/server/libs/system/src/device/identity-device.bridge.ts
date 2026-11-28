@@ -20,7 +20,10 @@ export class IdentityDeviceBridge implements IIdentityDeviceService {
     private readonly shared: SysDeviceSharedService,
   ) {}
 
-  async findDeviceByDeviceId(deviceId: string, em?: EntityManager): Promise<IIdentityDeviceRow | null> {
+  async findDeviceByDeviceId(
+    deviceId: string,
+    em?: EntityManager,
+  ): Promise<IIdentityDeviceRow | null> {
     return this.repo.findDeviceByDeviceId(deviceId, em)
   }
 
@@ -38,7 +41,11 @@ export class IdentityDeviceBridge implements IIdentityDeviceService {
     return this.repo.markDeviceStale(deviceId)
   }
 
-  async updateDeviceActive(deviceId: string, active: boolean, em?: EntityManager): Promise<boolean> {
+  async updateDeviceActive(
+    deviceId: string,
+    active: boolean,
+    em?: EntityManager,
+  ): Promise<boolean> {
     // shared 层返回 false（失败）或更新后的实体（成功）；端口口径是 boolean，false/真值收敛
     const updated = await this.shared.updateDeviceActive(deviceId, active, em)
     return updated !== false

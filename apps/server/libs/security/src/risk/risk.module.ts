@@ -45,6 +45,10 @@ const services = [
       useExisting: SecurityRiskService,
     },
   ],
-  exports: [...services, WALNUT_ADMIN_SYSTEM_FAILED_LOGIN_RISK_COLLECTOR, WALNUT_ADMIN_AUTH_RISK_SERVICE],
+  exports: [
+    ...services,
+    WALNUT_ADMIN_SYSTEM_FAILED_LOGIN_RISK_COLLECTOR,
+    WALNUT_ADMIN_AUTH_RISK_SERVICE,
+  ],
 })
 export class SecurityRiskModule {}

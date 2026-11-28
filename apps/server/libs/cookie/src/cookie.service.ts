@@ -9,8 +9,24 @@ import { Recordable } from 'easy-fns-ts'
 
 const pkg = getPackageJsonData()
 
-export function defaultCookieOptions(signed = true): CookieOptions {
-  if (isDev) {
+/**
+ * cookie 默认值依赖的**运行环境判定**。
+ *
+ * 为什么是显式参数而不是直接读模块常量：`isDev` / `isProd` 在模块求值期定死，
+ * vitest 的 `isolate: false` 下同一 worker 共享模块图，换模块 / 改 process.env 都
+ * 不会让已求值的常量变化。把环境作为可选参数注入，单测可以逐环境断言，生产调用方
+ * 不传即用真实判定（行为零变化）。
+ */
+export interface IWalnutAdminCookieEnv {
+  isDev: boolean
+  isProd: boolean
+}
+
+export function defaultCookieOptions(
+  signed = true,
+  env: IWalnutAdminCookieEnv = { isDev, isProd },
+): CookieOptions {
+  if (env.isDev) {
     // dev
     return {
       httpOnly: true,
@@ -22,7 +38,7 @@ export function defaultCookieOptions(signed = true): CookieOptions {
   }
 
   // prod
-  if (isProd) {
+  if (env.isProd) {
     return {
       httpOnly: true,
       secure: true,
@@ -33,8 +49,7 @@ export function defaultCookieOptions(signed = true): CookieOptions {
       // otherwise cookie would not exist as expected when oauth callback
       domain: `.${(pkg.config as Recordable).domain as string}`,
     }
-  }
-  else {
+  } else {
     // stage
     //
     // F-43（2026-11，安全纵深）：secure 从 false 收紧为 true。
@@ -81,7 +96,7 @@ export class AppTechCookieService {
 
       req.res?.cookie(cookie.key, cookie.value, {
         ...defaultCookieOptions(),
-        ...cookie.options || {},
+        ...(cookie.options || {}),
       })
     })
   }
@@ -89,7 +104,10 @@ export class AppTechCookieService {
   /**
    * @description Clear specified cookies by setting their expiration to the past.
    */
-  clearCookie(req: IWalnutAdminExpressRequest, cookies: Partial<IWalnutAdminCookieOptions>[]): void {
+  clearCookie(
+    req: IWalnutAdminExpressRequest,
+    cookies: Partial<IWalnutAdminCookieOptions>[],
+  ): void {
     cookies.forEach((item) => {
       req.res?.cookie(item.key!, '', {
         ...defaultCookieOptions(),

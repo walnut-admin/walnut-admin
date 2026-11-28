@@ -15,9 +15,7 @@ import { SysDeptEntity } from './entity/dept.entity'
  * （并对外 re-export，employee 等模块的既有消费面不变）。
  */
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([SysDeptEntity], WalnutPGConnectionName),
-  ],
+  imports: [TypeOrmModule.forFeature([SysDeptEntity], WalnutPGConnectionName)],
   providers: [SysDeptBasicRepository],
   exports: [SysDeptBasicRepository],
 })

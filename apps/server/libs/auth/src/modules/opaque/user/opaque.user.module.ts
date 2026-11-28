@@ -6,11 +6,7 @@ import { AuthOpaqueUserService } from './opaque.user.service'
 import { AuthOpaqueUserStrategy } from './opaque.user.strategy'
 
 @Module({
-  imports: [
-    AuthSharedModule,
-    AuthOpaqueCoreModule,
-    AuthSignoutModule,
-  ],
+  imports: [AuthSharedModule, AuthOpaqueCoreModule, AuthSignoutModule],
   providers: [AuthOpaqueUserService, AuthOpaqueUserStrategy],
   exports: [AuthOpaqueUserService],
 })

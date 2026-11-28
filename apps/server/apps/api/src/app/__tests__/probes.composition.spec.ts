@@ -127,9 +127,16 @@ describe('mountProbeRoutes', () => {
   })
 
   it('ready：PG 挂 → 503 + checks.pg=down / checks.redis=up（形状钉死）', async () => {
-    const { invoke } = createHarness(deps({
-      pg: () => ({ query: vi.fn(async () => { throw new Error('pg down') }) }) as unknown as DataSource,
-    }))
+    const { invoke } = createHarness(
+      deps({
+        pg: () =>
+          ({
+            query: vi.fn(async () => {
+              throw new Error('pg down')
+            }),
+          }) as unknown as DataSource,
+      }),
+    )
 
     const res = await invoke(PROBE_READY_PATH)
 
@@ -142,11 +149,18 @@ describe('mountProbeRoutes', () => {
   })
 
   it('ready：Redis 挂（PING 抛错）→ 503 + checks.redis=down', async () => {
-    const { invoke } = createHarness(deps({
-      redis: () => ({
-        getClient: () => ({ ping: vi.fn(async () => { throw new Error('redis down') }) }),
-      }) as unknown as AppTechRedisService,
-    }))
+    const { invoke } = createHarness(
+      deps({
+        redis: () =>
+          ({
+            getClient: () => ({
+              ping: vi.fn(async () => {
+                throw new Error('redis down')
+              }),
+            }),
+          }) as unknown as AppTechRedisService,
+      }),
+    )
 
     const res = await invoke(PROBE_READY_PATH)
 
@@ -159,9 +173,11 @@ describe('mountProbeRoutes', () => {
 
   it('ready：PG 1.5s 内不返回 → 超时按 down 计（不无限挂住）', async () => {
     vi.useFakeTimers()
-    const { invoke } = createHarness(deps({
-      pg: () => ({ query: async () => new Promise(() => {}) }) as unknown as DataSource,
-    }))
+    const { invoke } = createHarness(
+      deps({
+        pg: () => ({ query: async () => new Promise(() => {}) }) as unknown as DataSource,
+      }),
+    )
 
     const pending = invoke(PROBE_READY_PATH)
     await vi.advanceTimersByTimeAsync(PROBE_TIMEOUT_MS)

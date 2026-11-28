@@ -50,7 +50,7 @@ export interface BaselineManifest {
    */
   dataDirty: boolean
   /** 库内 `migrations` 表的最大 id 与迁移名（快照的迁移头） */
-  migrationsHead: { id: number, name: string }
+  migrationsHead: { id: number; name: string }
   /** dump 的 sha256（hex）与字节数 —— 防手工替换 / 半写文件 */
   dumpSha256: string
   dumpBytes: number
@@ -83,23 +83,32 @@ export function isBaselineManifest(value: unknown): value is BaselineManifest {
     return false
   }
   const head = value.migrationsHead
-  return value.manifestVersion === MANIFEST_VERSION
-    && typeof value.sealedAt === 'string' && value.sealedAt !== ''
-    && typeof value.gitCommit === 'string' && /^[0-9a-f]{40}$/.test(value.gitCommit)
+  return (
+    value.manifestVersion === MANIFEST_VERSION &&
+    typeof value.sealedAt === 'string' &&
+    value.sealedAt !== '' &&
+    typeof value.gitCommit === 'string' &&
+    /^[0-9a-f]{40}$/.test(value.gitCommit) &&
     // profile 名只做形态校验；「是否等于当前 profile」由 baseline.ts 断言（本模块保持无环境依赖）
-    && typeof value.profile === 'string' && /^[a-z]+$/.test(value.profile)
+    typeof value.profile === 'string' &&
+    /^[a-z]+$/.test(value.profile) &&
     // 库名形态与 env.ts 的 E2E_DATABASE_PATTERN 同一口径（纯模块不 import env，避免拖进进程级副作用）
-    && typeof value.database === 'string' && /^walnut_e2e(?:_[a-z]+)?$/.test(value.database)
-    && isSha256Hex(value.dataKey)
-    && typeof value.dataDirty === 'boolean'
-    && isRecord(head)
-    && isPositiveInt(head.id)
-    && typeof head.name === 'string' && head.name !== ''
-    && isSha256Hex(value.dumpSha256)
-    && isPositiveInt(value.dumpBytes)
-    && isSha256Hex(value.credentialsSha256)
-    && isPositiveInt(value.credentialsBytes)
-    && typeof value.menuRows === 'number' && Number.isInteger(value.menuRows) && value.menuRows >= 0
+    typeof value.database === 'string' &&
+    /^walnut_e2e(?:_[a-z]+)?$/.test(value.database) &&
+    isSha256Hex(value.dataKey) &&
+    typeof value.dataDirty === 'boolean' &&
+    isRecord(head) &&
+    isPositiveInt(head.id) &&
+    typeof head.name === 'string' &&
+    head.name !== '' &&
+    isSha256Hex(value.dumpSha256) &&
+    isPositiveInt(value.dumpBytes) &&
+    isSha256Hex(value.credentialsSha256) &&
+    isPositiveInt(value.credentialsBytes) &&
+    typeof value.menuRows === 'number' &&
+    Number.isInteger(value.menuRows) &&
+    value.menuRows >= 0
+  )
 }
 
 /**

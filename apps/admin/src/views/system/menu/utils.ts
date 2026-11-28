@@ -8,11 +8,9 @@ import { AppConstCacheKeyStrategy, AppConstMenuTernal, AppConstMenuType } from '
 export function deepKeys(t: Recordable, pre: any[] = []): string[] {
   if (Array.isArray(t)) {
     return []
-  }
-  else if (Object(t) === t) {
+  } else if (Object(t) === t) {
     return Object.entries(t).flatMap(([k, v]) => deepKeys(v, [...pre, k]))
-  }
-  else {
+  } else {
     return [pre.join('.')]
   }
 }
@@ -23,10 +21,13 @@ export function deepKeys(t: Recordable, pre: any[] = []): string[] {
  * see more https://vitejs.dev/guide/features.html#glob-import
  */
 export function getViewsOptions() {
-  const views: { [k: string]: { name: string, defaultView: boolean } } = import.meta.glob('@/views/**/*.vue', {
-    eager: true,
-    import: 'default',
-  })
+  const views: { [k: string]: { name: string; defaultView: boolean } } = import.meta.glob(
+    '@/views/**/*.vue',
+    {
+      eager: true,
+      import: 'default',
+    },
+  )
 
   const viewOptions: OptionDataItem<{ name?: string }>[] = []
 
@@ -45,7 +46,7 @@ export function getViewsOptions() {
     }
   })
 
-  const nameOptions = viewOptions.map(i => ({
+  const nameOptions = viewOptions.map((i) => ({
     value: i.name,
     label: i.name,
   }))

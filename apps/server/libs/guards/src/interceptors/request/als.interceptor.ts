@@ -29,9 +29,10 @@ export class ALSRequestInterceptor implements NestInterceptor {
   ) {}
 
   async intercept(context: ExecutionContext, next: CallHandler<any>) {
-    const request = context.getType() === 'http'
-      ? context.switchToHttp().getRequest<IWalnutAdminExpressRequest>()
-      : undefined
+    const request =
+      context.getType() === 'http'
+        ? context.switchToHttp().getRequest<IWalnutAdminExpressRequest>()
+        : undefined
 
     // JwtOptional 端点在匿名请求下可能把 req.user 置成 null / false（passport 形态不统一），
     // 只有拿到真实 userId 才解析 —— 否则会以 undefined 去查 sys_user（TypeORM 直接抛错）。
@@ -49,12 +50,16 @@ export class ALSRequestInterceptor implements NestInterceptor {
     // WalnutTxInterceptor 在 startTransaction 后写入（基类自动事务直接读 ALS）。
     // 无描述符的处理器分两类：显式标记的登录链/心跳系统通道 → system（放行）；
     // 其余匿名请求 → anonymous（策略拒绝）。已登录请求永远按描述符，标记不降级。
-    const systemChannel = this.reflector.getAllAndOverride<boolean>(
-      WALNUT_DATA_SCOPE_SYSTEM_CHANNEL_METADATA_KEY,
-      [context.getHandler(), context.getClass()],
-    ) === true
+    const systemChannel =
+      this.reflector.getAllAndOverride<boolean>(WALNUT_DATA_SCOPE_SYSTEM_CHANNEL_METADATA_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) === true
 
-    const rlsSettings = buildWalnutDataScopeRlsSettings(dataScope, userId, { systemChannel, userDeptId })
+    const rlsSettings = buildWalnutDataScopeRlsSettings(dataScope, userId, {
+      systemChannel,
+      userDeptId,
+    })
 
     if (request !== undefined) {
       request.dataScopeRls = rlsSettings

@@ -57,9 +57,13 @@ function artifactInfo(target: string): ArtifactInfo {
 
 function gitCommit(): string {
   try {
-    return execSync('git rev-parse --short HEAD', { cwd: REPO_ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true }).trim()
-  }
-  catch {
+    return execSync('git rev-parse --short HEAD', {
+      cwd: REPO_ROOT,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      windowsHide: true,
+    }).trim()
+  } catch {
     return 'unknown'
   }
 }
@@ -122,16 +126,26 @@ export function writeStackInfo(): void {
   writeFileSync(STACK_INFO_FILE, `${JSON.stringify(stack, null, 2)}\n`, 'utf8')
 
   console.log(`[e2e/stack-info] runId=${runId}`)
-  console.log(`[e2e/stack-info] profile=${STACK_PROFILE.name}（库 ${STACK_PROFILE.database}，基线目录 ${STACK_PROFILE.artifactDir}）`)
-  console.log(`[e2e/stack-info] web=${WEB_ORIGIN}  api=${WEB_ORIGIN}/api  backend=${BACKEND_ORIGIN}`)
-  console.log(`[e2e/stack-info] pg=${E2E_PG_HOST}:${E2E_PG_PORT}/${E2E_PG_DB}  redis=${E2E_REDIS_HOST}:${E2E_REDIS_PORT}`)
-  console.log(`[e2e/stack-info] 产物 mtime：admin/index.html=${stack.artifacts.adminIndex.mtime ?? '缺失'}  server/main.js=${stack.artifacts.serverMain.mtime ?? '缺失'}`)
-  console.log(`[e2e/stack-info] 产物落后源码：admin=${freshness.artifactLagMinutes.adminIndex ?? 'n/a'} 分钟  server=${freshness.artifactLagMinutes.serverMain ?? 'n/a'} 分钟（源码提交 ${freshness.sourceCommitAt ?? '未知'}）`)
+  console.log(
+    `[e2e/stack-info] profile=${STACK_PROFILE.name}（库 ${STACK_PROFILE.database}，基线目录 ${STACK_PROFILE.artifactDir}）`,
+  )
+  console.log(
+    `[e2e/stack-info] web=${WEB_ORIGIN}  api=${WEB_ORIGIN}/api  backend=${BACKEND_ORIGIN}`,
+  )
+  console.log(
+    `[e2e/stack-info] pg=${E2E_PG_HOST}:${E2E_PG_PORT}/${E2E_PG_DB}  redis=${E2E_REDIS_HOST}:${E2E_REDIS_PORT}`,
+  )
+  console.log(
+    `[e2e/stack-info] 产物 mtime：admin/index.html=${stack.artifacts.adminIndex.mtime ?? '缺失'}  server/main.js=${stack.artifacts.serverMain.mtime ?? '缺失'}`,
+  )
+  console.log(
+    `[e2e/stack-info] 产物落后源码：admin=${freshness.artifactLagMinutes.adminIndex ?? 'n/a'} 分钟  server=${freshness.artifactLagMinutes.serverMain ?? 'n/a'} 分钟（源码提交 ${freshness.sourceCommitAt ?? '未知'}）`,
+  )
   console.log(`[e2e/stack-info] 已写 ${STACK_INFO_FILE}`)
 }
 
-const invokedDirectly = process.argv[1] !== undefined
-  && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+const invokedDirectly =
+  process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 
 if (invokedDirectly) {
   writeStackInfo()

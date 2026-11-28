@@ -56,7 +56,7 @@ describe('appTechSseService (F-04 / F-40)', () => {
     let completed = false
 
     const subscription = service.getClientObservable('channel-b').subscribe({
-      next: data => received.push(data.message),
+      next: (data) => received.push(data.message),
       complete: () => {
         completed = true
       },

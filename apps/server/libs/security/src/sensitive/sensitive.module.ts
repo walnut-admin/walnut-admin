@@ -7,10 +7,7 @@ import { SecuritySensitiveService } from './sensitive.service'
 
 @Global()
 @Module({
-  imports: [
-    SysUserIdentitySharedModule,
-    OtpSharedModule,
-  ],
+  imports: [SysUserIdentitySharedModule, OtpSharedModule],
   providers: [SecuritySensitiveService],
   exports: [SecuritySensitiveService],
 })

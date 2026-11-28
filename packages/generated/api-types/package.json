@@ -1,10 +1,12 @@
 {
   "name": "@walnut/api-types",
-  "type": "module",
   "version": "0.1.24",
   "private": true,
   "description": "OpenAPI-generated API schema types for Walnut Admin — 由 openapi:generate 从 apps/server/openapi.json 机械产出（schema.d.ts 不许手改），src/index.ts 只做生成别名；在 packages/generated/ 下（2026-11 批次 4 · D9）",
   "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "exports": {
     ".": {
       "types": "./src/index.ts",
@@ -12,18 +14,12 @@
       "default": "./src/index.ts"
     }
   },
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
-  "engines": {
-    "node": ">=24.15.0",
-    "pnpm": ">=12.0.0"
-  },
   "scripts": {
     "generate": "openapi-typescript ../../../apps/server/openapi.json --default-non-nullable=false -o ./src/schema.d.ts",
     "build": "echo 'api-types: pure source, no build needed'",
     "lint": "eslint . --concurrency=4",
     "lint:fix": "eslint . --fix --concurrency=4",
-    "types:check": "tsc --noEmit",
+    "types:check": "tsrs --noEmit --pretty",
     "clean": "rimraf dist",
     "clean:all": "rimraf dist node_modules"
   },
@@ -32,7 +28,12 @@
     "@walnut/tsconfig": "workspace:*",
     "openapi-typescript": "catalog:",
     "rimraf": "catalog:",
+    "tsrs": "catalog:",
     "typescript": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.15.0",
+    "pnpm": ">=12.0.0"
   },
   "walnut": {
     "platform": "web",

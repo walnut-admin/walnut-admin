@@ -37,7 +37,7 @@ describe('D 段：shared/ali/sts 受控形态（真实 HTTP 全链，外部 STS 
 
   const seed8 = randomUUID().slice(0, 8)
   let fixture: WalnutRootUserFixture | null = null
-  let aliConfig: { region?: string, bucket?: string } = {}
+  let aliConfig: { region?: string; bucket?: string } = {}
 
   beforeAll(async () => {
     app = await createApiApp()
@@ -79,8 +79,7 @@ describe('D 段：shared/ali/sts 受控形态（真实 HTTP 全链，外部 STS 
         // 原始 stsToken 明文不出现在响应里
         expect(plaintext).not.toBe(envelope)
       }
-    }
-    else {
+    } else {
       // 失败态：SDK 异常（凭证无效/网络不可达）未映射受控异常 → 统一壳 50000 兜底
       expect(code).toBe(WalnutAdminConstAppResponseCode.INTERNAL_SERVER_ERROR)
     }

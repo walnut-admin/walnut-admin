@@ -20,11 +20,7 @@ function onRefreshQRCode(cb: Fn) {
 
 <template>
   <div class="mt-4 vstack items-center justify-center gap-y-2">
-    <WQRCode
-      :url="url"
-      :expire-seconds="5"
-      @refresh="onRefreshQRCode"
-    />
+    <WQRCode :url="url" :expire-seconds="5" @refresh="onRefreshQRCode" />
 
     <span class="break-all">{{ $t('form.app.auth.scan') }}</span>
   </div>

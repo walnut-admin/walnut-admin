@@ -44,9 +44,7 @@ export class OAuthGitHubStrategy extends PassportStrategy(
   ) {
     // F-06：profile 是 PII（email / login / avatar_url / 各家私有字段），整串 JSON 入日志
     // 等于把用户身份资料写进轮转日志。只打 provider 侧 id 与掩码邮箱（排障够用）。
-    this.logger.log(
-      `oauth github: id=${profile.id}, email=${maskEmail(profile.email)}`,
-    )
+    this.logger.log(`oauth github: id=${profile.id}, email=${maskEmail(profile.email)}`)
 
     const { id, login, email, avatar_url } = profile
 

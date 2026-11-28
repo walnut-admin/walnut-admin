@@ -13,10 +13,12 @@
   组件挂载（布局内容容器 `#<route.name>-content` 有元素子节点）、首屏主数据 `20000`
   （user/role/deleted 三张表顺带断言 E1 落地的表格 testid）。
   登录只做一次：整个文件是一个 worker，用例复用 worker 级共享只读 context（`authedPage`）。
-- **已知 seed 漂移**：`/demo/table/base` 的 `component = demo/table/baseTable` 没有对应文件
-  （`views/demo/table/` 只有 `index.vue` / `useTable.vue`，git 历史也从未有过 `baseTable.vue`）。
-  语义不明（该指向 `useTable` 还是 `index`），本批不改 seed —— 用 `test.fixme` 留下可执行的
-  复现；补上组件或修正 seed 后删掉 `.fixme` 即转绿。
+- **废弃菜单的反向断言（2026-11-28）**：`/demo/table/base` 的 `component = demo/table/baseTable`
+  没有对应文件（`views/demo/table/` 只有 `index.vue` / `useTable.vue`，git 历史也从未有过
+  `baseTable.vue`）；语义无法从仓库内确定，用户拍板按「功能已废弃」处置 —— 已从
+  `apps/server/db/seed/sys_menu.json` 删除该菜单行（父级 `DemoTable` 仍有 `hook` 子项）。
+  `reachability.spec.ts` 留一条**正式用例**做反向断言：应用内导航到该 path 必须落 404，
+  防止菜单行被误加回来。
 - 本 project 依赖 `auth-setup`（→ `stack-setup`）：`auth.setup` 负责「admin 凭据能过完整 UI
   登录」的门禁与 TOTP secret 写入，**不产出可复用的 storageState**（不变量 7）；页面用例
   仍复用 worker 内存里的登录 context。

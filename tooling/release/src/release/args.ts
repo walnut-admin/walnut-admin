@@ -51,7 +51,7 @@ const BOOLEAN_FLAGS: Record<string, keyof ReleaseArgs> = {
 const VALUE_FLAGS = ['--bump', '--token', '--consume-attempts'] as const
 
 /** 互斥的「动作」入口：一次只能选一个 */
-const ACTION_FLAGS: { flag: string, key: keyof ReleaseArgs }[] = [
+const ACTION_FLAGS: { flag: string; key: keyof ReleaseArgs }[] = [
   { flag: '--help', key: 'help' },
   { flag: '--status', key: 'status' },
   { flag: '--plan', key: 'plan' },
@@ -76,9 +76,7 @@ function defaultArgs(): ReleaseArgs {
   }
 }
 
-export type ParseResult
-  = | { ok: true, args: ReleaseArgs }
-    | { ok: false, message: string }
+export type ParseResult = { ok: true; args: ReleaseArgs } | { ok: false; message: string }
 
 export function parseReleaseArgs(argv: string[]): ParseResult {
   const args = defaultArgs()
@@ -88,7 +86,10 @@ export function parseReleaseArgs(argv: string[]): ParseResult {
     const token = argv[index]
 
     if (!token.startsWith('-'))
-      return { ok: false, message: `不接受位置参数：'${token}'（所有输入都走命名 flag，见 --help）` }
+      return {
+        ok: false,
+        message: `不接受位置参数：'${token}'（所有输入都走命名 flag，见 --help）`,
+      }
 
     // ── --skip-gates（唯一允许裸用的「可选值」flag）────────────────────────
     if (token === '--skip-gates') {
@@ -98,17 +99,22 @@ export function parseReleaseArgs(argv: string[]): ParseResult {
     if (token.startsWith('--skip-gates=')) {
       const value = token.slice('--skip-gates='.length).trim()
       if (value === '')
-        return { ok: false, message: '--skip-gates= 后面要跟门禁 id（逗号分隔），或直接用裸 --skip-gates' }
-      const ids = value.split(',').map(id => id.trim()).filter(Boolean)
-      if (ids.length === 0)
-        return { ok: false, message: '--skip-gates= 后面要跟至少一个门禁 id' }
+        return {
+          ok: false,
+          message: '--skip-gates= 后面要跟门禁 id（逗号分隔），或直接用裸 --skip-gates',
+        }
+      const ids = value
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean)
+      if (ids.length === 0) return { ok: false, message: '--skip-gates= 后面要跟至少一个门禁 id' }
       args.skipGates = ids
       continue
     }
 
     // ── 布尔 flag ────────────────────────────────────────────────────────
     if (BOOLEAN_FLAGS[token] !== undefined) {
-      (args as unknown as Record<string, unknown>)[BOOLEAN_FLAGS[token]] = true
+      ;(args as unknown as Record<string, unknown>)[BOOLEAN_FLAGS[token]] = true
       continue
     }
 
@@ -138,13 +144,14 @@ export function parseReleaseArgs(argv: string[]): ParseResult {
       if (value !== 'major' && value !== 'minor' && value !== 'patch')
         return { ok: false, message: `--bump 只能是 major | minor | patch，收到 '${value}'` }
       args.bump = value as Bump
-    }
-    else if (flag === '--token') {
+    } else if (flag === '--token') {
       if (value.trim().length < 8)
-        return { ok: false, message: `--token 看起来不是一个令牌（长度 ${value.trim().length} < 8）` }
+        return {
+          ok: false,
+          message: `--token 看起来不是一个令牌（长度 ${value.trim().length} < 8）`,
+        }
       args.token = value.trim()
-    }
-    else {
+    } else {
       const attempts = Number(value)
       if (!Number.isInteger(attempts) || attempts < 1 || attempts > 20)
         return { ok: false, message: `--consume-attempts 只能是 1..20 的整数，收到 '${value}'` }
@@ -159,11 +166,11 @@ export function parseReleaseArgs(argv: string[]): ParseResult {
   if (args.status && args.plan)
     return { ok: false, message: '--status 与 --plan 是同一个只读面的两种措辞，选一个即可' }
 
-  const actions = ACTION_FLAGS.filter(action => args[action.key] === true)
+  const actions = ACTION_FLAGS.filter((action) => args[action.key] === true)
   if (actions.length > 1) {
     return {
       ok: false,
-      message: `这些入口一次只能用一个：${actions.map(action => action.flag).join(' / ')}`,
+      message: `这些入口一次只能用一个：${actions.map((action) => action.flag).join(' / ')}`,
     }
   }
 
@@ -171,9 +178,15 @@ export function parseReleaseArgs(argv: string[]): ParseResult {
 
   // 只读入口不许带会写盘/推送的开关 —— 静默忽略它们会让人以为本次「演练过了门禁」
   if (readOnlyEntry && args.skipGates !== null && !args.help)
-    return { ok: false, message: '--skip-gates 只对真正的发版有意义；--status / --plan / --intent-only 不跑门禁' }
+    return {
+      ok: false,
+      message: '--skip-gates 只对真正的发版有意义；--status / --plan / --intent-only 不跑门禁',
+    }
   if ((args.status || args.plan) && args.dryRun)
-    return { ok: false, message: '--dry-run 是「演练发版」，--status / --plan 是「看停在哪」；选一个即可' }
+    return {
+      ok: false,
+      message: '--dry-run 是「演练发版」，--status / --plan 是「看停在哪」；选一个即可',
+    }
 
   return { ok: true, args }
 }
@@ -183,10 +196,8 @@ export function parseReleaseArgs(argv: string[]): ParseResult {
  * 门禁被静默跳过是本仓最想避免的形态，所以跳过必须到处留痕。
  */
 export function skipGatesLabel(skip: SkipGates): string {
-  if (skip === null)
-    return ''
-  if (skip === 'all')
-    return '已跳过发版前门禁与全量电池（--skip-gates）'
+  if (skip === null) return ''
+  if (skip === 'all') return '已跳过发版前门禁与全量电池（--skip-gates）'
   return `已跳过发版前门禁项：${skip.join(' / ')}（--skip-gates=…）`
 }
 

@@ -17,20 +17,18 @@ declare global {
 
   type IWADTBoolResOpt = IWalnutAdminDecoratorTransformerBooleanResponseOptions
 
-  interface IWalnutAdminDecoratorTransformBooleanOptions
-    extends IWalnutAdminDecoratorTransformOptions<
-      IWalnutAdminDecoratorTransformerBooleanRequestOptions,
-      IWalnutAdminDecoratorTransformerBooleanResponseOptions
-    > {}
+  interface IWalnutAdminDecoratorTransformBooleanOptions extends IWalnutAdminDecoratorTransformOptions<
+    IWalnutAdminDecoratorTransformerBooleanRequestOptions,
+    IWalnutAdminDecoratorTransformerBooleanResponseOptions
+  > {}
 
   type IWADTBoolOpt = IWalnutAdminDecoratorTransformBooleanOptions
 
   // field option
-  interface IWalnutAdminDecoratorFieldBooleanOptions
-    extends IWalnutAdminDecoratorBasicOptions<
-      IWalnutAdminDecoratorValidatorBooleanOptions,
-      IWalnutAdminDecoratorTransformBooleanOptions
-    > {}
+  interface IWalnutAdminDecoratorFieldBooleanOptions extends IWalnutAdminDecoratorBasicOptions<
+    IWalnutAdminDecoratorValidatorBooleanOptions,
+    IWalnutAdminDecoratorTransformBooleanOptions
+  > {}
 
   type IWADBoolOpt = IWalnutAdminDecoratorFieldBooleanOptions
 }

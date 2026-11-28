@@ -3,7 +3,11 @@ import type { SystemDictType } from '@walnut/api-types'
 import { computed } from 'vue'
 import { dictTypeAPI } from '@/api/system/dict'
 import { useCRUD } from '@/components/Advanced/CRUD'
-import { WTablePresetCreatedAtColumn, WTablePresetStatusColumn, WTablePresetUpdatedAtColumn } from '@/components/UI/Table/src/utils/presetColumns'
+import {
+  WTablePresetCreatedAtColumn,
+  WTablePresetStatusColumn,
+  WTablePresetUpdatedAtColumn,
+} from '@/components/UI/Table/src/utils/presetColumns'
 import { useAppI18n } from '@/locales/index'
 
 import { useAppRouterPush } from '@/router/index'
@@ -21,13 +25,7 @@ const keyField = 'id'
 
 const [
   register,
-  {
-    onOpenCreateForm,
-    onReadAndOpenUpdateForm,
-    onDeleteConfirm,
-    onGetFormData,
-    onApiList,
-  },
+  { onOpenCreateForm, onReadAndOpenUpdateForm, onDeleteConfirm, onGetFormData, onApiList },
 ] = useCRUD<SystemDictType>({
   baseAPI: dictTypeAPI,
 
@@ -38,7 +36,7 @@ const [
 
   tableProps: {
     localeUniqueKey: localeKey,
-    rowKey: row => row[keyField]!,
+    rowKey: (row) => row[keyField]!,
     striped: true,
     bordered: true,
     singleLine: false,
@@ -124,7 +122,7 @@ const [
         key: 'name',
         width: 120,
         titleHelpMessage: true,
-        formatter: row => t(row.name!),
+        formatter: (row) => t(row.name!),
       },
 
       {
@@ -224,8 +222,7 @@ const [
 
             const type = formData.value.type
 
-            if (type)
-              return `dict.name.${type}`
+            if (type) return `dict.name.${type}`
 
             return 'dict.name.'
           }),

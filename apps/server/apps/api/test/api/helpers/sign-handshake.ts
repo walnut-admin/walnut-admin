@@ -1,5 +1,14 @@
 import { Buffer } from 'node:buffer'
-import { constants, createDecipheriv, createHash, createHmac, generateKeyPairSync, hkdfSync, privateDecrypt, randomBytes } from 'node:crypto'
+import {
+  constants,
+  createDecipheriv,
+  createHash,
+  createHmac,
+  generateKeyPairSync,
+  hkdfSync,
+  privateDecrypt,
+  randomBytes,
+} from 'node:crypto'
 
 import { objectToPaths } from '@walnut-server/utils/general'
 
@@ -26,8 +35,8 @@ import { objectToPaths } from '@walnut-server/utils/general'
  */
 
 /** 与白名单兼容的真实浏览器 UA（security.guard 校验 os/browser 白名单，缺 UA 直接判 suspicious） */
-export const WALNUT_TEST_USER_AGENT
-  = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+export const WALNUT_TEST_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
 
 export interface WalnutClientRsaKeyPair {
   publicKeyPem: string
@@ -66,7 +75,7 @@ export function buildSignRaw(params: {
   const flattenObj = objectToPaths((body ?? {}) as never)
   const sortedParams = Object.keys(flattenObj)
     .sort()
-    .map(k => `${k}=${flattenObj[k]}`)
+    .map((k) => `${k}=${flattenObj[k]}`)
     .join('&')
 
   // 2. 组装签名原文（多因子）
@@ -89,17 +98,23 @@ export function computeSingleFactorSign(raw: string, aesKey: string): string {
  * 双因子签名密钥派生（对照 session.service deriveApiSignKey）：
  * HKDF-SHA256(ikm = SHA256(sessionKey 原始字节), salt = aesKey, info = hkdfInfo, 32)
  */
-export function deriveApiSignKey(sessionKeyBase64: string, aesKey: string, hkdfInfo: string): Buffer {
+export function deriveApiSignKey(
+  sessionKeyBase64: string,
+  aesKey: string,
+  hkdfInfo: string,
+): Buffer {
   const authSessionKey = Buffer.from(sessionKeyBase64, 'base64')
   const authSessionKeyHash = createHash('sha256').update(authSessionKey).digest()
 
-  return Buffer.from(hkdfSync(
-    'sha256',
-    authSessionKeyHash,
-    Buffer.from(aesKey, 'utf8'),
-    Buffer.from(hkdfInfo, 'utf8'),
-    32,
-  ))
+  return Buffer.from(
+    hkdfSync(
+      'sha256',
+      authSessionKeyHash,
+      Buffer.from(aesKey, 'utf8'),
+      Buffer.from(hkdfInfo, 'utf8'),
+      32,
+    ),
+  )
 }
 
 /** 双因子签名（已登录）：HMAC-SHA256(raw, derivedKey) */
@@ -136,7 +151,10 @@ export function decryptAesKeyEnvelope(privateKeyPem: string, envelopeBase64: str
   const decipher = createDecipheriv('aes-256-gcm', aesKeyBytes, iv)
   decipher.setAuthTag(tag)
 
-  return Buffer.concat([decipher.update(Buffer.from(payload.cipher, 'base64')), decipher.final()]).toString('utf8')
+  return Buffer.concat([
+    decipher.update(Buffer.from(payload.cipher, 'base64')),
+    decipher.final(),
+  ]).toString('utf8')
 }
 
 /** cap.js prng 复刻：fnv1a 种子 + xorshift32，hex 拼接后截断 */
@@ -174,7 +192,7 @@ function capPrng(seed: string, length: number): string {
  * 求最小 n 使 sha256(salt + n) 的 hex 以 target 开头。
  */
 export function solveCapChallenge(
-  challenge: { c: number, s: number, d: number },
+  challenge: { c: number; s: number; d: number },
   token: string,
 ): number[] {
   const solutions: number[] = []
@@ -185,7 +203,9 @@ export function solveCapChallenge(
 
     let n = 0
     for (;;) {
-      const hash = createHash('sha256').update(salt + String(n)).digest('hex')
+      const hash = createHash('sha256')
+        .update(salt + String(n))
+        .digest('hex')
       if (hash.startsWith(target)) {
         solutions.push(n)
         break

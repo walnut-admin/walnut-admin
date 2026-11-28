@@ -143,35 +143,38 @@ export function resolveWalnutDataScopeDescriptor(
   input: IWalnutAdminDataScopeResolveInput,
 ): IWalnutAdminDataScopeDescriptor {
   const activeById = new Map(
-    input.roles
-      .filter(role => role.status)
-      .map(role => [role.id, role]),
+    input.roles.filter((role) => role.status).map((role) => [role.id, role]),
   )
 
   // junction 顺序优先；不在绑定集里的角色 id 不参与
   const orderedActiveRoles = input.orderedRoleIds
-    .map(id => activeById.get(id))
+    .map((id) => activeById.get(id))
     .filter((role): role is IWalnutAdminDataScopeRoleSnapshot => role !== undefined)
 
   if (orderedActiveRoles.length === 0) {
     return WALNUT_DATA_SCOPE_DENY
   }
 
-  const resolveSingle = (role: IWalnutAdminDataScopeRoleSnapshot) => resolveSingleRoleDataScope(role, {
-    userId: input.userId,
-    userDeptId: input.userDeptId,
-    userDeptSubtreeIds: input.userDeptSubtreeIds,
-    customDeptIds: input.customDeptIds?.[role.id] ?? [],
-  })
+  const resolveSingle = (role: IWalnutAdminDataScopeRoleSnapshot) =>
+    resolveSingleRoleDataScope(role, {
+      userId: input.userId,
+      userDeptId: input.userDeptId,
+      userDeptSubtreeIds: input.userDeptSubtreeIds,
+      customDeptIds: input.customDeptIds?.[role.id] ?? [],
+    })
 
   if (input.roleMode === WalnutAdminConstRoleMode.COMBINE) {
     // 任一 root → ALL（root 是超级角色，junction 里存在即全量）
-    if (orderedActiveRoles.some(role => role.roleName === Role.ROOT)) {
+    if (orderedActiveRoles.some((role) => role.roleName === Role.ROOT)) {
       return { mode: WalnutAdminConstDataScopeMode.ALL }
     }
 
     // 最宽优先：任一角色 ALL → ALL
-    if (orderedActiveRoles.some(role => resolveSingle(role).mode === WalnutAdminConstDataScopeMode.ALL)) {
+    if (
+      orderedActiveRoles.some(
+        (role) => resolveSingle(role).mode === WalnutAdminConstDataScopeMode.ALL,
+      )
+    ) {
       return { mode: WalnutAdminConstDataScopeMode.ALL }
     }
 
@@ -215,8 +218,8 @@ export function resolveWalnutDataScopeDescriptor(
   }
 
   // SWITCH（以及未知 roleMode 的保守分支）：只看 currentRole，失效回退首角色
-  const currentRole = orderedActiveRoles.find(role => role.id === input.currentRoleId)
-    ?? orderedActiveRoles[0]
+  const currentRole =
+    orderedActiveRoles.find((role) => role.id === input.currentRoleId) ?? orderedActiveRoles[0]
 
   return resolveSingle(currentRole)
 }

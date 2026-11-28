@@ -16,13 +16,15 @@ import { sysDictTypeRecoverableProvider } from './repo/dict-type.recoverer'
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature(
-      [SysDictTypeEntity, SysDictDataEntity],
-      WalnutPGConnectionName,
-    ),
+    TypeOrmModule.forFeature([SysDictTypeEntity, SysDictDataEntity], WalnutPGConnectionName),
   ],
   controllers: [],
-  providers: [SysDictTypeBasicRepository, SysDictDataBasicRepository, SysDictTypeService, sysDictTypeRecoverableProvider],
+  providers: [
+    SysDictTypeBasicRepository,
+    SysDictDataBasicRepository,
+    SysDictTypeService,
+    sysDictTypeRecoverableProvider,
+  ],
   exports: [SysDictTypeService],
 })
 export class SysDictTypeModule {}

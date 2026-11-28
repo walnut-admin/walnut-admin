@@ -2,7 +2,13 @@
 import type { SystemUserDeviceListItem } from '@walnut/api-types'
 import { useState } from '@walnut/client/hooks/core/useState'
 import { computed, ref } from 'vue'
-import { forceQuitUserDeviceAPI, listUserDevicesAPI, lockUserDeviceAPI, unlockUserDeviceAPI, updateUserDeviceNameAPI } from '@/api/system/user_device'
+import {
+  forceQuitUserDeviceAPI,
+  listUserDevicesAPI,
+  lockUserDeviceAPI,
+  unlockUserDeviceAPI,
+  updateUserDeviceNameAPI,
+} from '@/api/system/user_device'
 import { useForm } from '@/components/UI/Form'
 import { useTable } from '@/components/UI/Table'
 import { AppConstLockMode } from '@/const/app'
@@ -20,8 +26,13 @@ const { t } = useAppI18n()
 const appStoreLock = useAppStoreLock()
 const visible = ref(false)
 
-const { stateRef: updateDeviceNameData, resetState: resetUpdateDeviceNameFormData } = useState({ deviceId: '', deviceName: '' })
-const [registerUpdatePassword, { onOpen: onOpenUpdateDeviceNameModal }] = useForm<typeof updateDeviceNameData.value>({
+const { stateRef: updateDeviceNameData, resetState: resetUpdateDeviceNameFormData } = useState({
+  deviceId: '',
+  deviceName: '',
+})
+const [registerUpdatePassword, { onOpen: onOpenUpdateDeviceNameModal }] = useForm<
+  typeof updateDeviceNameData.value
+>({
   dialogPreset: 'modal',
   baseRules: true,
   labelWidth: 120,
@@ -55,9 +66,15 @@ const [registerUpdatePassword, { onOpen: onOpenUpdateDeviceNameModal }] = useFor
  * security 模式解除某台已登录设备的锁屏需要锁屏密码（服务端 `SysUserLockUnLockDto`）。
  * default / idle 仍然免密直接解 —— 只在该用户当前偏好是 security 时弹这一步。
  */
-const { stateRef: unlockDeviceData, resetState: resetUnlockDeviceFormData } = useState({ deviceId: '', deviceName: '', lockPwdHash: '' })
+const { stateRef: unlockDeviceData, resetState: resetUnlockDeviceFormData } = useState({
+  deviceId: '',
+  deviceName: '',
+  lockPwdHash: '',
+})
 
-const [registerUnlockDevice, { onOpen: onOpenUnlockDeviceModal }] = useForm<typeof unlockDeviceData.value>({
+const [registerUnlockDevice, { onOpen: onOpenUnlockDeviceModal }] = useForm<
+  typeof unlockDeviceData.value
+>({
   dialogPreset: 'modal',
   baseRules: true,
   labelWidth: 120,
@@ -116,8 +133,7 @@ async function onUnlockDeviceYes(_: any, done: () => void) {
   try {
     await doUnlockDevice(unlockDeviceData.value.deviceId, unlockDeviceData.value.lockPwdHash)
     resetUnlockDeviceFormData()
-  }
-  finally {
+  } finally {
     done()
   }
 }
@@ -125,7 +141,7 @@ async function onUnlockDeviceYes(_: any, done: () => void) {
 const [register, { onApiList }] = useTable<SystemUserDeviceListItem>({
   bordered: true,
   striped: true,
-  rowKey: row => row.deviceId!,
+  rowKey: (row) => row.deviceId!,
   auths: {
     list: 'system:user:device:list',
   },
@@ -167,14 +183,11 @@ const [register, { onApiList }] = useTable<SystemUserDeviceListItem>({
       fixed: 'left',
       minWidth: 240,
       extendType: 'tag',
-      tagProps: row => ({
+      tagProps: (row) => ({
         type: row.current === true ? 'success' : 'info',
         size: 'small',
       }),
-      formatter: row =>
-        row.current === true
-          ? `${row.deviceName} (Current)`
-          : row.deviceName,
+      formatter: (row) => (row.current === true ? `${row.deviceName} (Current)` : row.deviceName),
     },
     {
       title: computed(() => t('table.app.monitor.user.auth')),
@@ -182,11 +195,11 @@ const [register, { onApiList }] = useTable<SystemUserDeviceListItem>({
       key: 'auth',
       width: 160,
       extendType: 'tag',
-      tagProps: row => ({
+      tagProps: (row) => ({
         type: row.auth === true ? 'success' : 'warning',
         size: 'small',
       }),
-      formatter: row =>
+      formatter: (row) =>
         row.auth === true
           ? t('table.app.monitor.user.auth.true')
           : t('table.app.monitor.user.auth.false'),
@@ -209,14 +222,12 @@ const [register, { onApiList }] = useTable<SystemUserDeviceListItem>({
       key: 'locked',
       width: 160,
       extendType: 'tag',
-      tagProps: row => ({
+      tagProps: (row) => ({
         type: row.locked === true ? 'success' : 'warning',
         size: 'small',
       }),
-      formatter: row =>
-        row.locked === true
-          ? t('app.base.lock.true')
-          : t('app.base.lock.false'),
+      formatter: (row) =>
+        row.locked === true ? t('app.base.lock.true') : t('app.base.lock.false'),
       filter: true,
       filterMultiple: false,
       filterOptions: [
@@ -270,8 +281,8 @@ const [register, { onApiList }] = useTable<SystemUserDeviceListItem>({
           _builtInType: 'lock',
           _dropdown: true,
           confirm: true,
-          _disabled: row => !row.auth,
-          _show: row => !row.locked,
+          _disabled: (row) => !row.auth,
+          _show: (row) => !row.locked,
           iconProps: {
             icon: 'mdi:lock-outline',
           },
@@ -293,8 +304,8 @@ const [register, { onApiList }] = useTable<SystemUserDeviceListItem>({
           _builtInType: 'unlock',
           _dropdown: true,
           confirm: true,
-          _disabled: row => !row.auth,
-          _show: row => row.locked,
+          _disabled: (row) => !row.auth,
+          _show: (row) => row.locked,
           iconProps: {
             icon: 'mdi:lock-open-variant-outline',
           },
@@ -311,7 +322,7 @@ const [register, { onApiList }] = useTable<SystemUserDeviceListItem>({
           _builtInType: 'force-quit',
           _dropdown: true,
           confirm: true,
-          _disabled: row => !row.auth,
+          _disabled: (row) => !row.auth,
           iconProps: {
             icon: 'ant-design:logout-outlined',
           },
@@ -353,8 +364,7 @@ async function onUpdateDeviceNameYes(_: any, done: () => void) {
     useAppMsgSuccess()
     resetUpdateDeviceNameFormData()
     await onApiList()
-  }
-  finally {
+  } finally {
     done()
   }
 }
@@ -369,7 +379,14 @@ defineExpose({
 </script>
 
 <template>
-  <WModal v-model:show="visible" :title="$t('sys.menu.user.device')" width="60%" height="60%" :fullscreen="false" :default-button="false">
+  <WModal
+    v-model:show="visible"
+    :title="$t('sys.menu.user.device')"
+    width="60%"
+    height="60%"
+    :fullscreen="false"
+    :default-button="false"
+  >
     <!-- @vue-generic {SystemUserDeviceListItem} -->
     <WTable @hook="register" />
 

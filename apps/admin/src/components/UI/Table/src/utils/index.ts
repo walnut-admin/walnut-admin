@@ -1,15 +1,23 @@
 import type { BaseSortParams } from '@walnut/contract'
 import type { DataTableSortState } from 'naive-ui'
-import type {
-  SorterMultiple,
-} from 'naive-ui/lib/data-table/src/interface'
+import type { SorterMultiple } from 'naive-ui/lib/data-table/src/interface'
 import type { ComputedRef } from 'vue'
 import type { WTable } from '../types'
 import { getBoolean } from '@walnut/client/browser/shared'
 import { useAppI18n } from '@/locales/index'
 import { useAppStoreLocale } from '@/store/modules/app/app-locale'
 
-export const extendedTablePropKeys: (keyof WTable.Props)[] = ['testId', 'localeUniqueKey', 'auths', 'apiProps', 'queryFormProps', 'headerLeftBuiltInActions', 'headerLeftExtraActions', 'polling', 'columnSetting']
+export const extendedTablePropKeys: (keyof WTable.Props)[] = [
+  'testId',
+  'localeUniqueKey',
+  'auths',
+  'apiProps',
+  'queryFormProps',
+  'headerLeftBuiltInActions',
+  'headerLeftExtraActions',
+  'polling',
+  'columnSetting',
+]
 
 export function generateDefaultSortParams<T>(columns: WTable.Column<T>[]) {
   return columns
@@ -28,7 +36,9 @@ export function generateDefaultSortParams<T>(columns: WTable.Column<T>[]) {
 /**
  * @description generate base sort object
  */
-export function generateSortParams<T>(sort: DataTableSortState | DataTableSortState[]): BaseSortParams<T> {
+export function generateSortParams<T>(
+  sort: DataTableSortState | DataTableSortState[],
+): BaseSortParams<T> {
   const getBase = (i: DataTableSortState) => ({
     field: i.columnKey as keyof T,
     order: i.order,
@@ -36,15 +46,13 @@ export function generateSortParams<T>(sort: DataTableSortState | DataTableSortSt
   })
 
   if (Array.isArray(sort)) {
-    if (sort.some(i => i.order === false)) {
-      return sort.filter(i => i.order !== false).map(getBase)
+    if (sort.some((i) => i.order === false)) {
+      return sort.filter((i) => i.order !== false).map(getBase)
     }
 
     return sort.map(getBase)
-  }
-  else {
-    if (sort.order === false)
-      return []
+  } else {
+    if (sort.order === false) return []
 
     return [getBase(sort)]
   }
@@ -53,18 +61,20 @@ export function generateSortParams<T>(sort: DataTableSortState | DataTableSortSt
 /**
  * @description generate table item title base on different config
  */
-export function getTableTranslated<T>(props: ComputedRef<Partial<WTable.Props<T>>>, item: WTable.Column<T>, helpMsg = false): string {
+export function getTableTranslated<T>(
+  props: ComputedRef<Partial<WTable.Props<T>>>,
+  item: WTable.Column<T>,
+  helpMsg = false,
+): string {
   const { t } = useAppI18n()
 
   const appStoreLocale = useAppStoreLocale()
 
   // if locale is false, return raw title
-  if (item.locale === false)
-    return item.title as string
+  if (item.locale === false) return item.title as string
 
   // dict column title
-  if (item.extendType === 'dict' && item.useDictNameAsTitle)
-    return t(`dict.name.${item.dictType}`)
+  if (item.extendType === 'dict' && item.useDictNameAsTitle) return t(`dict.name.${item.dictType}`)
 
   // title is set has the highest priority
   if (typeof item._rawTitle === 'string' && appStoreLocale.isBaseI18nKey(item._rawTitle)) {
@@ -83,5 +93,7 @@ export function getTableTranslated<T>(props: ComputedRef<Partial<WTable.Props<T>
     ? appStoreLocale.isBaseI18nKey(path as string)
       ? t(`app.base.${path}`)
       : t(isHelpMsg(`table.${key}.${path}`))
-    : typeof item.title === 'string' ? t(item.title) : t(item._rawTitle!)
+    : typeof item.title === 'string'
+      ? t(item.title)
+      : t(item._rawTitle!)
 }

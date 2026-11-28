@@ -37,9 +37,21 @@ import {
   trackDevice,
   uniqueLocalIp,
 } from '../../lib/device-fixtures.ts'
-import { backdateDeviceCreatedAt, clearRefreshTokensForDevice, findDeviceLocation, findDeviceRow, LOOPBACK_IP_PATTERN, withPg } from '../../lib/pg.ts'
+import {
+  backdateDeviceCreatedAt,
+  clearRefreshTokensForDevice,
+  findDeviceLocation,
+  findDeviceRow,
+  LOOPBACK_IP_PATTERN,
+  withPg,
+} from '../../lib/pg.ts'
 import { WalnutProtocolClient } from '../../lib/protocol/client.ts'
-import { AuthRoutes, SystemEndpointRoutes, SystemRoutes, WalnutAdminConstAppResponseCode } from '../../lib/protocol/contract.ts'
+import {
+  AuthRoutes,
+  SystemEndpointRoutes,
+  SystemRoutes,
+  WalnutAdminConstAppResponseCode,
+} from '../../lib/protocol/contract.ts'
 import {
   deleteAuthSessionsForDevice,
   deleteDeviceKeys,
@@ -59,18 +71,14 @@ import {
   waitForDeviceHealSettled,
   waitForEnvelope,
 } from '../../lib/ui.ts'
-import {
-  DEVICE_COOKIE_NAME,
-  readCredentials,
-  WEB_ORIGIN,
-} from '../../scripts/env.ts'
+import { DEVICE_COOKIE_NAME, readCredentials, WEB_ORIGIN } from '../../scripts/env.ts'
 import { expect, test } from '../fixtures.ts'
 
 const HOUR_MS = 60 * 60 * 1000
 const DAY_MS = 24 * HOUR_MS
 
 /** 建一个已登录的 root 协议客户端（自带设备 + TOTP 设备验证）；设备随即登记给清理 fixture */
-async function rootClient(): Promise<{ client: WalnutProtocolClient, deviceId: string }> {
+async function rootClient(): Promise<{ client: WalnutProtocolClient; deviceId: string }> {
   const credentials = readCredentials()
   const client = new WalnutProtocolClient({ realIp: uniqueLocalIp() })
   await client.bootstrap()
@@ -158,30 +166,39 @@ async function seedLoggedInDevice(msAgo: number): Promise<SeededDevice> {
  * （auth.setup 的 gate 3 每轮守它）。localStorage 故意不预置：应用启动时会用 cookie 里的 id
  * 重打 `device/initial`（服务端按 cookie 幂等复用同一台设备），行为与「全新 context」一致。
  */
-async function contextOnSeededDevice(browser: import('@playwright/test').Browser, seeded: SeededDevice): Promise<import('@playwright/test').BrowserContext> {
+async function contextOnSeededDevice(
+  browser: import('@playwright/test').Browser,
+  seeded: SeededDevice,
+): Promise<import('@playwright/test').BrowserContext> {
   const context = await newBrowserContext(browser, { realIp: seeded.realIp })
-  await context.addCookies([{
-    name: DEVICE_COOKIE_NAME,
-    value: seeded.cookie,
-    url: WEB_ORIGIN,
-    secure: true,
-    httpOnly: true,
-  }])
+  await context.addCookies([
+    {
+      name: DEVICE_COOKIE_NAME,
+      value: seeded.cookie,
+      url: WEB_ORIGIN,
+      secure: true,
+      httpOnly: true,
+    },
+  ])
   return context
 }
 
 test.describe('设备 ID 生命周期', { tag: '@risk' }, () => {
-  test('U1 新设备签发：initial → d1_+32hex、DEVICE_ID cookie、sys_device 行', async ({ browser }) => {
+  test('U1 新设备签发：initial → d1_+32hex、DEVICE_ID cookie、sys_device 行', async ({
+    browser,
+  }) => {
     const context = await newBrowserContext(browser)
     const page = await context.newPage()
     const pending = page.waitForResponse(
-      response => response.url().includes(SystemEndpointRoutes.DEVICE_INITIAL) && response.request().method() === 'POST',
+      (response) =>
+        response.url().includes(SystemEndpointRoutes.DEVICE_INITIAL) &&
+        response.request().method() === 'POST',
       { timeout: 30_000 },
     )
 
     await page.goto('/auth')
     const initialResponse = await pending
-    const body = await initialResponse.json() as { code: number, data: { deviceId: string } }
+    const body = (await initialResponse.json()) as { code: number; data: { deviceId: string } }
     trackDevice(body.data.deviceId)
 
     expect(body.code).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
@@ -209,22 +226,30 @@ test.describe('设备 ID 生命周期', { tag: '@risk' }, () => {
     await context.close()
   })
 
-  test('U1b Phase0-5：非 local IP 的 initial 走真实定位（api.ip.sb）', { tag: '@network' }, async () => {
-    const client = new WalnutProtocolClient({ realIp: '1.1.1.1' })
-    await client.bootstrap()
-    trackDevice(client.deviceId)
+  test(
+    'U1b Phase0-5：非 local IP 的 initial 走真实定位（api.ip.sb）',
+    { tag: '@network' },
+    async () => {
+      const client = new WalnutProtocolClient({ realIp: '1.1.1.1' })
+      await client.bootstrap()
+      trackDevice(client.deviceId)
 
-    const details = await withPg(async pg => findDeviceLocation(pg, client.deviceId))
+      const details = await withPg(async (pg) => findDeviceLocation(pg, client.deviceId))
 
-    expect(details?.ip).toBe('1.1.1.1')
-    // 真实外网定位：country 不应是 LOCAL，经纬度应被写入
-    expect(details?.country, '非 local IP 走了 getLocalLocation（定位链路没被调用）').not.toBe('LOCAL')
-    expect(typeof details?.country).toBe('string')
-    expect(typeof details?.latitude).toBe('number')
-    expect(typeof details?.longitude).toBe('number')
-  })
+      expect(details?.ip).toBe('1.1.1.1')
+      // 真实外网定位：country 不应是 LOCAL，经纬度应被写入
+      expect(details?.country, '非 local IP 走了 getLocalLocation（定位链路没被调用）').not.toBe(
+        'LOCAL',
+      )
+      expect(typeof details?.country).toBe('string')
+      expect(typeof details?.latitude).toBe('number')
+      expect(typeof details?.longitude).toBe('number')
+    },
+  )
 
-  test('Phase0-4 静态代理保留 XFF：经 /api 带 XFF 的设备登记，realIp 被后端采用', async ({ browser }) => {
+  test('Phase0-4 静态代理保留 XFF：经 /api 带 XFF 的设备登记，realIp 被后端采用', async ({
+    browser,
+  }) => {
     // 用 127/8 的 local IP（与其它用例同一套 uniqueLocalIp，每台设备一个）⇒ 后端
     // `getLocationInfoFromFreeAPI` 先判 `isLocalhostIp`、直接返回 `getLocalLocation`，
     // **不发任何外网请求** —— 这条用例在离线环境里成立（2026-11-25 起）。
@@ -237,12 +262,21 @@ test.describe('设备 ID 生命周期', { tag: '@risk' }, () => {
     // 公网 IP + 真实定位由 U1b（@network）覆盖，不在 risk 里重复。
     const xff = uniqueLocalIp()
     const context = await browser.newContext()
-    const response = await context.request.post(`${WEB_ORIGIN}/api${SystemEndpointRoutes.DEVICE_INITIAL}`, {
-      headers: { 'x-forwarded-for': xff },
-      data: { deviceInfo: {}, hardwareInfo: {}, sr: { height: 800, width: 1280 }, vp: { height: 800, width: 1280 }, private: false },
-    })
+    const response = await context.request.post(
+      `${WEB_ORIGIN}/api${SystemEndpointRoutes.DEVICE_INITIAL}`,
+      {
+        headers: { 'x-forwarded-for': xff },
+        data: {
+          deviceInfo: {},
+          hardwareInfo: {},
+          sr: { height: 800, width: 1280 },
+          vp: { height: 800, width: 1280 },
+          private: false,
+        },
+      },
+    )
     expect(response.ok()).toBe(true)
-    const body = await response.json() as { code: number, data: { deviceId: string } }
+    const body = (await response.json()) as { code: number; data: { deviceId: string } }
     expect(body.code).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
     trackDevice(body.data.deviceId)
 
@@ -253,8 +287,10 @@ test.describe('设备 ID 生命周期', { tag: '@risk' }, () => {
     })
 
     // 证据 2：local IP 走的是本地定位分支（country = LOCAL），geo 查询没有被触发
-    const location = await withPg(async pg => findDeviceLocation(pg, body.data.deviceId))
-    expect(location?.country, 'local IP 没走 getLocalLocation（定位链路被触发了外网查询）').toBe('LOCAL')
+    const location = await withPg(async (pg) => findDeviceLocation(pg, body.data.deviceId))
+    expect(location?.country, 'local IP 没走 getLocalLocation（定位链路被触发了外网查询）').toBe(
+      'LOCAL',
+    )
 
     // 证据 3：风控的 rate 记账仍然发生（键按 normalizeIp 归一后的 127.0.0.1 记）
     await withRedis(async (redis) => {
@@ -265,7 +301,9 @@ test.describe('设备 ID 生命周期', { tag: '@risk' }, () => {
     await context.close()
   })
 
-  test('U8 40605 自愈：cookie 丢、localStorage 在 → initial + 重放，不跳 /not-allowed', async ({ browser }) => {
+  test('U8 40605 自愈：cookie 丢、localStorage 在 → initial + 重放，不跳 /not-allowed', async ({
+    browser,
+  }) => {
     const session = await loginDevice(browser)
     const oldDeviceId = session.deviceId
 
@@ -278,13 +316,19 @@ test.describe('设备 ID 生命周期', { tag: '@risk' }, () => {
     await navigateInApp(session.page, SystemRoutes.USER)
 
     // 先出现 40605（DeviceGuard 拒绝）
-    const rejected = await waitForEnvelope(captured.entries, entry => entry.code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED, 40_000)
+    const rejected = await waitForEnvelope(
+      captured.entries,
+      (entry) => entry.code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED,
+      40_000,
+    )
 
     // 自动重打 initial（出现 40605 之后）
-    const initialIndex = captured.entries.findIndex(entry => entry === rejected)
+    const initialIndex = captured.entries.findIndex((entry) => entry === rejected)
     const healed = await waitForEnvelope(
       captured.entries,
-      entry => entry.url.includes(SystemEndpointRoutes.DEVICE_INITIAL) && entry.code === WalnutAdminConstAppResponseCode.SUCCESS,
+      (entry) =>
+        entry.url.includes(SystemEndpointRoutes.DEVICE_INITIAL) &&
+        entry.code === WalnutAdminConstAppResponseCode.SUCCESS,
       30_000,
     )
     expect(captured.entries.indexOf(healed)).toBeGreaterThan(initialIndex)
@@ -292,12 +336,25 @@ test.describe('设备 ID 生命周期', { tag: '@risk' }, () => {
     // 原请求被重放：新设备先吃 40116（DEVICE_NEW critical）⇒ 必须解 CAP；解掉后旧会话按
     // 设备绑定失效（重放最终 40101、续期 40102），应用 Signout 回 /auth。旧判据
     // `code !== 40605` 会把 40116 误判成成功。
-    const { capSolved } = await waitForDeviceHealSettled(session.page, captured.entries, rejected.url)
-    expect(capSolved, '自愈产生的新设备应触发 CAP（DEVICE_NEW critical）——若未弹 cap-widget，检查 risk 配置是否被改').toBe(true)
+    const { capSolved } = await waitForDeviceHealSettled(
+      session.page,
+      captured.entries,
+      rejected.url,
+    )
+    expect(
+      capSolved,
+      '自愈产生的新设备应触发 CAP（DEVICE_NEW critical）——若未弹 cap-widget，检查 risk 配置是否被改',
+    ).toBe(true)
 
     // 新设备没有旧设备的 AUTH:SESSIONS / RT：续期必然 40102，应用按设计回登录页
-    await waitForEnvelope(captured.entries, entry => entry.url.includes(`/api${AuthRoutes.REFRESH}`) && entry.code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_REFRESH_TOKEN_EXPIRED, 30_000)
-    await session.page.waitForURL(url => url.pathname === '/auth', { timeout: 30_000 })
+    await waitForEnvelope(
+      captured.entries,
+      (entry) =>
+        entry.url.includes(`/api${AuthRoutes.REFRESH}`) &&
+        entry.code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_REFRESH_TOKEN_EXPIRED,
+      30_000,
+    )
+    await session.page.waitForURL((url) => url.pathname === '/auth', { timeout: 30_000 })
 
     const pathname = new URL(session.page.url()).pathname
     expect(pathname, `自愈后落到了 ${session.page.url()}`).toBe('/auth')
@@ -333,15 +390,38 @@ test.describe('设备 ID 生命周期', { tag: '@risk' }, () => {
     // 同 U8：不 reload（blocking sign 会先 40667），在已挂载的应用里触发业务请求
     await navigateInApp(session.page, SystemRoutes.USER)
 
-    const rejected = await waitForEnvelope(captured.entries, entry => entry.code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED, 40_000)
-    await waitForEnvelope(captured.entries, entry => entry.url.includes(SystemEndpointRoutes.DEVICE_INITIAL) && entry.code === WalnutAdminConstAppResponseCode.SUCCESS, 30_000)
+    const rejected = await waitForEnvelope(
+      captured.entries,
+      (entry) => entry.code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED,
+      40_000,
+    )
+    await waitForEnvelope(
+      captured.entries,
+      (entry) =>
+        entry.url.includes(SystemEndpointRoutes.DEVICE_INITIAL) &&
+        entry.code === WalnutAdminConstAppResponseCode.SUCCESS,
+      30_000,
+    )
 
     // 同 U8：新设备触发 CAP，解掉之后旧会话按设备绑定失效（40101 → 续期 40102）并回 /auth
-    const { capSolved } = await waitForDeviceHealSettled(session.page, captured.entries, rejected.url)
-    expect(capSolved, '自愈产生的新设备应触发 CAP（DEVICE_NEW critical）——若未弹 cap-widget，检查 risk 配置是否被改').toBe(true)
+    const { capSolved } = await waitForDeviceHealSettled(
+      session.page,
+      captured.entries,
+      rejected.url,
+    )
+    expect(
+      capSolved,
+      '自愈产生的新设备应触发 CAP（DEVICE_NEW critical）——若未弹 cap-widget，检查 risk 配置是否被改',
+    ).toBe(true)
 
-    await waitForEnvelope(captured.entries, entry => entry.url.includes(`/api${AuthRoutes.REFRESH}`) && entry.code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_REFRESH_TOKEN_EXPIRED, 30_000)
-    await session.page.waitForURL(url => url.pathname === '/auth', { timeout: 30_000 })
+    await waitForEnvelope(
+      captured.entries,
+      (entry) =>
+        entry.url.includes(`/api${AuthRoutes.REFRESH}`) &&
+        entry.code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_REFRESH_TOKEN_EXPIRED,
+      30_000,
+    )
+    await session.page.waitForURL((url) => url.pathname === '/auth', { timeout: 30_000 })
 
     const pathname = new URL(session.page.url()).pathname
     expect(pathname, `自愈后落到了 ${session.page.url()}`).toBe('/auth')
@@ -360,7 +440,9 @@ test.describe('设备 ID 生命周期', { tag: '@risk' }, () => {
     await session.context.close()
   })
 
-  test('滑动续期：删 COOKIE_RENEW 闸后下一次响应重发 DEVICE_ID（maxAge 拉回 30 天）', async ({ browser }) => {
+  test('滑动续期：删 COOKIE_RENEW 闸后下一次响应重发 DEVICE_ID（maxAge 拉回 30 天）', async ({
+    browser,
+  }) => {
     const session = await openDevice(browser)
     const deviceId = session.deviceId
 
@@ -392,8 +474,13 @@ test.describe('设备 ID 生命周期', { tag: '@risk' }, () => {
     // /system/user/me/profile 的 DeviceGuard 在 Sign/JWT 之前，所以即使随后被 40112 拒绝，
     // Set-Cookie 也已经写在响应上。
     const renewed = await client.rawFetch('GET', SystemEndpointRoutes.USER_ME_PROFILE)
-    const renewedCookies = renewed.headers.getSetCookie().filter(value => value.startsWith(`${DEVICE_COOKIE_NAME}=`))
-    expect(renewedCookies.length, '删掉续期闸后，下一次 device-guarded 响应没有重发 DEVICE_ID').toBeGreaterThan(0)
+    const renewedCookies = renewed.headers
+      .getSetCookie()
+      .filter((value) => value.startsWith(`${DEVICE_COOKIE_NAME}=`))
+    expect(
+      renewedCookies.length,
+      '删掉续期闸后，下一次 device-guarded 响应没有重发 DEVICE_ID',
+    ).toBeGreaterThan(0)
 
     const issued = renewedCookies[0]!
     // 有效期 = 30 天（WalnutAdminConstDeviceCookieMaxAge）：这是滑动续期真正刷新的东西
@@ -403,7 +490,9 @@ test.describe('设备 ID 生命周期', { tag: '@risk' }, () => {
     expect(issuedValue).toBe(before!.value)
     const idOf = (value: string): string => {
       const decoded = decodeURIComponent(value)
-      return decoded.startsWith('s:') ? decoded.slice(2).split('.')[0] ?? '' : decoded.split('.')[0] ?? ''
+      return decoded.startsWith('s:')
+        ? (decoded.slice(2).split('.')[0] ?? '')
+        : (decoded.split('.')[0] ?? '')
     }
     expect(idOf(issuedValue)).toBe(deviceId)
 
@@ -414,7 +503,9 @@ test.describe('设备 ID 生命周期', { tag: '@risk' }, () => {
 
     // 负对照：闸已存在时再打一次，不应重发 DEVICE_ID（证明「重发」确实由这个键控制）
     const control = await client.rawFetch('GET', SystemEndpointRoutes.USER_ME_PROFILE)
-    const controlCookies = control.headers.getSetCookie().filter(value => value.startsWith(`${DEVICE_COOKIE_NAME}=`))
+    const controlCookies = control.headers
+      .getSetCookie()
+      .filter((value) => value.startsWith(`${DEVICE_COOKIE_NAME}=`))
     expect(controlCookies, '续期闸存在时仍重发了 DEVICE_ID —— 滑动续期的判据失效').toHaveLength(0)
 
     await session.context.close()
@@ -433,9 +524,16 @@ test.describe('设备 ID 生命周期', { tag: '@risk' }, () => {
         await root.client.root('PATCH', `${SystemRoutes.DEVICE}/${uuid}/ban`)
         await victim.page.reload()
 
-        const banned = await waitForEnvelope(captured.entries, entry => entry.code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_BANNED, 40_000)
+        const banned = await waitForEnvelope(
+          captured.entries,
+          (entry) => entry.code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_BANNED,
+          40_000,
+        )
         expect(banned.code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_BANNED)
-        await victim.page.waitForURL(url => url.pathname === '/not-allowed' && url.search.includes('type=deviceBanned'), { timeout: 30_000 })
+        await victim.page.waitForURL(
+          (url) => url.pathname === '/not-allowed' && url.search.includes('type=deviceBanned'),
+          { timeout: 30_000 },
+        )
         expect(victim.page.url()).toContain('type=deviceBanned')
 
         await withPg(async (pg) => {
@@ -452,9 +550,16 @@ test.describe('设备 ID 生命周期', { tag: '@risk' }, () => {
         // 也就不会有新的 40606。回首页重新走一次应用引导，让受保护请求去撞 DeviceGuard。
         await victim.page.goto('/')
 
-        const locked = await waitForEnvelope(captured.entries, entry => entry.code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_LOCKED, 40_000)
+        const locked = await waitForEnvelope(
+          captured.entries,
+          (entry) => entry.code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_LOCKED,
+          40_000,
+        )
         expect(locked.code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_LOCKED)
-        await victim.page.waitForURL(url => url.pathname === '/not-allowed' && url.search.includes('type=deviceLocked'), { timeout: 30_000 })
+        await victim.page.waitForURL(
+          (url) => url.pathname === '/not-allowed' && url.search.includes('type=deviceLocked'),
+          { timeout: 30_000 },
+        )
         expect(victim.page.url()).toContain('type=deviceLocked')
 
         await withPg(async (pg) => {
@@ -463,52 +568,67 @@ test.describe('设备 ID 生命周期', { tag: '@risk' }, () => {
           expect(row?.banned).toBe(false)
         })
       })
-    }
-    finally {
+    } finally {
       captured.stop()
       await victim.context.close()
     }
   })
 
-  test('回填 created_at=1h → 重登触发 DEVICE_NEW critical 因子的 CAP', { tag: '@slow' }, async ({ browser }) => {
-    // 一次协议登录 + 一次 UI 登录（CAP PoW + TOTP），距 120s 默认上限的余量仍然不大
-    test.slow()
-    const seeded = await seedLoggedInDevice(HOUR_MS)
-    const context = await contextOnSeededDevice(browser, seeded)
+  test(
+    '回填 created_at=1h → 重登触发 DEVICE_NEW critical 因子的 CAP',
+    { tag: '@slow' },
+    async ({ browser }) => {
+      // 一次协议登录 + 一次 UI 登录（CAP PoW + TOTP），距 120s 默认上限的余量仍然不大
+      test.slow()
+      const seeded = await seedLoggedInDevice(HOUR_MS)
+      const context = await contextOnSeededDevice(browser, seeded)
 
-    try {
-      const page = await context.newPage()
-      const result = await loginViaUI(page)
-      expect(result.capSolved, 'DEVICE_NEW（1 小时内新设备）应触发 cap-widget').toBe(true)
-      // 注入失败时 UI 登录会自愈成另一台新设备 —— 那时的 CAP 证明不了「预置设备」这条路径
-      expect(await resolveDeviceId(page), 'cookie 注入后 UI 登录应沿用预置设备').toBe(seeded.deviceId)
+      try {
+        const page = await context.newPage()
+        const result = await loginViaUI(page)
+        expect(result.capSolved, 'DEVICE_NEW（1 小时内新设备）应触发 cap-widget').toBe(true)
+        // 注入失败时 UI 登录会自愈成另一台新设备 —— 那时的 CAP 证明不了「预置设备」这条路径
+        expect(await resolveDeviceId(page), 'cookie 注入后 UI 登录应沿用预置设备').toBe(
+          seeded.deviceId,
+        )
 
-      const risk = await withRedis(async redis => readRiskDevice(redis, seeded.deviceId))
-      expect(risk?.factors ?? [], `风险因子应含 DEVICE_NEW，实际 ${JSON.stringify(risk?.factors)}`).toContain('DEVICE_NEW')
-    }
-    finally {
-      await context.close()
-    }
-  })
+        const risk = await withRedis(async (redis) => readRiskDevice(redis, seeded.deviceId))
+        expect(
+          risk?.factors ?? [],
+          `风险因子应含 DEVICE_NEW，实际 ${JSON.stringify(risk?.factors)}`,
+        ).toContain('DEVICE_NEW')
+      } finally {
+        await context.close()
+      }
+    },
+  )
 
-  test('回填 created_at=3d → 重登触发 DEVICE_RECENT critical 因子的 CAP', { tag: '@slow' }, async ({ browser }) => {
-    // 一次协议登录 + 一次 UI 登录（CAP PoW + TOTP），距 120s 默认上限的余量仍然不大
-    test.slow()
-    const seeded = await seedLoggedInDevice(3 * DAY_MS)
-    const context = await contextOnSeededDevice(browser, seeded)
+  test(
+    '回填 created_at=3d → 重登触发 DEVICE_RECENT critical 因子的 CAP',
+    { tag: '@slow' },
+    async ({ browser }) => {
+      // 一次协议登录 + 一次 UI 登录（CAP PoW + TOTP），距 120s 默认上限的余量仍然不大
+      test.slow()
+      const seeded = await seedLoggedInDevice(3 * DAY_MS)
+      const context = await contextOnSeededDevice(browser, seeded)
 
-    try {
-      const page = await context.newPage()
-      const result = await loginViaUI(page)
-      expect(result.capSolved, 'DEVICE_RECENT（3 天前设备）应触发 cap-widget').toBe(true)
-      // 注入失败时 UI 登录会自愈成另一台新设备 —— 那台设备会带 DEVICE_NEW，测不到 RECENT
-      expect(await resolveDeviceId(page), 'cookie 注入后 UI 登录应沿用预置设备').toBe(seeded.deviceId)
+      try {
+        const page = await context.newPage()
+        const result = await loginViaUI(page)
+        expect(result.capSolved, 'DEVICE_RECENT（3 天前设备）应触发 cap-widget').toBe(true)
+        // 注入失败时 UI 登录会自愈成另一台新设备 —— 那台设备会带 DEVICE_NEW，测不到 RECENT
+        expect(await resolveDeviceId(page), 'cookie 注入后 UI 登录应沿用预置设备').toBe(
+          seeded.deviceId,
+        )
 
-      const risk = await withRedis(async redis => readRiskDevice(redis, seeded.deviceId))
-      expect(risk?.factors ?? [], `风险因子应含 DEVICE_RECENT，实际 ${JSON.stringify(risk?.factors)}`).toContain('DEVICE_RECENT')
-    }
-    finally {
-      await context.close()
-    }
-  })
+        const risk = await withRedis(async (redis) => readRiskDevice(redis, seeded.deviceId))
+        expect(
+          risk?.factors ?? [],
+          `风险因子应含 DEVICE_RECENT，实际 ${JSON.stringify(risk?.factors)}`,
+        ).toContain('DEVICE_RECENT')
+      } finally {
+        await context.close()
+      }
+    },
+  )
 })

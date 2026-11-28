@@ -50,7 +50,6 @@ describe('isWorkspacePackageDir —— 与 pnpm-workspace.yaml 的 packages 字�
       'tooling/scripts/nested', // 嵌套目录不是包目录
       'docs', // 顶层非组目录
     ]
-    for (const dir of rejected)
-      expect(isWorkspacePackageDir(dir), dir).toBe(false)
+    for (const dir of rejected) expect(isWorkspacePackageDir(dir), dir).toBe(false)
   })
 })

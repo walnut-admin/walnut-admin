@@ -13,7 +13,9 @@ export const WalnutAdminConstSysUserIdentityType = {
   PASSWORD: 'password',
 } as const
 
-export type IWalnutAdminConstSysUserIdentityType = ValueOf<typeof WalnutAdminConstSysUserIdentityType>
+export type IWalnutAdminConstSysUserIdentityType = ValueOf<
+  typeof WalnutAdminConstSysUserIdentityType
+>
 
 // Identity purpose constants
 export const WalnutAdminConstSysUserIdentityPurpose = {
@@ -21,4 +23,6 @@ export const WalnutAdminConstSysUserIdentityPurpose = {
   SECURITY: 'security',
 } as const
 
-export type IWalnutAdminConstSysUserIdentityPurpose = ValueOf<typeof WalnutAdminConstSysUserIdentityPurpose>
+export type IWalnutAdminConstSysUserIdentityPurpose = ValueOf<
+  typeof WalnutAdminConstSysUserIdentityPurpose
+>

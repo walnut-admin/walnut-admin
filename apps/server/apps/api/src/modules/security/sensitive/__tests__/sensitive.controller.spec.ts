@@ -4,7 +4,12 @@ import { DiscoveryModule } from '@nestjs/core'
 import { Test } from '@nestjs/testing'
 import { getDataSourceToken } from '@nestjs/typeorm'
 import { WalnutPGConnectionName } from '@walnut-server/db'
-import { SecuritySensitiveCheckResponseDTO, SecuritySensitiveService, WalnutAdminConstSecurityLevel, WalnutAdminConstSecuritySensitiveType } from '@walnut-server/security'
+import {
+  SecuritySensitiveCheckResponseDTO,
+  SecuritySensitiveService,
+  WalnutAdminConstSecurityLevel,
+  WalnutAdminConstSecuritySensitiveType,
+} from '@walnut-server/security'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createSwaggerDocument } from '@/common/swagger/swagger.document'
 import { SecuritySensitiveController } from '../sensitive.controller'
@@ -38,7 +43,8 @@ describe('security/sensitive swagger 声明（F-07）', () => {
     await app.init()
 
     document = createSwaggerDocument(app)
-    parameters = (document.paths['/security/sensitive/check']?.get?.parameters ?? []) as ParameterObject[]
+    parameters = (document.paths['/security/sensitive/check']?.get?.parameters ??
+      []) as ParameterObject[]
   })
 
   afterAll(async () => {
@@ -47,7 +53,7 @@ describe('security/sensitive swagger 声明（F-07）', () => {
   })
 
   function queryParameter(name: string) {
-    const found = parameters.find(parameter => parameter.name === name)
+    const found = parameters.find((parameter) => parameter.name === name)
     expect(found, `query parameter ${name}`).toBeDefined()
 
     return found!
@@ -58,7 +64,9 @@ describe('security/sensitive swagger 声明（F-07）', () => {
 
     expect(level.in).toBe('query')
     expect(level.required).toBe(true)
-    expect((level.schema as SchemaObject).enum).toEqual(Object.values(WalnutAdminConstSecurityLevel))
+    expect((level.schema as SchemaObject).enum).toEqual(
+      Object.values(WalnutAdminConstSecurityLevel),
+    )
   })
 
   it('type 是可选 query 枚举（与实现一致：不传也能调）', () => {
@@ -66,7 +74,9 @@ describe('security/sensitive swagger 声明（F-07）', () => {
 
     expect(operationType.in).toBe('query')
     expect(operationType.required).toBe(false)
-    expect((operationType.schema as SchemaObject).enum).toEqual(Object.values(WalnutAdminConstSecuritySensitiveType))
+    expect((operationType.schema as SchemaObject).enum).toEqual(
+      Object.values(WalnutAdminConstSecuritySensitiveType),
+    )
   })
 
   it('200 响应是项目壳 + SecuritySensitiveCheckResponseDTO（handler 本就 plainToInstance 它）', () => {
@@ -78,10 +88,14 @@ describe('security/sensitive swagger 声明（F-07）', () => {
     expect(Object.keys(responses)).toEqual(['200'])
 
     const responseSchema = responses['200'].content?.['application/json']?.schema as SchemaObject
-    const properties = (responseSchema.allOf as SchemaObject[])[0].properties as Record<string, SchemaObject>
+    const properties = (responseSchema.allOf as SchemaObject[])[0].properties as Record<
+      string,
+      SchemaObject
+    >
 
-    expect((properties.data as { $ref?: string }).$ref)
-      .toBe(`#/components/schemas/${SecuritySensitiveCheckResponseDTO.name}`)
+    expect((properties.data as { $ref?: string }).$ref).toBe(
+      `#/components/schemas/${SecuritySensitiveCheckResponseDTO.name}`,
+    )
     expect(document.components?.schemas?.[SecuritySensitiveCheckResponseDTO.name]).toBeDefined()
   })
 

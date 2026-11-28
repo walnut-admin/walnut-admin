@@ -36,7 +36,10 @@ interface IPreferenceShape {
 /** AT 的有效期与 sid 只读解码（不验签，测试侧定位会话） */
 function decodeJwtPayload(token: string): Record<string, unknown> {
   const payloadPart = token.split('.')[1]
-  return JSON.parse(Buffer.from(payloadPart, 'base64url').toString('utf8')) as Record<string, unknown>
+  return JSON.parse(Buffer.from(payloadPart, 'base64url').toString('utf8')) as Record<
+    string,
+    unknown
+  >
 }
 
 describe('JWT 守卫：Optional / Free / RT 轮换（真实 HTTP 全链）', () => {
@@ -71,13 +74,17 @@ describe('JWT 守卫：Optional / Free / RT 轮换（真实 HTTP 全链）', () 
     await api.seedMfaVerifiedCache(fixture.userId)
 
     // 偏好改成非默认值：匿名默认 zh_CN，本人是 en_US —— 降级与否一眼可辨
-    const patch = await api.root('PATCH', api.apiPath('/system/user/preference/basic'), { locale: 'en_US' })
+    const patch = await api.root('PATCH', api.apiPath('/system/user/preference/basic'), {
+      locale: 'en_US',
+    })
     expectOk(patch, 'preference basic patch')
   })
 
   afterAll(async () => {
     if (api !== undefined && fixture !== null) {
-      await api.pgDataSource.query('DELETE FROM sys_user_preference WHERE user_id = $1', [fixture.userId])
+      await api.pgDataSource.query('DELETE FROM sys_user_preference WHERE user_id = $1', [
+        fixture.userId,
+      ])
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
       await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [api.deviceId])
@@ -87,7 +94,9 @@ describe('JWT 守卫：Optional / Free / RT 轮换（真实 HTTP 全链）', () 
   })
 
   /** 服务端密钥重签同一 payload（`expiresIn: '-10s'` 造过期令牌 / 换 secret 造坏签名） */
-  async function resignValidAt(options: { secret?: string, expired?: boolean } = {}): Promise<string> {
+  async function resignValidAt(
+    options: { secret?: string; expired?: boolean } = {},
+  ): Promise<string> {
     const jwtService = app.get(JwtService)
     const { iat: _iat, exp: _exp, ...payload } = jwtService.decode<Record<string, unknown>>(validAt)
     return jwtService.signAsync(payload, {
@@ -154,7 +163,9 @@ describe('JWT 守卫：Optional / Free / RT 轮换（真实 HTTP 全链）', () 
       const guardedRes = await api.unsigned('GET', api.apiPath(PROTECTED_PATH), undefined, {
         Authorization: `Bearer ${expired}`,
       })
-      expect(bodyOf(guardedRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+      expect(bodyOf(guardedRes).code).toBe(
+        WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
+      )
     })
 
     it('正对照：非 JWT 串 AT 打受保护端点 ⇒ 40101（「坏」不是被解析成了匿名身份）', async () => {
@@ -162,7 +173,9 @@ describe('JWT 守卫：Optional / Free / RT 轮换（真实 HTTP 全链）', () 
         Authorization: 'Bearer not-a-jwt-at-all',
       })
 
-      expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+      expect(bodyOf(res).code).toBe(
+        WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
+      )
     })
   })
 
@@ -235,7 +248,9 @@ describe('JWT 守卫：Optional / Free / RT 轮换（真实 HTTP 全链）', () 
 
       api.setCookie(WalnutAdminConstCookieKeys.RT_JTI, rotatedOutCookie)
       const replay = await api.anon('POST', api.apiPath('/auth/refresh'))
-      expect(bodyOf(replay).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_REFRESH_TOKEN_EXPIRED)
+      expect(bodyOf(replay).code).toBe(
+        WalnutAdminConstAppResponseCode.UNAUTHORIZED_REFRESH_TOKEN_EXPIRED,
+      )
 
       // jar 还原现役 jti：轮换不连带把客户端锁死
       api.setCookie(WalnutAdminConstCookieKeys.RT_JTI, currentCookie)

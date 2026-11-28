@@ -54,7 +54,6 @@ const [register] = useForm<typeof appStoreSettingDev.app>({
         precision: 2,
       },
     },
-
   ],
 })
 </script>

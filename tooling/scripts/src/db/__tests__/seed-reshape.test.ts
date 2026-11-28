@@ -11,7 +11,15 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { REPO_ROOT } from '../../lib/repo-root.ts'
-import { JUNCTION_SPECS, JUNCTION_TABLES, reshapeCollection, ROW_SPECS, SEED_TABLES, stringifySeedRows, toSeedValue } from '../seed-reshape.ts'
+import {
+  JUNCTION_SPECS,
+  JUNCTION_TABLES,
+  reshapeCollection,
+  ROW_SPECS,
+  SEED_TABLES,
+  stringifySeedRows,
+  toSeedValue,
+} from '../seed-reshape.ts'
 
 const TS = '2020-11-24T13:54:44.222Z'
 const USER_ID = '404d0cbd-1328-58e5-a5a7-e9f5de7c0895'
@@ -45,7 +53,10 @@ describe('值转换', () => {
   })
 
   it('对象/数组递归转换，标量与 null 原样', () => {
-    expect(toSeedValue({ a: new Date(TS), b: [1, null, 'x'] }, 'x')).toEqual({ a: TS, b: [1, null, 'x'] })
+    expect(toSeedValue({ a: new Date(TS), b: [1, null, 'x'] }, 'x')).toEqual({
+      a: TS,
+      b: [1, null, 'x'],
+    })
     expect(toSeedValue(null, 'x')).toBeNull()
     expect(toSeedValue(3, 'x')).toBe(3)
   })
@@ -97,15 +108,21 @@ describe('reshapeCollection —— sys_user', () => {
   })
 
   it('id 不是 uuid → 抛（钉住「导出通道输出的已是 uuid 本体」这条前提）', () => {
-    expect(() => reshapeCollection('sys_user', [userDoc({ _id: '5fc8e3cd0144eb274c1c9780' })])).toThrow(/必须是 uuid/)
+    expect(() =>
+      reshapeCollection('sys_user', [userDoc({ _id: '5fc8e3cd0144eb274c1c9780' })]),
+    ).toThrow(/必须是 uuid/)
   })
 
   it('引用不是 uuid → 抛（junction 行不能带 hex 历史 id）', () => {
-    expect(() => reshapeCollection('sys_user', [userDoc({ roles: ['5fc8e3cd0144eb274c1c9780'] })])).toThrow(/不是 uuid/)
+    expect(() =>
+      reshapeCollection('sys_user', [userDoc({ roles: ['5fc8e3cd0144eb274c1c9780'] })]),
+    ).toThrow(/不是 uuid/)
   })
 
   it('文档里出现未消费的键 → 抛（导出器加了字段而字段表没跟）', () => {
-    expect(() => reshapeCollection('sys_user', [userDoc({ someNewField: 1 })])).toThrow(/未消费的键：someNewField/)
+    expect(() => reshapeCollection('sys_user', [userDoc({ someNewField: 1 })])).toThrow(
+      /未消费的键：someNewField/,
+    )
   })
 })
 
@@ -173,17 +190,19 @@ describe('reshapeCollection —— sys_menu（meta 拍平）', () => {
 
 describe('reshapeCollection —— sys_role', () => {
   it('menus 拆成 sys_role_menu 行（列序 role_id, menu_id）', () => {
-    const { rows, junctions } = reshapeCollection('sys_role', [{
-      _id: ROLE_ID,
-      roleName: 'visitor',
-      description: null,
-      order: 2,
-      menus: [MENU_ID],
-      status: true,
-      dataScope: 5,
-      createdAt: new Date(TS),
-      updatedAt: new Date(TS),
-    }])
+    const { rows, junctions } = reshapeCollection('sys_role', [
+      {
+        _id: ROLE_ID,
+        roleName: 'visitor',
+        description: null,
+        order: 2,
+        menus: [MENU_ID],
+        status: true,
+        dataScope: 5,
+        createdAt: new Date(TS),
+        updatedAt: new Date(TS),
+      },
+    ])
     expect(rows[0].role_name).toBe('visitor')
     expect(rows[0].sort_order).toBe(2)
     expect(rows[0].data_scope).toBe(5)
@@ -240,7 +259,10 @@ describe('仓内 seed 文件（真源形态）', () => {
 
   it('junction 文件是复合主键行（没有 id 列）', () => {
     for (const table of JUNCTION_TABLES) {
-      const rows = JSON.parse(readFileSync(join(seedDir, `${table}.json`), 'utf8')) as Record<string, unknown>[]
+      const rows = JSON.parse(readFileSync(join(seedDir, `${table}.json`), 'utf8')) as Record<
+        string,
+        unknown
+      >[]
       expect(rows.length, table).toBeGreaterThan(0)
       expect(rows[0], table).not.toHaveProperty('id')
     }

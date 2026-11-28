@@ -21,202 +21,210 @@ const keyField = 'key'
 
 const { t } = useAppI18n()
 
-const [
-  register,
-  { onReadAndOpenUpdateForm, onDeleteConfirm, onApiList },
-] = useCRUD<AppMonitorCache>({
-  baseAPI: monitorCacheAPI,
+const [register, { onReadAndOpenUpdateForm, onDeleteConfirm, onApiList }] =
+  useCRUD<AppMonitorCache>({
+    baseAPI: monitorCacheAPI,
 
-  tableProps: {
-    localeUniqueKey: localeKey,
-    rowKey: row => row[keyField]!,
-    striped: true,
-    bordered: true,
-    singleLine: false,
-
-    polling: 10000,
-
-    // clear default built in actions
-    headerLeftBuiltInActions: [],
-
-    headerLeftExtraActions: [
-      {
-        textProp: () => t('app.cache.clear'),
-        type: 'error',
-        icon: 'ant-design:delete-outlined',
-        onClick: async () => {
-          const { confirmed } = await useAppConfirm(t('app.cache.clear.confirm'))
-
-          if (confirmed) {
-            await monitorCacheAPI.clear()
-            useAppMsgSuccess()
-            await onApiList()
-          }
-        },
-      },
-    ],
-
-    auths: {
-      list: `app:monitor:${authKey}:list`,
-      read: `app:monitor:${authKey}:read`,
-      delete: `app:monitor:${authKey}:delete`,
-    },
-
-    queryFormProps: {
+    tableProps: {
       localeUniqueKey: localeKey,
-      localeWithTable: true,
-      span: 6,
-      showFeedback: false,
-      labelWidth: 100,
-      schemas: [
+      rowKey: (row) => row[keyField]!,
+      striped: true,
+      bordered: true,
+      singleLine: false,
+
+      polling: 10000,
+
+      // clear default built in actions
+      headerLeftBuiltInActions: [],
+
+      headerLeftExtraActions: [
         {
-          type: 'Base:Input',
-          formProp: {
-            path: 'key',
+          textProp: () => t('app.cache.clear'),
+          type: 'error',
+          icon: 'ant-design:delete-outlined',
+          onClick: async () => {
+            const { confirmed } = await useAppConfirm(t('app.cache.clear.confirm'))
+
+            if (confirmed) {
+              await monitorCacheAPI.clear()
+              useAppMsgSuccess()
+              await onApiList()
+            }
           },
-          componentProp: {
-            clearable: true,
-            onKeyupEnter() {
-              onApiList()
+        },
+      ],
+
+      auths: {
+        list: `app:monitor:${authKey}:list`,
+        read: `app:monitor:${authKey}:read`,
+        delete: `app:monitor:${authKey}:delete`,
+      },
+
+      queryFormProps: {
+        localeUniqueKey: localeKey,
+        localeWithTable: true,
+        span: 6,
+        showFeedback: false,
+        labelWidth: 100,
+        schemas: [
+          {
+            type: 'Base:Input',
+            formProp: {
+              path: 'key',
+            },
+            componentProp: {
+              clearable: true,
+              onKeyupEnter() {
+                onApiList()
+              },
+            },
+          },
+
+          {
+            type: 'Extend:Query',
+          },
+        ],
+      },
+
+      // table columns
+      columns: [
+        {
+          key: 'index',
+          extendType: 'index',
+          fixed: 'left',
+        },
+
+        {
+          key: 'key',
+          minWidth: 250,
+          sorter: {
+            multiple: 1,
+            compare: 'default',
+          },
+          ellipsis: {
+            tooltip: {
+              contentStyle: {
+                maxWidth: '800px',
+                maxHeight: '70vh',
+              },
             },
           },
         },
 
         {
-          type: 'Extend:Query',
+          key: 'type',
+          width: 250,
+          extendType: 'dict',
+          dictType: 'app_cache_type',
+          filter: true,
+          useDictNameAsTitle: true,
+        },
+
+        {
+          key: 'valueBytes',
+          width: 140,
+          sorter: {
+            multiple: 2,
+            compare: 'default',
+          },
+        },
+
+        {
+          key: 'expire',
+          width: 120,
+          sorter: {
+            multiple: 3,
+            compare: 'default',
+          },
+        },
+
+        {
+          key: 'startTime',
+          width: 200,
+          sorter: {
+            multiple: 4,
+            compare: 'default',
+          },
+        },
+
+        {
+          key: 'expireTime',
+          width: 200,
+          sorter: {
+            multiple: 5,
+            compare: 'default',
+          },
+        },
+
+        {
+          key: 'action',
+          width: 160,
+          extendType: 'action',
+          fixed: 'right',
+          columnBuiltInActions: [
+            {
+              _builtInType: 'detail',
+              async onPresetClick(rowData) {
+                await onReadAndOpenUpdateForm(rowData[keyField]!)
+              },
+            },
+            {
+              _builtInType: 'delete',
+              _disabled(rowData) {
+                return [
+                  'built-in',
+                  'auth-permissions',
+                  'verify-code',
+                  'sys-device-id-list',
+                ].includes(rowData.type!)
+              },
+              async onPresetClick(rowData) {
+                await onDeleteConfirm(rowData[keyField]!)
+              },
+            },
+          ],
         },
       ],
     },
 
-    // table columns
-    columns: [
-      {
-        key: 'index',
-        extendType: 'index',
-        fixed: 'left',
+    formProps: {
+      localeUniqueKey: localeKey,
+      localeWithTable: true,
+      dialogPreset: 'drawer',
+      labelWidth: 0,
+      xGap: 0,
+
+      dialogProps: {
+        defaultButton: false,
+        width: '40%',
+        closable: true,
+        autoFocus: false,
+        actionType: 'detail',
       },
 
-      {
-        key: 'key',
-        minWidth: 250,
-        sorter: {
-          multiple: 1,
-          compare: 'default',
-        },
-        ellipsis: {
-          tooltip: {
-            contentStyle: {
-              maxWidth: '800px',
-              maxHeight: '70vh',
+      schemas: [
+        {
+          type: 'Base:Render',
+          formProp: {
+            path: 'data',
+            showLabel: false,
+          },
+          componentProp: {
+            render({ formData }) {
+              // read 端点（/app/monitor/cache/{key}）返回 { value }，与 list 行（AppMonitorCache）不同形
+              // （server 无独立 schema，见 DESIGN-ISSUES）；CRUD 把 read 响应装进 formData，按事实取 value
+              return (
+                <WJSON
+                  height="100%"
+                  value={(formData as unknown as { value: string }).value}
+                ></WJSON>
+              )
             },
           },
         },
-      },
-
-      {
-        key: 'type',
-        width: 250,
-        extendType: 'dict',
-        dictType: 'app_cache_type',
-        filter: true,
-        useDictNameAsTitle: true,
-      },
-
-      {
-        key: 'valueBytes',
-        width: 140,
-        sorter: {
-          multiple: 2,
-          compare: 'default',
-        },
-      },
-
-      {
-        key: 'expire',
-        width: 120,
-        sorter: {
-          multiple: 3,
-          compare: 'default',
-        },
-      },
-
-      {
-        key: 'startTime',
-        width: 200,
-        sorter: {
-          multiple: 4,
-          compare: 'default',
-        },
-      },
-
-      {
-        key: 'expireTime',
-        width: 200,
-        sorter: {
-          multiple: 5,
-          compare: 'default',
-        },
-      },
-
-      {
-        key: 'action',
-        width: 160,
-        extendType: 'action',
-        fixed: 'right',
-        columnBuiltInActions: [
-          {
-            _builtInType: 'detail',
-            async onPresetClick(rowData) {
-              await onReadAndOpenUpdateForm(rowData[keyField]!)
-            },
-          },
-          {
-            _builtInType: 'delete',
-            _disabled(rowData) {
-              return ['built-in', 'auth-permissions', 'verify-code', 'sys-device-id-list'].includes(rowData.type!)
-            },
-            async onPresetClick(rowData) {
-              await onDeleteConfirm(rowData[keyField]!)
-            },
-          },
-        ],
-      },
-    ],
-  },
-
-  formProps: {
-    localeUniqueKey: localeKey,
-    localeWithTable: true,
-    dialogPreset: 'drawer',
-    labelWidth: 0,
-    xGap: 0,
-
-    dialogProps: {
-      defaultButton: false,
-      width: '40%',
-      closable: true,
-      autoFocus: false,
-      actionType: 'detail',
+      ],
     },
-
-    schemas: [
-      {
-        type: 'Base:Render',
-        formProp: {
-          path: 'data',
-          showLabel: false,
-        },
-        componentProp: {
-          render({ formData }) {
-            // read 端点（/app/monitor/cache/{key}）返回 { value }，与 list 行（AppMonitorCache）不同形
-            // （server 无独立 schema，见 DESIGN-ISSUES）；CRUD 把 read 响应装进 formData，按事实取 value
-            return <WJSON height="100%" value={(formData as unknown as { value: string }).value}></WJSON>
-          },
-        },
-      },
-    ],
-  },
-})
+  })
 </script>
 
 <template>

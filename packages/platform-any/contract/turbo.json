@@ -1,4 +1,15 @@
 {
   "extends": ["//"],
-  "tags": ["shared", "pure", "platform-any"]
+  "tags": ["shared", "pure", "platform-any"],
+  // `test` 脚本自己是 `pnpm run build && vitest run`（要验 dist 的导出），而根 turbo 的 `test`
+  // 只挂 `^build` —— contract 自己的 `build` 由**别的包**的 `^build` 触发，两条 task 于是在同一份
+  // `dist/` 上并发写：tsdown 的「Cleaning 38 files」会落在对方 `build-barrel.ts` 的 readdir 之间，
+  // 症状是 `ENOENT ... scandir '...\contract\dist'`、只在这个包红一次、单独复跑必过
+  // （2026-11-28 冷缓存 `--force` 实测命中一次）。
+  // 这里把自家的 `build` 显式串进来：数组是**整键替换**不是追加，所以 `^build` 必须一起写。
+  "tasks": {
+    "test": {
+      "dependsOn": ["^build", "build"]
+    }
+  }
 }

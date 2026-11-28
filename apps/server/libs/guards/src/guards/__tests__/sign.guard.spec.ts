@@ -40,13 +40,18 @@ interface CreateGuardOptions {
   nonceRecorded?: boolean
 }
 
-function createGuard(options: CreateGuardOptions = {}): { guard: WalnutAdminGuardSign, mocks: SignGuardMocks } {
+function createGuard(options: CreateGuardOptions = {}): {
+  guard: WalnutAdminGuardSign
+  mocks: SignGuardMocks
+} {
   const mocks: SignGuardMocks = {
     getSignTicketCache: vi.fn(async () => options.signTicketCache ?? null),
     setSignTicketCache: vi.fn(async () => undefined),
-    getAesKeyCache: vi.fn(async () => options.aesKey === undefined ? AES_KEY : options.aesKey),
+    getAesKeyCache: vi.fn(async () => (options.aesKey === undefined ? AES_KEY : options.aesKey)),
     setNonceCache: vi.fn(async () => options.nonceRecorded ?? true),
-    deriveApiSignKey: vi.fn(async () => options.deriveKey === undefined ? Buffer.alloc(32, 7) : options.deriveKey),
+    deriveApiSignKey: vi.fn(async () =>
+      options.deriveKey === undefined ? Buffer.alloc(32, 7) : options.deriveKey,
+    ),
     runWithLock: vi.fn(async (_key: string, _ttl: number, fn: () => Promise<unknown>) => fn()),
   }
 
@@ -54,7 +59,7 @@ function createGuard(options: CreateGuardOptions = {}): { guard: WalnutAdminGuar
   const cookieService = { setResponseCookie: vi.fn() }
   const cacheRsaService = { getRsaPubKeyCache: vi.fn(async () => 'rsa-pub-key') }
   const configService = {
-    get: (key: string) => key === 'app.api.prefix' ? 'w' : 'v1',
+    get: (key: string) => (key === 'app.api.prefix' ? 'w' : 'v1'),
   }
   const tokenService = { getAccessTokenExpireSeconds: () => 3600 }
 
@@ -85,7 +90,7 @@ interface RequestOptions {
   ua?: string
   /** false = cookie jar 里没有 SIGN_TICKET */
   signTicketCookie?: boolean
-  user?: { userId: string, sid: string } | null
+  user?: { userId: string; sid: string } | null
 }
 
 function createContext(options: RequestOptions = {}): ExecutionContext {
@@ -129,33 +134,33 @@ describe('sign guard G3：拒绝分支（头/时间戳/ticket/AES/timing-safe）
   it('缺 X-Sign 头 → 40112 InvalidSignature（extractRequestMetadata 先拦）', async () => {
     const { guard } = createGuard()
 
-    await expect(guard.canActivate(createContext({ sign: false })))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionInvalidSignature)
+    await expect(guard.canActivate(createContext({ sign: false }))).rejects.toBeInstanceOf(
+      WalnutAdminExceptionInvalidSignature,
+    )
   })
 
   it('时间戳非数字（X-Timestamp）→ 40112（Number.isFinite 判定先于时间窗）', async () => {
     const { guard } = createGuard()
 
-    await expect(guard.canActivate(createContext({ timestamp: 'g3-not-a-number' })))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionInvalidSignature)
+    await expect(
+      guard.canActivate(createContext({ timestamp: 'g3-not-a-number' })),
+    ).rejects.toBeInstanceOf(WalnutAdminExceptionInvalidSignature)
   })
 
   it('ticket cookie 与缓存不一致 → 40112', async () => {
     const { guard } = createGuard({ signTicketCache: 'cached-ticket' })
 
-    await expect(guard.canActivate(createContext()))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionInvalidSignature)
+    await expect(guard.canActivate(createContext())).rejects.toBeInstanceOf(
+      WalnutAdminExceptionInvalidSignature,
+    )
   })
 
   it('aes key 缓存缺失（含 ticket 自动补发路径）→ 40113 ExpiredSignature', async () => {
     const { guard, mocks } = createGuard({ signTicketCache: null, aesKey: null })
 
-    await expect(guard.canActivate(createContext({ signTicketCookie: false })))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionExpiredSignature)
+    await expect(
+      guard.canActivate(createContext({ signTicketCookie: false })),
+    ).rejects.toBeInstanceOf(WalnutAdminExceptionExpiredSignature)
 
     // ticket 缓存缺失走分布式锁生成新票（真实路径），随后才在 AES key 处失败
     expect(mocks.runWithLock).toHaveBeenCalledTimes(1)
@@ -170,9 +175,9 @@ describe('sign guard G3：拒绝分支（头/时间戳/ticket/AES/timing-safe）
     const request = context.switchToHttp().getRequest<{ headers: Record<string, string> }>()
     request.headers[RequestHeaders.SIGN.toLowerCase()] = 'deadbeef'
 
-    await expect(guard.canActivate(context))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionInvalidSignature)
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(
+      WalnutAdminExceptionInvalidSignature,
+    )
   })
 })
 
@@ -183,9 +188,13 @@ describe('sign guard G4：已登录双因子派生失败不降级（P0-2）', ()
       deriveKey: null,
     })
 
-    await expect(guard.canActivate(createContext({
-      user: { userId: 'g4-user', sid: 'g4-sid' },
-    }))).rejects.toBeInstanceOf(WalnutAdminExceptionInvalidSignature)
+    await expect(
+      guard.canActivate(
+        createContext({
+          user: { userId: 'g4-user', sid: 'g4-sid' },
+        }),
+      ),
+    ).rejects.toBeInstanceOf(WalnutAdminExceptionInvalidSignature)
 
     expect(mocks.deriveApiSignKey).toHaveBeenCalledWith('g4-user', DEVICE_ID, 'g4-sid', AES_KEY)
   })
@@ -197,9 +206,9 @@ describe('sign guard G4：已登录双因子派生失败不降级（P0-2）', ()
     })
 
     // 单因子签名与 mock 的 sign 头不匹配 → 40112，但派生腿未被调用即证明未走双因子
-    await expect(guard.canActivate(createContext()))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionInvalidSignature)
+    await expect(guard.canActivate(createContext())).rejects.toBeInstanceOf(
+      WalnutAdminExceptionInvalidSignature,
+    )
 
     expect(mocks.deriveApiSignKey).not.toHaveBeenCalled()
   })

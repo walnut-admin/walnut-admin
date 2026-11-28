@@ -89,9 +89,20 @@ function createHarness(opts: {
   const calls: IncrementCall[] = []
 
   const storage = {
-    increment: async (key: string, ttl: number, limit: number, blockDuration: number, name: string) => {
+    increment: async (
+      key: string,
+      ttl: number,
+      limit: number,
+      blockDuration: number,
+      name: string,
+    ) => {
       calls.push({ key, ttl, limit, blockDuration, name })
-      return { totalHits: 1, timeToExpire: Math.ceil(ttl / 1000), isBlocked: false, timeToBlockExpire: 0 }
+      return {
+        totalHits: 1,
+        timeToExpire: Math.ceil(ttl / 1000),
+        isBlocked: false,
+        timeToBlockExpire: 0,
+      }
     },
   }
 
@@ -136,13 +147,17 @@ async function runHandleRequest(harness: Harness): Promise<boolean> {
   })
 }
 
-function setupDynamic(
-  configure: (service: DynamicThrottleSettingService) => void,
-): { harness: Harness, service: DynamicThrottleSettingService, resolve: ReturnType<typeof vi.fn> } {
+function setupDynamic(configure: (service: DynamicThrottleSettingService) => void): {
+  harness: Harness
+  service: DynamicThrottleSettingService
+  resolve: ReturnType<typeof vi.fn>
+} {
   const service = new DynamicThrottleSettingService()
   configure(service)
 
-  const resolve = vi.fn((token: unknown) => (token === DynamicThrottleSettingService ? service : undefined))
+  const resolve = vi.fn((token: unknown) =>
+    token === DynamicThrottleSettingService ? service : undefined,
+  )
   const harness = createHarness({
     handler: handlerOf(DecoratedController),
     controller: DecoratedController,
@@ -165,7 +180,13 @@ describe('throttler guard：全局默认桶（无装饰器）', () => {
 
     expect(allowed).toBe(true)
     expect(harness.calls).toEqual([
-      { key: 'bucket-key', ttl: GLOBAL_TTL_MS, limit: GLOBAL_LIMIT, blockDuration: GLOBAL_TTL_MS, name: 'default' },
+      {
+        key: 'bucket-key',
+        ttl: GLOBAL_TTL_MS,
+        limit: GLOBAL_LIMIT,
+        blockDuration: GLOBAL_TTL_MS,
+        name: 'default',
+      },
     ])
     expect(resolve).not.toHaveBeenCalled()
   })
@@ -204,7 +225,11 @@ describe('throttler guard：装饰器动态覆盖（limit=4 / ttl=60s）', () =>
 
     await runHandleRequest(harness)
 
-    expect(harness.calls[0]).toMatchObject({ limit: 4, ttl: GLOBAL_TTL_MS, blockDuration: GLOBAL_TTL_MS })
+    expect(harness.calls[0]).toMatchObject({
+      limit: 4,
+      ttl: GLOBAL_TTL_MS,
+      blockDuration: GLOBAL_TTL_MS,
+    })
   })
 
   it('动态 limit = Infinity（类型错/配置坏）⇒ limit 退回全局 120，ttl/blockDuration 仍按动态 30s', async () => {
@@ -215,7 +240,11 @@ describe('throttler guard：装饰器动态覆盖（limit=4 / ttl=60s）', () =>
 
     await runHandleRequest(harness)
 
-    expect(harness.calls[0]).toMatchObject({ limit: GLOBAL_LIMIT, ttl: 30_000, blockDuration: 30_000 })
+    expect(harness.calls[0]).toMatchObject({
+      limit: GLOBAL_LIMIT,
+      ttl: 30_000,
+      blockDuration: 30_000,
+    })
   })
 
   it('容器里取不到被装饰的服务（moduleRef.get → undefined）⇒ 整段跳过、不抛，三个值保持全局', async () => {
@@ -246,9 +275,11 @@ describe('throttler guard：tracker 取 req.realIp', () => {
     })
 
     // 受保护方法：守卫把 tracker 从默认的 req.ip 改成 req.realIp（真实 IP 由 IpMiddleware 落）
-    const readTracker = (harness.guard as unknown as {
-      getTracker: (req: IWalnutAdminExpressRequest) => Promise<string>
-    }).getTracker.bind(harness.guard)
+    const readTracker = (
+      harness.guard as unknown as {
+        getTracker: (req: IWalnutAdminExpressRequest) => Promise<string>
+      }
+    ).getTracker.bind(harness.guard)
 
     const tracker = await readTracker({
       ip: '10.0.0.1',

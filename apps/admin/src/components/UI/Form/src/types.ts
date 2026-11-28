@@ -60,7 +60,23 @@ import type { ICompVendorJSONEditorProps } from '@/components/Vendor/JSONEditor'
 import type { ICompVendorTinymceProps } from '@/components/Vendor/Tinymce'
 import type { ValueOfAppConstTransitionName } from '@/const/transition'
 
-export declare type RuleType = 'string' | 'number' | 'boolean' | 'method' | 'regexp' | 'integer' | 'float' | 'array' | 'object' | 'enum' | 'date' | 'url' | 'hex' | 'email' | 'pattern' | 'any'
+export declare type RuleType =
+  | 'string'
+  | 'number'
+  | 'boolean'
+  | 'method'
+  | 'regexp'
+  | 'integer'
+  | 'float'
+  | 'array'
+  | 'object'
+  | 'enum'
+  | 'date'
+  | 'url'
+  | 'hex'
+  | 'email'
+  | 'pattern'
+  | 'any'
 
 export declare namespace WForm {
   type FormDialogPreset = 'modal' | 'drawer'
@@ -73,7 +89,10 @@ export declare namespace WForm {
 
   type FormVisibleMode = 'no-move' | 'auto-forward'
 
-  type FormScopeGlobalFields = 'transitionProp.transitionName' | 'visibleProp.visibleMode' | 'gridProp.span'
+  type FormScopeGlobalFields =
+    | 'transitionProp.transitionName'
+    | 'visibleProp.visibleMode'
+    | 'gridProp.span'
 
   type DefaultValue = BaseDataType | BaseDataType[] | undefined | null
 
@@ -82,7 +101,13 @@ export declare namespace WForm {
   /**
    * @description callback function
    */
-  type FormFnCallback<T = any, R = void> = ({ formData, formProps }: { formData: T, formProps?: Schema.SchemaItemFormProps<T> }) => R
+  type FormFnCallback<T = any, R = void> = ({
+    formData,
+    formProps,
+  }: {
+    formData: T
+    formProps?: Schema.SchemaItemFormProps<T>
+  }) => R
 
   /**
    * @description set table props
@@ -102,7 +127,6 @@ export declare namespace WForm {
 
     interface ExtendInst<T> {
       setProps: SetFormProps<T>
-
     }
 
     interface WFormInst<T> extends Omit<NFormInst, 'validate'>, DialogInst, ExtendInst<T> {
@@ -126,10 +150,7 @@ export declare namespace WForm {
 
       type Methods<T> = ICompUIFormHooksMethods<T> & Pick<Inst.WFormInst<T>, 'onOpen' | 'onClose'>
 
-      type ReturnType<T> = [
-        (instance: Inst.WFormInst<T>) => void,
-        Methods<T>,
-      ]
+      type ReturnType<T> = [(instance: Inst.WFormInst<T>) => void, Methods<T>]
     }
   }
 
@@ -184,9 +205,9 @@ export declare namespace WForm {
     /**
      * @description model/drawer props
      */
-    dialogProps?: (ICompUIModalProps | ICompUIDrawerProps)
-      & ICompUIModalProps & Partial<Pick<Inst.WFormInst<T>, 'onYes' | 'onNo'>> & {
-
+    dialogProps?: (ICompUIModalProps | ICompUIDrawerProps) &
+      ICompUIModalProps &
+      Partial<Pick<Inst.WFormInst<T>, 'onYes' | 'onNo'>> & {
         /**
          * @description  used to show different dialog title
          */
@@ -256,7 +277,9 @@ export declare namespace WForm {
     }
 
     namespace Dialog {
-      interface FinishLoading { done: Fn }
+      interface FinishLoading {
+        done: Fn
+      }
     }
   }
 
@@ -377,11 +400,7 @@ export declare namespace WForm {
       baseRuleApplied?: boolean
     }
 
-    interface DynamicSchemaItemProps<
-      T extends keyof ComponentPropPool<D>,
-      D,
-      EP = any,
-    > {
+    interface DynamicSchemaItemProps<T extends keyof ComponentPropPool<D>, D, EP = any> {
       /**
        * @description internal flag to control show
        */
@@ -389,11 +408,11 @@ export declare namespace WForm {
 
       type: T
 
-      componentProp?: ComponentPropPool<D>[T]
-        & DomProps & {
-        /**
-         * @description Even though most naive-ui component already has `defaultValue` prop, some custom components do not have one, so we manually add it to support ts better
-         */
+      componentProp?: ComponentPropPool<D>[T] &
+        DomProps & {
+          /**
+           * @description Even though most naive-ui component already has `defaultValue` prop, some custom components do not have one, so we manually add it to support ts better
+           */
           defaultValue?: DefaultValue
 
           placeholder?: string
@@ -448,7 +467,6 @@ export declare namespace WForm {
     }
 
     namespace SchemaItem {
-
       type RoleSelectSchema<D> = DynamicSchemaItemProps<'Extend:RoleSelect', D>
 
       type TinymceSchema<D> = DynamicSchemaItemProps<'Vendor:Tinymce', D>
@@ -496,61 +514,64 @@ export declare namespace WForm {
 
       // extend
       type QuerySchema<D> = DynamicSchemaItemProps<'Extend:Query', D>
-      type DividerSchema<D> = DynamicSchemaItemProps<'Extend:Divider', D, {
-        // since sticky element will got a transparent background, so we need to provide a bgColor
-        sticky: boolean
-        bgColor: string
-      }>
+      type DividerSchema<D> = DynamicSchemaItemProps<
+        'Extend:Divider',
+        D,
+        {
+          // since sticky element will got a transparent background, so we need to provide a bgColor
+          sticky: boolean
+          bgColor: string
+        }
+      >
     }
 
-    type Item<D>
-      = | SchemaItem.DividerSchema<D>
-
-        | SchemaItem.RoleSelectSchema<D>
-        | SchemaItem.TinymceSchema<D>
-        | SchemaItem.JSONEditorSchema<D>
+    type Item<D> =
+      | SchemaItem.DividerSchema<D>
+      | SchemaItem.RoleSelectSchema<D>
+      | SchemaItem.TinymceSchema<D>
+      | SchemaItem.JSONEditorSchema<D>
 
       // base
-        | SchemaItem.RenderSchema<D>
-        | SchemaItem.SlotSchema<D>
+      | SchemaItem.RenderSchema<D>
+      | SchemaItem.SlotSchema<D>
 
       // ui
-        | SchemaItem.ButtonSchema<D>
-        | SchemaItem.ButtonConfirmSchema<D>
-        | SchemaItem.ButtonGroupSchema<D>
-        | SchemaItem.ButtonRetry<D>
-        | SchemaItem.CheckboxSchema<D>
-        | SchemaItem.ColorPickerSchema<D>
-        | SchemaItem.DatePickerSchema<D>
-        | SchemaItem.DynamicTagsSchema<D>
-        | SchemaItem.InputSchema<D>
-        | SchemaItem.InputNumberSchema<D>
-        | SchemaItem.RadioSchema<D>
-        | SchemaItem.SelectSchema<D>
-        | SchemaItem.SwitchSchema<D>
-        | SchemaItem.TimePickerSchema<D>
-        | SchemaItem.TreeSchema<D>
-        | SchemaItem.TreeSelectSchema<D>
+      | SchemaItem.ButtonSchema<D>
+      | SchemaItem.ButtonConfirmSchema<D>
+      | SchemaItem.ButtonGroupSchema<D>
+      | SchemaItem.ButtonRetry<D>
+      | SchemaItem.CheckboxSchema<D>
+      | SchemaItem.ColorPickerSchema<D>
+      | SchemaItem.DatePickerSchema<D>
+      | SchemaItem.DynamicTagsSchema<D>
+      | SchemaItem.InputSchema<D>
+      | SchemaItem.InputNumberSchema<D>
+      | SchemaItem.RadioSchema<D>
+      | SchemaItem.SelectSchema<D>
+      | SchemaItem.SwitchSchema<D>
+      | SchemaItem.TimePickerSchema<D>
+      | SchemaItem.TreeSchema<D>
+      | SchemaItem.TreeSelectSchema<D>
 
       // extra
-        | SchemaItem.EmailInputSchema<D>
-        | SchemaItem.IconPickerSchema<D>
-        | SchemaItem.LocaleSchema<D>
-        | SchemaItem.PasswordSchema<D>
-        | SchemaItem.PhoneNumberInputSchema<D>
-        | SchemaItem.VerifyCodeSchema<D>
-        | SchemaItem.TransitionSelectSchema<D>
+      | SchemaItem.EmailInputSchema<D>
+      | SchemaItem.IconPickerSchema<D>
+      | SchemaItem.LocaleSchema<D>
+      | SchemaItem.PasswordSchema<D>
+      | SchemaItem.PhoneNumberInputSchema<D>
+      | SchemaItem.VerifyCodeSchema<D>
+      | SchemaItem.TransitionSelectSchema<D>
 
       // raw
-        | SchemaItem.DynamicInputSchema<D>
-        | SchemaItem.SliderSchema<D>
-        | SchemaItem.InputOtpSchema<D>
+      | SchemaItem.DynamicInputSchema<D>
+      | SchemaItem.SliderSchema<D>
+      | SchemaItem.InputOtpSchema<D>
 
       // business
-        | SchemaItem.AreaCacaderSchema<D>
-        | SchemaItem.DictSchema<D>
+      | SchemaItem.AreaCacaderSchema<D>
+      | SchemaItem.DictSchema<D>
 
       // extend
-        | SchemaItem.QuerySchema<D>
+      | SchemaItem.QuerySchema<D>
   }
 }

@@ -35,22 +35,22 @@ export class SecurityRiskLocationService {
     return `${key}:${normalizedIp}`
   }
 
-  async evaluateLocationRisk(ip: string): Promise<IWalnutAdminRiskEvaluationResult<IWalnutAdminLocationRiskInfo>> {
+  async evaluateLocationRisk(
+    ip: string,
+  ): Promise<IWalnutAdminRiskEvaluationResult<IWalnutAdminLocationRiskInfo>> {
     const locationRiskKey = await this.getInfoKey(ip)
-    const cached = await this.redis.get(locationRiskKey) as string
+    const cached = (await this.redis.get(locationRiskKey)) as string
 
     let locationInfo: IWalnutAdminLocationRiskInfo | null
 
     if (cached) {
       try {
         locationInfo = JSON.parse(cached) as IWalnutAdminLocationRiskInfo
-      }
-      catch {
+      } catch {
         this.logger.warn(`Failed to parse cached location risk for ${ip}`)
         locationInfo = await this.evaluateLocationRiskWithLock(ip)
       }
-    }
-    else {
+    } else {
       locationInfo = await this.evaluateLocationRiskWithLock(ip)
     }
 
@@ -84,13 +84,12 @@ export class SecurityRiskLocationService {
       200,
       async () => {
         const infoKey = await this.getInfoKey(ip)
-        const doubleCheck = await this.redis.get(infoKey) as string
+        const doubleCheck = (await this.redis.get(infoKey)) as string
 
         if (doubleCheck) {
           try {
             return JSON.parse(doubleCheck) as IWalnutAdminLocationRiskInfo
-          }
-          catch {}
+          } catch {}
         }
 
         return this.performLocationEvaluation(ip)
@@ -127,22 +126,17 @@ export class SecurityRiskLocationService {
     }
 
     const locationRiskKey = await this.getInfoKey(ip)
-    await this.redis.setEx(
-      locationRiskKey,
-      this.configService.ttl.location,
-      JSON.stringify(result),
-    )
+    await this.redis.setEx(locationRiskKey, this.configService.ttl.location, JSON.stringify(result))
 
     if (level === WalnutAdminConstRiskLevel.HIGH || level === WalnutAdminConstRiskLevel.CRITICAL) {
       this.logger.warn(
-        `High risk location detected - IP: ${ip}, Country: ${location.country}, `
-        + `Level: ${level}, Factors: [${factors.join(', ')}]`,
+        `High risk location detected - IP: ${ip}, Country: ${location.country}, ` +
+          `Level: ${level}, Factors: [${factors.join(', ')}]`,
       )
-    }
-    else {
+    } else {
       this.logger.debug(
-        `Location evaluated - IP: ${ip}, Score: ${finalScore.toFixed(3)}, `
-        + `Level: ${level}, Factors: [${factors.join(', ')}]`,
+        `Location evaluated - IP: ${ip}, Score: ${finalScore.toFixed(3)}, ` +
+          `Level: ${level}, Factors: [${factors.join(', ')}]`,
       )
     }
 
@@ -150,10 +144,9 @@ export class SecurityRiskLocationService {
   }
 
   private detectVpnOrProxy(location: IWalnutAdminIpLocationInfo): boolean {
-    if (isNil(location.isp))
-      return false
+    if (isNil(location.isp)) return false
     const ispLower = location.isp.toLowerCase()
-    return this.configService.vpnKeywords.some(keyword => ispLower.includes(keyword))
+    return this.configService.vpnKeywords.some((keyword) => ispLower.includes(keyword))
   }
 
   async clearLocationCache(ip: string): Promise<void> {

@@ -2,7 +2,7 @@
 
 /* eslint-disable */
 /* prettier-ignore */
-import { Path } from "nestjs-i18n";
+import { Path } from "nestjs-i18n"
 /* prettier-ignore */
 export type I18nTranslations = {
     "business": {
@@ -76,6 +76,6 @@ export type I18nTranslations = {
         "50400": string;
         "50500": string;
     };
-};
+}
 /* prettier-ignore */
-export type I18nPath = Path<I18nTranslations>;
+export type I18nPath = Path<I18nTranslations>

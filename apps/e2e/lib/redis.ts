@@ -40,7 +40,11 @@ export function lockCacheKey(userId: string, deviceId = 'global'): string {
  * 读锁屏缓存值（`AppTechCacheService` 落的是 `{"v":true,...}` JSON；键不存在返回 null）。
  * 只用于「锁定 / 解锁后缓存是否跟随」的断言；安全判定仍以 PG 为准。
  */
-export async function readLockCache(client: E2eRedisClient, userId: string, deviceId = 'global'): Promise<boolean | null> {
+export async function readLockCache(
+  client: E2eRedisClient,
+  userId: string,
+  deviceId = 'global',
+): Promise<boolean | null> {
   const raw = await client.get(lockCacheKey(userId, deviceId))
   if (raw === null) {
     return null
@@ -48,8 +52,7 @@ export async function readLockCache(client: E2eRedisClient, userId: string, devi
   try {
     const parsed = JSON.parse(raw) as { v?: unknown }
     return typeof parsed.v === 'boolean' ? parsed.v : null
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -60,7 +63,11 @@ export function mfaVerifiedKey(userId: string, deviceId: string): string {
 }
 
 /** 删设备级 MFA 已验证缓存（模拟「本设备尚未完成 MFA」；不碰其它键） */
-export async function deleteMfaVerifiedCache(client: E2eRedisClient, userId: string, deviceId: string): Promise<number> {
+export async function deleteMfaVerifiedCache(
+  client: E2eRedisClient,
+  userId: string,
+  deviceId: string,
+): Promise<number> {
   return client.del(mfaVerifiedKey(userId, deviceId))
 }
 
@@ -82,7 +89,7 @@ async function connectRedis(): Promise<E2eRedisClient> {
     socket: { host: E2E_REDIS_HOST, port: E2E_REDIS_PORT },
     password: E2E_REDIS_PASS,
   })
-  client.on('error', error => console.error('[e2e/redis]', error))
+  client.on('error', (error) => console.error('[e2e/redis]', error))
   await client.connect()
   return client as E2eRedisClient
 }
@@ -92,8 +99,7 @@ export async function withRedis<T>(run: (client: E2eRedisClient) => Promise<T>):
   const client = await connectRedis()
   try {
     return await run(client)
-  }
-  finally {
+  } finally {
     await client.quit().catch(() => {})
   }
 }
@@ -117,9 +123,14 @@ export function riskChallengeKeyPattern(deviceId: string): string {
 }
 
 /** 读风险评估结果（factors / level / score），没评估过返回 null */
-export async function readRiskDevice(client: E2eRedisClient, deviceId: string): Promise<{ factors?: string[], score?: number, level?: string } | null> {
+export async function readRiskDevice(
+  client: E2eRedisClient,
+  deviceId: string,
+): Promise<{ factors?: string[]; score?: number; level?: string } | null> {
   const raw = await client.get(riskDeviceKey(deviceId))
-  return raw === null ? null : JSON.parse(raw) as { factors?: string[], score?: number, level?: string }
+  return raw === null
+    ? null
+    : (JSON.parse(raw) as { factors?: string[]; score?: number; level?: string })
 }
 
 /** user-device 作用域的评估缓存（键形 `risk:user_device:<userId>:<deviceId>`；TTL 10 分钟） */
@@ -128,9 +139,15 @@ export function riskUserDeviceKey(userId: string, deviceId: string): string {
 }
 
 /** 读 user-device 风险评估结果（U14 / U15 的 Redis 判据：factors 里有没有 USER_DEVICE_*） */
-export async function readRiskUserDevice(client: E2eRedisClient, userId: string, deviceId: string): Promise<{ factors?: string[], score?: number, level?: string } | null> {
+export async function readRiskUserDevice(
+  client: E2eRedisClient,
+  userId: string,
+  deviceId: string,
+): Promise<{ factors?: string[]; score?: number; level?: string } | null> {
   const raw = await client.get(riskUserDeviceKey(userId, deviceId))
-  return raw === null ? null : JSON.parse(raw) as { factors?: string[], score?: number, level?: string }
+  return raw === null
+    ? null
+    : (JSON.parse(raw) as { factors?: string[]; score?: number; level?: string })
 }
 
 /**
@@ -139,7 +156,11 @@ export async function readRiskUserDevice(client: E2eRedisClient, userId: string,
  * 保住 DEVICE_NEW 等 pre-auth 因子的已处理标记（否则 40116 可能由 pre-auth 触发，
  * 证明不了 post-auth CAP 重武装）。
  */
-export function riskChallengeUserDeviceKey(userId: string, deviceId: string, factor: string): string {
+export function riskChallengeUserDeviceKey(
+  userId: string,
+  deviceId: string,
+  factor: string,
+): string {
   return `risk:challenge:user-device:${userId}:${deviceId}:${factor}`
 }
 
@@ -160,7 +181,10 @@ export function ipTempBlacklistKey(normalizedIp: string): string {
 }
 
 /** 精确删该设备的 CAP token 校验缓存（`SECURITY:CAP_TOKEN:<deviceId>:*`；不 FLUSH） */
-export async function deleteCapTokenCache(client: E2eRedisClient, deviceId: string): Promise<number> {
+export async function deleteCapTokenCache(
+  client: E2eRedisClient,
+  deviceId: string,
+): Promise<number> {
   return deleteByPatterns(client, [`${CACHE_PREFIX}_SECURITY:CAP_TOKEN:${deviceId}:*`])
 }
 
@@ -171,7 +195,11 @@ export async function deleteCapTokenCache(client: E2eRedisClient, deviceId: stri
  * 要证明的是 post-auth CAP（USER_DEVICE_UNTRUSTED / TRUST_EXPIRED），不能被 pre-auth 的
  * DEVICE_NEW 重新武装干扰；设备级标记与 `risk:device` 缓存保持登录链路里的原状。
  */
-export async function deleteUserDeviceRiskState(client: E2eRedisClient, userId: string, deviceId: string): Promise<number> {
+export async function deleteUserDeviceRiskState(
+  client: E2eRedisClient,
+  userId: string,
+  deviceId: string,
+): Promise<number> {
   return deleteByPatterns(client, [
     riskUserDeviceKey(userId, deviceId),
     `risk:challenge:user-device:${userId}:${deviceId}:*`,
@@ -212,7 +240,10 @@ export function riskDeviceStatePatterns(deviceId: string): string[] {
  * rate 计数与 user-device 评估缓存同理：它们是「按 deviceId 生长、TTL 5–10 分钟」的键，
  * 留着就会跨轮占内存，也让「这个设备到底清干净没有」无从判断。
  */
-export async function deleteRiskDeviceState(client: E2eRedisClient, deviceId: string): Promise<number> {
+export async function deleteRiskDeviceState(
+  client: E2eRedisClient,
+  deviceId: string,
+): Promise<number> {
   return deleteByPatterns(client, riskDeviceStatePatterns(deviceId))
 }
 
@@ -226,7 +257,10 @@ export async function scanKeys(client: E2eRedisClient, match: string): Promise<s
 }
 
 /** 「登出」的会话一半：删掉该设备上的登录会话键（`AUTH:SESSIONS:<userId>:<deviceId>:<sid>`） */
-export async function deleteAuthSessionsForDevice(client: E2eRedisClient, deviceId: string): Promise<number> {
+export async function deleteAuthSessionsForDevice(
+  client: E2eRedisClient,
+  deviceId: string,
+): Promise<number> {
   return deleteByPatterns(client, [`${CACHE_PREFIX}_AUTH:SESSIONS:*:${deviceId}:*`])
 }
 
@@ -256,9 +290,13 @@ export function permissionsCachePattern(userId: string): string {
  * **覆盖**该设备的缓存 —— 旧角色的权限串必须消失（permission.guard 只认这份缓存，留着旧值
  * 就等于授权没变）。
  */
-export async function readPermissionsCache(client: E2eRedisClient, userId: string, deviceId: string): Promise<string[] | null> {
+export async function readPermissionsCache(
+  client: E2eRedisClient,
+  userId: string,
+  deviceId: string,
+): Promise<string[] | null> {
   const keys = await scanKeys(client, permissionsCachePattern(userId))
-  const key = keys.find(candidate => candidate.endsWith(`:${deviceId}`))
+  const key = keys.find((candidate) => candidate.endsWith(`:${deviceId}`))
   if (key === undefined) {
     return null
   }
@@ -268,9 +306,10 @@ export async function readPermissionsCache(client: E2eRedisClient, userId: strin
   }
   try {
     const parsed = JSON.parse(raw) as { v?: unknown }
-    return Array.isArray(parsed.v) ? parsed.v.filter((item): item is string => typeof item === 'string') : null
-  }
-  catch {
+    return Array.isArray(parsed.v)
+      ? parsed.v.filter((item): item is string => typeof item === 'string')
+      : null
+  } catch {
     return null
   }
 }
@@ -334,15 +373,21 @@ export function deviceScopedKeyPatterns(deviceId: string): string[] {
  * 键形见 {@link deviceScopedKeyPatterns}；风控状态见 {@link riskDeviceStatePatterns}
  * （fixture 两处都调，见 `lib/device-fixtures.ts` 的 `cleanupDevices`）。
  */
-export async function deleteDeviceScopedKeys(client: E2eRedisClient, deviceId: string): Promise<number> {
+export async function deleteDeviceScopedKeys(
+  client: E2eRedisClient,
+  deviceId: string,
+): Promise<number> {
   return deleteByPatterns(client, deviceScopedKeyPatterns(deviceId))
 }
 
 /** 按一组精确键 / 模式扫键并删掉命中项（SCAN 不阻塞，命中为 0 时不发 DEL） */
-async function deleteByPatterns(client: E2eRedisClient, patterns: readonly string[]): Promise<number> {
+async function deleteByPatterns(
+  client: E2eRedisClient,
+  patterns: readonly string[],
+): Promise<number> {
   const keys: string[] = []
   for (const pattern of patterns) {
-    keys.push(...await scanKeys(client, pattern))
+    keys.push(...(await scanKeys(client, pattern)))
   }
   return keys.length === 0 ? 0 : client.del(keys)
 }

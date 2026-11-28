@@ -13,7 +13,7 @@ export class AuthService {
     private readonly sysMenuSharedService: SysMenuSharedService,
     private readonly configService: ConfigService,
     private readonly signoutService: AuthSignoutService,
-  ) { }
+  ) {}
 
   /**
    * @description sign out —— **凭 RT 认人**（B7 · 批次 7）
@@ -23,7 +23,7 @@ export class AuthService {
    * 归因/核对（jti → userId·deviceId）在 `AuthSignoutService` 里走共享服务，本层不做数据访问。
    */
   async signoutByRefreshToken(
-    session: { jti: string, sid: string, deviceId: string, ip: string },
+    session: { jti: string; sid: string; deviceId: string; ip: string },
     em?: EntityManager,
   ) {
     return this.signoutService.signoutByRefreshJti(session, em)
@@ -32,10 +32,7 @@ export class AuthService {
   /**
    * @description get current user authorized menus
    */
-  async getAuthPermissions(
-    user: IWalnutAdminAccessTokenPayload,
-    deviceId: string,
-  ) {
+  async getAuthPermissions(user: IWalnutAdminAccessTokenPayload, deviceId: string) {
     return this.sysMenuSharedService.getPermissions(user, deviceId)
   }
 

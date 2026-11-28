@@ -42,8 +42,7 @@ export class SecurityRiskChallengeStateService {
    * Mark a factor as handled/verified.
    */
   async markChallengeHandled(factor: string, params: ChallengeParams): Promise<void> {
-    if (!this.configService.isCritical(factor))
-      return
+    if (!this.configService.isCritical(factor)) return
 
     const key = this.getChallengeKey(factor, params)
 
@@ -54,10 +53,14 @@ export class SecurityRiskChallengeStateService {
 
     const ttl = this.configService.ttl.challenge
     // Minimal payload for storage
-    await this.redis.setEx(key, ttl, JSON.stringify({
-      factor,
-      handledAt: AppDayjs().valueOf(),
-    }))
+    await this.redis.setEx(
+      key,
+      ttl,
+      JSON.stringify({
+        factor,
+        handledAt: AppDayjs().valueOf(),
+      }),
+    )
 
     this.logger.log(`Challenge handled - Factor: ${factor}`)
   }
@@ -66,25 +69,26 @@ export class SecurityRiskChallengeStateService {
    * Check if a factor's challenge is already handled.
    */
   async isChallengeHandled(factor: string, params: ChallengeParams): Promise<boolean> {
-    if (!this.configService.isCritical(factor))
-      return true
+    if (!this.configService.isCritical(factor)) return true
     const key = this.getChallengeKey(factor, params)
     if (key === null) {
       this.logger.warn(`Cannot build key for factor: ${factor}`)
       return false
     }
-    return await this.redis.exists(key) === 1
+    return (await this.redis.exists(key)) === 1
   }
 
   /**
    * Batch check challenge status for multiple factors.
    */
-  async batchCheckChallenges(factors: string[], params: ChallengeParams): Promise<Map<string, boolean>> {
-    if (factors.length === 0)
-      return new Map()
+  async batchCheckChallenges(
+    factors: string[],
+    params: ChallengeParams,
+  ): Promise<Map<string, boolean>> {
+    if (factors.length === 0) return new Map()
 
     const results = await Promise.all(
-      factors.map(async f => [f, await this.isChallengeHandled(f, params)] as const),
+      factors.map(async (f) => [f, await this.isChallengeHandled(f, params)] as const),
     )
     return new Map(results)
   }
@@ -98,9 +102,8 @@ export class SecurityRiskChallengeStateService {
 
     // Helper to build pattern based on key position
     const addPatterns = (scope: string, keys: (keyof ChallengeParams)[]) => {
-      const values = keys.map(k => params[k]).filter(Boolean)
-      if (values.length === 0)
-        return
+      const values = keys.map((k) => params[k]).filter(Boolean)
+      if (values.length === 0) return
 
       // Construct pattern: prefix:scope:val1:val2:*
       // We need to handle the dynamic position of values.
@@ -109,15 +112,13 @@ export class SecurityRiskChallengeStateService {
 
       if (values.length === 1) {
         patterns.push(`${prefix}:${scope}:${values[0]}:*`)
-      }
-      else if (values.length > 1) {
+      } else if (values.length > 1) {
         // For multi-key scenarios (user-device), create patterns for each key position
         keys.forEach((key) => {
           const val = params[key]
-          if (isNil(val))
-            return
+          if (isNil(val)) return
 
-          const placeholders = keys.map(k => k === key ? val : '*')
+          const placeholders = keys.map((k) => (k === key ? val : '*'))
           patterns.push(`${prefix}:${scope}:${placeholders.join(':')}:*`)
         })
       }
@@ -129,7 +130,7 @@ export class SecurityRiskChallengeStateService {
     })
 
     if (patterns.length > 0) {
-      await Promise.all(patterns.map(async p => this.redisService.delByPattern(p)))
+      await Promise.all(patterns.map(async (p) => this.redisService.delByPattern(p)))
       this.logger.log(`Challenges cleared`)
     }
   }
@@ -143,19 +144,17 @@ export class SecurityRiskChallengeStateService {
     const prefix = this.configService.redis.challenge
 
     // Find matching rule
-    const rule = this.FACTOR_RULES.find(r => factor.startsWith(r.prefix))
+    const rule = this.FACTOR_RULES.find((r) => factor.startsWith(r.prefix))
 
-    if (!rule)
-      return null
+    if (!rule) return null
 
     // Fallback: Use device scope if no rule matches
     const scope = rule.scope || 'device'
     const keys = rule.keys.length > 0 ? rule.keys : ['deviceId']
 
     // Extract values
-    const values = keys.map(k => params[k as keyof ChallengeParams])
-    if (values.some(v => isNil(v)))
-      return null // Missing required param
+    const values = keys.map((k) => params[k as keyof ChallengeParams])
+    if (values.some((v) => isNil(v))) return null // Missing required param
 
     return `${prefix}:${scope}:${values.join(':')}:${factor}`
   }

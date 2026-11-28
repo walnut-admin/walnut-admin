@@ -93,9 +93,13 @@ ADR（Architecture Decision Record）记录 Walnut Admin monorepo 项目中的�
 | [0028](./0028-top-level-tooling-directory.md) | tooling 提升为顶层目录组 | Accepted |
 | [0029](./0029-command-table-and-entry.md) | 命令表与统一入口 | Accepted |
 | [0030](./0030-admin-build-config-as-tooling-package.md) | admin 构建配置抽出为 tooling 包 | Accepted |
+| [0031](./0031-rust-toolchain-migration.md) | 前端工具链 Rust 化：oxfmt / oxlint / tsdown / tsrs / TNB | Accepted |
 
-> 已登记的 ADR 目前全部是 `Accepted` —— 这不是「列没意义」，而是这个仓到目前**没有被否决或取代过的决策**。
-> 枚举的价值在于：真出现 `Rejected` / `Superseded by ADR-NNNN` 时，有地方放、也有门禁保证它被填对。
+> 已登记的 ADR 目前全部是 `Accepted`。其中 [0014](./0014-eslint-config-strategy.md) 的
+> Decision 2 / 3（「不引入 oxlint」「格式化由 ESLint stylistic 承担」）已被
+> [0031](./0031-rust-toolchain-migration.md) **部分取代** —— 按 ADR 不回溯的惯例，0014 原文与
+> 状态都不改，取代关系只在新篇声明。枚举的价值在于：真出现 `Rejected` / `Superseded by ADR-NNNN`
+> 时，有地方放、也有门禁保证它被填对。
 
 ## 补充文档
 

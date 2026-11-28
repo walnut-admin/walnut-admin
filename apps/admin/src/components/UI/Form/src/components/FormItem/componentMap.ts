@@ -122,9 +122,11 @@ const componentMap = new Map<string, Component>()
  */
 function register(table: FormItemTable) {
   for (const [key, load] of Object.entries(table)) {
-    if (!load)
-      continue
-    componentMap.set(key, createAsyncComponent(() => load().then(m => m.default)))
+    if (!load) continue
+    componentMap.set(
+      key,
+      createAsyncComponent(() => load().then((m) => m.default)),
+    )
   }
 }
 

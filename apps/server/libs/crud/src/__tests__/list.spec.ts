@@ -76,8 +76,12 @@ class SpecCrudListOverrideController {
 
 /** 取某端点 200 响应壳里的 `data` schema（壳是 WalnutAdminSwaggerResponseSuccessSchemeData 产物） */
 function dataSchemaOf(document: OpenAPIObject, path: string): SchemaObject {
-  const responses = document.paths[path]?.post?.responses as Record<string, ResponseObject> | undefined
-  const schema = responses?.['200'].content?.['application/json']?.schema as SchemaObject | undefined
+  const responses = document.paths[path]?.post?.responses as
+    | Record<string, ResponseObject>
+    | undefined
+  const schema = responses?.['200'].content?.['application/json']?.schema as
+    | SchemaObject
+    | undefined
 
   expect(schema).toBeDefined()
 
@@ -113,8 +117,9 @@ describe('列表装饰器 WalnutAdminDecoratorList（F-17 summary + P2-6 响应�
     const operation = document.paths['/spec/crud/list'].post
 
     expect(operation?.summary).toBe(`${CRUD_TITLE} 列表`)
-    expect((operation?.responses['200'] as { description?: string }).description)
-      .toBe(operation?.summary)
+    expect((operation?.responses['200'] as { description?: string }).description).toBe(
+      operation?.summary,
+    )
   })
 
   it('200 的 data 是**单个**分页壳对象（不是分页壳数组），行 = 工厂的 DTO', () => {
@@ -122,27 +127,35 @@ describe('列表装饰器 WalnutAdminDecoratorList（F-17 summary + P2-6 响应�
 
     // P2-6 偏差 1：data 不再是 array，而是分页壳的 $ref
     expect(data.type).toBeUndefined()
-    expect((data as { $ref?: string }).$ref)
-      .toBe(`#/components/schemas/${SpecCrudListRowDTO.name}ListResponse`)
+    expect((data as { $ref?: string }).$ref).toBe(
+      `#/components/schemas/${SpecCrudListRowDTO.name}ListResponse`,
+    )
 
     // 分页壳的 schema 名由 CreateWalnutAdminResponseListDTO 动态改名而来
-    const shell = document.components?.schemas?.[`${SpecCrudListRowDTO.name}ListResponse`] as SchemaObject
+    const shell = document.components?.schemas?.[
+      `${SpecCrudListRowDTO.name}ListResponse`
+    ] as SchemaObject
     expect(shell).toBeDefined()
 
-    const rowItems = (shell.properties as Record<string, SchemaObject>).data.items as { $ref?: string }
+    const rowItems = (shell.properties as Record<string, SchemaObject>).data.items as {
+      $ref?: string
+    }
     expect(rowItems.$ref).toBe(`#/components/schemas/${SpecCrudListRowDTO.name}`)
   })
 
   it('提供 listResponseDTO 时，data 直接 $ref 真实响应类（行 = 其字段子集）', () => {
     const data = dataSchemaOf(document, '/spec/crud-override/list')
 
-    expect((data as { $ref?: string }).$ref)
-      .toBe(`#/components/schemas/${SpecCrudListResponseDTO.name}`)
+    expect((data as { $ref?: string }).$ref).toBe(
+      `#/components/schemas/${SpecCrudListResponseDTO.name}`,
+    )
 
     const shell = document.components?.schemas?.[SpecCrudListResponseDTO.name] as SchemaObject
     expect(shell).toBeDefined()
 
-    const rowItems = (shell.properties as Record<string, SchemaObject>).data.items as { $ref?: string }
+    const rowItems = (shell.properties as Record<string, SchemaObject>).data.items as {
+      $ref?: string
+    }
     expect(rowItems.$ref).toBe(`#/components/schemas/${SpecCrudListRowSubsetDTO.name}`)
   })
 })

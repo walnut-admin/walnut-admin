@@ -9,7 +9,5 @@ const appSettingScope = useAppStoreSettingScope()
 </script>
 
 <template>
-  <n-watermark
-    v-bind="appSettingScope.getWatermarkConfig($route)"
-  />
+  <n-watermark v-bind="appSettingScope.getWatermarkConfig($route)" />
 </template>

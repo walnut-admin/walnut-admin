@@ -1,5 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { TransformMbitsToMBs, TransformSecondsToHours, TransformSizeToGB, TransformToGHz, TransformToMWH, TransformToPercentage, TransformToVoltage, WalnutAdminDecoratorTransformDateToString } from '@walnut-server/decorators/transformer'
+import {
+  TransformMbitsToMBs,
+  TransformSecondsToHours,
+  TransformSizeToGB,
+  TransformToGHz,
+  TransformToMWH,
+  TransformToPercentage,
+  TransformToVoltage,
+  WalnutAdminDecoratorTransformDateToString,
+} from '@walnut-server/decorators/transformer'
 
 // 以下 DTO 是 systeminformation 直出字段的**轻量子集**（server service 逐字段投影，
 // 不把库的完整返回值透出）：每个类恰好就是该端点 wire 上的字段集，仅补 swagger 文档

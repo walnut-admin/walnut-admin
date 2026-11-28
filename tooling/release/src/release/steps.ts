@@ -71,11 +71,26 @@ const RELEASE_BATTERY: BatteryStep[] = [
   // `Could not find task` 退出。
   // （`lint-root` **不走**这条路：根 `turbo.json` 定义了 `//#lint:root`
   //  根任务，它要经 `turbo run lint:root` 才可缓存 —— 别按旧结论改回去。）
-  { id: 'lint-root', label: 'lint 根级配置（turbo run //#lint:root）', argv: ['exec', 'turbo', 'run', 'lint:root'] },
+  {
+    id: 'lint-root',
+    label: 'lint 根级配置（turbo run //#lint:root）',
+    argv: ['exec', 'turbo', 'run', 'lint:root'],
+  },
+  // oxlint 双轨期的 correctness 兜底（与 prepush 的 lint:oxlint 段同步）。不经 turbo：
+  // 根跑一次约 0.1s（2164 文件 / 111ms），发版面没有理由少这一段 —— 它是「明显写错」的
+  // 第一道快速通道，而 ESLint 的 affected 面在发版机上是全量重跑。
+  { id: 'lint:oxlint', label: 'oxlint 快速检查（correctness 兜底）', argv: ['lint:oxlint'] },
+  // 格式的唯一真源是 oxfmt（ESLint 已 `stylistic: false`）。与 prepush 的 format 段同步；
+  // 发版面看得见它还有一层意义 —— 发版要构建，而格式漂移在构建里不会报。
+  { id: 'format', label: '格式检查（oxfmt --check）', argv: ['format:check'] },
   { id: 'types', label: '类型检查（不排任何包）', argv: ['exec', 'turbo', 'run', 'types:check'] },
   // 根 tsconfig.json（include: ["*.ts"]）覆盖 eslint.config.ts / commitlint.config.ts / knip.config.ts，
   // 这三者不入 turbo 的图。与 lint-root 同理：**独立一行**、经根脚本跑，不能写进上面的 turbo argv。
-  { id: 'types-root', label: '根级配置类型检查（pnpm walnut types:check:root）', argv: ['types:check:root'] },
+  {
+    id: 'types-root',
+    label: '根级配置类型检查（pnpm walnut types:check:root）',
+    argv: ['types:check:root'],
+  },
   { id: 'test', label: '测试（不排任何包）', argv: ['exec', 'turbo', 'run', 'test'] },
   { id: 'syncpack', label: '依赖一致性（syncpack）', argv: ['syncpack:lint'] },
   { id: 'versioning', label: 'workspace 版本锁步（pnpm change check）', argv: ['change', 'check'] },
@@ -83,10 +98,18 @@ const RELEASE_BATTERY: BatteryStep[] = [
   // 同上：@walnut/scripts 的 bin。actionlint 只看得见 YAML 与表达式，**看不见 `run:` / `with.script:`
   // 里的 shell 语法**（2026-09-30 两次实测：注入步骤的三层嵌套引号、带引号 heredoc 的缩进，
   // 都只能靠发版撞出来）⇒ 逐块 `bash -n`。
-  { id: 'workflows-shell', label: 'workflow shell 语法（逐块 bash -n）', argv: ['lint:workflows-shell'] },
+  {
+    id: 'workflows-shell',
+    label: 'workflow shell 语法（逐块 bash -n）',
+    argv: ['lint:workflows-shell'],
+  },
   // 与上面同理：它是 @walnut/scripts 的 bin（根脚本），**不是** turbo 任务。
   // 活文档正文里引用的包名/仓库路径必须真实存在 —— VitePress 内置只查 markdown 链接。
-  { id: 'dynamic-imports', label: '动态 import 说明符必须是字面量（apps/**）', argv: ['lint:dynamic-imports'] },
+  {
+    id: 'dynamic-imports',
+    label: '动态 import 说明符必须是字面量（apps/**）',
+    argv: ['lint:dynamic-imports'],
+  },
   { id: 'docs-refs', label: '文档引用校验（包名 / 仓库路径）', argv: ['lint:docs-refs'] },
   // 同上：@walnut/scripts 的 bin。ADR 的形态（编号连续 / Status 在枚举内 / 四个必需小节 /
   // index.md 双向对齐）没有任何现成工具管，见待办 F6。
@@ -97,10 +120,18 @@ const RELEASE_BATTERY: BatteryStep[] = [
   { id: 'doc-budget', label: '文档字数预算（常驻文件不许膨胀）', argv: ['lint:doc-budget'] },
   // 同上。emoji 在非 UTF-8 代码页下必然乱码，且会污染 diff 与日志；ESLint 那条规则够不着
   // workflow/.gitignore/.toml/.conf 这些文件，所以另有一条跨文件类型的门禁。
-  { id: 'emoji', label: '注释与常驻文档里不许有 emoji（跨所有被跟踪文本文件）', argv: ['lint:emoji'] },
+  {
+    id: 'emoji',
+    label: '注释与常驻文档里不许有 emoji（跨所有被跟踪文本文件）',
+    argv: ['lint:emoji'],
+  },
   // 同上。初始化数据（apps/server/db/seed）的形态：私钥/凭证进仓、未裁剪账号被发布、引用被改坏
   // —— 这三种失效都不会报错，只会让装出来的环境少一块或空掉侧边栏。
-  { id: 'seed', label: '初始化数据形态（必需集合 / 禁入集合 / 体积 / 凭据形状 / 引用完整性）', argv: ['lint:seed'] },
+  {
+    id: 'seed',
+    label: '初始化数据形态（必需集合 / 禁入集合 / 体积 / 凭据形状 / 引用完整性）',
+    argv: ['lint:seed'],
+  },
   // 同上（prepush 第 seed 位之后的那段）。OpenAPI 一致性：server DTO ↔ openapi.json ↔
   // @walnut/api-types 生成物三者锁步。要引导 AppModule（PG/Redis 在线）—— 发版机与
   // 本地 prepush 同一套环境，能跑；CI 没有数据库服务，故 gate-wiring 的 CI 侧走豁免表。
@@ -117,15 +148,27 @@ const RELEASE_BATTERY: BatteryStep[] = [
   { id: 'nginx-headers', label: '入口 nginx 安全响应头（conf.d）', argv: ['lint:nginx-headers'] },
   // 同上。`deploy/post-verify.sh` 的失败分支只有它的行为测试守着（假 docker / curl，不需要
   // Docker）；发版面能看见它还有一层意义 —— 部署之后跑的正是 `post-verify.sh` 本体。
-  { id: 'post-verify', label: '部署后验证脚本的行为测试（deploy/post-verify.test.sh）', argv: ['lint:post-verify'] },
+  {
+    id: 'post-verify',
+    label: '部署后验证脚本的行为测试（deploy/post-verify.test.sh）',
+    argv: ['lint:post-verify'],
+  },
   // 同上。**必须在这里**：GitHub 的 push protection 在服务端、且先于 CI —— 发版要 push tag，
   // 被它拒掉的话 tag 就推不上去（而那是整条流程里最不该失败的一步）。
   { id: 'secrets', label: '源码密钥形态（凭据形状不许进仓库）', argv: ['lint:secrets'] },
   // 同上。共享包**不构建就被消费**（exports 指 ./src/**）⇒ exports 写错 = 解析到别的入口 / 类型静默丢失。
-  { id: 'exports', label: '包 exports 形态（目标存在 / types 在前 / 与 main 一致）', argv: ['lint:exports'] },
+  {
+    id: 'exports',
+    label: '包 exports 形态（目标存在 / types 在前 / 与 main 一致）',
+    argv: ['lint:exports'],
+  },
   // 同上。发版要**构建**，而这条正是「跑 vite 的脚本没接生成步骤」的守卫 —— 2026-09-24 它把 CI 的
   // `Build admin` 打挂过一次；发版面漏了它，代价是打到一半才发现构建起不来。
-  { id: 'pre-hooks', label: '脚本前置钩子（vite / vue-tsc 前必须先跑生成）', argv: ['lint:pre-hooks'] },
+  {
+    id: 'pre-hooks',
+    label: '脚本前置钩子（vite / vue-tsc 前必须先跑生成）',
+    argv: ['lint:pre-hooks'],
+  },
   {
     id: 'build',
     label: '构建（3 个 app + 共享包）',
@@ -144,22 +187,22 @@ const RELEASE_BATTERY: BatteryStep[] = [
 
 /** 全量电池**会跑**的条数（演练横幅用；跳过的不算） */
 export function releaseBatteryCount(): number {
-  return RELEASE_BATTERY.filter(step => step.skip === undefined).length
+  return RELEASE_BATTERY.filter((step) => step.skip === undefined).length
 }
 
 /** 被 `skip` 暂缓的条数 */
 export function releaseBatterySkippedCount(): number {
-  return RELEASE_BATTERY.filter(step => step.skip !== undefined).length
+  return RELEASE_BATTERY.filter((step) => step.skip !== undefined).length
 }
 
 /** 全量电池**会跑**的 argv 序列（给用例断言「表被整表遍历」，而不是「字面量还在文件里」） */
 export function releaseBatteryArgvs(): string[][] {
-  return RELEASE_BATTERY.filter(step => step.skip === undefined).map(step => [...step.argv])
+  return RELEASE_BATTERY.filter((step) => step.skip === undefined).map((step) => [...step.argv])
 }
 
 /** 全部电池 id（`--skip-gates=<id>` 的值域） */
 export function releaseBatteryIds(): string[] {
-  return RELEASE_BATTERY.map(step => step.id)
+  return RELEASE_BATTERY.map((step) => step.id)
 }
 
 /**
@@ -171,22 +214,24 @@ export function releaseBatteryIds(): string[] {
 export function releaseBatterySummary(
   ranCount: number,
   unverifiedIds: readonly string[],
-): { ok: string, warning: string | null } {
+): { ok: string; warning: string | null } {
   if (unverifiedIds.length === 0)
     return { ok: `✅ 发版前全量电池全绿（${ranCount} 条）`, warning: null }
   return {
     ok: `✅ 发版前全量电池：${ranCount} 条真跑通过 / ${unverifiedIds.length} 条跳过（未验证）`,
-    warning: `未验证的项：${unverifiedIds.join(' / ')} —— 它们**没跑过**（≠ 通过）：`
-      + '可能是本机缺工具（子进程退 3），也可能被 --skip-gates 显式跳过。'
-      + '要这一面被验过，补齐工具 / 去掉对应的 --skip-gates 后重跑；CI 侧仍有权威闸门。',
+    warning:
+      `未验证的项：${unverifiedIds.join(' / ')} —— 它们**没跑过**（≠ 通过）：` +
+      '可能是本机缺工具（子进程退 3），也可能被 --skip-gates 显式跳过。' +
+      '要这一面被验过，补齐工具 / 去掉对应的 --skip-gates 后重跑；CI 侧仍有权威闸门。',
   }
 }
 
 /** 被 `skip` 暂缓的条目（横幅与用例用） */
-export function releaseBatterySkips(): { id: string, skip: string }[] {
-  return RELEASE_BATTERY
-    .filter(step => step.skip !== undefined)
-    .map(step => ({ id: step.id, skip: step.skip! }))
+export function releaseBatterySkips(): { id: string; skip: string }[] {
+  return RELEASE_BATTERY.filter((step) => step.skip !== undefined).map((step) => ({
+    id: step.id,
+    skip: step.skip!,
+  }))
 }
 
 /**
@@ -204,12 +249,12 @@ export function releaseBatterySkips(): { id: string, skip: string }[] {
 export function releaseBatteryTally(
   skippedByFlag: Iterable<string>,
   toolMissing: Iterable<string>,
-): { ranCount: number, unverifiedIds: string[] } {
+): { ranCount: number; unverifiedIds: string[] } {
   const unverified = new Set<string>([...skippedByFlag, ...toolMissing])
   // 按电池表序输出（与执行顺序一致，便于人对着日志逐行核），只认表里**会跑**的那些
-  const unverifiedIds = RELEASE_BATTERY
-    .filter(step => step.skip === undefined && unverified.has(step.id))
-    .map(step => step.id)
+  const unverifiedIds = RELEASE_BATTERY.filter(
+    (step) => step.skip === undefined && unverified.has(step.id),
+  ).map((step) => step.id)
   return { ranCount: releaseBatteryCount() - unverifiedIds.length, unverifiedIds }
 }
 
@@ -251,8 +296,7 @@ export async function runReleaseBattery(
     ui.log(`▶️ ${step.label}`)
     try {
       await execute(step.argv, `pnpm ${step.argv.join(' ')}`)
-    }
-    catch (error: any) {
+    } catch (error: any) {
       const exitCode = Number(error?.exitCode ?? 1)
       // 3 = 环境缺失、这一步**没跑**（SkippedError 的映射值，真源在 @walnut/scripts/lib/errors）。
       // 不认它，没装 actionlint / 没装 bash 的发版机就会**因为「跳过」而发版失败** —— 那是把
@@ -262,11 +306,11 @@ export async function runReleaseBattery(
         ui.log(`⏭️ 跳过（未验证）${step.label}：本机缺工具，这一条**没跑**（不等于通过）`)
         continue
       }
-      const why = `发版前全量电池未通过：${step.label} 失败（${error?.message ?? error}）。`
-        + '在这里拦住好过推出去才发现（tag 还没打，不留需要手工清理的本地 tag）；'
-        + `确实要带病发版请显式加 --skip-gates。`
-      if (exitCode === 2)
-        ui.die(2, why)
+      const why =
+        `发版前全量电池未通过：${step.label} 失败（${error?.message ?? error}）。` +
+        '在这里拦住好过推出去才发现（tag 还没打，不留需要手工清理的本地 tag）；' +
+        `确实要带病发版请显式加 --skip-gates。`
+      if (exitCode === 2) ui.die(2, why)
       failures.push(step.id)
       ui.die(1, `${why}\n   失败的项 id：${step.id}（只想跳它：--skip-gates=${step.id}）`)
     }
@@ -275,8 +319,7 @@ export async function runReleaseBattery(
   const tally = releaseBatteryTally(skippedIds, toolMissing)
   const summary = releaseBatterySummary(tally.ranCount, tally.unverifiedIds)
   ui.log(summary.ok)
-  if (summary.warning !== null)
-    ui.warn(summary.warning)
+  if (summary.warning !== null) ui.warn(summary.warning)
 }
 
 /**
@@ -296,11 +339,10 @@ async function runReleaseGates(ui: ReleaseUi, target: string, skipGates: SkipGat
   const pool = releaseBatteryIds()
   const skippedIds = new Set<string>()
   if (skipGates !== null) {
-    const unknown = skipGates.filter(id => !pool.includes(id))
+    const unknown = skipGates.filter((id) => !pool.includes(id))
     if (unknown.length > 0)
       ui.die(2, `--skip-gates 里有未知的 id：${unknown.join(' / ')}（可选：${pool.join(' / ')}）`)
-    for (const id of skipGates)
-      skippedIds.add(id)
+    for (const id of skipGates) skippedIds.add(id)
     ui.log(`⚠️ --skip-gates：跳过 ${skipGates.join(' / ')}，其余项照跑`)
   }
 
@@ -321,20 +363,26 @@ export interface SummaryInput {
   tokenMasked: string | null
 }
 
-export async function confirmSummary(ui: ReleaseUi, args: ReleaseArgs, input: SummaryInput): Promise<void> {
-  ui.banner(summaryLines({
-    entries: input.entries,
-    oldVersion: input.oldVersion,
-    newVersion: input.newVersion,
-    bump: input.bump,
-    baseTag: input.baseTag,
-    branch: input.branch,
-    changedCount: changedFileCount(),
-    unrelated: input.unrelated,
-    batteryCount: releaseBatteryCount(),
-    batterySkipped: releaseBatterySkippedCount(),
-    tokenMasked: input.tokenMasked,
-  }))
+export async function confirmSummary(
+  ui: ReleaseUi,
+  args: ReleaseArgs,
+  input: SummaryInput,
+): Promise<void> {
+  ui.banner(
+    summaryLines({
+      entries: input.entries,
+      oldVersion: input.oldVersion,
+      newVersion: input.newVersion,
+      bump: input.bump,
+      baseTag: input.baseTag,
+      branch: input.branch,
+      changedCount: changedFileCount(),
+      unrelated: input.unrelated,
+      batteryCount: releaseBatteryCount(),
+      batterySkipped: releaseBatterySkippedCount(),
+      tokenMasked: input.tokenMasked,
+    }),
+  )
 
   if (args.yes) {
     ui.log('--yes：跳过总览确认，直接执行')
@@ -351,8 +399,11 @@ export async function confirmSummary(ui: ReleaseUi, args: ReleaseArgs, input: Su
     ui.log('已确认，继续')
     return
   }
-  ui.die(2, `已取消（版本号已 bump 到 v${input.newVersion}，尚未提交）。`
-  + '重跑 pnpm release 会回到这一步；彻底放弃执行：git checkout -- . && git clean -fd .changeset')
+  ui.die(
+    2,
+    `已取消（版本号已 bump 到 v${input.newVersion}，尚未提交）。` +
+      '重跑 pnpm release 会回到这一步；彻底放弃执行：git checkout -- . && git clean -fd .changeset',
+  )
 }
 
 // ── 第 5 步：提交 / 打标 / 推送 ───────────────────────────────────────────
@@ -370,28 +421,32 @@ export interface CommitTagPushOptions {
  * （例如只是补推失败的那一步）工作区里的东西与本次发版无关，`git add -A` 会把它们卷进一个
  * 假的 release commit。
  */
-export async function stepCommitTagPush(ui: ReleaseUi, newVersion: string, options: CommitTagPushOptions): Promise<void> {
+export async function stepCommitTagPush(
+  ui: ReleaseUi,
+  newVersion: string,
+  options: CommitTagPushOptions,
+): Promise<void> {
   const tag = `v${newVersion}`
 
   // 防线 ①：走到提交时不得还有**未消费**意图（否则说明阶梯与流程错位 —— 绝不能提交一个没 bump 的 release commit）
   const stale = unconsumedIntents()
   if (stale.length > 0) {
-    ui.die(1, `流程错位：仍有 ${stale.length} 个未消费意图（${stale.join(', ')}），拒绝提交 release commit。`
-
-    + '请把这条日志给我。')
+    ui.die(
+      1,
+      `流程错位：仍有 ${stale.length} 个未消费意图（${stale.join(', ')}），拒绝提交 release commit。` +
+        '请把这条日志给我。',
+    )
   }
 
   const branch = currentBranch()
 
   if (!options.commit) {
     ui.log(`版本变更已提交过，跳过提交（HEAD: ${headSubject() ?? '?'}）`)
-  }
-  else {
+  } else {
     const dirty = porcelain(true).join('\n').trim()
     if (dirty === '') {
       ui.log(`工作区干净，跳过提交（HEAD: ${headSubject() ?? '?'}）`)
-    }
-    else {
+    } else {
       ui.log('提交版本变更...')
       // `-C REPO_ROOT`：`git add .` 只覆盖 **cwd** 子树，从子目录跑会漏掉版本改动
       await runArgs('git', ['-C', REPO_ROOT, 'add', '-A'], ui.childOptions())
@@ -403,7 +458,11 @@ export async function stepCommitTagPush(ui: ReleaseUi, newVersion: string, optio
       //
       // 提交信息必须带 scope：本仓 commitlint 的 `scope-empty: never` 会拒绝 `chore: release …`，
       // 而 `release` 是保留的基础设施 scope（不是包 scope）。
-      await runArgs('git', ['-C', REPO_ROOT, 'commit', '-m', `chore(release): v${newVersion}`], ui.childOptions())
+      await runArgs(
+        'git',
+        ['-C', REPO_ROOT, 'commit', '-m', `chore(release): v${newVersion}`],
+        ui.childOptions(),
+      )
     }
   }
 
@@ -414,9 +473,11 @@ export async function stepCommitTagPush(ui: ReleaseUi, newVersion: string, optio
     const leftover = porcelain(true)
     if (leftover.length > 0) {
       ui.log('❌ 提交后工作区仍有改动：')
-      for (const line of leftover.slice(0, 8))
-        ui.log(`   ${line}`)
-      ui.die(1, `拒绝打标：release 提交之后工作区仍有 ${leftover.length} 个改动（tag 会指向一个不完整的提交）。先查清再重跑`)
+      for (const line of leftover.slice(0, 8)) ui.log(`   ${line}`)
+      ui.die(
+        1,
+        `拒绝打标：release 提交之后工作区仍有 ${leftover.length} 个改动（tag 会指向一个不完整的提交）。先查清再重跑`,
+      )
     }
   }
 
@@ -425,10 +486,13 @@ export async function stepCommitTagPush(ui: ReleaseUi, newVersion: string, optio
   // 而 tag 与 push 都不可回退。故不看「我们以为做过什么」，只看 HEAD 上实际是什么。
   const headVersion = versionAtRef('HEAD')
   if (headVersion !== newVersion) {
-    ui.die(1, `拒绝打标：HEAD 上的 apps/admin 版本是 ${headVersion ?? '(读不到)'}，而本次要发 ${newVersion}。`
-    + '说明 release commit 没落到 HEAD（预提交钩子拒绝 / 提交被跳过 / 早先的提交不完整）。'
-    + `HEAD: ${headSubject() ?? '?'}。`
-    + '请先查清再重跑；若要放弃本次发版：git checkout -- . && git clean -fd .changeset')
+    ui.die(
+      1,
+      `拒绝打标：HEAD 上的 apps/admin 版本是 ${headVersion ?? '(读不到)'}，而本次要发 ${newVersion}。` +
+        '说明 release commit 没落到 HEAD（预提交钩子拒绝 / 提交被跳过 / 早先的提交不完整）。' +
+        `HEAD: ${headSubject() ?? '?'}。` +
+        '请先查清再重跑；若要放弃本次发版：git checkout -- . && git clean -fd .changeset',
+    )
   }
 
   // ── 打标前门禁 ──────────────────────────────────────────────────────────
@@ -440,26 +504,32 @@ export async function stepCommitTagPush(ui: ReleaseUi, newVersion: string, optio
     const pointed = tagCommit(tag)
     const head = headCommit()
     if (!pointed || !head || pointed !== head) {
-      ui.die(1, `标签 ${tag} 已存在，但它指向 ${pointed?.slice(0, 12) ?? '(读不到)'}，而 HEAD 是 ${head?.slice(0, 12) ?? '(读不到)'}。\n`
-      + `   推它等于把一个**别的 commit** 发布成 ${tag}。请先查清这个 tag 是谁打的；确认要重打：git tag -d ${tag} 后重跑。`)
+      ui.die(
+        1,
+        `标签 ${tag} 已存在，但它指向 ${pointed?.slice(0, 12) ?? '(读不到)'}，而 HEAD 是 ${head?.slice(0, 12) ?? '(读不到)'}。\n` +
+          `   推它等于把一个**别的 commit** 发布成 ${tag}。请先查清这个 tag 是谁打的；确认要重打：git tag -d ${tag} 后重跑。`,
+      )
     }
     ui.log(`标签 ${tag} 已存在且指向 HEAD，跳过打标`)
-  }
-  else {
+  } else {
     ui.log(`创建标签: ${tag}`)
     // 跳过门禁要**留在 tag annotation 里**（事后可审计）：tag 是这条发版线的永久凭据，
     // 光在终端打一行警告，几个月后没人说得出「这一版有没有跑门禁」。多条 `-m` 在 git 里是多段正文。
     const skipNote = skipGatesLabel(options.skipGates)
-    await runArgs('git', [
-      '-C',
-      REPO_ROOT,
-      'tag',
-      '-a',
-      assertSafeRef(tag, 'tag 名'),
-      '-m',
-      tag,
-      ...(skipNote === '' ? [] : ['-m', skipNote]),
-    ], ui.childOptions())
+    await runArgs(
+      'git',
+      [
+        '-C',
+        REPO_ROOT,
+        'tag',
+        '-a',
+        assertSafeRef(tag, 'tag 名'),
+        '-m',
+        tag,
+        ...(skipNote === '' ? [] : ['-m', skipNote]),
+      ],
+      ui.childOptions(),
+    )
   }
 
   if (tagExistsRemotely(tag) && branchIsPushed(branch)) {
@@ -470,22 +540,27 @@ export async function stepCommitTagPush(ui: ReleaseUi, newVersion: string, optio
   // `--atomic`：分支与 tag 两条 ref **要么一起成功、要么都不动**。没有它时 git 按 ref 独立处理 ——
   // 分支因 non-fast-forward 被拒而 tag 照样落地，远端会留下一个指向未推送提交的 tag。
   ui.log(`推送分支与标签（--atomic）...`)
-  await runArgs('git', [
-    '-C',
-    REPO_ROOT,
-    'push',
-    '--atomic',
-    'origin',
-    assertSafeRef(branch, '当前分支名'),
-    assertSafeRef(tag, 'tag 名'),
-  ], {
-    // 段数**不写数字**：这张表一直在加段，写死的那个数没有门禁拦得住（判据式措辞才是防腐）。
-    // 真源是 tooling/scripts/src/ci/prepush.ts 的 PREPUSH_GATES，本包不去 import 它
-    // 的长度 —— 一句提示不值得把两个包的构建面耦在一起。
-    hint: '远端 pre-receive 之前会先跑本仓的 pre-push 门禁（`pnpm --silent prepush`：'
-      + '段表在 tooling/scripts/src/ci/prepush.ts，并行执行、每段报耗时、'
-      + '跳过与通过分开报），冷缓存数分钟属预期；'
-      + '心跳会告诉你是「在跑」还是「卡住了」。',
-    ...ui.childOptions(),
-  })
+  await runArgs(
+    'git',
+    [
+      '-C',
+      REPO_ROOT,
+      'push',
+      '--atomic',
+      'origin',
+      assertSafeRef(branch, '当前分支名'),
+      assertSafeRef(tag, 'tag 名'),
+    ],
+    {
+      // 段数**不写数字**：这张表一直在加段，写死的那个数没有门禁拦得住（判据式措辞才是防腐）。
+      // 真源是 tooling/scripts/src/ci/prepush.ts 的 PREPUSH_GATES，本包不去 import 它
+      // 的长度 —— 一句提示不值得把两个包的构建面耦在一起。
+      hint:
+        '远端 pre-receive 之前会先跑本仓的 pre-push 门禁（`pnpm --silent prepush`：' +
+        '段表在 tooling/scripts/src/ci/prepush.ts，并行执行、每段报耗时、' +
+        '跳过与通过分开报），冷缓存数分钟属预期；' +
+        '心跳会告诉你是「在跑」还是「卡住了」。',
+      ...ui.childOptions(),
+    },
+  )
 }

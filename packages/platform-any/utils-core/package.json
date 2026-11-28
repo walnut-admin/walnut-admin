@@ -1,9 +1,12 @@
 {
   "name": "@walnut/utils",
-  "type": "module",
   "version": "0.1.24",
   "description": "两端同源的纯函数只有两件：sign-raw（请求签名原文，前后端逐字节一致）+ object-paths（嵌套对象 ↔ 扁平 path）；其余工具后端 0 消费，在 @walnut/client",
   "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
   "exports": {
     ".": {
       "source": "./src/index.ts",
@@ -20,18 +23,11 @@
       "default": "./dist/*.cjs"
     }
   },
-  "main": "./dist/index.cjs",
-  "module": "./src/index.ts",
-  "types": "./src/index.ts",
-  "engines": {
-    "node": ">=24.15.0",
-    "pnpm": ">=12.0.0"
-  },
   "scripts": {
-    "build": "vite build",
+    "build": "tsdown",
     "lint": "eslint . --concurrency=4",
     "lint:fix": "eslint . --fix --concurrency=4",
-    "types:check": "tsc --noEmit",
+    "types:check": "tsrs --noEmit --pretty",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "clean": "rimraf dist",
@@ -39,14 +35,17 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "@walnut/eslint-config": "workspace:*",
     "@walnut/tsconfig": "workspace:*",
     "@walnut/vitest-config": "workspace:*",
     "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "tsrs": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:",
-    "vite-plugin-dts": "catalog:",
     "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.15.0",
+    "pnpm": ">=12.0.0"
   },
   "walnut": {
     "platform": "any",

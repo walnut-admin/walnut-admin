@@ -55,8 +55,7 @@ const [register] = useForm<IStoreUser.Preference.Basic>({
           try {
             await updatePreferenceBasicAPI(userStorePreference.basic)
             useAppMsgSuccess()
-          }
-          finally {
+          } finally {
             loading.value = false
           }
         },

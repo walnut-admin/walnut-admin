@@ -21,10 +21,7 @@ import { AppDemoEntity } from './entity/demo.entity'
  * `AppAppModule` 紧随本模块 import，Swagger 路径顺序（demo → deleted → error）不变。
  */
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([AppDemoEntity], WalnutPGConnectionName),
-    SysDeletedModule,
-  ],
+  imports: [TypeOrmModule.forFeature([AppDemoEntity], WalnutPGConnectionName), SysDeletedModule],
   controllers: [AppDemoController],
   providers: [AppDemoBasicRepository, AppDemoService, appDemoRecoverableProvider],
   exports: [AppDemoService],

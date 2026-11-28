@@ -24,13 +24,7 @@
  * 是另一个 worktree 在跑，还是上一轮崩了留下的半开连接。
  */
 import { Client } from 'pg'
-import {
-  E2E_PG_DB,
-  E2E_PG_HOST,
-  E2E_PG_PASS,
-  E2E_PG_PORT,
-  E2E_PG_USER,
-} from './env.ts'
+import { E2E_PG_DB, E2E_PG_HOST, E2E_PG_PASS, E2E_PG_PORT, E2E_PG_USER } from './env.ts'
 import { E2ePreconditionError } from './failure.ts'
 import { E2E_PG_GLOBAL_LOCK_KEY, STACK_PROFILE } from './stack-profiles.ts'
 
@@ -49,7 +43,7 @@ function log(message: string): void {
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 function warn(message: string): void {
@@ -72,12 +66,11 @@ export async function connectMaintenance(): Promise<Client> {
 
   try {
     await client.connect()
-  }
-  catch (error) {
+  } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     throw new E2ePreconditionError(
-      `连不上 PG ${E2E_PG_HOST}:${E2E_PG_PORT}（库 ${E2E_PG_DB} 的管理通道）：${message}\n`
-      + '  处置：先起数据栈（见 apps/e2e/README.md 的「数据栈的两种形态」），再确认容器 healthy。',
+      `连不上 PG ${E2E_PG_HOST}:${E2E_PG_PORT}（库 ${E2E_PG_DB} 的管理通道）：${message}\n` +
+        '  处置：先起数据栈（见 apps/e2e/README.md 的「数据栈的两种形态」），再确认容器 healthy。',
     )
   }
 
@@ -85,24 +78,33 @@ export async function connectMaintenance(): Promise<Client> {
 }
 
 /** 抢锁（轮询；抢不到时打印持锁者）。`label` 只用于日志归属（全局 / profile 名）。 */
-export async function acquirePgLock(client: Client, key = E2E_PG_LOCK_KEY, label = 'run'): Promise<void> {
+export async function acquirePgLock(
+  client: Client,
+  key = E2E_PG_LOCK_KEY,
+  label = 'run',
+): Promise<void> {
   const started = Date.now()
 
   for (;;) {
-    const { rows } = await client.query<{ locked: boolean }>('SELECT pg_try_advisory_lock($1) AS locked', [key])
+    const { rows } = await client.query<{ locked: boolean }>(
+      'SELECT pg_try_advisory_lock($1) AS locked',
+      [key],
+    )
     if (rows[0]?.locked === true) {
       log(`已拿到 PG advisory lock（key=${key}，${label}）`)
       return
     }
 
     if (Date.now() - started > LOCK_WAIT_MS) {
-      const holders = await client.query<{ pid: number, state: string, query: string }>(
+      const holders = await client.query<{ pid: number; state: string; query: string }>(
         `SELECT a.pid, a.state, a.query
            FROM pg_locks l JOIN pg_stat_activity a ON a.pid = l.pid
           WHERE l.locktype = 'advisory' AND l.objid = $1`,
         [key],
       )
-      const detail = holders.rows.map(row => `pid=${row.pid} state=${row.state} query=${row.query.slice(0, 120)}`).join('; ')
+      const detail = holders.rows
+        .map((row) => `pid=${row.pid} state=${row.state} query=${row.query.slice(0, 120)}`)
+        .join('; ')
       throw new E2ePreconditionError(
         `${LOCK_WAIT_MS / 1000}s 内没抢到 PG advisory lock（${label}，key=${key}）—— 另一个 E2E 进程正在跑这一轮？${detail}`,
       )
@@ -117,8 +119,9 @@ export async function acquirePgLock(client: Client, key = E2E_PG_LOCK_KEY, label
 export async function releasePgLock(client: Client, key = E2E_PG_LOCK_KEY): Promise<void> {
   try {
     await client.query('SELECT pg_advisory_unlock($1)', [key])
-  }
-  catch (error) {
-    warn(`释放 advisory lock（key=${key}）失败（连接已断时会自动释放）：${error instanceof Error ? error.message : String(error)}`)
+  } catch (error) {
+    warn(
+      `释放 advisory lock（key=${key}）失败（连接已断时会自动释放）：${error instanceof Error ? error.message : String(error)}`,
+    )
   }
 }

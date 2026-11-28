@@ -1,7 +1,10 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { AppTechCachePermissionsService } from '@walnut-server/cache'
-import { IWalnutAdminConstAppPermissionType, WalnutAdminConstAppPermissionType } from '@walnut-server/const/app/permission'
+import {
+  IWalnutAdminConstAppPermissionType,
+  WalnutAdminConstAppPermissionType,
+} from '@walnut-server/const/app/permission'
 import { filterTree } from '@walnut-server/utils'
 import { Role, RoleType } from '@walnut/contract'
 import { MenuTernal, MenuType } from '@walnut/contract/menu'
@@ -21,15 +24,12 @@ export class SysMenuSharedService {
     private readonly sysMenuRepoService: SysMenuRepositoryService,
     private readonly roleSharedService: SysRoleSharedService,
     private readonly cachePermissionsService: AppTechCachePermissionsService,
-  ) { }
+  ) {}
 
   /**
    * @description get current user authorized permissions (for AuthController)
    */
-  async getPermissions(
-    user: IWalnutAdminAccessTokenPayload,
-    deviceId: string,
-  ) {
+  async getPermissions(user: IWalnutAdminAccessTokenPayload, deviceId: string) {
     const res = await this.getCorePermissions(user, WalnutAdminConstAppPermissionType.ALL)
 
     // set permission to cache
@@ -67,7 +67,10 @@ export class SysMenuSharedService {
    * @description get current user authorized permission strings
    */
   async getCorePermissionStrings(user: IWalnutAdminAccessTokenPayload) {
-    const { permissionStrings } = await this.getCorePermissions(user, WalnutAdminConstAppPermissionType.STRINGS)
+    const { permissionStrings } = await this.getCorePermissions(
+      user,
+      WalnutAdminConstAppPermissionType.STRINGS,
+    )
     return permissionStrings
   }
 
@@ -76,7 +79,7 @@ export class SysMenuSharedService {
    */
   async getCorePermissions(
     user: IWalnutAdminAccessTokenPayload,
-    permissionType: typeof WalnutAdminConstAppPermissionType.STRINGS
+    permissionType: typeof WalnutAdminConstAppPermissionType.STRINGS,
   ): Promise<{
     permissionStrings: string[]
   }>
@@ -86,7 +89,7 @@ export class SysMenuSharedService {
    */
   async getCorePermissions(
     user: IWalnutAdminAccessTokenPayload,
-    permissionType: typeof WalnutAdminConstAppPermissionType.MENUS
+    permissionType: typeof WalnutAdminConstAppPermissionType.MENUS,
   ): Promise<{
     permissionMenuTree: TreeNodeItem<IMenuTreeItem>[]
   }>
@@ -96,7 +99,7 @@ export class SysMenuSharedService {
    */
   async getCorePermissions(
     user: IWalnutAdminAccessTokenPayload,
-    permissionType: typeof WalnutAdminConstAppPermissionType.ROUTES
+    permissionType: typeof WalnutAdminConstAppPermissionType.ROUTES,
   ): Promise<{
     permissionRoutes: TreeNodeItem<IVueRouteItem>[]
   }>
@@ -106,7 +109,7 @@ export class SysMenuSharedService {
    */
   async getCorePermissions(
     user: IWalnutAdminAccessTokenPayload,
-    permissionType: typeof WalnutAdminConstAppPermissionType.ALL
+    permissionType: typeof WalnutAdminConstAppPermissionType.ALL,
   ): Promise<{
     permissionStrings: string[]
     permissionMenuTree: TreeNodeItem<IMenuTreeItem>[]
@@ -132,18 +135,17 @@ export class SysMenuSharedService {
     // root/visitor has all permissions
     // P3-18：非 root 路径也取**全部根**（此前 findRootMenu 只取一根，多根部署下
     // 其他根下的授权菜单在 arrToTree 里成为孤儿子树被丢弃）
-    const menuArr: (SysMenuEntity | null | ISysMenuAssembled)[] = ([Role.ROOT, Role.VISITOR] as RoleType[]).includes(roleNames[0])
+    const menuArr: (SysMenuEntity | null | ISysMenuAssembled)[] = (
+      [Role.ROOT, Role.VISITOR] as RoleType[]
+    ).includes(roleNames[0])
       ? await this.sysMenuRepoService.findAllMenus()
-      : [
-          ...await this.sysMenuRepoService.findAllRootMenus(),
-          ...menus,
-        ]
+      : [...(await this.sysMenuRepoService.findAllRootMenus()), ...menus]
 
     // B5：实体（拍平列）→ meta 组装回对象的 POJO（assembleSysMenu 幂等，role populate
     // 侧已组装的行重复调用结果不变）；PG 实体即 POJO，无需 toObject
     const processedMenuArr: ISysMenuAssembled[] = menuArr
       .filter((i): i is SysMenuEntity | ISysMenuAssembled => i !== null)
-      .map(i => assembleSysMenu(i))
+      .map((i) => assembleSysMenu(i))
 
     const processors = {
       [WalnutAdminConstAppPermissionType.STRINGS]: () => ({
@@ -158,16 +160,19 @@ export class SysMenuSharedService {
       [WalnutAdminConstAppPermissionType.ALL]: () => {
         const permissionStrings = this.getStrings(processedMenuArr)
         const keepAliveNames = processedMenuArr
-          .filter(i => i.type === MenuType.MENU && i.meta?.ternal !== MenuTernal.EXTERNAL && i.meta?.cache)
-          .map(i => i.name)
+          .filter(
+            (i) =>
+              i.type === MenuType.MENU && i.meta?.ternal !== MenuTernal.EXTERNAL && i.meta?.cache,
+          )
+          .map((i) => i.name)
           .filter(Boolean)
         const affixedTabs = this.getLayoutTabs(processedMenuArr)
         const permissionMenuTree = this.getMenuTree(processedMenuArr)
         const permissionRoutes = this.getRouteTree(processedMenuArr)
         // P3-18：多根部署下顶层 = 全部根的 children 拼接（单根形态与旧 wire 完全一致，
         // 根节点本身仍不进菜单树/路由树 —— 与 admin 菜单渲染的「根 → children」契约对齐）。
-        const permissionMenuTopLevel = permissionMenuTree.flatMap(root => root.children ?? [])
-        const permissionRouteTopLevel = permissionRoutes.flatMap(root => root.children ?? [])
+        const permissionMenuTopLevel = permissionMenuTree.flatMap((root) => root.children ?? [])
+        const permissionRouteTopLevel = permissionRoutes.flatMap((root) => root.children ?? [])
         // P1-8 修复（2026-10-28）：sys_menu 空表时 permissionMenuTree 为空数组 ——
         // 旧写法 `[0].children![0]` 在 undefined 上解引用 → TypeError → 50000。
         // 空树回空 indexMenuName（受控空形态）。
@@ -186,21 +191,21 @@ export class SysMenuSharedService {
       },
     }
 
-    const processor = Reflect.has(processors, permissionType) ? processors[permissionType] : processors[WalnutAdminConstAppPermissionType.ALL]
+    const processor = Reflect.has(processors, permissionType)
+      ? processors[permissionType]
+      : processors[WalnutAdminConstAppPermissionType.ALL]
     return processor()
   }
 
   // get current user permission strings
   private getStrings(data: ISysMenuAssembled[]) {
-    return data.filter(i => Boolean(i.meta?.permission)).map(i => i.meta?.permission)
+    return data.filter((i) => Boolean(i.meta?.permission)).map((i) => i.meta?.permission)
   }
 
   // get current user menu tree
   private getMenuTree(data: ISysMenuAssembled[]): TreeNodeItem<IMenuTreeItem>[] {
     // item that is not type ELEMENT
-    const inputPayload = data.filter(
-      i => i.type !== MenuType.ELEMENT,
-    )
+    const inputPayload = data.filter((i) => i.type !== MenuType.ELEMENT)
 
     // build tree（B5：Mongo 版以 _id 建树，PG 版主键是 id）
     const treeMenu = arrToTree(inputPayload, { id: 'id', pid: 'pid' })
@@ -209,7 +214,9 @@ export class SysMenuSharedService {
     const treeOrdered = orderTree(treeMenu, (a, b) => a.meta.order - b.meta.order)
 
     // empty children for type not CATALOG
-    const formattedTree = formatTree(treeOrdered, node => node.type !== MenuType.CATALOG ? Object.assign(node, { children: [] }) : node)
+    const formattedTree = formatTree(treeOrdered, (node) =>
+      node.type !== MenuType.CATALOG ? Object.assign(node, { children: [] }) : node,
+    )
 
     return formattedTree
   }
@@ -241,9 +248,7 @@ export class SysMenuSharedService {
   // get current user route tree
   private getRouteTree(data: ISysMenuAssembled[]) {
     // item that is not type ELEMENT
-    const inputPayload = data.filter(
-      i => i.type !== MenuType.ELEMENT,
-    )
+    const inputPayload = data.filter((i) => i.type !== MenuType.ELEMENT)
 
     // build tree（B5：_id → id）
     const treeMenu = arrToTree(inputPayload, { id: 'id', pid: 'pid' })
@@ -252,17 +257,21 @@ export class SysMenuSharedService {
     const treeOrdered = orderTree(treeMenu, (a, b) => a.meta.order - b.meta.order, { id: 'id' })
 
     // format tree to vue route structure
-    const formattedTree = formatTree<ISysMenuAssembled, IVueRouteItem>(treeOrdered, (node) => {
-      const n = node.children?.length === 0 ? omit(node, 'children') : node
+    const formattedTree = formatTree<ISysMenuAssembled, IVueRouteItem>(
+      treeOrdered,
+      (node) => {
+        const n = node.children?.length === 0 ? omit(node, 'children') : node
 
-      return {
-        ...n,
-        meta: {
-          ...n.meta,
-          ...pick(n, ['title', 'type', 'icon']),
-        },
-      }
-    }, { id: 'id' })
+        return {
+          ...n,
+          meta: {
+            ...n.meta,
+            ...pick(n, ['title', 'type', 'icon']),
+          },
+        }
+      },
+      { id: 'id' },
+    )
 
     return formattedTree
   }
@@ -270,9 +279,9 @@ export class SysMenuSharedService {
   // get tabs data
   private getLayoutTabs(data: ISysMenuAssembled[]) {
     return data
-      .filter(i => i.type === MenuType.MENU && i.meta?.affix)
+      .filter((i) => i.type === MenuType.MENU && i.meta?.affix)
       .sort((a, b) => b.meta?.order - a.meta?.order)
-      .map(i => ({
+      .map((i) => ({
         ...i,
         meta: {
           ...i.meta,
@@ -283,8 +292,9 @@ export class SysMenuSharedService {
 
   // get iframe list
   private getIframeList(data: ISysMenuAssembled[]) {
-    return data.filter(i => i.meta?.ternal === MenuTernal.INTERNAL && !!i.meta?.url)
-      .map(i => ({
+    return data
+      .filter((i) => i.meta?.ternal === MenuTernal.INTERNAL && !!i.meta?.url)
+      .map((i) => ({
         name: i.name,
         url: i.meta?.url,
         cache: i.meta?.cache,
@@ -303,7 +313,7 @@ export class SysMenuSharedService {
   async getMenuTreeAndTreeWithoutTypeElement(em?: EntityManager) {
     const allMenus = await this.sysMenuRepoService.findAllMenus(em)
 
-    const rawMenus: ISysMenuAssembled[] = allMenus.map(i => assembleSysMenu(i))
+    const rawMenus: ISysMenuAssembled[] = allMenus.map((i) => assembleSysMenu(i))
 
     // also remove empty children（R 与 T 同型显式标注：omit 掉 children 的行仍是同型节点）
     const fullTree = formatTree<TreeNodeItem<ISysMenuAssembled>, TreeNodeItem<ISysMenuAssembled>>(
@@ -320,17 +330,18 @@ export class SysMenuSharedService {
     // 递归过滤（2026-11 F1）：命中的 catalog/menu **不豁免**其后代 —— element 在任何层级
     // 都被剪掉。旧实现用 easy-fns-ts 的 filterTree（命中即整棵返回），element 会作为
     // catalog/menu 的后代保留下来，与端点语义（父节点选择不该出现 element）不符。
-    const treeWithoutTypeElement = filterTree(fullTree, node => node.type !== MenuType.ELEMENT)
+    const treeWithoutTypeElement = filterTree(fullTree, (node) => node.type !== MenuType.ELEMENT)
 
     // menu active name select options
-    const menuActiveNamesOptions = rawMenus.filter(i => i.type === MenuType.MENU)
-      .map(i => ({
+    const menuActiveNamesOptions = rawMenus
+      .filter((i) => i.type === MenuType.MENU)
+      .map((i) => ({
         name: i.name,
         title: i.title,
       }))
 
     return {
-      fullTree: fullTree.flatMap(root => root.children ?? []),
+      fullTree: fullTree.flatMap((root) => root.children ?? []),
       treeWithoutTypeElement,
       menuActiveNamesOptions,
     }

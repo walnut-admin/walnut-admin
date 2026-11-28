@@ -9,7 +9,7 @@
 |---|---|
 | 目录 | `packages/platform-any/utils-core` |
 | 平台 / 运行时 | `platform: any` ｜ `type: utils` ｜ `runtime: none`（`package.json` 的 `walnut` 块） |
-| 消费方式 | **双模**：前端 Vite 经 `source` / `import` 条件直读 `src/*.ts`；后端经 `require` 条件拿 `dist/*.cjs`（`vite build` 产出）。见 [ADR 0002](../../../apps/docs/src/zh-CN/content/adr/0002-dual-mode-consumption.md) |
+| 消费方式 | **双模**：前端 Vite 经 `source` / `import` 条件直读 `src/*.ts`；后端经 `require` 条件拿 `dist/*.cjs`（`tsdown` 产出）。见 [ADR 0002](../../../apps/docs/src/zh-CN/content/adr/0002-dual-mode-consumption.md) |
 
 > ⚠️ **目录名 ≠ 包名，这是有意的**：目录叫 `utils-core/`（ADR 0017 把当时的 `utils` 包拆成 `utils-core` + `types` 时留下的名字），包名从那时起一直是 **`@walnut/utils`**。写 `@walnut/utils-core` 会被 `pnpm walnut lint:docs-refs` 判为「不存在的包名」拦下 —— 证据：`tooling/scripts/src/ci/check-doc-refs.ts` 的豁免清单里专门写了这一条。
 
@@ -41,7 +41,7 @@
 
 ## 导出面
 
-`exports` 的 `"."` 与 `"./*"` 与 `@walnut/contract` 同形（`source` / `types` / `import` → `src/*.ts`，`require` / `default` → `dist/*.cjs`）。子路径入口与 vite 构建条目**一一对应，现在只剩三个**：
+`exports` 的 `"."` 与 `"./*"` 与 `@walnut/contract` 同形（`source` / `types` / `import` → `src/*.ts`，`require` / `default` → `dist/*.cjs`）。子路径入口与 tsdown 构建条目**一一对应，现在只剩三个**：
 
 | 入口 | 内容 |
 |------|------|
@@ -50,7 +50,7 @@
 | `./sign-raw` | `buildSignRaw` / `splitPathAndQuery` / `stripApiPrefix`，类型 `SignRawParts` |
 
 > 加文件前先问一句：它是「两端负责同一批字节 / 同一棵树」吗？不是就别放进来 ——
-> `vite.config.ts` 的 entries 表就是这条判据的物理形态（多一端专属的条目 = 判据被绕过了）。
+> `tsdown.config.ts` 的 entries 表就是这条判据的物理形态（多一端专属的条目 = 判据被绕过了）。
 
 ## 怎么用
 
@@ -75,7 +75,7 @@ export function flattenedKeys(payload: Record<string, unknown>): string[] {
 
 ## 依赖与边界
 
-- **依赖**：**没有 `dependencies`**（D7 之后；原三个都随下沉搬走）。devDependencies：`@walnut/tsconfig`（`ts.json` 预设）、`@walnut/vitest-config`、`@walnut/eslint-config`、`typescript`、`vite`、`vite-plugin-dts`、`vitest`、`rimraf`、`@types/node`。测试链：`vitest` + `@walnut/vitest-config`（`vitest.config.ts` 一行 `defineWalnutVitestConfig()`）；`tsconfig.json` 继承 `@walnut/tsconfig/ts.json` 并自持 `types: ["node"]`。
+- **依赖**：**没有 `dependencies`**（D7 之后；原三个都随下沉搬走）。devDependencies：`@walnut/tsconfig`（`ts.json` 预设）、`@walnut/vitest-config`、`@walnut/eslint-config`、`typescript`、`tsdown`、`vitest`、`rimraf`、`@types/node`。测试链：`vitest` + `@walnut/vitest-config`（`vitest.config.ts` 一行 `defineWalnutVitestConfig()`）；`tsconfig.json` 继承 `@walnut/tsconfig/ts.json` 并自持 `types: ["node"]`。
 - **消费者**：只有上表那四个入口名 —— `apps/server`（两个 guard + `libs/utils`）与前端两侧（`@walnut/admin` 的 `sign-raw`、`@walnut/client` 的 `object-paths` re-export）。crypto / regex / queue / enhance 的消费方**已随实现搬到 `@walnut/client`**。
 - **边界由 turbo tags 强制**：workspace 级 `turbo.json` 声明 `shared` / `pure` / `platform-any`，根 `turbo.json` 的 `boundaries.tags` 禁止 `shared` 依赖 app、禁止 `platform-any` 依赖 `platform-web` / `platform-node`（`pure` 是描述性标签，无对应规则）。由 `pnpm walnut boundaries` 拦。
 - **测试**：4 个 `*.test.ts`（`object-paths` / `sign-raw` 各自的对拍用例），与源文件同级；原来的 regex / queue / transformer / enhance 用例随实现一起搬进了 `@walnut/client`（`pnpm --filter @walnut/client test` 跑）。
@@ -85,7 +85,7 @@ export function flattenedKeys(payload: Record<string, unknown>): string[] {
 - **`sign-raw` 的 CJS 面是签名真源的唯一去处**：后端两个 guard 经 `require` 条件拿 `dist/sign-raw.cjs`，所以没跑过 `pnpm build`（或 CI 的 `turbo run build --filter=@walnut/utils`）时，openapi 导出会 `Cannot find module` —— 这是**产物面**依赖，别用「源码直消费」的直觉推断它。
 - **曾经的 contract 内联问题随 D7 消失**：老版本把 `@walnut/contract/crypto-wire` 打进产物（构建期快照而非引用），根因是 `crypto/const.ts` 住在这里；该文件已搬到 `@walnut/client`，本包现在**不 import 任何 workspace 包**，产物面只有自己的三个条目。
 - **server 侧纯函数部分上收（U3 批）**：`objectToPaths` / `pathsToObject` 已迁入本包（server 与 client 双端 re-export 消费）；`generateVerifyCode` / `sleep` / `regexMap` / `maskEmail` / `maskPhone` / `maskSensitiveFields` / `getPackageJsonData` / `AppDayjs` 仍为 server 专属（无跨端消费或 Nest/Node 耦合）。
-- **构建产物包含测试文件的声明**：dts 插件配置为 `include: ['src']`，`*.test.ts` 的 `.d.ts` 会一起产出（`types` 字段指向 `src`，所以当前无害，但产物面比公开面大）—— 证据：`packages/platform-any/utils-core/vite.config.ts`。
+- **构建产物不再包含声明文件**（随 tsdown 迁移解决）：`dts: false` —— `types` 字段指向 `src`，`dist` 只留 `*.cjs` 与 sourcemap。迁移前的 dts 插件会把 `*.test.ts` 的 `.d.ts` 一起产出（产物面比公开面大），现在这条限制消失。
 - **`test` 脚本带 `--passWithNoTests`**：历史上曾经真的没有用例；现在有 4 个，开关留着无害 —— 证据：`packages/platform-any/utils-core/package.json`。
 - **同源候选已按判据重判**：`LRUMap<K, V>` 与 `extractJSON` / `isBufferWaitingForJSON`（还在 `apps/admin/src/components/Global/AI/utils/` 下）只有前端消费，按本包现在的判据**不进这里**（ADR 0017 当时写的是「可选择性放入」）。
 

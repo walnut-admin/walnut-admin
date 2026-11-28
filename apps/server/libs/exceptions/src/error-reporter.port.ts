@@ -9,5 +9,10 @@
 export const WALNUT_ADMIN_ERROR_REPORTER = Symbol('WALNUT_ADMIN_ERROR_REPORTER')
 
 export interface IWalnutAdminErrorReporter {
-  addErrorQueue: (req: IWalnutAdminExpressRequest, resData: IWalnutAdminResponseBase, statusCode: number, error: Error) => Promise<unknown>
+  addErrorQueue: (
+    req: IWalnutAdminExpressRequest,
+    resData: IWalnutAdminResponseBase,
+    statusCode: number,
+    error: Error,
+  ) => Promise<unknown>
 }

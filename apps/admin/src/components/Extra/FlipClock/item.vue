@@ -1,13 +1,16 @@
 <script lang="ts" setup>
 import { onBeforeMount, ref, watch } from 'vue'
 
-const props = withDefaults(defineProps<{
-  total?: number
-  current?: number
-}>(), {
-  total: 9,
-  current: -1,
-})
+const props = withDefaults(
+  defineProps<{
+    total?: number
+    current?: number
+  }>(),
+  {
+    total: 9,
+    current: -1,
+  },
+)
 
 const before = ref(0)
 const isPlay = ref(false)
@@ -21,8 +24,7 @@ watch(
   (cur, prev) => {
     before.value = prev!
 
-    if (!isPlay.value)
-      isPlay.value = true
+    if (!isPlay.value) isPlay.value = true
   },
   {
     immediate: true,

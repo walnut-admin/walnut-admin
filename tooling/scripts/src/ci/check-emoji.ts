@@ -60,14 +60,12 @@ const HASH_COMMENT_FILES = new Set(['.gitignore', '.gitattributes', '.editorconf
 function extOf(file: string): string {
   const base = file.split('/').pop() ?? file
   const dot = base.indexOf('.')
-  if (dot <= 0)
-    return base === 'Dockerfile' ? '.dockerfile' : ''
+  if (dot <= 0) return base === 'Dockerfile' ? '.dockerfile' : ''
   return base.slice(dot).toLowerCase()
 }
 
 export function syntaxOf(file: string): CommentSyntax {
-  if (HASH_COMMENT_FILES.has(file.split('/').pop() ?? file))
-    return 'hash'
+  if (HASH_COMMENT_FILES.has(file.split('/').pop() ?? file)) return 'hash'
   const ext = extOf(file)
   return SYNTAX_BY_EXT[ext] ?? 'none'
 }
@@ -89,7 +87,7 @@ export function isComment(line: string, syntax: CommentSyntax): boolean {
 
 /** 常驻上下文文档：这些文件里**任何** emoji 都报（不只是注释） */
 export function isStrictDoc(file: string): boolean {
-  return DOC_BUDGETS.some(b => b.file === file)
+  return DOC_BUDGETS.some((b) => b.file === file)
 }
 
 /**
@@ -104,8 +102,8 @@ export function listCandidateFiles(repoRoot: string): string[] {
   return outText
     .split('\0')
     .filter(Boolean)
-    .filter(f => isStrictDoc(f) || syntaxOf(f) !== 'none')
-    .filter(f => existsSync(join(repoRoot, f)))
+    .filter((f) => isStrictDoc(f) || syntaxOf(f) !== 'none')
+    .filter((f) => existsSync(join(repoRoot, f)))
     .sort()
 }
 
@@ -123,9 +121,8 @@ export function checkFile(repoRoot: string, file: string, fix: boolean): EmojiFi
   const text = readFileSync(path, 'utf8')
 
   if (isStrictDoc(file)) {
-    const hits = findEmoji(text).map(h => ({ file, line: h.line, chars: h.chars, strict: true }))
-    if (fix && hits.length > 0)
-      writeFileSync(path, stripEmoji(text))
+    const hits = findEmoji(text).map((h) => ({ file, line: h.line, chars: h.chars, strict: true }))
+    if (fix && hits.length > 0) writeFileSync(path, stripEmoji(text))
     return hits
   }
 
@@ -133,21 +130,18 @@ export function checkFile(repoRoot: string, file: string, fix: boolean): EmojiFi
   const findings: EmojiFinding[] = []
   const lines = text.split(/\r?\n/)
   for (const [index, src] of lines.entries()) {
-    if (!isComment(src, syntax))
-      continue
+    if (!isComment(src, syntax)) continue
     for (const hit of findEmoji(src))
       findings.push({ file, line: index + 1, chars: hit.chars, strict: false })
   }
-  if (fix && findings.length > 0)
-    writeFileSync(path, stripEmoji(text))
+  if (fix && findings.length > 0) writeFileSync(path, stripEmoji(text))
   return findings
 }
 
 /** 全仓扫描（供门禁与用例共用） */
 export function collectFindings(repoRoot: string, fix = false): EmojiFinding[] {
   const findings: EmojiFinding[] = []
-  for (const file of listCandidateFiles(repoRoot))
-    findings.push(...checkFile(repoRoot, file, fix))
+  for (const file of listCandidateFiles(repoRoot)) findings.push(...checkFile(repoRoot, file, fix))
   return findings
 }
 
@@ -157,7 +151,9 @@ export function main(): void {
   const files = listCandidateFiles(repoRoot)
   const strict = files.filter(isStrictDoc).length
 
-  out(`emoji 检查：${files.length} 个被跟踪的文本文件（其中常驻上下文文档 ${strict} 个走严格档）${fix ? '，--fix 已开启' : ''}`)
+  out(
+    `emoji 检查：${files.length} 个被跟踪的文本文件（其中常驻上下文文档 ${strict} 个走严格档）${fix ? '，--fix 已开启' : ''}`,
+  )
 
   const findings = collectFindings(repoRoot, fix)
   if (findings.length === 0) {
@@ -166,15 +162,19 @@ export function main(): void {
   }
 
   for (const f of findings.slice(0, 40))
-    lineErr('violation', `${f.file}:${f.line}${f.strict ? '（常驻文档，任意位置）' : ''}  ${f.chars}`)
-  if (findings.length > 40)
-    err(`… 另有 ${findings.length - 40} 处`)
+    lineErr(
+      'violation',
+      `${f.file}:${f.line}${f.strict ? '（常驻文档，任意位置）' : ''}  ${f.chars}`,
+    )
+  if (findings.length > 40) err(`… 另有 ${findings.length - 40} 处`)
 
   if (fix) {
     line('ok', `已剔除 ${findings.length} 处 emoji（含相邻空格）`)
     return
   }
-  err('\n它们在非 UTF-8 代码页的终端里会显示成乱码（中文有稳定双字节表示、emoji 没有），也会污染 diff 与日志。')
+  err(
+    '\n它们在非 UTF-8 代码页的终端里会显示成乱码（中文有稳定双字节表示、emoji 没有），也会污染 diff 与日志。',
+  )
   err('修法：`pnpm walnut lint:emoji --fix`（排版符号 → ⇒ ≤ 与 © ® ™ 不受影响）。')
   throw new ViolationError(`注释/常驻文档里有 ${findings.length} 处 emoji（明细见上）`)
 }

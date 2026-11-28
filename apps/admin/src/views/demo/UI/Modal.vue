@@ -145,8 +145,6 @@ const [register] = useForm<typeof configFormData.value>({
     @yes="modalShow = false"
     @no="modalShow = false"
   >
-    <div v-for="item in configFormData.count" :key="item">
-      this is modal content {{ item }}
-    </div>
+    <div v-for="item in configFormData.count" :key="item">this is modal content {{ item }}</div>
   </WModal>
 </template>

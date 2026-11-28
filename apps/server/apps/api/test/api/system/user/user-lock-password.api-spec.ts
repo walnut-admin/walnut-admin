@@ -65,13 +65,15 @@ function encryptRequestEnvelope(serverRsaPubKeyPem: string, plaintext: string): 
     aesKey,
   )
 
-  return Buffer.from(JSON.stringify({
-    enc: 'AES_256_GCM',
-    key: key.toString('base64'),
-    iv: iv.toString('base64'),
-    ct: ct.toString('base64'),
-    tag: tag.toString('base64'),
-  })).toString('base64')
+  return Buffer.from(
+    JSON.stringify({
+      enc: 'AES_256_GCM',
+      key: key.toString('base64'),
+      iv: iv.toString('base64'),
+      ct: ct.toString('base64'),
+      tag: tag.toString('base64'),
+    }),
+  ).toString('base64')
 }
 
 describe('L1 锁屏密码：信封 / 计次退避 / fallback / 登录即解锁 / 管理员重置', () => {
@@ -114,7 +116,7 @@ describe('L1 锁屏密码：信封 / 计次退避 / fallback / 登录即解锁 /
     return rows[0] ?? null
   }
 
-  async function deviceRows(): Promise<Array<{ device_id: string, locked: boolean }>> {
+  async function deviceRows(): Promise<Array<{ device_id: string; locked: boolean }>> {
     return api.pgDataSource.query(
       'SELECT device_id, locked FROM sys_user_device WHERE user_id = $1 ORDER BY device_id',
       [userId()],
@@ -134,14 +136,19 @@ describe('L1 锁屏密码：信封 / 计次退避 / fallback / 登录即解锁 /
 
   async function resetLockState() {
     await api.pgDataSource.query('DELETE FROM sys_user_lock WHERE user_id = $1', [userId()])
-    await api.pgDataSource.query('UPDATE sys_user_device SET locked = false WHERE user_id = $1', [userId()])
+    await api.pgDataSource.query('UPDATE sys_user_device SET locked = false WHERE user_id = $1', [
+      userId(),
+    ])
     await cache.del(lockKey(api.deviceId))
     await cache.del(`${WalnutAdminConstAppCacheKeys.SECURITY_LOCK}:${userId()}:global`)
     await cache.delByPattern(`${WalnutAdminConstAppCacheKeys.SECURITY_LOCK}:${userId()}:*`)
   }
 
   /** 新设备 + 登录（方案②的「换一台设备登录」） */
-  async function createLoggedInClient(): Promise<{ client: WalnutApiClient, tokens: Awaited<ReturnType<typeof performHttpOpaqueLogin>> }> {
+  async function createLoggedInClient(): Promise<{
+    client: WalnutApiClient
+    tokens: Awaited<ReturnType<typeof performHttpOpaqueLogin>>
+  }> {
     const client = await WalnutApiClient.create(app)
     const tokens = await performHttpOpaqueLogin(client, app, fixture!)
     client.setAuth(tokens)
@@ -275,15 +282,20 @@ describe('L1 锁屏密码：信封 / 计次退避 / fallback / 登录即解锁 /
   })
 
   it('信封与明文混用：坏信封 40011（自愈协议语义），明文字段照旧可用', async () => {
-    const broken = Buffer.from(JSON.stringify({
-      enc: 'AES_256_GCM',
-      key: Buffer.from('not-a-real-rsa-blob').toString('base64'),
-      iv: Buffer.from('i'.repeat(12)).toString('base64'),
-      ct: Buffer.from('cipher').toString('base64'),
-      tag: Buffer.from('t'.repeat(16)).toString('base64'),
-    })).toString('base64')
+    const broken = Buffer.from(
+      JSON.stringify({
+        enc: 'AES_256_GCM',
+        key: Buffer.from('not-a-real-rsa-blob').toString('base64'),
+        iv: Buffer.from('i'.repeat(12)).toString('base64'),
+        ct: Buffer.from('cipher').toString('base64'),
+        tag: Buffer.from('t'.repeat(16)).toString('base64'),
+      }),
+    ).toString('base64')
 
-    const badRes = await api.root('PATCH', api.apiPath(PREFERENCE), { lockMode: 'security', lockPwdHash: broken })
+    const badRes = await api.root('PATCH', api.apiPath(PREFERENCE), {
+      lockMode: 'security',
+      lockPwdHash: broken,
+    })
     expect(bodyOf(badRes).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DECRYPT_FAILED)
     expect(await readLockRow()).toBeNull()
 
@@ -299,7 +311,7 @@ describe('L1 锁屏密码：信封 / 计次退避 / fallback / 登录即解锁 /
     const res = await api.root('PATCH', api.apiPath(UNLOCK), {})
     expectOk(res, 'default unlock')
     expect(bodyOf<boolean>(res).data).toBe(true)
-    expect((await deviceRows()).every(d => d.locked === false)).toBe(true)
+    expect((await deviceRows()).every((d) => d.locked === false)).toBe(true)
   })
 
   it('idle 模式：无密码解锁成功（idle 计时纯客户端，服务端只认 security 的密码要求）', async () => {
@@ -314,7 +326,11 @@ describe('L1 锁屏密码：信封 / 计次退避 / fallback / 登录即解锁 /
   // ---------------------------------------------------------------- Q7 计次退避
 
   it('security 模式：错密码计次 → 第 5 次封 30s → 退避期连对密码也拒 → 到期后成功并清零', async () => {
-    await setPreference({ lockMode: 'security', lockPwdHash: 'pin-correct-1', lockCrossDevice: true })
+    await setPreference({
+      lockMode: 'security',
+      lockPwdHash: 'pin-correct-1',
+      lockCrossDevice: true,
+    })
     await lock()
 
     // 前 4 次：只计次不封（meta.failCount 1..4，无 retryAfterSec）
@@ -342,17 +358,19 @@ describe('L1 锁屏密码：信封 / 计次退避 / fallback / 登录即解锁 /
     expect(new Date(afterFifth!.lock_pwd_locked_until!).getTime()).toBeGreaterThan(Date.now())
 
     // 退避期：正确的锁屏密码也被拒（与密码对错无关），设备仍锁
-    const duringBackoff = await api.root('PATCH', api.apiPath(UNLOCK), { lockPwdHash: 'pin-correct-1' })
+    const duringBackoff = await api.root('PATCH', api.apiPath(UNLOCK), {
+      lockPwdHash: 'pin-correct-1',
+    })
     const backoffBody = bodyOf<null>(duringBackoff)
     expect(backoffBody.code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
     expect(backoffBody.meta?.retryAfterSec).toBeGreaterThan(0)
-    expect((await deviceRows()).some(d => d.locked)).toBe(true)
+    expect((await deviceRows()).some((d) => d.locked)).toBe(true)
     // 退避期被拒不增加计数（否则轮询会把用户永久锁死）
     expect((await readLockRow())!.lock_pwd_fail_count).toBe(5)
 
     // 把退避截止推到过去（等价于窗口到期），正确密码解锁成功且清零
     await api.pgDataSource.query(
-      'UPDATE sys_user_lock SET lock_pwd_locked_until = now() - interval \'2 seconds\' WHERE user_id = $1',
+      "UPDATE sys_user_lock SET lock_pwd_locked_until = now() - interval '2 seconds' WHERE user_id = $1",
       [userId()],
     )
 
@@ -363,7 +381,7 @@ describe('L1 锁屏密码：信封 / 计次退避 / fallback / 登录即解锁 /
     const cleared = await readLockRow()
     expect(cleared!.lock_pwd_fail_count).toBe(0)
     expect(cleared!.lock_pwd_locked_until).toBeNull()
-    expect((await deviceRows()).every(d => d.locked === false)).toBe(true)
+    expect((await deviceRows()).every((d) => d.locked === false)).toBe(true)
   })
 
   it('Q7：非 security 模式错密码不计数（计次只覆盖 security 密码腿与 fallback）', async () => {
@@ -385,7 +403,9 @@ describe('L1 锁屏密码：信封 / 计次退避 / fallback / 登录即解锁 /
     await setPreference({ lockMode: 'default', lockCrossDevice: true })
     await lock()
     expectOk(await api.root('PATCH', api.apiPath(UNLOCK), {}), 'unlock cross-device')
-    expect(await cache.get<boolean>(`${WalnutAdminConstAppCacheKeys.SECURITY_LOCK}:${userId()}:global`)).toBe(false)
+    expect(
+      await cache.get<boolean>(`${WalnutAdminConstAppCacheKeys.SECURITY_LOCK}:${userId()}:global`),
+    ).toBe(false)
 
     // 2) 切成单设备（偏好变更后清缓存）再置锁
     await setPreference({ lockCrossDevice: false })
@@ -393,7 +413,9 @@ describe('L1 锁屏密码：信封 / 计次退避 / fallback / 登录即解锁 /
 
     // 3) 守卫读腿必须看到锁定；全局键不得残留旧 false
     expect(await lockCache.checkIsLocked(userId(), api.deviceId)).toBe(true)
-    expect(await cache.get<boolean>(`${WalnutAdminConstAppCacheKeys.SECURITY_LOCK}:${userId()}:global`)).toBeNull()
+    expect(
+      await cache.get<boolean>(`${WalnutAdminConstAppCacheKeys.SECURITY_LOCK}:${userId()}:global`),
+    ).toBeNull()
 
     // 4) 行为级探针：非 LockFree 端点 40118
     const probe = await api.root('GET', api.apiPath(PROBE))
@@ -404,7 +426,10 @@ describe('L1 锁屏密码：信封 / 计次退避 / fallback / 登录即解锁 /
     await setPreference({ lockMode: 'security', lockPwdHash: 'pin-d2-keep', lockCrossDevice: true })
     const before = await readLockRow()
 
-    const res = await api.root('PATCH', api.apiPath(PREFERENCE), { lockMode: 'security', lockPwdHash: '' })
+    const res = await api.root('PATCH', api.apiPath(PREFERENCE), {
+      lockMode: 'security',
+      lockPwdHash: '',
+    })
     // DTO 的 IsNotEmpty 直接拒绝（40099）；即便绕过 DTO，service + repo 也把 '' 视为「不修改」
     expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
 
@@ -415,22 +440,29 @@ describe('L1 锁屏密码：信封 / 计次退避 / fallback / 登录即解锁 /
 
     // 哈希没坏 ⇒ security 模式仍能解开
     await lock()
-    expectOk(await api.root('PATCH', api.apiPath(UNLOCK), { lockPwdHash: 'pin-d2-keep' }), 'unlock after empty-hash attempt')
+    expectOk(
+      await api.root('PATCH', api.apiPath(UNLOCK), { lockPwdHash: 'pin-d2-keep' }),
+      'unlock after empty-hash attempt',
+    )
   })
 
   // ---------------------------------------------------------------- 方案① fallback
 
   it('方案①：登录口令 fallback 就地解锁（不签发 token），并留下单次重试授权', async () => {
-    await setPreference({ lockMode: 'security', lockPwdHash: 'pin-forgot-1', lockCrossDevice: true })
+    await setPreference({
+      lockMode: 'security',
+      lockPwdHash: 'pin-forgot-1',
+      lockCrossDevice: true,
+    })
     await lock()
-    expect((await deviceRows()).some(d => d.locked)).toBe(true)
+    expect((await deviceRows()).some((d) => d.locked)).toBe(true)
 
     const finish = await runFallbackVerify(fixture!.password)
     expectOk(finish, 'lock verify finish')
     expect(bodyOf<boolean>(finish).data).toBe(true)
 
     // 跨设备：全部设备解锁；计数清零
-    expect((await deviceRows()).every(d => d.locked === false)).toBe(true)
+    expect((await deviceRows()).every((d) => d.locked === false)).toBe(true)
     const row = await readLockRow()
     expect(row!.lock_pwd_fail_count).toBe(0)
     expect(row!.lock_pwd_locked_until).toBeNull()
@@ -449,31 +481,48 @@ describe('L1 锁屏密码：信封 / 计次退避 / fallback / 登录即解锁 /
   })
 
   it('方案①：登录口令验证失败 → 40103 + 计数（与锁屏密码共用预算）', async () => {
-    await setPreference({ lockMode: 'security', lockPwdHash: 'pin-forgot-1', lockCrossDevice: true })
+    await setPreference({
+      lockMode: 'security',
+      lockPwdHash: 'pin-forgot-1',
+      lockCrossDevice: true,
+    })
     await lock()
 
     // 先走一次 start 拿到 SERVER_STATE，再交畸形 finish ⇒ 服务端 40103 且计数 +1
     const { startLoginRequest } = opaque.client.startLogin({ password: fixture!.password })
-    expectOk(await api.root('POST', api.apiPath(VERIFY_START), { start: startLoginRequest }), 'verify start')
+    expectOk(
+      await api.root('POST', api.apiPath(VERIFY_START), { start: startLoginRequest }),
+      'verify start',
+    )
 
-    const bad = await api.root('POST', api.apiPath(VERIFY_FINISH), { finish: 'not-a-finish-request' })
+    const bad = await api.root('POST', api.apiPath(VERIFY_FINISH), {
+      finish: 'not-a-finish-request',
+    })
     const badBody = bodyOf<null>(bad)
     expect(badBody.code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_CREDENTIALS)
     expect(badBody.meta?.failCount).toBe(1)
     expect((await readLockRow())!.lock_pwd_fail_count).toBe(1)
-    expect((await deviceRows()).some(d => d.locked)).toBe(true)
+    expect((await deviceRows()).some((d) => d.locked)).toBe(true)
 
     // 没有 start 的 finish（state 已被消费 / 过期）同样 40103，计数再 +1
-    const noState = await api.root('POST', api.apiPath(VERIFY_FINISH), { finish: 'not-a-finish-request' })
-    expect(bodyOf(noState).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_CREDENTIALS)
+    const noState = await api.root('POST', api.apiPath(VERIFY_FINISH), {
+      finish: 'not-a-finish-request',
+    })
+    expect(bodyOf(noState).code).toBe(
+      WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_CREDENTIALS,
+    )
     expect(bodyOf(noState).meta?.failCount).toBe(2)
   })
 
   it('方案①：退避期内 verify/start 直接拒绝（不给 OPAQUE 计算）', async () => {
-    await setPreference({ lockMode: 'security', lockPwdHash: 'pin-forgot-1', lockCrossDevice: true })
+    await setPreference({
+      lockMode: 'security',
+      lockPwdHash: 'pin-forgot-1',
+      lockCrossDevice: true,
+    })
     await lock()
     await api.pgDataSource.query(
-      'UPDATE sys_user_lock SET lock_pwd_fail_count = 5, lock_pwd_locked_until = now() + interval \'30 seconds\' WHERE user_id = $1',
+      "UPDATE sys_user_lock SET lock_pwd_fail_count = 5, lock_pwd_locked_until = now() + interval '30 seconds' WHERE user_id = $1",
       [userId()],
     )
 
@@ -498,27 +547,36 @@ describe('L1 锁屏密码：信封 / 计次退避 / fallback / 登录即解锁 /
     const { client: clientB } = await createLoggedInClient()
 
     const rows = await deviceRows()
-    expect(rows.every(d => d.locked === false)).toBe(true)
-    expect(rows.some(d => d.device_id === clientB.deviceId)).toBe(true)
+    expect(rows.every((d) => d.locked === false)).toBe(true)
+    expect(rows.some((d) => d.device_id === clientB.deviceId)).toBe(true)
 
     const row = await readLockRow()
     expect(row!.lock_pwd_fail_count).toBe(0)
     expect(row!.lock_pwd_locked_until).toBeNull()
 
     // A 设备读腿也回到未锁
-    expectOk(await api.root('GET', api.apiPath('/system/user/lock/read')), 'read after login unlock')
-    expect(bodyOf<LockStatus>(await api.root('GET', api.apiPath('/system/user/lock/read'))).data.locked).toBe(false)
+    expectOk(
+      await api.root('GET', api.apiPath('/system/user/lock/read')),
+      'read after login unlock',
+    )
+    expect(
+      bodyOf<LockStatus>(await api.root('GET', api.apiPath('/system/user/lock/read'))).data.locked,
+    ).toBe(false)
   })
 
   it('方案②（单设备）：从另一台设备登录不解开被锁的那台（各设备独立）', async () => {
-    await setPreference({ lockMode: 'security', lockPwdHash: 'pin-login-2', lockCrossDevice: false })
+    await setPreference({
+      lockMode: 'security',
+      lockPwdHash: 'pin-login-2',
+      lockCrossDevice: false,
+    })
     await lock()
 
     const { client: clientB } = await createLoggedInClient()
 
     const rows = await deviceRows()
-    const rowA = rows.find(d => d.device_id === api.deviceId)
-    const rowB = rows.find(d => d.device_id === clientB.deviceId)
+    const rowA = rows.find((d) => d.device_id === api.deviceId)
+    const rowB = rows.find((d) => d.device_id === clientB.deviceId)
     expect(rowA!.locked).toBe(true)
     expect(rowB!.locked).toBe(false)
 
@@ -532,7 +590,11 @@ describe('L1 锁屏密码：信封 / 计次退避 / fallback / 登录即解锁 /
     // 目标 = 另一个用户：重置端点刻意**非 LockFree**（管理员自己被锁时不能用它给自己开后门），
     // 所以调用方（root）不能同时是被锁的人。
     const targetApi = await WalnutApiClient.create(app)
-    const targetFixture = await registerRootUserFixture(app, targetApi.pgDataSource, `ulkp-target-${seed8}`)
+    const targetFixture = await registerRootUserFixture(
+      app,
+      targetApi.pgDataSource,
+      `ulkp-target-${seed8}`,
+    )
     const targetTokens = await performHttpOpaqueLogin(targetApi, app, targetFixture)
     targetApi.setAuth(targetTokens)
     await targetApi.seedMfaVerifiedCache(targetFixture.userId)
@@ -544,7 +606,7 @@ describe('L1 锁屏密码：信封 / 计次退避 / fallback / 登录即解锁 /
       )
       return rows[0] ?? null
     }
-    const targetDevices = async (): Promise<Array<{ device_id: string, locked: boolean }>> => {
+    const targetDevices = async (): Promise<Array<{ device_id: string; locked: boolean }>> => {
       return api.pgDataSource.query(
         'SELECT device_id, locked FROM sys_user_device WHERE user_id = $1',
         [targetFixture.userId],
@@ -552,12 +614,18 @@ describe('L1 锁屏密码：信封 / 计次退避 / fallback / 登录即解锁 /
     }
 
     try {
-      expectOk(await targetApi.root('PATCH', targetApi.apiPath(PREFERENCE), {
-        lockMode: 'security',
-        lockPwdHash: 'pin-admin-reset',
-        lockCrossDevice: true,
-      }), 'target preference')
-      expectOk(await targetApi.root('PATCH', targetApi.apiPath(LOCK), { lockRoute: { name: 'target' } }), 'target lock')
+      expectOk(
+        await targetApi.root('PATCH', targetApi.apiPath(PREFERENCE), {
+          lockMode: 'security',
+          lockPwdHash: 'pin-admin-reset',
+          lockCrossDevice: true,
+        }),
+        'target preference',
+      )
+      expectOk(
+        await targetApi.root('PATCH', targetApi.apiPath(LOCK), { lockRoute: { name: 'target' } }),
+        'target lock',
+      )
       await targetApi.root('PATCH', targetApi.apiPath(UNLOCK), { lockPwdHash: 'pin-wrong-xx' })
 
       const hashBefore = (await targetRow()).lock_pwd_hash
@@ -567,9 +635,9 @@ describe('L1 锁屏密码：信封 / 计次退避 / fallback / 登录即解锁 /
       expectOk(res, 'admin reset')
       expect(bodyOf<boolean>(res).data).toBe(true)
 
-      const rows: Array<{ device_id: string, locked: boolean }> = await targetDevices()
+      const rows: Array<{ device_id: string; locked: boolean }> = await targetDevices()
       expect(rows.length).toBeGreaterThan(0)
-      expect(rows.every(d => d.locked === false)).toBe(true)
+      expect(rows.every((d) => d.locked === false)).toBe(true)
 
       const row = await targetRow()
       expect(row.lock_pwd_fail_count).toBe(0)
@@ -584,27 +652,29 @@ describe('L1 锁屏密码：信封 / 计次退避 / fallback / 登录即解锁 /
       const deadline = Date.now() + 8000
       let found = 0
       while (Date.now() < deadline) {
-        const logs: Array<{ operation: string, title: string, success: boolean }> = await api.pgDataSource.query(
-          `SELECT operation, title, success
+        const logs: Array<{ operation: string; title: string; success: boolean }> =
+          await api.pgDataSource.query(
+            `SELECT operation, title, success
              FROM sys_log_operate
             WHERE invoking_method = 'SysUserLockController.resetUserLock'
             ORDER BY operated_at DESC
             LIMIT 5`,
-        )
+          )
         found = logs.length
         if (found > 0) {
           expect(logs[0].operation).toBe('user.lock.reset')
           expect(logs[0].success).toBe(true)
           break
         }
-        await new Promise(resolve => setTimeout(resolve, 100))
+        await new Promise((resolve) => setTimeout(resolve, 100))
       }
       expect(found).toBeGreaterThan(0)
-    }
-    finally {
+    } finally {
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [targetFixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [targetFixture.roleId])
-      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [targetApi.deviceId])
+      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [
+        targetApi.deviceId,
+      ])
       await api.cleanupWalnutCacheKeys(targetApi.deviceId, targetFixture.userId)
     }
   })
@@ -621,7 +691,10 @@ describe('L1 锁屏密码：信封 / 计次退避 / fallback / 登录即解锁 /
     permissionClient.setAuth(tokens)
     await permissionClient.seedMfaVerifiedCache(permissionFixture.userId)
 
-    expectOk(await permissionClient.root('GET', permissionClient.apiPath('/auth/permissions')), 'permissions warmup')
+    expectOk(
+      await permissionClient.root('GET', permissionClient.apiPath('/auth/permissions')),
+      'permissions warmup',
+    )
 
     const res = await permissionClient.root('PUT', permissionClient.apiPath(`${RESET}/${userId()}`))
     expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_NO_PERMISSION)

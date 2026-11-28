@@ -49,7 +49,12 @@ services:
       # 探 raw Express 探针 /health/ready（W2-B）：PG SELECT 1 + Redis PING 都真实可用才 200，
       # 任一依赖挂 → 503。镜像内是 Node，用 fetch 断言 r.ok —— wget/curl 只看「有响应」，
       # 对状态码 / body 不敏感。探针在 nginx 上被挡（/health/ → 404），只走编排内网。
-      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:3000/health/ready', { signal: AbortSignal.timeout(5000) }).then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/health/ready', { signal: AbortSignal.timeout(5000) }).then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+
       interval: 30s
       timeout: 5s
       retries: 3
@@ -67,7 +72,7 @@ services:
     # 覆盖镜像 CMD（apps/server/Dockerfile:41 是 api 入口）；cwd 由镜像的 WORKDIR /app 提供。
     # 不要改成 `pnpm start:worker`：它经 cross-env 注入 env，而 cross-env 是 devDependency，
     # `pnpm deploy --prod` 的产物里没有。
-    command: ['node', 'dist/apps/worker/src/main.js']
+    command: [node, dist/apps/worker/src/main.js]
     environment:
       # 与 backend 同一条（容器 env，模块定义期求值 —— 见 backend 那段注释）
       - WORKER_STANDALONE=true
@@ -103,7 +108,7 @@ services:
       # 挂上一层目录便于未来大版本升级（pg_upgrade 双版本目录并存）
       - postgres_data:/var/lib/postgresql
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      test: [CMD-SHELL, 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -133,7 +138,7 @@ services:
       # 用 argv 直传（CMD）而不是 CMD-SHELL：密码含 shell 元字符（$ ` " \ 等）时不会被 shell
       # 二次解析/截断；compose 的 ${REDIS_PASSWORD} 插值仍在宿主侧完成。
       # --no-auth-warning 避免密码告警刷日志。backend 的 depends_on/healthcheck 依赖它先 healthy
-      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', '--no-auth-warning', 'ping']
+      test: [CMD, redis-cli, -a, '${REDIS_PASSWORD}', --no-auth-warning, ping]
       interval: 10s
       timeout: 5s
       retries: 5

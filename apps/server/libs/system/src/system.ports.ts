@@ -24,7 +24,9 @@ export interface ISystemFailedLoginRiskPayload {
   reason: string
 }
 
-export const WALNUT_ADMIN_SYSTEM_FAILED_LOGIN_RISK_COLLECTOR = Symbol('WALNUT_ADMIN_SYSTEM_FAILED_LOGIN_RISK_COLLECTOR')
+export const WALNUT_ADMIN_SYSTEM_FAILED_LOGIN_RISK_COLLECTOR = Symbol(
+  'WALNUT_ADMIN_SYSTEM_FAILED_LOGIN_RISK_COLLECTOR',
+)
 
 export interface IWalnutAdminSystemFailedLoginRiskCollector {
   collect: (payload: ISystemFailedLoginRiskPayload) => Promise<unknown>
@@ -39,7 +41,9 @@ export interface ISystemMonitorActiveUser {
   nickName: string | null
 }
 
-export const WALNUT_ADMIN_SYSTEM_MONITOR_ACTIVE_USER_READER = Symbol('WALNUT_ADMIN_SYSTEM_MONITOR_ACTIVE_USER_READER')
+export const WALNUT_ADMIN_SYSTEM_MONITOR_ACTIVE_USER_READER = Symbol(
+  'WALNUT_ADMIN_SYSTEM_MONITOR_ACTIVE_USER_READER',
+)
 
 export interface IWalnutAdminSystemMonitorActiveUserReader {
   findActiveUserByDeviceId: (deviceId: string) => Promise<ISystemMonitorActiveUser | null>

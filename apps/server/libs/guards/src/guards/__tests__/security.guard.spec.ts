@@ -1,6 +1,9 @@
 import type { ExecutionContext } from '@nestjs/common'
 import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
-import { WalnutAdminConstAppCacheType, WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstAppCacheType,
+  WalnutAdminConstAppSettingKeys,
+} from '@walnut-server/const/app/cache'
 import {
   WalnutAdminExceptionBlackListPathDetected,
   WalnutAdminExceptionBotDetected,
@@ -86,10 +89,17 @@ async function createEnv(whitelists: IWhitelists = {}): Promise<IEnv> {
   )
 
   const rotateWhitelists = async (next: IWhitelists) => {
-    await settings.setAppSettings({
-      [WalnutAdminConstAppSettingKeys.APP_GLOBAL_OS_WHITELIST]: JSON.stringify(next.os ?? ['Mac OS']),
-      [WalnutAdminConstAppSettingKeys.APP_GLOBAL_BROWSER_WHITELIST]: JSON.stringify(next.browser ?? ['Chrome']),
-    }, { t: WalnutAdminConstAppCacheType.SYSTEM })
+    await settings.setAppSettings(
+      {
+        [WalnutAdminConstAppSettingKeys.APP_GLOBAL_OS_WHITELIST]: JSON.stringify(
+          next.os ?? ['Mac OS'],
+        ),
+        [WalnutAdminConstAppSettingKeys.APP_GLOBAL_BROWSER_WHITELIST]: JSON.stringify(
+          next.browser ?? ['Chrome'],
+        ),
+      },
+      { t: WalnutAdminConstAppCacheType.SYSTEM },
+    )
   }
 
   await rotateWhitelists(whitelists)
@@ -133,7 +143,10 @@ function createContext(overrides: IRequestOptions = {}): ExecutionContext {
 }
 
 async function caught(promise: Promise<unknown>): Promise<unknown> {
-  return promise.then(() => null, (error: unknown) => error)
+  return promise.then(
+    () => null,
+    (error: unknown) => error,
+  )
 }
 
 function errCodeOf(error: unknown): unknown {
@@ -153,13 +166,17 @@ describe('security guard：postman 噪声过滤与缺 UA', () => {
   it('反例：isPostman + 无 UA + bot + suspicious + 黑名单路径 ⇒ 仍放行（且不写永久黑名单）', async () => {
     const env = await createEnv()
 
-    await expect(env.guard.canActivate(createContext({
-      isPostman: true,
-      userAgent: undefined,
-      isBot: true,
-      isSuspicious: true,
-      path: BLACKLIST_PROBE_PATH,
-    }))).resolves.toBe(true)
+    await expect(
+      env.guard.canActivate(
+        createContext({
+          isPostman: true,
+          userAgent: undefined,
+          isBot: true,
+          isSuspicious: true,
+          path: BLACKLIST_PROBE_PATH,
+        }),
+      ),
+    ).resolves.toBe(true)
 
     expect(env.addToPermanentBlackList).not.toHaveBeenCalled()
   })
@@ -170,13 +187,17 @@ describe('security guard：postman 噪声过滤与缺 UA', () => {
     const error = await caught(env.guard.canActivate(createContext({ userAgent: undefined })))
 
     expect(error).toBeInstanceOf(WalnutAdminExceptionUserAgentNotAcceptable)
-    expect(errCodeOf(error)).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_USER_AGENT_UNSUPPORTED)
+    expect(errCodeOf(error)).toBe(
+      WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_USER_AGENT_UNSUPPORTED,
+    )
   })
 
   it('边界：UA 存在但 os/browser 都缺 ⇒ 40601（不是 40604 —— 缺的是名单项，不是 UA）', async () => {
     const env = await createEnv()
 
-    const error = await caught(env.guard.canActivate(createContext({ userAgent: { ua: 'curl/8.9.1' } })))
+    const error = await caught(
+      env.guard.canActivate(createContext({ userAgent: { ua: 'curl/8.9.1' } })),
+    )
 
     expect(error).toBeInstanceOf(WalnutAdminExceptionUserAgentOSNotAcceptable)
     expect(error).not.toBeInstanceOf(WalnutAdminExceptionUserAgentNotAcceptable)
@@ -190,7 +211,9 @@ describe('security guard：永久黑名单路径（含写黑名单副作用）',
     const error = await caught(env.guard.canActivate(createContext({ path: BLACKLIST_PROBE_PATH })))
 
     expect(error).toBeInstanceOf(WalnutAdminExceptionBlackListPathDetected)
-    expect(errCodeOf(error)).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_BLACK_LIST_PATH_DETECTED)
+    expect(errCodeOf(error)).toBe(
+      WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_BLACK_LIST_PATH_DETECTED,
+    )
     expect(env.addToPermanentBlackList).toHaveBeenCalledWith(PROBE_IP)
     expect(env.addToPermanentBlackList).toHaveBeenCalledTimes(1)
   })
@@ -206,7 +229,9 @@ describe('security guard：永久黑名单路径（含写黑名单副作用）',
   it('边界：无版本前缀的裸扫描路径同样命中（stripApiPrefix 无匹配时原样返回）', async () => {
     const env = await createEnv()
 
-    const error = await caught(env.guard.canActivate(createContext({ path: '/phpmyadmin/index.php' })))
+    const error = await caught(
+      env.guard.canActivate(createContext({ path: '/phpmyadmin/index.php' })),
+    )
 
     expect(error).toBeInstanceOf(WalnutAdminExceptionBlackListPathDetected)
   })
@@ -214,14 +239,18 @@ describe('security guard：永久黑名单路径（含写黑名单副作用）',
   it('反例：前缀被正确剥离后不是黑名单 ⇒ 放行（不会把 /w/v1/system/menu 当 /admin）', async () => {
     const env = await createEnv()
 
-    await expect(env.guard.canActivate(createContext({ path: '/w/v1/system/menu/tree' }))).resolves.toBe(true)
+    await expect(
+      env.guard.canActivate(createContext({ path: '/w/v1/system/menu/tree' })),
+    ).resolves.toBe(true)
     expect(env.addToPermanentBlackList).not.toHaveBeenCalled()
   })
 
   it('顺序：黑名单路径 + bot ⇒ 40610（路径检查在 bot 之前）', async () => {
     const env = await createEnv()
 
-    const error = await caught(env.guard.canActivate(createContext({ path: BLACKLIST_PROBE_PATH, isBot: true })))
+    const error = await caught(
+      env.guard.canActivate(createContext({ path: BLACKLIST_PROBE_PATH, isBot: true })),
+    )
 
     expect(error).toBeInstanceOf(WalnutAdminExceptionBlackListPathDetected)
   })
@@ -249,7 +278,9 @@ describe('security guard：bot / suspicious', () => {
   it('反例：isBot && isSuspicious ⇒ 40608（bot 先判，不落成 40609）', async () => {
     const env = await createEnv()
 
-    const error = await caught(env.guard.canActivate(createContext({ isBot: true, isSuspicious: true })))
+    const error = await caught(
+      env.guard.canActivate(createContext({ isBot: true, isSuspicious: true })),
+    )
 
     expect(error).toBeInstanceOf(WalnutAdminExceptionBotDetected)
     expect(error).not.toBeInstanceOf(WalnutAdminExceptionSuspiciousRequest)
@@ -274,20 +305,28 @@ describe('security guard：OS 白名单收紧', () => {
     expect(error).toBeInstanceOf(WalnutAdminExceptionUserAgentOSNotAcceptable)
   })
 
-  it('边界：条目大小写/空白归一后子串匹配（\'  mac os  \' 命中 Mac OS X）', async () => {
+  it("边界：条目大小写/空白归一后子串匹配（'  mac os  ' 命中 Mac OS X）", async () => {
     const env = await createEnv({ os: ['  mac os  '] })
 
-    await expect(env.guard.canActivate(createContext({
-      userAgent: { ua: 'Mozilla/5.0', os: { name: 'Mac OS X' }, browser: { name: 'Chrome' } },
-    }))).resolves.toBe(true)
+    await expect(
+      env.guard.canActivate(
+        createContext({
+          userAgent: { ua: 'Mozilla/5.0', os: { name: 'Mac OS X' }, browser: { name: 'Chrome' } },
+        }),
+      ),
+    ).resolves.toBe(true)
   })
 
   it('边界：os.name 缺失 ⇒ 40601（isNil ⇒ 不在名单）', async () => {
     const env = await createEnv()
 
-    const error = await caught(env.guard.canActivate(createContext({
-      userAgent: { ua: 'Mozilla/5.0', browser: { name: 'Chrome' } },
-    })))
+    const error = await caught(
+      env.guard.canActivate(
+        createContext({
+          userAgent: { ua: 'Mozilla/5.0', browser: { name: 'Chrome' } },
+        }),
+      ),
+    )
 
     expect(error).toBeInstanceOf(WalnutAdminExceptionUserAgentOSNotAcceptable)
   })
@@ -300,16 +339,22 @@ describe('security guard：浏览器白名单收紧', () => {
     const error = await caught(env.guard.canActivate(createContext()))
 
     expect(error).toBeInstanceOf(WalnutAdminExceptionUserAgentBrowserNotAcceptable)
-    expect(errCodeOf(error)).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_BROWSER_UNSUPPORTED)
+    expect(errCodeOf(error)).toBe(
+      WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_BROWSER_UNSUPPORTED,
+    )
     expect(error).not.toBeInstanceOf(WalnutAdminExceptionUserAgentOSNotAcceptable)
   })
 
   it('边界：browser.name 缺失 ⇒ 40602（OS 腿已过）', async () => {
     const env = await createEnv()
 
-    const error = await caught(env.guard.canActivate(createContext({
-      userAgent: { ua: 'Mozilla/5.0', os: { name: 'Mac OS' } },
-    })))
+    const error = await caught(
+      env.guard.canActivate(
+        createContext({
+          userAgent: { ua: 'Mozilla/5.0', os: { name: 'Mac OS' } },
+        }),
+      ),
+    )
 
     expect(error).toBeInstanceOf(WalnutAdminExceptionUserAgentBrowserNotAcceptable)
   })
@@ -362,7 +407,9 @@ describe('security guard：黑名单清单自身的边界', () => {
     expect(WALNUT_ADMIN_PERMANENT_BLACKLIST_PATHS.length).toBeGreaterThan(0)
 
     const env = await createEnv()
-    const error = await caught(env.guard.canActivate(createContext({ path: '/w/v1/administrator/login' })))
+    const error = await caught(
+      env.guard.canActivate(createContext({ path: '/w/v1/administrator/login' })),
+    )
 
     expect(error).toBeInstanceOf(WalnutAdminExceptionBlackListPathDetected)
   })

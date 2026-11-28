@@ -9,18 +9,15 @@ function withEnv<T>(standalone: string | undefined, fn: () => T): T {
   const original = process.env.WORKER_STANDALONE
   if (standalone === undefined) {
     delete process.env.WORKER_STANDALONE
-  }
-  else {
+  } else {
     process.env.WORKER_STANDALONE = standalone
   }
   try {
     return fn()
-  }
-  finally {
+  } finally {
     if (original === undefined) {
       delete process.env.WORKER_STANDALONE
-    }
-    else {
+    } else {
       process.env.WORKER_STANDALONE = original
     }
   }

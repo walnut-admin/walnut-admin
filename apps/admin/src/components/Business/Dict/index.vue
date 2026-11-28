@@ -17,7 +17,7 @@ const { t } = useAppI18n()
 const { loading, execDict } = useDict(dictType)
 
 const getTOptions = computed(() =>
-  getDictDataFromMap(dictType)?.map(i => ({
+  getDictDataFromMap(dictType)?.map((i) => ({
     label: t(i.label!),
     value: i.value,
   })),

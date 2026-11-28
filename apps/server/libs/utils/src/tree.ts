@@ -43,8 +43,7 @@ export function filterTree<T extends TreeNodeLike<T>>(
     const next = { ...node }
     if (filteredChildren.length > 0) {
       next.children = filteredChildren
-    }
-    else {
+    } else {
       Reflect.deleteProperty(next, 'children')
     }
     result.push(next)

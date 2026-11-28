@@ -41,7 +41,8 @@ export class BlacklistPathMiddleware implements NestMiddleware {
     // Nest 11 把 `forRoutes('*')` 挂成通配中间件，Express 会把匹配段从 req.url 剥掉
     // （req.path 恒 '/'）—— 取完整路径必须用 originalUrl（去掉 querystring）
     const originalPath = (req.originalUrl ?? req.url).split('?')[0]
-    const normalizedPath = originalPath.replace(new RegExp(`^/${APIPrefix}/v${APIVersion}`), '') || '/'
+    const normalizedPath =
+      originalPath.replace(new RegExp(`^/${APIPrefix}/v${APIVersion}`), '') || '/'
 
     if (isWalnutAdminBlacklistedPath(normalizedPath)) {
       await this.sharedIpService.addToPermanentBlackList(req.realIp)

@@ -31,8 +31,7 @@ const LEFTHOOK_HOOK = '#!/bin/sh\n# LEFTHOOK\nlefthook run pre-commit "$@"\n'
 const SIMPLE_GIT_HOOKS_HOOK = '#!/bin/sh\n# SIMPLE_GIT_HOOKS\nexit 0\n'
 
 afterEach(() => {
-  if (tempDir)
-    rmSync(tempDir, { recursive: true, force: true })
+  if (tempDir) rmSync(tempDir, { recursive: true, force: true })
   tempDir = null
 })
 
@@ -45,14 +44,12 @@ describe('checkGitHooks', () => {
 
   it('(b) 三个钩子都在且都含 LEFTHOOK 标记 ⇒ ok: true', () => {
     const repoRoot = makeRepoRoot()
-    for (const hook of HOOKS)
-      writeHook(repoRoot, hook, LEFTHOOK_HOOK)
+    for (const hook of HOOKS) writeHook(repoRoot, hook, LEFTHOOK_HOOK)
 
     const result = checkGitHooks(repoRoot)
     expect(result.ok).toBe(true)
     expect(result.lines.join('\n')).toContain('git 钩子已就位（lefthook 托管）')
-    for (const hook of HOOKS)
-      expect(result.lines.join('\n')).toContain(hook)
+    for (const hook of HOOKS) expect(result.lines.join('\n')).toContain(hook)
   })
 
   it('(c) 缺一个钩子 ⇒ ok: false，失败文案点名它', () => {
@@ -74,8 +71,7 @@ describe('checkGitHooks', () => {
     mkdirSync(join(repoRoot, '.git', 'hooks'), { recursive: true })
 
     const text = checkGitHooks(repoRoot).lines.join('\n')
-    for (const hook of HOOKS)
-      expect(text).toContain(hook)
+    for (const hook of HOOKS) expect(text).toContain(hook)
     expect(text).toContain('缺失的钩子文件：pre-commit / commit-msg / pre-push')
   })
 

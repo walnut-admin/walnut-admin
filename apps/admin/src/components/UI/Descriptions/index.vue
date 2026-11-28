@@ -1,6 +1,11 @@
-<script lang="ts" setup  generic="T">
+<script lang="ts" setup generic="T">
 import type { BaseDataType } from 'easy-fns-ts'
-import type { ICompUIDescriptionProps, ICompUIDescriptionsItem, ICompUIDescTypeDict, ICompUIDescTypeLink } from '.'
+import type {
+  ICompUIDescriptionProps,
+  ICompUIDescriptionsItem,
+  ICompUIDescTypeDict,
+  ICompUIDescTypeLink,
+} from '.'
 import { getBoolean } from '@walnut/client/browser/shared'
 import { omit } from 'lodash-es'
 import { computed, onBeforeMount, reactive, ref } from 'vue'
@@ -16,9 +21,13 @@ const { items, colon = false } = defineProps<ICompUIDescriptionProps>()
 
 const { t } = useAppI18n()
 
-const getData = computed(() => Object.fromEntries<BaseDataType>(items.map<[string, BaseDataType]>(i => [i.key!, i.value])))
+const getData = computed(() =>
+  Object.fromEntries<BaseDataType>(items.map<[string, BaseDataType]>((i) => [i.key!, i.value])),
+)
 
-const getShowItem = computed<ICompUIDescriptionsItem[]>(() => items.filter(i => getBoolean(i.show)))
+const getShowItem = computed<ICompUIDescriptionsItem[]>(() =>
+  items.filter((i) => getBoolean(i.show)),
+)
 
 function onClickText(item: ICompUIDescriptionsItem) {
   const LinkItem = item as ICompUIDescTypeLink<T>
@@ -40,15 +49,19 @@ function onFormat(item: ICompUIDescriptionsItem) {
     return target?.label ? t(target?.label) : ''
   }
 
-  return (typeof item.formatter === 'function'
-    ? item.formatter(item.value, getData.value)
-    : item.value) ?? t('app.base.none')
+  return (
+    (typeof item.formatter === 'function'
+      ? item.formatter(item.value, getData.value)
+      : item.value) ?? t('app.base.none')
+  )
 }
 
 const showDict = ref(false)
 onBeforeMount(async () => {
-  if (items.some(i => i.type === 'dict')) {
-    const usedDictTypes = items.filter(i => i.type === 'dict').map(i => (i as ICompUIDescTypeDict<T>).typeProps?.dictType as string)
+  if (items.some((i) => i.type === 'dict')) {
+    const usedDictTypes = items
+      .filter((i) => i.type === 'dict')
+      .map((i) => (i as ICompUIDescTypeDict<T>).typeProps?.dictType as string)
     console.log('WDesc Dict Init', { usedDictTypes })
     await initDict(usedDictTypes)
     showDict.value = true
@@ -66,9 +79,15 @@ function isHovering(index: number) {
 
 <template>
   <n-descriptions>
-    <n-descriptions-item v-for="(item, index) in getShowItem" :key="index" v-bind="omit(item, 'label')">
+    <n-descriptions-item
+      v-for="(item, index) in getShowItem"
+      :key="index"
+      v-bind="omit(item, 'label')"
+    >
       <template #label>
-        <span :style="item.labelStyle" :class="[item.labelClass]">{{ colon ? `${item.label}：` : item.label }}</span>
+        <span :style="item.labelStyle" :class="[item.labelClass]">{{
+          colon ? `${item.label}：` : item.label
+        }}</span>
       </template>
 
       <template #default>
@@ -79,10 +98,7 @@ function isHovering(index: number) {
           @mouseenter="onHover(index, true)"
           @mouseleave="onHover(index, false)"
         >
-          <n-tag
-            v-if="item.type === 'tag'"
-            v-bind="item.typeProps"
-          >
+          <n-tag v-if="item.type === 'tag'" v-bind="item.typeProps">
             {{ onFormat(item) }}
           </n-tag>
 
@@ -95,15 +111,11 @@ function isHovering(index: number) {
             {{ onFormat(item) }}
           </n-text>
 
-          <WJSON
-            v-else-if="item.type === 'json'"
-            v-bind="item.typeProps"
-            :value="item.value"
-          />
+          <WJSON v-else-if="item.type === 'json'" v-bind="item.typeProps" :value="item.value" />
 
           <WDictLabel
             v-else-if="showDict && item.type === 'dict'"
-            :dict-type="(item.typeProps?.dictType as string)"
+            :dict-type="item.typeProps?.dictType as string"
             :dict-value="item.value"
           />
 

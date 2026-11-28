@@ -46,26 +46,29 @@ export function summaryLines(input: SummaryInput): string[] {
   ]
   for (const entry of input.entries.slice(0, 12))
     lines.push(`    - [${entry.bump}] ${firstLine(entry.summary)}`)
-  if (input.entries.length > 12)
-    lines.push(`    … 另有 ${input.entries.length - 12} 条`)
+  if (input.entries.length > 12) lines.push(`    … 另有 ${input.entries.length - 12} 条`)
 
-  lines.push(`  将提交    ${input.changedCount} 个文件（版本 + CHANGELOG + changelog-latest.md + ledger + 意图）`)
-  lines.push(`  将执行    发版前全量电池 ${input.batteryCount} 条（boundaries / lint / types:check / test / syncpack / `
-    + `change check / lint:workflows，分钟级${input.batterySkipped > 0 ? `；另有 ${input.batterySkipped} 条按配置暂缓` : ''}）`)
-  lines.push(`  将推送    git push --atomic origin ${input.branch} v${input.newVersion}（一条 push；会触发 pre-push 门禁）`)
+  lines.push(
+    `  将提交    ${input.changedCount} 个文件（版本 + CHANGELOG + changelog-latest.md + ledger + 意图）`,
+  )
+  lines.push(
+    `  将执行    发版前全量电池 ${input.batteryCount} 条（boundaries / lint / types:check / test / syncpack / ` +
+      `change check / lint:workflows，分钟级${input.batterySkipped > 0 ? `；另有 ${input.batterySkipped} 条按配置暂缓` : ''}）`,
+  )
+  lines.push(
+    `  将推送    git push --atomic origin ${input.branch} v${input.newVersion}（一条 push；会触发 pre-push 门禁）`,
+  )
   lines.push(`  Release   由 release.yml 在 tag 推送后创建，正文取本次提交的 changelog-latest.md`)
-  if (input.tokenMasked)
-    lines.push(`  GitHub    git-cliff 用 ${input.tokenMasked} 补 PR 号与作者`)
-  else
-    lines.push('  GitHub    未提供 GITHUB_TOKEN：changelog 只有 commit 链接（无 PR 号/作者）')
+  if (input.tokenMasked) lines.push(`  GitHub    git-cliff 用 ${input.tokenMasked} 补 PR 号与作者`)
+  else lines.push('  GitHub    未提供 GITHUB_TOKEN：changelog 只有 commit 链接（无 PR 号/作者）')
 
   if (input.unrelated.length > 0) {
     lines.push('')
-    lines.push(`  ⚠️ 与发版无关的改动 ${input.unrelated.length} 个（**会被一并提交**，想分开就先 stash）：`)
-    for (const file of input.unrelated.slice(0, 12))
-      lines.push(`    · ${file}`)
-    if (input.unrelated.length > 12)
-      lines.push(`    · … 另有 ${input.unrelated.length - 12} 个`)
+    lines.push(
+      `  ⚠️ 与发版无关的改动 ${input.unrelated.length} 个（**会被一并提交**，想分开就先 stash）：`,
+    )
+    for (const file of input.unrelated.slice(0, 12)) lines.push(`    · ${file}`)
+    if (input.unrelated.length > 12) lines.push(`    · … 另有 ${input.unrelated.length - 12} 个`)
   }
   return lines
 }
@@ -103,15 +106,19 @@ export function statusLines(input: StatusInput): string[] {
   const lines: string[] = [
     `  ${title}`,
     '',
-    `  版本      v${input.currentVersion}    基线 ${input.baseTag ?? '（无 tag）'}`
-    + `${input.baseVersion ? `（v${input.baseVersion}）` : ''}`,
+    `  版本      v${input.currentVersion}    基线 ${input.baseTag ?? '（无 tag）'}` +
+      `${input.baseVersion ? `（v${input.baseVersion}）` : ''}`,
     `  分支      ${input.branch}${input.branchPushed ? '' : '（有未推送提交）'}`,
-    `  待消费意图 ${input.pendingIntents} 个`
-    + `${input.versionConsumed ? '    ledger 有未提交改动' : ''}`,
+    `  待消费意图 ${input.pendingIntents} 个` +
+      `${input.versionConsumed ? '    ledger 有未提交改动' : ''}`,
     `  标签      ${input.tag}：本地 ${yesNo(input.localTagExists)} / 远端 ${yesNo(input.remoteTagExists)}`,
-    `  Release   ${input.releaseChecked
-      ? (input.remoteReleaseExists ? '远端已有' : '远端还没有（由 release.yml 创建）')
-      : '未查询（缺 token 或网络不可达；公开仓无需 token，可加 GITHUB_TOKEN 重试）'}`,
+    `  Release   ${
+      input.releaseChecked
+        ? input.remoteReleaseExists
+          ? '远端已有'
+          : '远端还没有（由 release.yml 创建）'
+        : '未查询（缺 token 或网络不可达；公开仓无需 token，可加 GITHUB_TOKEN 重试）'
+    }`,
     '',
     `  下一步    ${input.step} —— ${input.stepText}`,
     `  原因      ${input.reason}`,
@@ -119,9 +126,10 @@ export function statusLines(input: StatusInput): string[] {
 
   if (input.groupMisaligned.length > 0) {
     lines.push('')
-    lines.push(`  ❌ 工作区不是可发版状态：fixed 组有 ${input.groupMisaligned.length} 个包没对齐到 v${input.currentVersion}`)
-    for (const item of input.groupMisaligned.slice(0, 20))
-      lines.push(`    · ${item}`)
+    lines.push(
+      `  ❌ 工作区不是可发版状态：fixed 组有 ${input.groupMisaligned.length} 个包没对齐到 v${input.currentVersion}`,
+    )
+    for (const item of input.groupMisaligned.slice(0, 20)) lines.push(`    · ${item}`)
     if (input.groupMisaligned.length > 20)
       lines.push(`    · … 另有 ${input.groupMisaligned.length - 20} 个`)
     lines.push('    修法：git checkout -- . 把改动全部还原，重跑 pnpm release')
@@ -130,16 +138,16 @@ export function statusLines(input: StatusInput): string[] {
   if (input.unrelated.length > 0) {
     lines.push('')
     lines.push(`  与发版无关的改动 ${input.unrelated.length} 个（会被一并提交）：`)
-    for (const file of input.unrelated.slice(0, 12))
-      lines.push(`    · ${file}`)
-    if (input.unrelated.length > 12)
-      lines.push(`    · … 另有 ${input.unrelated.length - 12} 个`)
+    for (const file of input.unrelated.slice(0, 12)) lines.push(`    · ${file}`)
+    if (input.unrelated.length > 12) lines.push(`    · … 另有 ${input.unrelated.length - 12} 个`)
   }
 
   if (input.state) {
     lines.push('')
     lines.push('  状态文件（.changeset/.release-state.json，只影响提示）')
-    lines.push(`    上次记的下一步  ${input.state.nextStep}    目标 v${input.state.toVersion}（${input.state.bump}）`)
+    lines.push(
+      `    上次记的下一步  ${input.state.nextStep}    目标 v${input.state.toVersion}（${input.state.bump}）`,
+    )
     lines.push(`    更新时间        ${input.state.updatedAt}`)
   }
   return lines
@@ -175,23 +183,22 @@ export function dryRunGenerateLines(input: DryRunGenerateInput): string[] {
 
 export interface AbortHintInput {
   signal: string
-  plan: { step: string, reason: string } | null
+  plan: { step: string; reason: string } | null
   state: ReportState | null
 }
 
 /** Ctrl+C / SIGTERM 之后「停在哪一步、重跑怎么接」 */
 export function abortHintLines(input: AbortHintInput): string[] {
-  const lines: string[] = [
-    `[release] 收到 ${input.signal} 已停手。`,
-  ]
+  const lines: string[] = [`[release] 收到 ${input.signal} 已停手。`]
   if (input.plan) {
     lines.push(`[release] 按当前事实重算：下一步是 ${input.plan.step} —— ${input.plan.reason}`)
-  }
-  else {
+  } else {
     lines.push('[release] （按事实重算下一步失败，下面退回状态文件的说法）')
   }
   if (input.state)
-    lines.push(`[release] 状态文件记的是：下一步 ${input.state.nextStep}，目标 v${input.state.toVersion}（${input.state.bump}）`)
+    lines.push(
+      `[release] 状态文件记的是：下一步 ${input.state.nextStep}，目标 v${input.state.toVersion}（${input.state.bump}）`,
+    )
   lines.push('[release] 直接重跑 pnpm release 即可从断点接上；想先看用 pnpm release --status。')
   lines.push('[release] 放弃本次发版：git checkout -- . && git clean -fd .changeset')
   return lines

@@ -26,7 +26,7 @@ import { REPO_ROOT } from '../lib/repo-root.ts'
 
 export async function runCleanAll(): Promise<void> {
   const targets = listCleanAllTargets(REPO_ROOT)
-  const present = targets.filter(rel => fs.existsSync(path.join(REPO_ROOT, rel)))
+  const present = targets.filter((rel) => fs.existsSync(path.join(REPO_ROOT, rel)))
 
   if (present.length === 0) {
     line('ok', 'clean:all：没有需要清的 node_modules（已经是干净的）')
@@ -34,15 +34,13 @@ export async function runCleanAll(): Promise<void> {
   }
 
   out(`clean:all：将删除 ${present.length} 个目录`)
-  for (const rel of present)
-    out(`  ${rel}`)
+  for (const rel of present) out(`  ${rel}`)
 
   const { removed, failed } = cleanAll(REPO_ROOT, targets)
 
   if (failed.length > 0) {
     err(`\n${failed.length} 个目录删不掉：`)
-    for (const { dir, error } of failed)
-      err(`  ${dir}  ${error}`)
+    for (const { dir, error } of failed) err(`  ${dir}  ${error}`)
     throw new ViolationError(
       `clean:all 没清干净：${failed.length} 个目录删不掉（明细见上）。多半是被编辑器、语言服务这类常驻进程占着，关掉后重跑。`,
     )

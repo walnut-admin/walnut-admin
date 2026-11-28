@@ -53,8 +53,9 @@ function treeToArrWithDesc(
 }
 
 const getTransformedFuseMenus = computed(() => {
-  return treeToArrWithDesc(cloneDeep(appStoreMenu.getMenus))
-    .filter(i => i.type === AppConstMenuType.MENU && !i.path?.includes(':'))
+  return treeToArrWithDesc(cloneDeep(appStoreMenu.getMenus)).filter(
+    (i) => i.type === AppConstMenuType.MENU && !i.path?.includes(':'),
+  )
 })
 
 const getFuse = computed(() => {
@@ -65,11 +66,8 @@ const getFuse = computed(() => {
 })
 
 const getFilteredResults = computed(() => {
-  if (!searchQuery.value.trim())
-    return []
-  return getFuse.value
-    .search(searchQuery.value)
-    .map(r => r.item)
+  if (!searchQuery.value.trim()) return []
+  return getFuse.value.search(searchQuery.value).map((r) => r.item)
 })
 
 async function onSelect(item: SystemMenu) {
@@ -90,33 +88,26 @@ function onInputChange() {
 }
 
 useEventListener('keydown', (e) => {
-  if (!modalShow.value || getFilteredResults.value.length === 0)
-    return
+  if (!modalShow.value || getFilteredResults.value.length === 0) return
 
   const total = getFilteredResults.value.length
 
   if (e.key === 'ArrowDown') {
     e.preventDefault()
 
-    activeIndex.value
-      = (activeIndex.value + 1) % total
+    activeIndex.value = (activeIndex.value + 1) % total
 
     scrollbarRef.value?.scrollToIndex(activeIndex.value)
-  }
-  else if (e.key === 'ArrowUp') {
+  } else if (e.key === 'ArrowUp') {
     e.preventDefault()
 
-    activeIndex.value
-      = (activeIndex.value - 1 + total)
-        % total
+    activeIndex.value = (activeIndex.value - 1 + total) % total
     scrollbarRef.value?.scrollToIndex(activeIndex.value)
-  }
-  else if (e.key === 'Enter') {
+  } else if (e.key === 'Enter') {
     e.preventDefault()
 
     const selected = getFilteredResults.value[activeIndex.value]
-    if (selected)
-      onSelect(selected)
+    if (selected) onSelect(selected)
   }
 })
 </script>
@@ -131,7 +122,7 @@ useEventListener('keydown', (e) => {
       :show-icon="false"
       transform-origin="center"
       :auto-focus="false"
-      :segmented=" {
+      :segmented="{
         content: 'soft',
         footer: 'soft',
       }"
@@ -168,13 +159,13 @@ useEventListener('keydown', (e) => {
                   @click="onSelect(item)"
                 >
                   <div class="flex flex-row flex-nowrap items-center justify-start gap-x-4">
-                    <WIcon :icon="item.icon" class="transition-transform duration-200 group-hover:scale-115" />
+                    <WIcon
+                      :icon="item.icon"
+                      class="transition-transform duration-200 group-hover:scale-115"
+                    />
 
                     <div class="flex flex-col flex-wrap">
-                      <n-highlight
-                        :text="item.title"
-                        :patterns="[searchQuery]"
-                      />
+                      <n-highlight :text="item.title" :patterns="[searchQuery]" />
                       <n-highlight
                         v-if="item.desc"
                         :text="item.desc"
@@ -189,7 +180,10 @@ useEventListener('keydown', (e) => {
           </n-card>
         </div>
 
-        <div v-if="!searchQuery" class="h-[30vh] flex flex-col flex-wrap items-center justify-center gap-y-4">
+        <div
+          v-if="!searchQuery"
+          class="h-[30vh] flex flex-col flex-wrap items-center justify-center gap-y-4"
+        >
           <WIcon icon="emojione-v1:face-savoring-food" height="64" />
           <div>{{ $t('app.search.start') }}</div>
         </div>
@@ -201,7 +195,9 @@ useEventListener('keydown', (e) => {
       </template>
 
       <template #footer>
-        <div class="flex flex-row flex-nowrap items-center justify-start gap-x-8 text-sm text-gray-500 children:(flex flex-row flex-nowrap items-center gap-x-1)">
+        <div
+          class="flex flex-row flex-nowrap items-center justify-start gap-x-8 text-sm text-gray-500 children:(flex flex-row flex-nowrap items-center gap-x-1)"
+        >
           <div>
             <WIcon icon="ant-design:enter-outlined" height="14" />
             <span>{{ $t('app.base.enter') }}</span>
@@ -219,7 +215,7 @@ useEventListener('keydown', (e) => {
 </template>
 
 <style lang="scss" scoped>
-:deep(.w-card > .w-card__content){
+:deep(.w-card > .w-card__content) {
   padding: 0 !important;
 }
 </style>

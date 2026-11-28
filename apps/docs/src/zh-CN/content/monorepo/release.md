@@ -10,7 +10,7 @@
 | CHANGELOG 怎么出 | **git-cliff** 逐包渲染，由 `@walnut/release` 的 `src/release/changelog.ts` 写入（**唯一写入者**） |
 | GitHub Release 正文 | `pnpm release` 生成的根 `changelog-latest.md`（随 release commit 提交） |
 | 创建 GitHub Release | `.github/workflows/release.yml`（tag 推送触发，本地不调 API） |
-| 发了什么 | 15 个包的版本号（判据：`versioning.fixed` 组成员 = 有 `version` 的 workspace 包）+ 各包 `CHANGELOG.md` + `changelog-latest.md` + `.changeset/ledger.yaml` + git tag `vX.Y.Z` + push（分支 + tag） |
+| 发了什么 | **全部有版本号的 workspace 包**（判据：`versioning.fixed` 组成员 = 有 `version` 的 workspace 包，两个集合逐名相等由 `versioning-config.test.ts` 机械拦；别在这里抄数字）+ 各包 `CHANGELOG.md` + `changelog-latest.md` + `.changeset/ledger.yaml` + git tag `vX.Y.Z` + push（分支 + tag） |
 
 > ⚠️ 本仓**不用** `@changesets/cli`。意图文件仍是 changesets 格式（`pnpm change` 沿用），但版本策略的
 > 唯一真源是根 [`pnpm-workspace.yaml`](https://github.com/walnut-admin/walnut-admin/blob/main/pnpm-workspace.yaml) 的 `versioning` 段，
@@ -158,6 +158,8 @@ pnpm release
 | `circular` | `pnpm walnut madge:check`（`apps/server` 的 apps + libs 循环依赖；madge 跑 1053 文件约 14–20s。它此前只躺在 package.json 里、不在任何门禁中，批次 2 · R2 接入） |
 | `lint` | `turbo run lint`（所有包，不排任何包） |
 | `lint-root` | `turbo run lint:root`（**根级文件**的 lint：`eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts`） |
+| `lint:oxlint` | `pnpm walnut lint:oxlint`（oxlint 双轨的 correctness 兜底：不经 turbo、根跑一次约 0.1s；Vue 模板 / 本地规则 / 类型感知分层仍归 ESLint） |
+| `format` | `pnpm walnut format:check`（`oxfmt --check` —— 格式的唯一真源；ESLint 已 `stylistic: false`，这一面没有第二条闸） |
 | `types` | `turbo run types:check` |
 | `types-root` | `pnpm walnut types:check:root`（根 tsconfig 覆盖的 `eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts`） |
 | `test` | `turbo run test` |

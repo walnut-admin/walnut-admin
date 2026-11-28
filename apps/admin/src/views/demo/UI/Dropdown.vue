@@ -60,16 +60,12 @@ function onRightClick(e: MouseEvent) {
   <WDemoCard title="Dropdown">
     <n-list>
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Basic usage
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Basic usage </WTitle>
 
         <WDropdown @hook="registerDropdown" />
 
         <n-space>
-          <div class="h-64 w-64 bg-gray-6" @click="openDropdown">
-            click to open dropdown
-          </div>
+          <div class="h-64 w-64 bg-gray-6" @click="openDropdown">click to open dropdown</div>
 
           <div class="h-64 w-64 bg-gray-4" @click.right="onRightClick">
             right click to open dropdown

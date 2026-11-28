@@ -9,20 +9,18 @@ declare global {
 
   interface IWalnutAdminDecoratorTransformerAnyResponseOptions {}
 
-  interface IWalnutAdminDecoratorTransformAnyOptions
-    extends IWalnutAdminDecoratorTransformOptions<
-      IWalnutAdminDecoratorTransformerAnyRequestOptions,
-      IWalnutAdminDecoratorTransformerAnyResponseOptions
-    > {}
+  interface IWalnutAdminDecoratorTransformAnyOptions extends IWalnutAdminDecoratorTransformOptions<
+    IWalnutAdminDecoratorTransformerAnyRequestOptions,
+    IWalnutAdminDecoratorTransformerAnyResponseOptions
+  > {}
 
   type IWADTAnyOpt = IWalnutAdminDecoratorTransformAnyOptions
 
   // field option
-  interface IWalnutAdminDecoratorFieldAnyOptions
-    extends IWalnutAdminDecoratorBasicOptions<
-      IWalnutAdminDecoratorValidatorAnyOptions,
-      IWalnutAdminDecoratorTransformAnyOptions
-    > {}
+  interface IWalnutAdminDecoratorFieldAnyOptions extends IWalnutAdminDecoratorBasicOptions<
+    IWalnutAdminDecoratorValidatorAnyOptions,
+    IWalnutAdminDecoratorTransformAnyOptions
+  > {}
 
   type IWADAnyOpt = IWalnutAdminDecoratorFieldAnyOptions
 }

@@ -13,12 +13,7 @@ const activeCTab = defineModel('value', { type: String })
 </script>
 
 <template>
-  <n-tabs
-    v-model:value="activeCTab"
-    type="line"
-    animated
-    placement="left"
-  >
+  <n-tabs v-model:value="activeCTab" type="line" animated placement="left">
     <n-tab-pane name="1" display-directive="show:lazy" :tab="$t('app.base.basic')">
       <WAccountSettingsTabPreferenceBasic />
     </n-tab-pane>

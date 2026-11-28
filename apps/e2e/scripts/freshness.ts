@@ -30,22 +30,22 @@ export interface ArtifactFreshness {
   /** 同上（ISO 8601，便于人读）；null 表示读不到 */
   sourceCommitAt: string | null
   /** now − 产物 mtime（分钟）；产物缺失时为 null */
-  artifactAgeMinutes: { adminIndex: number | null, serverMain: number | null }
+  artifactAgeMinutes: { adminIndex: number | null; serverMain: number | null }
   /** max(0, 源码提交时刻 − 产物 mtime)（分钟）；产物缺失或 git 读不到时为 null */
-  artifactLagMinutes: { adminIndex: number | null, serverMain: number | null }
+  artifactLagMinutes: { adminIndex: number | null; serverMain: number | null }
 }
 
 function lastSourceCommitSeconds(): number | null {
   try {
-    const output = execFileSync(
-      'git',
-      ['log', '-1', '--format=%ct', '--', ...SOURCE_PATHS],
-      { cwd: REPO_ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true },
-    ).trim()
+    const output = execFileSync('git', ['log', '-1', '--format=%ct', '--', ...SOURCE_PATHS], {
+      cwd: REPO_ROOT,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      windowsHide: true,
+    }).trim()
     const seconds = Number.parseInt(output, 10)
     return Number.isFinite(seconds) && seconds > 0 ? seconds : null
-  }
-  catch {
+  } catch {
     // 浅克隆 / 非 git 环境：不阻断（新鲜度只是告警面，环境前置另有 preflight 的硬检查）
     return null
   }
@@ -61,8 +61,7 @@ function ageMinutesOf(file: string, nowMs: number): number | null {
   }
   try {
     return Math.max(0, minutesBetween(nowMs, statSync(file).mtime.getTime()))
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -73,8 +72,7 @@ function lagMinutesOf(file: string, sourceCommitSeconds: number | null): number 
   }
   try {
     return Math.max(0, minutesBetween(sourceCommitSeconds * 1000, statSync(file).mtime.getTime()))
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -84,7 +82,8 @@ export function computeArtifactFreshness(nowMs = Date.now()): ArtifactFreshness 
   const sourceCommitSeconds = lastSourceCommitSeconds()
   return {
     sourceCommitSeconds,
-    sourceCommitAt: sourceCommitSeconds === null ? null : new Date(sourceCommitSeconds * 1000).toISOString(),
+    sourceCommitAt:
+      sourceCommitSeconds === null ? null : new Date(sourceCommitSeconds * 1000).toISOString(),
     artifactAgeMinutes: {
       adminIndex: ageMinutesOf(ADMIN_INDEX_FILE, nowMs),
       serverMain: ageMinutesOf(SERVER_MAIN_FILE, nowMs),
@@ -113,11 +112,19 @@ export function staleArtifacts(freshness: ArtifactFreshness): StaleArtifactNote[
   const notes: StaleArtifactNote[] = []
   const adminLag = freshness.artifactLagMinutes.adminIndex
   if (adminLag !== null && adminLag > 0) {
-    notes.push({ name: 'apps/admin/dist-staging/index.html', lagMinutes: adminLag, fix: 'pnpm walnut build:stage' })
+    notes.push({
+      name: 'apps/admin/dist-staging/index.html',
+      lagMinutes: adminLag,
+      fix: 'pnpm walnut build:stage',
+    })
   }
   const serverLag = freshness.artifactLagMinutes.serverMain
   if (serverLag !== null && serverLag > 0) {
-    notes.push({ name: 'apps/server/dist-stage/apps/api/src/main.js', lagMinutes: serverLag, fix: 'pnpm --filter @walnut/server build:stage' })
+    notes.push({
+      name: 'apps/server/dist-stage/apps/api/src/main.js',
+      lagMinutes: serverLag,
+      fix: 'pnpm --filter @walnut/server build:stage',
+    })
   }
   return notes
 }

@@ -22,28 +22,31 @@ export function useGlobalAsyncComponent(show: Ref<boolean>, options: Options = {
 
   let unmountTimer: ReturnType<typeof setTimeout> | null = null
 
-  watch(show, async (val) => {
-    if (unmountTimer) {
-      clearTimeout(unmountTimer)
-      unmountTimer = null
-    }
+  watch(
+    show,
+    async (val) => {
+      if (unmountTimer) {
+        clearTimeout(unmountTimer)
+        unmountTimer = null
+      }
 
-    if (val) {
-      // 先挂载组件（触发懒加载）
-      mounted.value = true
-      // 等组件挂载到 DOM 后，再打开 Modal，动画就能正常触发
-      await nextTick()
-      visible.value = true
-    }
-    else {
-      // 先关闭 Modal（播放离开动画）
-      visible.value = false
-      // 等动画结束后再卸载组件
-      unmountTimer = setTimeout(() => {
-        mounted.value = false
-      }, delay)
-    }
-  }, { immediate: true })
+      if (val) {
+        // 先挂载组件（触发懒加载）
+        mounted.value = true
+        // 等组件挂载到 DOM 后，再打开 Modal，动画就能正常触发
+        await nextTick()
+        visible.value = true
+      } else {
+        // 先关闭 Modal（播放离开动画）
+        visible.value = false
+        // 等动画结束后再卸载组件
+        unmountTimer = setTimeout(() => {
+          mounted.value = false
+        }, delay)
+      }
+    },
+    { immediate: true },
+  )
 
   return { mounted, visible }
 }

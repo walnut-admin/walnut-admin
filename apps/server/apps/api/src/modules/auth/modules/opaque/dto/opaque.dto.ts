@@ -1,5 +1,8 @@
 import { ApiProperty, IntersectionType } from '@nestjs/swagger'
-import { WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
+import {
+  WalnutAdminDecoratorFieldEnum,
+  WalnutAdminDecoratorFieldString,
+} from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
 import { RealPickType } from '@walnut-server/utils/dto'
 import { ValueOf } from 'easy-fns-ts'
@@ -23,7 +26,10 @@ class AuthOpaqueFinishDTO {
   finish: string
 }
 
-export class AuthOpaqueStartSignInDTO extends IntersectionType(RealPickType(SysUserDTOSafe, ['userName']), AuthOpaqueStartDTO) {}
+export class AuthOpaqueStartSignInDTO extends IntersectionType(
+  RealPickType(SysUserDTOSafe, ['userName']),
+  AuthOpaqueStartDTO,
+) {}
 
 const signInFinishClientError = {
   passwordError: 'passwordError',
@@ -31,7 +37,10 @@ const signInFinishClientError = {
 } as const
 
 type ISignInFinishClientError = ValueOf<typeof signInFinishClientError>
-export class AuthOpaqueFinishSignInDTO extends IntersectionType(RealPickType(SysUserDTOSafe, ['userName']), AuthOpaqueFinishDTO) {}
+export class AuthOpaqueFinishSignInDTO extends IntersectionType(
+  RealPickType(SysUserDTOSafe, ['userName']),
+  AuthOpaqueFinishDTO,
+) {}
 
 export class AuthOpaqueClientErrorDTO extends RealPickType(SysUserDTOSafe, ['userName']) {
   @WalnutAdminDecoratorFieldEnum(() => signInFinishClientError, {
@@ -60,8 +69,14 @@ class AuthOpaqueAdminUserIdDTO {
   id: string
 }
 
-export class AuthOpaqueStartChangePasswordForAdminDTO extends IntersectionType(AuthOpaqueAdminUserIdDTO, AuthOpaqueStartDTO) {}
+export class AuthOpaqueStartChangePasswordForAdminDTO extends IntersectionType(
+  AuthOpaqueAdminUserIdDTO,
+  AuthOpaqueStartDTO,
+) {}
 
-export class AuthOpaqueFinishChangePasswordForAdminDTO extends IntersectionType(AuthOpaqueAdminUserIdDTO, AuthOpaqueFinishDTO) {}
+export class AuthOpaqueFinishChangePasswordForAdminDTO extends IntersectionType(
+  AuthOpaqueAdminUserIdDTO,
+  AuthOpaqueFinishDTO,
+) {}
 
 export class AuthOpaqueClearPasswordForAdminDTO extends AuthOpaqueAdminUserIdDTO {}

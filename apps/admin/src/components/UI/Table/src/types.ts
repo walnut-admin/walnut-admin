@@ -4,7 +4,21 @@ import type { BaseListParams, BaseListResponse } from '@walnut/contract'
 
 import type { ShortEmits } from '@walnut/types/object-key'
 import type { NullableRecord, Recordable, StringOrNumber } from 'easy-fns-ts'
-import type { DataTableBaseColumn, DataTableColumn, DataTableCreateRowKey, DataTableCreateSummary, DataTableExpandColumn, DataTableFilterState, DataTableInst, DataTableSelectionColumn, DataTableSortState, PaginationProps, PopoverProps, ScrollbarProps, TagProps } from 'naive-ui'
+import type {
+  DataTableBaseColumn,
+  DataTableColumn,
+  DataTableCreateRowKey,
+  DataTableCreateSummary,
+  DataTableExpandColumn,
+  DataTableFilterState,
+  DataTableInst,
+  DataTableSelectionColumn,
+  DataTableSortState,
+  PaginationProps,
+  PopoverProps,
+  ScrollbarProps,
+  TagProps,
+} from 'naive-ui'
 import type { ComputedRef, HTMLAttributes, Ref, VNodeChild } from 'vue'
 import type { ICompUIButtonProps } from '../../Button'
 import type { WForm } from '../../Form'
@@ -33,7 +47,10 @@ export declare namespace WTable {
   /**
    * @description callback function
    */
-  type TableFnCallback<T, R = void> = (rowData: T, rowIndex?: number) => Promise<T> | Promise<R> | R | any
+  type TableFnCallback<T, R = void> = (
+    rowData: T,
+    rowIndex?: number,
+  ) => Promise<T> | Promise<R> | R | any
 
   /**
    * @description set table props
@@ -78,7 +95,7 @@ export declare namespace WTable {
       onSetDefaultQueryFormData: (newQueryFormData: Partial<NullableRecord<T>>) => void
     }
 
-    interface WTableInst<T> extends Partial<NDataTableInst>, ExtendInst<T> { }
+    interface WTableInst<T> extends Partial<NDataTableInst>, ExtendInst<T> {}
   }
 
   /**
@@ -95,16 +112,15 @@ export declare namespace WTable {
     type ListState<T> = IWalnutTableListState<T>
 
     namespace UseTable {
-      type Props<T> = WTable.Props<T> | ComputedRef<WTable.Props<T>> | IDeepMaybeRef<WTable.Props<T>>
+      type Props<T> =
+        | WTable.Props<T>
+        | ComputedRef<WTable.Props<T>>
+        | IDeepMaybeRef<WTable.Props<T>>
 
       type Methods<T> = ICompUITableHooksMethods & Omit<Inst.WTableInst<T>, 'setProps'>
 
-      type ReturnType<T> = [
-        (instance: Inst.WTableInst<T>) => void,
-        Methods<T>,
-      ]
+      type ReturnType<T> = [(instance: Inst.WTableInst<T>) => void, Methods<T>]
     }
-
   }
 
   /**
@@ -138,7 +154,7 @@ export declare namespace WTable {
     paginationBehaviorOnFilter?: 'first' | 'current'
     remote?: boolean
     renderCell?: (value: any, rowData: object, column: DataTableBaseColumn) => VNodeChild
-    renderExpandIcon?: ({ expanded, rowData }: { expanded: boolean, rowData: object }) => VNodeChild
+    renderExpandIcon?: ({ expanded, rowData }: { expanded: boolean; rowData: object }) => VNodeChild
     rowClassName?: string | ((rowData: object, index: number) => string)
     rowProps?: (rowData: object, rowIndex: number) => HTMLAttributes
     scrollX?: StringOrNumber
@@ -146,7 +162,7 @@ export declare namespace WTable {
     singleColumn?: boolean
     singleLine?: boolean
     size?: 'small' | 'medium' | 'large'
-    spinProps?: { strokeWidth?: number, stroke?: string }
+    spinProps?: { strokeWidth?: number; stroke?: string }
     stickyExpandedRows?: boolean
     striped?: boolean
     summary?: DataTableCreateSummary
@@ -299,15 +315,18 @@ export declare namespace WTable {
   /**
    * @description Table Column
    */
-  type Column<T>
-    = | (ExtendType.Action<T>
-      | ExtendType.Icon<T>
-      | ExtendType.Link<T>
-      | ExtendType.Dictionary<T>
-      | ExtendType.Tag<T>
-      | ExtendType.Index<T>)
-    & (Partial<Omit<DataTableSelectionColumn<T>, 'sorter' | 'filter' | 'filterOptions'>>
-      | Partial<Omit<DataTableExpandColumn<T>, 'sorter' | 'filter' | 'filterOptions'>>)
+  type Column<T> = (
+    | ExtendType.Action<T>
+    | ExtendType.Icon<T>
+    | ExtendType.Link<T>
+    | ExtendType.Dictionary<T>
+    | ExtendType.Tag<T>
+    | ExtendType.Index<T>
+  ) &
+    (
+      | Partial<Omit<DataTableSelectionColumn<T>, 'sorter' | 'filter' | 'filterOptions'>>
+      | Partial<Omit<DataTableExpandColumn<T>, 'sorter' | 'filter' | 'filterOptions'>>
+    )
 
   namespace ExtendType {
     /**
@@ -429,7 +448,6 @@ export declare namespace WTable {
      * @description preset acion column, default includes three buttons: read / delete
      */
     type Action<T = Recordable> = BaseExtend<T, 'action'> & {
-
       /**
        * @description built in action buttons
        */

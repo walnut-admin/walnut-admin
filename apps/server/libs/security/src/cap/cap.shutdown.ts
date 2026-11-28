@@ -77,7 +77,7 @@ function listenersOf(event: WalnutAdminCapProcessEvent): WalnutAdminCapProcessLi
 export function createCapDetachedFromProcessHooks(create: () => Cap): IWalnutAdminCapDetached {
   // 快照：只摘「create() 期间新增」的监听器，调用方自己的监听器原样保留
   const before = new Map<WalnutAdminCapProcessEvent, ReadonlySet<WalnutAdminCapProcessListener>>(
-    WALNUT_ADMIN_CAP_PROCESS_EVENTS.map(event => [event, new Set(listenersOf(event))] as const),
+    WALNUT_ADMIN_CAP_PROCESS_EVENTS.map((event) => [event, new Set(listenersOf(event))] as const),
   )
 
   const cap = create()

@@ -9,18 +9,26 @@ import { withSyncConditionalEncryption } from './sync'
  * @description aes gcm encrypt/decrypt for localStorage
  */
 export function enhancedAesGcmLocalStorage(forceEncrypt = false) {
-  return withAsyncConditionalEncryption(asyncLocalStorage, {
-    encrypt: async raw => aesGcmEncrypt(await getStorageIdbKey(), raw),
-    decrypt: async encrypted => aesGcmDecrypt(await getStorageIdbKey(), encrypted),
-  }, () => forceEncrypt)
+  return withAsyncConditionalEncryption(
+    asyncLocalStorage,
+    {
+      encrypt: async (raw) => aesGcmEncrypt(await getStorageIdbKey(), raw),
+      decrypt: async (encrypted) => aesGcmDecrypt(await getStorageIdbKey(), encrypted),
+    },
+    () => forceEncrypt,
+  )
 }
 
 /**
  * @description base64 atob/btoa encode/decode for localStorage
  */
 export function enhancedBase64LocalStorage(forceEncrypt = false) {
-  return withSyncConditionalEncryption(syncLocalStorage, {
-    encrypt: plain => wbtoa(plain),
-    decrypt: encoded => watob(encoded),
-  }, () => forceEncrypt)
+  return withSyncConditionalEncryption(
+    syncLocalStorage,
+    {
+      encrypt: (plain) => wbtoa(plain),
+      decrypt: (encoded) => watob(encoded),
+    },
+    () => forceEncrypt,
+  )
 }

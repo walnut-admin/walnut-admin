@@ -23,11 +23,7 @@ import {
   WalnutAdminConstAppResponseCode,
 } from '../../lib/protocol/contract.ts'
 import { ipTempBlacklistKey, riskFailedLoginKey, withRedis } from '../../lib/redis.ts'
-import {
-  captureEnvelopes,
-  navigateInApp,
-  waitForEnvelope,
-} from '../../lib/ui.ts'
+import { captureEnvelopes, navigateInApp, waitForEnvelope } from '../../lib/ui.ts'
 import { expect, test } from '../fixtures.ts'
 import { rootClient } from './risk-support.ts'
 
@@ -37,15 +33,17 @@ const TEMP_BAN_KEY = ipTempBlacklistKey('127.0.0.1')
 const IP_TEMP_BAN_TTL_SECONDS = 1800
 
 test.describe('IP 黑名单', { tag: '@risk' }, () => {
-  test('U11 IP 永久黑名单：写 app_setting 后 40603 → /not-allowed?type=ip，移除即恢复', async ({ browser }) => {
+  test('U11 IP 永久黑名单：写 app_setting 后 40603 → /not-allowed?type=ip，移除即恢复', async ({
+    browser,
+  }) => {
     const bannedIp = uniqueLocalIp()
     // 名单的读写走 root 权限 + 服务端的缓存刷新端点（与真实写通道同一条缓存失效链路）
     const client = await rootClient()
 
-    const originalList = await withPg(pg => readPermanentIpBlacklist(pg))
+    const originalList = await withPg((pg) => readPermanentIpBlacklist(pg))
     let restored = false
     const restore = async (): Promise<void> => {
-      await withPg(pg => writePermanentIpBlacklist(pg, originalList))
+      await withPg((pg) => writePermanentIpBlacklist(pg, originalList))
       await client.root('POST', AppRoutes.SETTING_CACHE_REFRESH)
       restored = true
     }
@@ -59,7 +57,7 @@ test.describe('IP 黑名单', { tag: '@risk' }, () => {
       const captured = captureEnvelopes(session.page)
 
       // 永久名单：直接改 app_setting（JSON 数组），再经服务端端点刷新 APP:SETTING 缓存
-      await withPg(pg => writePermanentIpBlacklist(pg, [...originalList, bannedIp]))
+      await withPg((pg) => writePermanentIpBlacklist(pg, [...originalList, bannedIp]))
       await client.root('POST', AppRoutes.SETTING_CACHE_REFRESH)
 
       // 状态落点：PG 行里确实有这条 IP（名单真源）
@@ -73,14 +71,16 @@ test.describe('IP 黑名单', { tag: '@risk' }, () => {
       await navigateInApp(session.page, SystemRoutes.USER)
       const blocked = await waitForEnvelope(
         captured.entries,
-        entry => entry.code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_IP_BLOCKED,
+        (entry) => entry.code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_IP_BLOCKED,
         40_000,
       )
-      expect(blocked.code, '被拒请求的业务码应是 40603').toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_IP_BLOCKED)
+      expect(blocked.code, '被拒请求的业务码应是 40603').toBe(
+        WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_IP_BLOCKED,
+      )
 
       // URL 判据：响应拦截器把 40603 映射成 type=ip 并 replace 到 /not-allowed
       await session.page.waitForURL(
-        url => url.pathname === '/not-allowed' && url.searchParams.get('type') === 'ip',
+        (url) => url.pathname === '/not-allowed' && url.searchParams.get('type') === 'ip',
         { timeout: 30_000 },
       )
       captured.stop()
@@ -96,21 +96,26 @@ test.describe('IP 黑名单', { tag: '@risk' }, () => {
       await recovered.goto('/')
       await waitForEnvelope(
         after.entries,
-        entry => entry.url.includes(AuthRoutes.PERMISSIONS) && entry.code === WalnutAdminConstAppResponseCode.SUCCESS,
+        (entry) =>
+          entry.url.includes(AuthRoutes.PERMISSIONS) &&
+          entry.code === WalnutAdminConstAppResponseCode.SUCCESS,
         40_000,
       )
       expect(
-        after.entries.some(entry => entry.code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_IP_BLOCKED),
+        after.entries.some(
+          (entry) => entry.code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_IP_BLOCKED,
+        ),
         '名单已移除，重新加载仍收到 40603',
       ).toBe(false)
       expect(new URL(recovered.url()).pathname).not.toBe('/not-allowed')
       after.stop()
-    }
-    finally {
+    } finally {
       if (!restored) {
         await restore().catch((error: unknown) => {
           // 恢复失败只影响同轮后续用例（名单里是我们的随机 127/8 IP），绝不掩盖断言失败
-          console.warn(`[e2e] U11 恢复永久名单失败：${error instanceof Error ? error.message : String(error)}`)
+          console.warn(
+            `[e2e] U11 恢复永久名单失败：${error instanceof Error ? error.message : String(error)}`,
+          )
         })
       }
       await session.context.close()
@@ -127,15 +132,21 @@ test.describe('IP 黑名单', { tag: '@risk' }, () => {
     // 唯一的失败 identifier：失败计数键是 `risk:failed_login:<identifier>:<deviceId>`，
     // 与设备绑定，清理归 fixture 的 `deleteRiskDeviceState`（按 deviceId 精确删）。
     const identifier = `e2e-ip-ban-${Date.now()}-${randomBytes(3).toString('hex')}`
-    const { startLoginRequest } = opaque.client.startLogin({ password: `not-the-password-${identifier}` })
+    const { startLoginRequest } = opaque.client.startLogin({
+      password: `not-the-password-${identifier}`,
+    })
 
     try {
       // 前 5 次仍是正常的「凭据无效」响应（40103）—— 拉黑发生在第 5 次失败处理的末尾，
       // 第 5 次请求本身已经过了 IP guard，所以口径是「5 次 40103，之后才 40603」。
       for (let attempt = 1; attempt <= 5; attempt += 1) {
-        const body = await client.requestFree<{ code: number, msg?: string }>('POST', AuthRoutes.OPAQUE_USER_LOGIN_START, {
-          body: { userName: identifier, start: startLoginRequest },
-        })
+        const body = await client.requestFree<{ code: number; msg?: string }>(
+          'POST',
+          AuthRoutes.OPAQUE_USER_LOGIN_START,
+          {
+            body: { userName: identifier, start: startLoginRequest },
+          },
+        )
         expect(
           body.code,
           `第 ${attempt} 次失败登录应回 40103（响应壳 code），实际 ${body.code} ${body.msg ?? ''}`,
@@ -158,25 +169,33 @@ test.describe('IP 黑名单', { tag: '@risk' }, () => {
       expect(state.failedLoginTtl, 'failed_login 计数键应有 TTL').toBeGreaterThan(0)
       expect(state.banExists, `临时名单键 ${TEMP_BAN_KEY} 不存在`).toBe(1)
       expect(state.banTtl, `临时名单键的 TTL 应 > 0（实际 ${state.banTtl}）`).toBeGreaterThan(0)
-      expect(state.banTtl, `临时名单键的 TTL 不应超过服务端的 30 分钟（实际 ${state.banTtl}）`).toBeLessThanOrEqual(IP_TEMP_BAN_TTL_SECONDS)
+      expect(
+        state.banTtl,
+        `临时名单键的 TTL 不应超过服务端的 30 分钟（实际 ${state.banTtl}）`,
+      ).toBeLessThanOrEqual(IP_TEMP_BAN_TTL_SECONDS)
       expect(state.banInfo.permanent, '临时名单的 permanent 标记应为 0').toBe('0')
 
       // 第 6 次（同一 IP 的任意受保护路径）被 IP guard 直接拒：40603
       const blocked = await client.rawFetch('GET', SystemEndpointRoutes.USER_ME_PROFILE)
-      const blockedBody = await blocked.json() as { code: number }
-      expect(blockedBody.code, '临时拉黑后的请求应 40603').toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_IP_BLOCKED)
+      const blockedBody = (await blocked.json()) as { code: number }
+      expect(blockedBody.code, '临时拉黑后的请求应 40603').toBe(
+        WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_IP_BLOCKED,
+      )
 
       // 负对照（闭环）：精确删掉临时名单键后，同一请求不再被 IP guard 拒
       // （没有 Authorization ⇒ 落到后面的 JWT 守卫，不再是 40603）。
-      await withRedis(redis => redis.del(TEMP_BAN_KEY))
+      await withRedis((redis) => redis.del(TEMP_BAN_KEY))
       const released = await client.rawFetch('GET', SystemEndpointRoutes.USER_ME_PROFILE)
-      const releasedBody = await released.json() as { code: number }
-      expect(releasedBody.code, '删掉临时名单键后仍被 IP guard 拒').not.toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_IP_BLOCKED)
-    }
-    finally {
+      const releasedBody = (await released.json()) as { code: number }
+      expect(releasedBody.code, '删掉临时名单键后仍被 IP guard 拒').not.toBe(
+        WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_IP_BLOCKED,
+      )
+    } finally {
       // 窗口内（workers=1）没有并发用例，但失败路径也必须把 127.0.0.1 的临时名单摘掉
-      await withRedis(redis => redis.del(TEMP_BAN_KEY)).catch((error: unknown) => {
-        console.warn(`[e2e] U12 清理临时 IP 名单失败：${error instanceof Error ? error.message : String(error)}`)
+      await withRedis((redis) => redis.del(TEMP_BAN_KEY)).catch((error: unknown) => {
+        console.warn(
+          `[e2e] U12 清理临时 IP 名单失败：${error instanceof Error ? error.message : String(error)}`,
+        )
       })
     }
   })

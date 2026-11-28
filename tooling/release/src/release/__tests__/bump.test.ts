@@ -33,9 +33,9 @@ function frontmatterBumps(content: string): string[] {
   const frontmatter = content.split('---')[1] ?? ''
   return frontmatter
     .split('\n')
-    .map(line => line.trim())
+    .map((line) => line.trim())
     .filter(Boolean)
-    .map(line => line.slice(line.lastIndexOf(':') + 1).trim())
+    .map((line) => line.slice(line.lastIndexOf(':') + 1).trim())
 }
 
 /** frontmatter 段里每一行的包名（剥掉成对引号） */
@@ -43,9 +43,14 @@ function frontmatterNames(content: string): string[] {
   const frontmatter = content.split('---')[1] ?? ''
   return frontmatter
     .split('\n')
-    .map(line => line.trim())
+    .map((line) => line.trim())
     .filter(Boolean)
-    .map(line => line.slice(0, line.lastIndexOf(':')).trim().replace(/^["']|["']$/g, ''))
+    .map((line) =>
+      line
+        .slice(0, line.lastIndexOf(':'))
+        .trim()
+        .replace(/^["']|["']$/g, ''),
+    )
 }
 
 describe('resolveAutoBump —— 取所有意图里非 none 的最高档', () => {
@@ -59,8 +64,12 @@ describe('resolveAutoBump —— 取所有意图里非 none 的最高档', () =>
 
   it('混合集合取最高档，且 none 不影响结果', () => {
     expect(resolveAutoBump([intent('patch'), intent('minor', 'b.md')])).toBe('minor')
-    expect(resolveAutoBump([intent('patch'), intent('major', 'b.md'), intent('minor', 'c.md')])).toBe('major')
-    expect(resolveAutoBump([intent('none'), intent('patch', 'b.md'), intent('none', 'c.md')])).toBe('patch')
+    expect(
+      resolveAutoBump([intent('patch'), intent('major', 'b.md'), intent('minor', 'c.md')]),
+    ).toBe('major')
+    expect(resolveAutoBump([intent('none'), intent('patch', 'b.md'), intent('none', 'c.md')])).toBe(
+      'patch',
+    )
     expect(resolveAutoBump([intent('minor'), intent('patch', 'b.md')])).toBe('minor')
   })
 })
@@ -85,7 +94,11 @@ describe('overrideIntentBump —— 必须改**全部**包行', () => {
     expect(result.changed).toBe(3)
 
     // 逐行断言「每一行都不再是原档」——这正是缺陷的形态本身
-    expect(frontmatterNames(result.content)).toEqual(['@walnut/admin', '@walnut/utils', '@walnut/http'])
+    expect(frontmatterNames(result.content)).toEqual([
+      '@walnut/admin',
+      '@walnut/utils',
+      '@walnut/http',
+    ])
     expect(frontmatterBumps(result.content)).toEqual(['minor', 'minor', 'minor'])
     // 三行都必须真的变了（不是靠最后一行撑起最大档）
     expect(frontmatterBumps(MULTI_PACKAGE_INTENT)).toEqual(['patch', 'patch', 'none'])
@@ -98,7 +111,9 @@ describe('overrideIntentBump —— 必须改**全部**包行', () => {
     expect(reparsed?.bump).toBe('major')
     // 正文（含第二段）原样保留
     expect(reparsed?.summary).toContain('1a82770 ::: feat ::: admin: 支持记住登录状态')
-    expect(reparsed?.summary).toContain('正文里的 "@walnut/admin": patch 不属于 frontmatter，不该被动')
+    expect(reparsed?.summary).toContain(
+      '正文里的 "@walnut/admin": patch 不属于 frontmatter，不该被动',
+    )
   })
 
   it('正文里的同形文字不动（只改 frontmatter 段）', () => {
@@ -110,12 +125,28 @@ describe('overrideIntentBump —— 必须改**全部**包行', () => {
   })
 
   it('已经在目标档位 ⇒ changed: 0 且内容原样返回', () => {
-    const already = ['---', '"@walnut/admin": patch', '"@walnut/utils": patch', '---', '', 'body', ''].join('\n')
+    const already = [
+      '---',
+      '"@walnut/admin": patch',
+      '"@walnut/utils": patch',
+      '---',
+      '',
+      'body',
+      '',
+    ].join('\n')
     expect(overrideIntentBump(already, 'patch')).toEqual({ content: already, changed: 0 })
   })
 
   it('只有需要改的行计入 changed', () => {
-    const mixed = ['---', '"@walnut/admin": patch', '"@walnut/utils": minor', '---', '', 'body', ''].join('\n')
+    const mixed = [
+      '---',
+      '"@walnut/admin": patch',
+      '"@walnut/utils": minor',
+      '---',
+      '',
+      'body',
+      '',
+    ].join('\n')
     const result = overrideIntentBump(mixed, 'minor')
     expect(result.changed).toBe(1)
     expect(frontmatterBumps(result.content)).toEqual(['minor', 'minor'])
@@ -126,7 +157,8 @@ describe('overrideIntentBump —— 必须改**全部**包行', () => {
     // 意图文件的 frontmatter 就是 YAML；改写只是为了让 pnpm 换一档消费它，
     // 写出一份 YAML 解析器读不了的文件等于把用户选的档位丢掉。
     // `@` 是 YAML 的保留指示符，**不能**做 plain scalar 的首字符 —— scoped 包名必须带引号。
-    const frontmatter = overrideIntentBump(MULTI_PACKAGE_INTENT, 'minor').content.split('---')[1] ?? ''
+    const frontmatter =
+      overrideIntentBump(MULTI_PACKAGE_INTENT, 'minor').content.split('---')[1] ?? ''
     expect(
       () => parseYaml(frontmatter),
       `改写后的 frontmatter 不再是合法 YAML（scoped 包名必须带引号）：\n${frontmatter}`,
@@ -140,7 +172,11 @@ describe('overrideIntentBump —— 必须改**全部**包行', () => {
 
   it('改写保留包名原有的引号形态（scoped 包名必须带引号才是合法 YAML）', () => {
     const quoted = overrideIntentBump(MULTI_PACKAGE_INTENT, 'minor')
-    for (const line of ['"@walnut/admin": minor', '"@walnut/utils": minor', '"@walnut/http": minor'])
+    for (const line of [
+      '"@walnut/admin": minor',
+      '"@walnut/utils": minor',
+      '"@walnut/http": minor',
+    ])
       expect(quoted.content, `这一行丢了引号：${line}`).toContain(line)
 
     // 裸名（本来就没有引号）也不该被加上引号

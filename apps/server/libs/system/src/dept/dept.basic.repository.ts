@@ -75,18 +75,25 @@ export class SysDeptBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
    *   即释放（同 refresh.repo.findByJti 的口径），此时退化为普通读并返回 false；
    * - 行不存在不报错（父节点不存在由调用方的存在性校验翻译成受控 400）。
    */
-  public async lockByIdsForUpdate(ids: Array<string | null | undefined>, em?: EntityManager): Promise<boolean> {
-    const targets = [...new Set(ids.filter((id): id is string => typeof id === 'string' && id !== ''))].sort()
+  public async lockByIdsForUpdate(
+    ids: Array<string | null | undefined>,
+    em?: EntityManager,
+  ): Promise<boolean> {
+    const targets = [
+      ...new Set(ids.filter((id): id is string => typeof id === 'string' && id !== '')),
+    ].sort()
 
     if (targets.length === 0 || !em?.queryRunner?.isTransactionActive) {
       return false
     }
 
-    await this.getManager(em).getRepository(SysDeptEntity).find({
-      where: { id: In(targets) },
-      order: { id: 'ASC' },
-      lock: { mode: 'pessimistic_write' },
-    })
+    await this.getManager(em)
+      .getRepository(SysDeptEntity)
+      .find({
+        where: { id: In(targets) },
+        order: { id: 'ASC' },
+        lock: { mode: 'pessimistic_write' },
+      })
 
     return true
   }
@@ -94,20 +101,27 @@ export class SysDeptBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
   /**
    * @description 按父节点查一层（根节点传 null → parent_id IS NULL），兄弟按 sortOrder 排
    */
-  public async findChildrenByParentId(parentId: string | null, em?: EntityManager): Promise<SysDeptEntity[]> {
-    return this.getManager(em).getRepository(SysDeptEntity).find({
-      where: parentId === null ? { parentId: IsNull() } : { parentId },
-      order: { sortOrder: 'ASC', createdAt: 'ASC' },
-    })
+  public async findChildrenByParentId(
+    parentId: string | null,
+    em?: EntityManager,
+  ): Promise<SysDeptEntity[]> {
+    return this.getManager(em)
+      .getRepository(SysDeptEntity)
+      .find({
+        where: parentId === null ? { parentId: IsNull() } : { parentId },
+        order: { sortOrder: 'ASC', createdAt: 'ASC' },
+      })
   }
 
   /**
    * @description 全量取数（树端点用；部门量级小，菜单树同款「单次查询 + 内存建树」）
    */
   public async findAllOrdered(em?: EntityManager): Promise<SysDeptEntity[]> {
-    return this.getManager(em).getRepository(SysDeptEntity).find({
-      order: { sortOrder: 'ASC', createdAt: 'ASC' },
-    })
+    return this.getManager(em)
+      .getRepository(SysDeptEntity)
+      .find({
+        order: { sortOrder: 'ASC', createdAt: 'ASC' },
+      })
   }
 
   /**
@@ -143,7 +157,7 @@ export class SysDeptBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
     const raw = await this.getManager(em).query<Array<Record<string, unknown>>>(sql, parameters)
 
     // pg 驱动回 bigint（depth 计数）与 boolean：统一收敛为 number / boolean
-    return raw.map(row => ({
+    return raw.map((row) => ({
       id: row.id as string,
       parentId: (row.parent_id as string | null) ?? null,
       deptCode: row.dept_code as string,
@@ -164,7 +178,7 @@ export class SysDeptBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
    */
   public async findDeptIdsInSubtree(id: string, em?: EntityManager): Promise<string[]> {
     const rows = await this.findSubtreeById(id, undefined, em)
-    return [...new Set(rows.map(row => row.id))]
+    return [...new Set(rows.map((row) => row.id))]
   }
 
   /**
@@ -185,14 +199,16 @@ export class SysDeptBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
       SELECT id FROM ancestors WHERE id <> $1`
 
     const raw = await this.getManager(em).query<Array<{ id: string }>>(sql, [id])
-    return [...new Set(raw.map(row => row.id))]
+    return [...new Set(raw.map((row) => row.id))]
   }
 
   /**
    * @description 有子部门计数（删除前置校验用；FK RESTRICT 是最后防线）
    */
   public async countChildren(id: string, em?: EntityManager): Promise<number> {
-    return this.getManager(em).getRepository(SysDeptEntity).count({ where: { parentId: id } })
+    return this.getManager(em)
+      .getRepository(SysDeptEntity)
+      .count({ where: { parentId: id } })
   }
 
   /**
@@ -200,8 +216,9 @@ export class SysDeptBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
    * dept/post 模块（模块图单向无环），所以这里反向计数走实体仓库而非注入 employee 模块。
    */
   public async countEmployees(deptId: string, em?: EntityManager): Promise<number> {
-    return withWalnutSystemManager(this.dataSource, em, async manager =>
+    return withWalnutSystemManager(this.dataSource, em, async (manager) =>
       // eslint-disable-next-line no-restricted-syntax -- 删除前置计数必须全库口径（见上方注释）；这里已显式走 system 事务
-      manager.getRepository(SysEmployeeEntity).count({ where: { deptId } }))
+      manager.getRepository(SysEmployeeEntity).count({ where: { deptId } }),
+    )
   }
 }

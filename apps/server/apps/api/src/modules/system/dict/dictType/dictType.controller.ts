@@ -11,7 +11,19 @@ import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.
 
 import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
 
-import { SysDictTypeDTOCreateRequest, SysDictTypeDTOCreateResponse, SysDictTypeDTODeleteResponse, SysDictTypeDTOListRequest, SysDictTypeDTOListResponse, SysDictTypeDTOReadResponse, SysDictTypeDTOSafe, SysDictTypeDTOUpdateRequest, SysDictTypeDTOUpdateResponse, SysDictTypeDTOWithDictDataResponse, SysDictTypeService } from '@walnut-server/system'
+import {
+  SysDictTypeDTOCreateRequest,
+  SysDictTypeDTOCreateResponse,
+  SysDictTypeDTODeleteResponse,
+  SysDictTypeDTOListRequest,
+  SysDictTypeDTOListResponse,
+  SysDictTypeDTOReadResponse,
+  SysDictTypeDTOSafe,
+  SysDictTypeDTOUpdateRequest,
+  SysDictTypeDTOUpdateResponse,
+  SysDictTypeDTOWithDictDataResponse,
+  SysDictTypeService,
+} from '@walnut-server/system'
 import { SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 
@@ -55,18 +67,17 @@ export class SysDictTypeController {
     name: 'types',
     type: [String],
     required: true,
-    description: 'dict types, comma separated (e.g. types=sys_user_status,sys_user_gender); no validation on the values',
+    description:
+      'dict types, comma separated (e.g. types=sys_user_status,sys_user_gender); no validation on the values',
   })
   @ApiWalnutOkResponse({
     description: 'get dict data by dict type, support multiple fetch',
     DTO: SysDictTypeDTOWithDictDataResponse,
   })
-  async getDictByType(
-    @WalnutAdminDecoratorQueryArray({ fieldName: 'types' }) types: string[],
-  ) {
+  async getDictByType(@WalnutAdminDecoratorQueryArray({ fieldName: 'types' }) types: string[]) {
     const dictData = await this.dictTypeService.getByTypeMany(types)
 
-    return dictData.map(i => plainToInstance(SysDictTypeDTOWithDictDataResponse, i))
+    return dictData.map((i) => plainToInstance(SysDictTypeDTOWithDictDataResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.CREATE)
@@ -87,7 +98,10 @@ export class SysDictTypeController {
     @Body() payload: SysDictTypeDTOUpdateRequest,
     @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return plainToInstance(SysDictTypeDTOUpdateResponse, await this.dictTypeService.update(id, payload))
+    return plainToInstance(
+      SysDictTypeDTOUpdateResponse,
+      await this.dictTypeService.update(id, payload),
+    )
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE)

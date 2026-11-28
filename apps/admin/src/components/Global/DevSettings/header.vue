@@ -67,9 +67,7 @@ const [register] = useForm<typeof headerRelatives>({
         path: 'transition',
       },
       componentProp: {
-        disabled: computed(
-          () => !headerRelatives.status || getCanAnimate.value,
-        ),
+        disabled: computed(() => !headerRelatives.status || getCanAnimate.value),
         tooltip: true,
       },
     },

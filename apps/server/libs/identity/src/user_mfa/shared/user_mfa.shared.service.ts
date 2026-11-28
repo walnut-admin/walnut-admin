@@ -17,7 +17,7 @@ export class SysUserMfaSharedService {
     private readonly cacheAppSettingsService: AppTechCacheAppSettingsService,
     private readonly sysUserRepoService: SysUserRepositoryService,
     private readonly sysUserMfaRepoService: SysUserMfaRepositoryService,
-  ) { }
+  ) {}
 
   async getUserMfaTotalStatus(userId: string, em?: EntityManager) {
     const result = {
@@ -67,7 +67,10 @@ export class SysUserMfaSharedService {
     const mfaConfig = await this.cacheAppSettingsService.getAuthMfaConfig()
     const requiredCount = mfaConfig.methodsRequiredCount
 
-    const enabledTypeCount = await this.sysUserMfaRepoService.countEnabledMfaTypesByUserId(userId, em)
+    const enabledTypeCount = await this.sysUserMfaRepoService.countEnabledMfaTypesByUserId(
+      userId,
+      em,
+    )
 
     return enabledTypeCount >= requiredCount
   }
@@ -93,7 +96,11 @@ export class SysUserMfaSharedService {
       result[0].enabled = true
     }
 
-    const webauthnRecords = await this.sysUserMfaRepoService.findWebauthnByUserIdAndDeviceId(userId, deviceId, em)
+    const webauthnRecords = await this.sysUserMfaRepoService.findWebauthnByUserIdAndDeviceId(
+      userId,
+      deviceId,
+      em,
+    )
 
     if (webauthnRecords) {
       result[1].enabled = true
@@ -133,44 +140,39 @@ export class SysUserMfaSharedService {
       for (const stat of userMfaStats) {
         const shouldBeVerified = stat.typeCount >= requiredCount
 
-        await this.sysUserRepoService.findUserByIdAndUpdate(
-          stat.userId,
-          { mfaSetup: shouldBeVerified },
-        )
+        await this.sysUserRepoService.findUserByIdAndUpdate(stat.userId, {
+          mfaSetup: shouldBeVerified,
+        })
 
         if (shouldBeVerified) {
           verifiedCount++
-        }
-        else {
+        } else {
           unverifiedCount++
         }
       }
 
       // 4. Handle users without MFA devices (set to unverified)
       // Get all user IDs that currently have mfaSetup=true but should be false
-      const userIdsWithMfa = userMfaStats.map(s => s.userId)
+      const userIdsWithMfa = userMfaStats.map((s) => s.userId)
 
       // Find users without MFA devices but marked as verified
       const allUsersWithMfaSetup = await this.sysUserRepoService.findAllUsers()
       const usersToReset = allUsersWithMfaSetup.filter(
-        user => user.mfaSetup === true && !userIdsWithMfa.includes(user.id),
+        (user) => user.mfaSetup === true && !userIdsWithMfa.includes(user.id),
       )
 
       // Reset each user individually
       for (const user of usersToReset) {
-        await this.sysUserRepoService.findUserByIdAndUpdate(
-          user.id,
-          { mfaSetup: false },
-        )
+        await this.sysUserRepoService.findUserByIdAndUpdate(user.id, { mfaSetup: false })
       }
 
       this.logger.log(`Reset ${usersToReset.length} users without MFA devices to unverified`)
 
       const duration = Date.now() - startTime
       this.logger.log(
-        `MFA status synchronization completed - `
-        + `Verified: ${verifiedCount}, Unverified: ${unverifiedCount}, `
-        + `Duration: ${duration}ms`,
+        `MFA status synchronization completed - ` +
+          `Verified: ${verifiedCount}, Unverified: ${unverifiedCount}, ` +
+          `Duration: ${duration}ms`,
       )
 
       return {
@@ -180,8 +182,7 @@ export class SysUserMfaSharedService {
         totalProcessed: userMfaStats.length,
         duration,
       }
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.error('MFA status synchronization failed', error)
       throw error
     }

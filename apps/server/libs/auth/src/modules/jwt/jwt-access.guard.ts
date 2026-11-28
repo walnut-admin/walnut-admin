@@ -29,14 +29,14 @@ export function WalnutAdminGuardJwtOptional() {
 }
 
 @Injectable()
-export class JwtAccessGuard extends AuthGuard(
-  WalnutAdminConstAppAuthStrategy.JWT_ACCESS_TOKEN,
-) {
+export class JwtAccessGuard extends AuthGuard(WalnutAdminConstAppAuthStrategy.JWT_ACCESS_TOKEN) {
   constructor(private readonly reflector: Reflector) {
     super()
   }
 
-  canActivate(context: ExecutionContext): boolean | Promise<boolean> | import('rxjs').Observable<boolean> {
+  canActivate(
+    context: ExecutionContext,
+  ): boolean | Promise<boolean> | import('rxjs').Observable<boolean> {
     // Used for public api which do not need auth
     const isPublic = this.reflector.getAllAndOverride<boolean>(
       WalnutAdminConstDecoratorJwtFreeKey,

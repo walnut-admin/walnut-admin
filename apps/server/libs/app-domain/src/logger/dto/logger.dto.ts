@@ -1,6 +1,14 @@
-import { WalnutAdminDecoratorFieldDate, WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldNumber, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
+import {
+  WalnutAdminDecoratorFieldDate,
+  WalnutAdminDecoratorFieldEnum,
+  WalnutAdminDecoratorFieldNumber,
+  WalnutAdminDecoratorFieldString,
+} from '@walnut-server/decorators/field'
 import { TransformSizeToKB } from '@walnut-server/decorators/transformer'
-import { CreateWalnutAdminRequestListDTO, CreateWalnutAdminResponseListDTO } from '@walnut-server/list'
+import {
+  CreateWalnutAdminRequestListDTO,
+  CreateWalnutAdminResponseListDTO,
+} from '@walnut-server/list'
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { ValueOf } from 'easy-fns-ts'
 
@@ -76,11 +84,11 @@ export class AppLoggerDTO {
 export class AppLoggerDTOListRequest extends CreateWalnutAdminRequestListDTO(
   RealPickType(AppLoggerDTO, ['fileName', 'logType']),
   { sortOnlyIn: ['fileName', 'logType', 'fileMTime'] },
-) { }
+) {}
 
 export class AppLoggerDTOListResponse extends CreateWalnutAdminResponseListDTO(
   RealPartialType(AppLoggerDTO),
-) { }
+) {}
 
 /**
  * `GET /app/logger/:logType/:fileName?page=n` 响应 —— `AppLoggerService.read` 手工

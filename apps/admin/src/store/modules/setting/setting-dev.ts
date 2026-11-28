@@ -10,7 +10,7 @@ import { StoreKeys } from '../../constant'
 import { store } from '../../pinia'
 
 const useAppStoreSettingDevInside = defineStore(StoreKeys.SETTING_DEV, {
-  state: (): IStoreSetting.Dev => (settingsDev as IStoreSetting.Dev),
+  state: (): IStoreSetting.Dev => settingsDev as IStoreSetting.Dev,
 
   getters: {
     // themes
@@ -33,7 +33,13 @@ const useAppStoreSettingDevInside = defineStore(StoreKeys.SETTING_DEV, {
      * @description get is all layout hidden
      */
     getIsLayoutHidden() {
-      return !this.getHeaderShow && !this.getLogoShow && !this.getMenuShow && !this.getTabsShow && !this.getFooterShow
+      return (
+        !this.getHeaderShow &&
+        !this.getLogoShow &&
+        !this.getMenuShow &&
+        !this.getTabsShow &&
+        !this.getFooterShow
+      )
     },
 
     // logo
@@ -187,8 +193,8 @@ const useAppStoreSettingDevInside = defineStore(StoreKeys.SETTING_DEV, {
       const userStorePreference = useAppStoreUserPreference()
 
       return (
-        this.getMenuCollapseStatus
-        && userStorePreference.getMenuCollapseMode === AppConstCollapseMode.BUTTON
+        this.getMenuCollapseStatus &&
+        userStorePreference.getMenuCollapseMode === AppConstCollapseMode.BUTTON
       )
     },
 
@@ -199,8 +205,8 @@ const useAppStoreSettingDevInside = defineStore(StoreKeys.SETTING_DEV, {
       const userStorePreference = useAppStoreUserPreference()
 
       return (
-        this.getMenuCollapseStatus
-        && userStorePreference.getMenuCollapseMode === AppConstCollapseMode.ICON
+        this.getMenuCollapseStatus &&
+        userStorePreference.getMenuCollapseMode === AppConstCollapseMode.ICON
       )
     },
 
@@ -211,9 +217,9 @@ const useAppStoreSettingDevInside = defineStore(StoreKeys.SETTING_DEV, {
       const userStorePreference = useAppStoreUserPreference()
 
       if (
-        this.getMenuCollapseStatus
-        && userStorePreference.getMenuCollapseMode !== AppConstCollapseMode.ICON
-        && userStorePreference.getMenuCollapseMode !== AppConstCollapseMode.BUTTON
+        this.getMenuCollapseStatus &&
+        userStorePreference.getMenuCollapseMode !== AppConstCollapseMode.ICON &&
+        userStorePreference.getMenuCollapseMode !== AppConstCollapseMode.BUTTON
       ) {
         return userStorePreference.getMenuCollapseMode
       }
@@ -285,7 +291,6 @@ const useAppStoreSettingDevInside = defineStore(StoreKeys.SETTING_DEV, {
 const useAppStoreSettingDevOutside = () => useAppStoreSettingDevInside(store)
 
 export function useAppStoreSettingDev() {
-  if (getCurrentInstance())
-    return useAppStoreSettingDevInside()
+  if (getCurrentInstance()) return useAppStoreSettingDevInside()
   return useAppStoreSettingDevOutside()
 }

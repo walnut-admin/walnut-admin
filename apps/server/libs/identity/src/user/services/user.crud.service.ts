@@ -1,12 +1,18 @@
 import type { IWalnutAdminRequestList } from '@walnut-server/list'
 import type { EntityManager } from 'typeorm'
 import { Inject, Injectable } from '@nestjs/common'
-import { AppTechCacheAppSettingsService, AppTechCachePermissionsService } from '@walnut-server/cache'
+import {
+  AppTechCacheAppSettingsService,
+  AppTechCachePermissionsService,
+} from '@walnut-server/cache'
 import { WalnutAdminConstSafeRoleId, WalnutAdminConstSafeUserId } from '@walnut-server/const/role'
 import { runAfterCommit } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { omitUndefined } from '@walnut-server/utils'
-import { IIdentityDataScopeInvalidator, WALNUT_ADMIN_IDENTITY_DATA_SCOPE_INVALIDATOR } from '../../identity.ports'
+import {
+  IIdentityDataScopeInvalidator,
+  WALNUT_ADMIN_IDENTITY_DATA_SCOPE_INVALIDATOR,
+} from '../../identity.ports'
 import { SysUserEntity } from '../entity/user.entity'
 import { SysUserRepositoryService } from '../repo/user.repo.service'
 import { SysUserBasicRepository } from '../user.basic.repository'
@@ -20,7 +26,7 @@ export class SysUserCrudService {
     private readonly cachePermissionsService: AppTechCachePermissionsService,
     @Inject(WALNUT_ADMIN_IDENTITY_DATA_SCOPE_INVALIDATOR)
     private readonly dataScopeInvalidator: IIdentityDataScopeInvalidator,
-  ) { }
+  ) {}
 
   // base crud
   async create(dto: Partial<SysUserEntity> & { roles?: string[] }, em?: EntityManager) {
@@ -28,7 +34,7 @@ export class SysUserCrudService {
 
     // cannot create user with safe role
     // （B7a：PG 侧 id 是 v5 uuid —— safe id 常量同时持有 hex 与 v5 形态，跨引擎窗口两边都拦得住）
-    if (dto.roles?.some(i => WalnutAdminConstSafeRoleId.includes(i))) {
+    if (dto.roles?.some((i) => WalnutAdminConstSafeRoleId.includes(i))) {
       throw new WalnutAdminExceptionBadRequest()
     }
 
@@ -38,11 +44,14 @@ export class SysUserCrudService {
     const roles = dto.roles === undefined ? [functionalRole.defaultRole] : dto.roles
 
     // defaultRole 经 B5 订正脚本后是 v5 uuid（phase3-plan §5 残留窗口 2），直用不再包装
-    return this.sysUserBasicRepo.create({
-      ...dto,
-      roles,
-      currentRole: roles[0] ?? null,
-    }, em)
+    return this.sysUserBasicRepo.create(
+      {
+        ...dto,
+        roles,
+        currentRole: roles[0] ?? null,
+      },
+      em,
+    )
   }
 
   async read(id: string, em?: EntityManager) {
@@ -53,7 +62,7 @@ export class SysUserCrudService {
     // `attachPopulatedRoles` 只给 roles_list / roles_count；admin 用户编辑表单的
     // `Extend:RoleSelect` 直接绑 path `roles`，此前编辑时角色回显为空。
     // 同一 junction 读腿派生，不额外查库。
-    return Object.assign(populated, { roles: populated.roles_list.map(role => role.id) })
+    return Object.assign(populated, { roles: populated.roles_list.map((role) => role.id) })
   }
 
   /**

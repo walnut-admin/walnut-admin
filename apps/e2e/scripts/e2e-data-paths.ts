@@ -49,7 +49,7 @@ export const E2E_DATA_PATHS: readonly E2eDataPath[] = [
 ]
 
 /** 纯路径列表：`git rev-parse HEAD:<path>` / `git status --porcelain -- <paths>` 直接消费 */
-export const DATA_PATHS: readonly string[] = E2E_DATA_PATHS.map(entry => entry.path)
+export const DATA_PATHS: readonly string[] = E2E_DATA_PATHS.map((entry) => entry.path)
 
 /** 目录 ↔ 文件按 `/` 边界区分（`seed` 不能命中 `seed-extra`；文件必须逐字相等） */
 function matchesDataPath(candidate: string, entry: E2eDataPath): boolean {
@@ -66,5 +66,5 @@ function matchesDataPath(candidate: string, entry: E2eDataPath): boolean {
  * POSIX 形态）；这里不重复那层逻辑，避免两处归一化规则漂移。
  */
 export function isE2eDataPath(candidate: string): boolean {
-  return E2E_DATA_PATHS.some(entry => matchesDataPath(candidate, entry))
+  return E2E_DATA_PATHS.some((entry) => matchesDataPath(candidate, entry))
 }

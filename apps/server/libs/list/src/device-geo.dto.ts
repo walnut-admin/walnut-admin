@@ -5,7 +5,12 @@
  * 容易误以为属于列表共享契约），本批只改文件名与引用路径，类名保持不变（类名属于
  * API 面）。
  */
-import { WalnutAdminDecoratorFieldDate, WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldNumber, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
+import {
+  WalnutAdminDecoratorFieldDate,
+  WalnutAdminDecoratorFieldEnum,
+  WalnutAdminDecoratorFieldNumber,
+  WalnutAdminDecoratorFieldString,
+} from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { RealPartialType } from '@walnut-server/utils/dto'
 import { ValueOf } from 'easy-fns-ts'

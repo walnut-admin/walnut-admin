@@ -39,8 +39,7 @@ export function useExpireTimer(opts: UseExpireTimerOptions) {
   function arm(expireAt: number | null) {
     stop()
 
-    if (expireAt === null)
-      return
+    if (expireAt === null) return
 
     const now = Date.now()
     const delay = expireAt - now

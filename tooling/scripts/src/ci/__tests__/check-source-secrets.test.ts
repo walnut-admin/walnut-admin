@@ -16,7 +16,12 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { REPO_ROOT } from '../../lib/repo-root.ts'
-import { collectFindings, MAX_FILE_BYTES, scanSourceText, SOURCE_TEXT_FILE } from '../check-source-secrets.ts'
+import {
+  collectFindings,
+  MAX_FILE_BYTES,
+  scanSourceText,
+  SOURCE_TEXT_FILE,
+} from '../check-source-secrets.ts'
 
 /** 与 `check-dist-secrets.test.ts` 同一套拼装写法：假样本也不许长成真凭据的形状 */
 const fakeTencentAk = `AKID${'x'.repeat(32)}`
@@ -55,12 +60,15 @@ describe('scanSourceText —— 报位置（行号）', () => {
   // 这条断言把那个行为钉住，免得有人以为"报了 1 处 = 只有 1 处"。
   it('同一文件里同一条规则命中多处时，只报第一处', () => {
     const text = `${fakeAwsAk}\n\n${fakeTencentAk}\n`
-    expect(scanSourceText(text, 'x.ts').map(f => f.line)).toEqual([1])
+    expect(scanSourceText(text, 'x.ts').map((f) => f.line)).toEqual([1])
   })
 
   it('不同规则各自报第一处', () => {
     const text = `${fakeAwsAk}\n${['eyJhbGciOiJIUzI1NiJ9', 'eyJzdWIiOiIxMjM0NTY3ODkwIn0', 'dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U'].join('.')}\n`
-    expect(scanSourceText(text, 'x.ts').map(f => `${f.rule}@${f.line}`)).toEqual(['cloud-access-key@1', 'jwt@2'])
+    expect(scanSourceText(text, 'x.ts').map((f) => `${f.rule}@${f.line}`)).toEqual([
+      'cloud-access-key@1',
+      'jwt@2',
+    ])
   })
 })
 
@@ -68,7 +76,7 @@ describe('collectFindings —— 对着真实仓库跑', () => {
   const result = collectFindings(REPO_ROOT)
 
   it('本仓当前干净（含文档里的格式说明 —— 那条规则已按实测收窄）', () => {
-    expect(result.findings.map(f => `${f.file}:${f.line} [${f.rule}]`)).toEqual([])
+    expect(result.findings.map((f) => `${f.file}:${f.line} [${f.rule}]`)).toEqual([])
   })
 
   it('扫描面不是空的（空面 ⇒ 断言失效，不是「全都对」）', () => {
@@ -98,11 +106,10 @@ describe('负对照：未跟踪的新文件也会被扫到（这道门禁的价�
     const abs = path.join(REPO_ROOT, rel)
     try {
       writeFileSync(abs, `const leaked = '${fakeTencentAk}'\n`)
-      const hit = collectFindings(REPO_ROOT).findings.filter(f => f.file === rel)
+      const hit = collectFindings(REPO_ROOT).findings.filter((f) => f.file === rel)
       expect(hit, '未跟踪文件没被扫到 ⇒ lsFilesWithUntracked 用错了').toHaveLength(1)
       expect(hit[0]!.line).toBe(1)
-    }
-    finally {
+    } finally {
       rmSync(abs, { force: true })
     }
     // 删掉之后必须回到干净 —— 否则说明上面那次探测污染了结论
@@ -114,8 +121,7 @@ describe('负对照：未跟踪的新文件也会被扫到（这道门禁的价�
     try {
       writeFileSync(path.join(dir, 'x.ts'), `const leaked = '${fakeTencentAk}'\n`)
       expect(collectFindings(REPO_ROOT).findings).toEqual([])
-    }
-    finally {
+    } finally {
       rmSync(dir, { recursive: true, force: true })
     }
   }, 30_000)

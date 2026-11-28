@@ -1,6 +1,9 @@
 import type { ExecutionContext } from '@nestjs/common'
 import type { Reflector } from '@nestjs/core'
-import { WalnutAdminConstDecoratorRoleMetadataKey, WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
+import {
+  WalnutAdminConstDecoratorRoleMetadataKey,
+  WalnutAdminConstDecoratorRoleMode,
+} from '@walnut-server/const/decorator/role'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { WalnutAdminExceptionNoAccessRolePermission } from '@walnut-server/exceptions/business/auth'
 import { Role } from '@walnut/contract'
@@ -58,9 +61,9 @@ describe('role guard：AND + SWITCH 不再静默放行（P3-32）', () => {
   it('switchable 用户 + 角色数组 + and → 40106（修复前 canNext 保持 true 直接放行）', async () => {
     const guard = createGuard([Role.ADMIN, Role.DEVELOPER], WalnutAdminConstDecoratorRoleMode.AND)
 
-    await expect(guard.canActivate(createContext(SWITCH_USER)))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionNoAccessRolePermission)
+    await expect(guard.canActivate(createContext(SWITCH_USER))).rejects.toBeInstanceOf(
+      WalnutAdminExceptionNoAccessRolePermission,
+    )
   })
 
   it('switchable 用户 + 角色数组 + or → 按 currentRoleName 判定（合法组合不受影响）', async () => {
@@ -78,9 +81,9 @@ describe('role guard：AND + SWITCH 不再静默放行（P3-32）', () => {
   it('combinable 用户 + 角色数组 + and 缺一角色 → 40106', async () => {
     const guard = createGuard([Role.ADMIN, Role.ROOT], WalnutAdminConstDecoratorRoleMode.AND)
 
-    await expect(guard.canActivate(createContext(COMBINE_USER)))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionNoAccessRolePermission)
+    await expect(guard.canActivate(createContext(COMBINE_USER))).rejects.toBeInstanceOf(
+      WalnutAdminExceptionNoAccessRolePermission,
+    )
   })
 
   it('无角色元数据 → 告警放行（装饰器使用错误的既有口径不变）', async () => {
@@ -92,10 +95,14 @@ describe('role guard：AND + SWITCH 不再静默放行（P3-32）', () => {
   it('switchable + visitor → 40106（visitor 拒绝分支不变）', async () => {
     const guard = createGuard(Role.ADMIN, WalnutAdminConstDecoratorRoleMode.OR)
 
-    await expect(guard.canActivate(createContext({
-      roleMode: WalnutAdminConstRoleMode.SWITCH,
-      currentRoleName: Role.VISITOR,
-      roleNames: [Role.VISITOR],
-    }))).rejects.toBeInstanceOf(WalnutAdminExceptionNoAccessRolePermission)
+    await expect(
+      guard.canActivate(
+        createContext({
+          roleMode: WalnutAdminConstRoleMode.SWITCH,
+          currentRoleName: Role.VISITOR,
+          roleNames: [Role.VISITOR],
+        }),
+      ),
+    ).rejects.toBeInstanceOf(WalnutAdminExceptionNoAccessRolePermission)
   })
 })

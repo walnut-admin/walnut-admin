@@ -3,10 +3,7 @@ import { arrayBufferToHex } from '../transformer'
 /**
  * @description HMAC-SHA256
  */
-export async function hmacSha256(
-  message: string,
-  key: ArrayBuffer | string,
-): Promise<string> {
+export async function hmacSha256(message: string, key: ArrayBuffer | string): Promise<string> {
   // 1. transform message to ArrayBuffer
   const messageBytes = new TextEncoder().encode(message)
 
@@ -14,8 +11,7 @@ export async function hmacSha256(
   let keyBytes: ArrayBuffer
   if (typeof key === 'string') {
     keyBytes = new TextEncoder().encode(key).buffer
-  }
-  else {
+  } else {
     keyBytes = key
   }
 

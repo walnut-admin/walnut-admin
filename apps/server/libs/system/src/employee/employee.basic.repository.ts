@@ -29,25 +29,31 @@ export class SysEmployeeBasicRepository extends WalnutAdminCommonPgBaseRepositor
   /**
    * @description 按工号点查（uq_employee_no）
    */
-  public async findByEmployeeNo(employeeNo: string, em?: EntityManager): Promise<SysEmployeeEntity | null> {
+  public async findByEmployeeNo(
+    employeeNo: string,
+    em?: EntityManager,
+  ): Promise<SysEmployeeEntity | null> {
     // 数据权限三期：系统前置校验（全库口径），无 em 时走 system 事务
-    return withWalnutSystemManager(this.dataSource, em, async manager =>
-      manager.getRepository(SysEmployeeEntity).findOne({ where: { employeeNo } }))
+    return withWalnutSystemManager(this.dataSource, em, async (manager) =>
+      manager.getRepository(SysEmployeeEntity).findOne({ where: { employeeNo } }),
+    )
   }
 
   /**
    * @description 按绑定账号点查（uq_employee_user partial：未绑定的 NULL 行不会命中）
    */
   public async findByUserId(userId: string, em?: EntityManager): Promise<SysEmployeeEntity | null> {
-    return withWalnutSystemManager(this.dataSource, em, async manager =>
-      manager.getRepository(SysEmployeeEntity).findOne({ where: { userId } }))
+    return withWalnutSystemManager(this.dataSource, em, async (manager) =>
+      manager.getRepository(SysEmployeeEntity).findOne({ where: { userId } }),
+    )
   }
 
   /**
    * @description 绑定前的账号存在性计数（松引用无 FK，存在性由应用层保证）
    */
   public async countUserById(userId: string, em?: EntityManager): Promise<number> {
-    return withWalnutSystemManager(this.dataSource, em, async manager =>
-      manager.getRepository(SysUserEntity).count({ where: { id: userId } }))
+    return withWalnutSystemManager(this.dataSource, em, async (manager) =>
+      manager.getRepository(SysUserEntity).count({ where: { id: userId } }),
+    )
   }
 }

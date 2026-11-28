@@ -2,19 +2,66 @@ import type { ClassConstructor } from 'class-transformer'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { AppDemoDTOBase, AppDemoEntity, AppErrorDTOBase, AppErrorEntity, AppKeyDTOBase, AppKeyEntity, AppKeyStatusConst, AppKeyTypeConst, AppMonitorUserDTOBase, AppMonitorUserEntity, AppSettingDTOBase, AppSettingEntity, SharedAreaDTOBase, SharedAreaEntity } from '@walnut-server/app-domain'
+import {
+  AppDemoDTOBase,
+  AppDemoEntity,
+  AppErrorDTOBase,
+  AppErrorEntity,
+  AppKeyDTOBase,
+  AppKeyEntity,
+  AppKeyStatusConst,
+  AppKeyTypeConst,
+  AppMonitorUserDTOBase,
+  AppMonitorUserEntity,
+  AppSettingDTOBase,
+  AppSettingEntity,
+  SharedAreaDTOBase,
+  SharedAreaEntity,
+} from '@walnut-server/app-domain'
 import { WalnutAdminConstAppEnv } from '@walnut-server/const/app/env'
 import { WalnutAdminConstAppHTTPMethods } from '@walnut-server/const/app/methods'
 import { WalnutAdminConstSysUserMfaType } from '@walnut-server/const/app/mfa'
-import { WalnutAdminConstAppSettingType, WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
+import {
+  WalnutAdminConstAppSettingType,
+  WalnutAdminConstRevokeRTType,
+} from '@walnut-server/const/app/setting'
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
-import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
+import {
+  WalnutAdminConstDecoratorLogOperateAction,
+  WalnutAdminConstDecoratorLogOperateType,
+} from '@walnut-server/const/decorator/logOperate'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { WalnutModelName } from '@walnut-server/db'
 
 // ─── 被守卫的 DTO 基座 ↔ 实体清单（全部模块逐一显式 import，映射见下方 DTO_ENTITY_CASES）───
 
-import { colorModeConst, CVDConst, DeviceLinkConst, fontSizeConst, layoutModeConst, LockModeConst, registerIdentityRecoverables, SysUserDeviceDTOBase, SysUserDeviceEntity, SysUserDTOBase, SysUserEntity, SysUserGenderConst, SysUserIdentityDTOBase, SysUserIdentityEntity, SysUserLockDTOBase, SysUserLockEntity, SysUserMfaDTOBase, SysUserMfaEntity, SysUserOAuthDTOBase, SysUserOauthEntity, SysUserPreferenceDTOBase, SysUserPreferenceEntity, WalnutAdminConstSysUserIdentityPurpose, WalnutAdminConstSysUserIdentityType, WalnutAdminConstSysUserOAuthProvider } from '@walnut-server/identity'
+import {
+  colorModeConst,
+  CVDConst,
+  DeviceLinkConst,
+  fontSizeConst,
+  layoutModeConst,
+  LockModeConst,
+  registerIdentityRecoverables,
+  SysUserDeviceDTOBase,
+  SysUserDeviceEntity,
+  SysUserDTOBase,
+  SysUserEntity,
+  SysUserGenderConst,
+  SysUserIdentityDTOBase,
+  SysUserIdentityEntity,
+  SysUserLockDTOBase,
+  SysUserLockEntity,
+  SysUserMfaDTOBase,
+  SysUserMfaEntity,
+  SysUserOAuthDTOBase,
+  SysUserOauthEntity,
+  SysUserPreferenceDTOBase,
+  SysUserPreferenceEntity,
+  WalnutAdminConstSysUserIdentityPurpose,
+  WalnutAdminConstSysUserIdentityType,
+  WalnutAdminConstSysUserOAuthProvider,
+} from '@walnut-server/identity'
 import { SysDeletedEntity, WalnutAdminRecoverableRegistry } from '@walnut-server/repository'
 import {
   assembleSysMenuMeta,
@@ -106,8 +153,14 @@ const DTO_ENTITY_CASES: ReadonlyArray<IDtoEntityDriftCase> = [
     allowlist: [
       // entity 时间列按语义改名：first_visit_at / last_active_at（monitor-user.entity
       // CreateDate/UpdateDateColumn 改名映射）；DTO 沿用 Mongo 版 wire 字段名
-      ['createdAt', 'entity 时间列改名 first_visit_at（monitor-user.entity），DTO 保留 Mongo 版 wire 名'],
-      ['updatedAt', 'entity 时间列改名 last_active_at（monitor-user.entity），DTO 保留 Mongo 版 wire 名'],
+      [
+        'createdAt',
+        'entity 时间列改名 first_visit_at（monitor-user.entity），DTO 保留 Mongo 版 wire 名',
+      ],
+      [
+        'updatedAt',
+        'entity 时间列改名 last_active_at（monitor-user.entity），DTO 保留 Mongo 版 wire 名',
+      ],
     ],
   },
   { dtoBase: AppSettingDTOBase, entity: AppSettingEntity, modelName: WalnutModelName.APP_SETTING },
@@ -129,8 +182,14 @@ const DTO_ENTITY_CASES: ReadonlyArray<IDtoEntityDriftCase> = [
     allowlist: [
       // 快照表的行时间列是 deleted_at（deleted.entity 注释：原 createdAt 改名）；
       // createdAt/updatedAt 是 DTO 基座继承的展示字段
-      ['createdAt', '快照表时间列是 deleted_at（deleted.entity 原 createdAt 改名），基座继承的展示字段'],
-      ['updatedAt', '快照表时间列是 deleted_at（deleted.entity 原 createdAt 改名），基座继承的展示字段'],
+      [
+        'createdAt',
+        '快照表时间列是 deleted_at（deleted.entity 原 createdAt 改名），基座继承的展示字段',
+      ],
+      [
+        'updatedAt',
+        '快照表时间列是 deleted_at（deleted.entity 原 createdAt 改名），基座继承的展示字段',
+      ],
     ],
   },
   {
@@ -141,15 +200,32 @@ const DTO_ENTITY_CASES: ReadonlyArray<IDtoEntityDriftCase> = [
       // device.entity 注释：sr / vp / geo 已从 jsonb 拆成数值列（sr_height/sr_width/
       // vp_height/vp_width/geo_longitude/geo_latitude）；DTO 保留 Mongo 版嵌套形状，
       // 由 device.dto 的组装 helper 在出参侧重建（entity 列恒在，无漂移风险面）
-      ['sr', '组装字段：entity 拍平列 sr_height/sr_width 重建的 {height,width}（device.dto helper）'],
-      ['vp', '组装字段：entity 拍平列 vp_height/vp_width 重建的 {height,width}（device.dto helper）'],
-      ['geoLocation', '组装字段：entity 拍平列 geo_longitude/geo_latitude 重建的 GeoPoint（device.dto helper）'],
+      [
+        'sr',
+        '组装字段：entity 拍平列 sr_height/sr_width 重建的 {height,width}（device.dto helper）',
+      ],
+      [
+        'vp',
+        '组装字段：entity 拍平列 vp_height/vp_width 重建的 {height,width}（device.dto helper）',
+      ],
+      [
+        'geoLocation',
+        '组装字段：entity 拍平列 geo_longitude/geo_latitude 重建的 GeoPoint（device.dto helper）',
+      ],
     ],
   },
   { dtoBase: SysDeptDTOBase, entity: SysDeptEntity, modelName: WalnutModelName.SYS_DEPT },
-  { dtoBase: SysEmployeeDTOBase, entity: SysEmployeeEntity, modelName: WalnutModelName.SYS_EMPLOYEE },
+  {
+    dtoBase: SysEmployeeDTOBase,
+    entity: SysEmployeeEntity,
+    modelName: WalnutModelName.SYS_EMPLOYEE,
+  },
   { dtoBase: SysPostDTOBase, entity: SysPostEntity, modelName: WalnutModelName.SYS_POST },
-  { dtoBase: SysDictDataDTOBase, entity: SysDictDataEntity, modelName: WalnutModelName.SYS_DICT_DATA },
+  {
+    dtoBase: SysDictDataDTOBase,
+    entity: SysDictDataEntity,
+    modelName: WalnutModelName.SYS_DICT_DATA,
+  },
   {
     dtoBase: SysDictTypeDTOBase,
     entity: SysDictTypeEntity,
@@ -177,7 +253,10 @@ const DTO_ENTITY_CASES: ReadonlyArray<IDtoEntityDriftCase> = [
     modelName: WalnutModelName.SYS_LOG_AUTH,
     allowlist: [
       // entity 时间列改名 authenticated_at（log-auth.entity 注释：原 createdAt 改名）
-      ['createdAt', 'entity 时间列改名 authenticated_at（log-auth.entity），DTO 保留 Mongo 版 wire 名'],
+      [
+        'createdAt',
+        'entity 时间列改名 authenticated_at（log-auth.entity），DTO 保留 Mongo 版 wire 名',
+      ],
       ['updatedAt', '登录日志无更新时间列（entity 仅 authenticated_at），基座继承的展示字段'],
     ],
   },
@@ -187,7 +266,10 @@ const DTO_ENTITY_CASES: ReadonlyArray<IDtoEntityDriftCase> = [
     modelName: WalnutModelName.SYS_LOG_OPERATE,
     allowlist: [
       // entity 时间列改名 operated_at（log-operate.entity CreateDateColumn 改名映射）
-      ['createdAt', 'entity 时间列改名 operated_at（log-operate.entity），DTO 保留 Mongo 版 wire 名'],
+      [
+        'createdAt',
+        'entity 时间列改名 operated_at（log-operate.entity），DTO 保留 Mongo 版 wire 名',
+      ],
       ['updatedAt', '操作日志无更新时间列（entity 仅 operated_at），基座继承的展示字段'],
     ],
   },
@@ -198,7 +280,10 @@ const DTO_ENTITY_CASES: ReadonlyArray<IDtoEntityDriftCase> = [
     allowlist: [
       // meta 组装字段：19 个拍平列的出入参组装形态（flattenSysMenuMeta /
       // assembleSysMenuMeta，menu.dto.ts B5 迁移注释）—— entity 刻意无 meta 列（Q1 定案拍平）
-      ['meta', 'meta 组装字段：19 拍平列的出参组装形态（phase2 4.3 Q1 定案拍平，entity 无 meta 列）'],
+      [
+        'meta',
+        'meta 组装字段：19 拍平列的出参组装形态（phase2 4.3 Q1 定案拍平，entity 无 meta 列）',
+      ],
     ],
   },
   // SysMenuMetaDTOBase 是 meta 19 字段的元数据基座，字段全部落在 SysMenuEntity 拍平列上
@@ -213,7 +298,10 @@ const DTO_ENTITY_CASES: ReadonlyArray<IDtoEntityDriftCase> = [
       // 出入参字段；usersCount / menusList 是 junction JOIN 的出参字段（L1 起去掉
       // Mongo 版 $lookup 出参名上的 populate 前缀）
       ['menus', 'junction sys_role_menu 派生的 uuid 数组（B5 迁移，entity 无列）'],
-      ['deptIds', 'junction sys_role_dept 派生的 uuid 数组（二期批 2 CUSTOM 部门清单，entity 无列）'],
+      [
+        'deptIds',
+        'junction sys_role_dept 派生的 uuid 数组（二期批 2 CUSTOM 部门清单，entity 无列）',
+      ],
       ['usersCount', 'populate 派生出参：usersCount 关联计数子查询'],
       ['menusList', 'populate 派生出参：menus junction JOIN 组装（match meta.status）'],
     ],
@@ -228,21 +316,44 @@ const DTO_ENTITY_CASES: ReadonlyArray<IDtoEntityDriftCase> = [
       ['roles', 'junction sys_user_role 派生的 uuid 数组（user.entity 注释：原 roles 拆关联表）'],
     ],
   },
-  { dtoBase: SysUserDeviceDTOBase, entity: SysUserDeviceEntity, modelName: WalnutModelName.SYS_USER_DEVICE },
-  { dtoBase: SysUserIdentityDTOBase, entity: SysUserIdentityEntity, modelName: WalnutModelName.SYS_USER_IDENTITY },
-  { dtoBase: SysUserLockDTOBase, entity: SysUserLockEntity, modelName: WalnutModelName.SYS_USER_LOCK },
+  {
+    dtoBase: SysUserDeviceDTOBase,
+    entity: SysUserDeviceEntity,
+    modelName: WalnutModelName.SYS_USER_DEVICE,
+  },
+  {
+    dtoBase: SysUserIdentityDTOBase,
+    entity: SysUserIdentityEntity,
+    modelName: WalnutModelName.SYS_USER_IDENTITY,
+  },
+  {
+    dtoBase: SysUserLockDTOBase,
+    entity: SysUserLockEntity,
+    modelName: WalnutModelName.SYS_USER_LOCK,
+  },
   { dtoBase: SysUserMfaDTOBase, entity: SysUserMfaEntity, modelName: WalnutModelName.SYS_USER_MFA },
-  { dtoBase: SysUserOAuthDTOBase, entity: SysUserOauthEntity, modelName: WalnutModelName.SYS_USER_OAUTH },
-  { dtoBase: SysUserPreferenceDTOBase, entity: SysUserPreferenceEntity, modelName: WalnutModelName.SYS_USER_PREFERENCE },
+  {
+    dtoBase: SysUserOAuthDTOBase,
+    entity: SysUserOauthEntity,
+    modelName: WalnutModelName.SYS_USER_OAUTH,
+  },
+  {
+    dtoBase: SysUserPreferenceDTOBase,
+    entity: SysUserPreferenceEntity,
+    modelName: WalnutModelName.SYS_USER_PREFERENCE,
+  },
 ]
 
 // ─── reflection 工具 ─────────────────────────────────────────────────────────────
 
 /** entity 的属性全集：TypeORM 各 mode 的列（regular/primary/createDate/updateDate）∪ 原型声明 */
 function entityPropertyNames(entity: ClassConstructor<object>): Set<string> {
-  const columnProps = getMetadataArgsStorage().columns.filter(column => column.target === entity).map(column => column.propertyName)
-  const prototypeProps = Object.getOwnPropertyNames(entity.prototype)
-    .filter(name => name !== 'constructor')
+  const columnProps = getMetadataArgsStorage()
+    .columns.filter((column) => column.target === entity)
+    .map((column) => column.propertyName)
+  const prototypeProps = Object.getOwnPropertyNames(entity.prototype).filter(
+    (name) => name !== 'constructor',
+  )
 
   return new Set([...columnProps, ...prototypeProps])
 }
@@ -254,14 +365,16 @@ function dtoExposedKeys(dtoBase: ClassConstructor<object>): string[] {
 
 /** entity 指定属性上的 @Column default（未声明 → null；函数形式就地求值） */
 function entityColumnDefault(entity: ClassConstructor<object>, propertyName: string): unknown {
-  const column = getMetadataArgsStorage().columns.find(candidate => candidate.target === entity && candidate.propertyName === propertyName)
+  const column = getMetadataArgsStorage().columns.find(
+    (candidate) => candidate.target === entity && candidate.propertyName === propertyName,
+  )
 
   if (column === undefined) {
     return undefined
   }
 
   const def: unknown = column.options.default
-  return typeof def === 'function' ? (def as () => unknown)() : def ?? null
+  return typeof def === 'function' ? (def as () => unknown)() : (def ?? null)
 }
 
 // ③ 的机械完备面：fs 扫全仓 dto 文件 + 动态 import，收集导出的 *DTOBase 类名。
@@ -276,8 +389,7 @@ function listDtoFiles(dir: string): string[] {
     const full = join(dir, entry.name)
     if (entry.isDirectory()) {
       found.push(...listDtoFiles(full))
-    }
-    else if (entry.isFile() && entry.name.endsWith('.dto.ts')) {
+    } else if (entry.isFile() && entry.name.endsWith('.dto.ts')) {
       found.push(full)
     }
   }
@@ -288,17 +400,14 @@ function listDtoFiles(dir: string): string[] {
 function listLibSrcDirs(): string[] {
   const libsRoot = resolve(process.cwd(), 'libs')
   return readdirSync(libsRoot, { withFileTypes: true })
-    .filter(entry => entry.isDirectory())
-    .map(entry => join(libsRoot, entry.name, 'src'))
-    .filter(srcDir => existsSync(srcDir))
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => join(libsRoot, entry.name, 'src'))
+    .filter((srcDir) => existsSync(srcDir))
 }
 
 /** 完备性扫描面：app 侧 modules + 全 lib 的 src（新增 lib / 新模块自动纳入） */
 function scanRoots(): string[] {
-  return [
-    resolve(process.cwd(), 'apps/api/src/modules'),
-    ...listLibSrcDirs(),
-  ]
+  return [resolve(process.cwd(), 'apps/api/src/modules'), ...listLibSrcDirs()]
 }
 
 /**
@@ -314,8 +423,11 @@ function listTsFiles(dir: string): string[] {
     const full = join(dir, entry.name)
     if (entry.isDirectory()) {
       found.push(...listTsFiles(full))
-    }
-    else if (entry.isFile() && entry.name.endsWith('.ts') && !/\.(?:spec|test)\.ts$/.test(entry.name)) {
+    } else if (
+      entry.isFile() &&
+      entry.name.endsWith('.ts') &&
+      !/\.(?:spec|test)\.ts$/.test(entry.name)
+    ) {
       found.push(full)
     }
   }
@@ -327,8 +439,10 @@ function listTsFiles(dir: string): string[] {
  *
  * 只认顶层 `export [abstract] class XxxBase`：非导出类不进公共面（完备性清单只对导出的基座负责）。
  */
-function globDeclaredBaseClasses(dirs: readonly string[]): Array<{ className: string, file: string }> {
-  const declared: Array<{ className: string, file: string }> = []
+function globDeclaredBaseClasses(
+  dirs: readonly string[],
+): Array<{ className: string; file: string }> {
+  const declared: Array<{ className: string; file: string }> = []
 
   for (const dir of dirs) {
     for (const file of listTsFiles(dir)) {
@@ -356,7 +470,7 @@ async function globFoundDtoBaseNames(): Promise<Set<string>> {
   // 字段基座，本扫描面会直接把它揪出来。
   for (const dtoDir of scanRoots()) {
     for (const file of listDtoFiles(dtoDir)) {
-      const namespace = await import(pathToFileURL(file).href) as Record<string, unknown>
+      const namespace = (await import(pathToFileURL(file).href)) as Record<string, unknown>
       for (const value of Object.values(namespace)) {
         if (typeof value === 'function' && value.name.endsWith('DTOBase')) {
           found.add(value.name)
@@ -376,11 +490,14 @@ describe('dto ↔ entity 漂移守卫（纯 reflection，防同一形状写两�
     for (const { dtoBase, entity, allowlist } of DTO_ENTITY_CASES) {
       const entityProps = entityPropertyNames(entity)
       const allowed = new Set((allowlist ?? []).map(([field]) => field))
-      const missing = dtoExposedKeys(dtoBase)
-        .filter(field => !entityProps.has(field) && !allowed.has(field))
+      const missing = dtoExposedKeys(dtoBase).filter(
+        (field) => !entityProps.has(field) && !allowed.has(field),
+      )
 
       if (missing.length > 0) {
-        problems.push(`${dtoBase.name}: 字段不在 ${entity.name} 也不在白名单 → [${missing.join(', ')}]`)
+        problems.push(
+          `${dtoBase.name}: 字段不在 ${entity.name} 也不在白名单 → [${missing.join(', ')}]`,
+        )
       }
     }
 
@@ -394,7 +511,9 @@ describe('dto ↔ entity 漂移守卫（纯 reflection，防同一形状写两�
       const dtoKeys = new Set(dtoExposedKeys(dtoBase))
       for (const [field] of allowlist ?? []) {
         if (!dtoKeys.has(field)) {
-          problems.push(`${dtoBase.name}: 白名单字段 "${field}" 在 DTO 上不存在（改名后白名单未同步）`)
+          problems.push(
+            `${dtoBase.name}: 白名单字段 "${field}" 在 DTO 上不存在（改名后白名单未同步）`,
+          )
         }
       }
     }
@@ -407,14 +526,18 @@ describe('dto ↔ entity 漂移守卫（纯 reflection，防同一形状写两�
     const columnKeys = SYS_MENU_META_FIELD_MAP.map(([, columnKey]) => columnKey)
 
     for (const columnKey of columnKeys) {
-      expect(entityProps.has(columnKey), `拍平列属性 "${columnKey}" 不在 SysMenuEntity 上`).toBe(true)
+      expect(entityProps.has(columnKey), `拍平列属性 "${columnKey}" 不在 SysMenuEntity 上`).toBe(
+        true,
+      )
     }
 
     // 默认值单源化后的回填一致性：meta 空对象拆平 → 19 列全量产出，值 === entity 元数据
     // 的 default（含可空列的 NULL），不重嵌字面量（字面量由 api-spec 钉）
     const flattened = flattenSysMenuMeta({ meta: {} })
     for (const columnKey of columnKeys) {
-      expect(flattened[columnKey as keyof typeof flattened]).toEqual(entityColumnDefault(SysMenuEntity, columnKey))
+      expect(flattened[columnKey as keyof typeof flattened]).toEqual(
+        entityColumnDefault(SysMenuEntity, columnKey),
+      )
     }
 
     // 出参组装同源：meta 空实体 → 19 键 meta 对象，默认值同上
@@ -429,8 +552,8 @@ describe('dto ↔ entity 漂移守卫（纯 reflection，防同一形状写两�
     const found = await globFoundDtoBaseNames()
     const mapped = new Set(DTO_ENTITY_CASES.map(({ dtoBase }) => dtoBase.name))
 
-    const unregistered = [...found].filter(name => !mapped.has(name))
-    const stale = [...mapped].filter(name => !found.has(name))
+    const unregistered = [...found].filter((name) => !mapped.has(name))
+    const stale = [...mapped].filter((name) => !found.has(name))
     expect(unregistered, '新 DTOBase 未登记进 DTO_ENTITY_CASES').toEqual([])
     expect(stale, '清单里的 DTOBase 已不存在（改名/删除后未同步）').toEqual([])
 
@@ -445,7 +568,9 @@ describe('dto ↔ entity 漂移守卫（纯 reflection，防同一形状写两�
     registerIdentityRecoverables(recoverRegistry)
     registerAppRecoverables(recoverRegistry)
 
-    const registry = new Map(recoverRegistry.getAll().map(entry => [entry.modelName, entry.entityTarget]))
+    const registry = new Map(
+      recoverRegistry.getAll().map((entry) => [entry.modelName, entry.entityTarget]),
+    )
     for (const { modelName, entity } of DTO_ENTITY_CASES) {
       if (modelName === WalnutModelName.SYS_DELETED) {
         // sys_deleted 是快照表本体，不进回收站（SysDeletedRepoModule 注释）
@@ -459,7 +584,10 @@ describe('dto ↔ entity 漂移守卫（纯 reflection，防同一形状写两�
     // 单独钉登记 —— 漏登记 = refresh token 从回收站永久无法恢复（批 7 评审补）。
     // 残余风险：本对账走各域聚合登记函数，module 漏挂 provider 时这里仍绿；
     // 该面由 openapi:export 全量启动的 26 条 registered 日志兜底（每批门禁必跑）。
-    expect(recoverRegistry.getEntry(WalnutModelName.AUTH_REFRESH_TOKEN), 'AUTH_REFRESH_TOKEN 未注册恢复器').toBeDefined()
+    expect(
+      recoverRegistry.getEntry(WalnutModelName.AUTH_REFRESH_TOKEN),
+      'AUTH_REFRESH_TOKEN 未注册恢复器',
+    ).toBeDefined()
   })
 
   /**
@@ -476,7 +604,10 @@ describe('dto ↔ entity 漂移守卫（纯 reflection，防同一形状写两�
 
     const problems = declared
       .filter(({ className, file }) => !file.endsWith('.dto.ts') || !className.endsWith('DTOBase'))
-      .map(({ className, file }) => `${className}（${relative(process.cwd(), file).replace(/\\/g, '/')}）：DTO 基座必须同时满足「文件以 .dto.ts 结尾」「类名以 DTOBase 结尾」`)
+      .map(
+        ({ className, file }) =>
+          `${className}（${relative(process.cwd(), file).replace(/\\/g, '/')}）：DTO 基座必须同时满足「文件以 .dto.ts 结尾」「类名以 DTOBase 结尾」`,
+      )
 
     // 防「扫描面退化后永远绿」：当前面上一共有二十多个基座类，扫不到就是扫描器坏了
     expect(declared.length, '一个 *Base 类都没扫到 —— 扫描面退化').toBeGreaterThan(10)
@@ -496,7 +627,7 @@ describe('menu Create/Update 口径快照（B5-5 统一后的 wire 白名单与�
 
   it('create 校验：缺 type 报错且只报 type；缺可选字段不报错', () => {
     const missingAll = validateSync(plainToInstance(SysMenuDTOCreateRequest, {}))
-    expect(missingAll.map(error => error.property)).toEqual(CREATE_REQUIRED)
+    expect(missingAll.map((error) => error.property)).toEqual(CREATE_REQUIRED)
 
     const full = plainToInstance(SysMenuDTOCreateRequest, {
       type: 'catalog',
@@ -512,9 +643,14 @@ describe('menu Create/Update 口径快照（B5-5 统一后的 wire 白名单与�
   })
 
   it('update = RealPartialType(create)：白名单同 create、全字段可选', () => {
-    expect(dtoExposedKeys(SysMenuDTOUpdateRequest).sort()).toEqual(dtoExposedKeys(SysMenuDTOCreateRequest).sort())
+    expect(dtoExposedKeys(SysMenuDTOUpdateRequest).sort()).toEqual(
+      dtoExposedKeys(SysMenuDTOCreateRequest).sort(),
+    )
 
-    const partial = plainToInstance(SysMenuDTOUpdateRequest, { title: 'only title', meta: { order: 2 } })
+    const partial = plainToInstance(SysMenuDTOUpdateRequest, {
+      title: 'only title',
+      meta: { order: 2 },
+    })
     expect(validateSync(partial)).toEqual([])
 
     const empty = plainToInstance(SysMenuDTOUpdateRequest, {})
@@ -551,34 +687,155 @@ interface IEnumSourceCase {
 }
 
 const ENUM_SOURCE_CASES: ReadonlyArray<IEnumSourceCase> = [
-  { constraintName: 'ck_app_setting_type', table: 'app_setting', column: 'setting_type', source: WalnutAdminConstAppSettingType },
-  { constraintName: 'ck_app_demo_enum', table: 'app_demo', column: 'demo_enum', source: null, inlineSourceDto: 'libs/app-domain/src/demo/dto/demo.dto.ts（DemoConst 内联未导出）' },
+  {
+    constraintName: 'ck_app_setting_type',
+    table: 'app_setting',
+    column: 'setting_type',
+    source: WalnutAdminConstAppSettingType,
+  },
+  {
+    constraintName: 'ck_app_demo_enum',
+    table: 'app_demo',
+    column: 'demo_enum',
+    source: null,
+    inlineSourceDto: 'libs/app-domain/src/demo/dto/demo.dto.ts（DemoConst 内联未导出）',
+  },
   { constraintName: 'ck_app_key_type', table: 'app_key', column: 'type', source: AppKeyTypeConst },
-  { constraintName: 'ck_app_key_status', table: 'app_key', column: 'status', source: AppKeyStatusConst },
-  { constraintName: 'ck_app_error_method', table: 'app_error', column: 'method', source: WalnutAdminConstAppHTTPMethods },
-  { constraintName: 'ck_app_error_env', table: 'app_error', column: 'env', source: WalnutAdminConstAppEnv },
-  { constraintName: 'ck_user_gender', table: 'sys_user', column: 'gender', source: SysUserGenderConst },
-  { constraintName: 'ck_user_role_mode', table: 'sys_user', column: 'role_mode', source: WalnutAdminConstRoleMode },
+  {
+    constraintName: 'ck_app_key_status',
+    table: 'app_key',
+    column: 'status',
+    source: AppKeyStatusConst,
+  },
+  {
+    constraintName: 'ck_app_error_method',
+    table: 'app_error',
+    column: 'method',
+    source: WalnutAdminConstAppHTTPMethods,
+  },
+  {
+    constraintName: 'ck_app_error_env',
+    table: 'app_error',
+    column: 'env',
+    source: WalnutAdminConstAppEnv,
+  },
+  {
+    constraintName: 'ck_user_gender',
+    table: 'sys_user',
+    column: 'gender',
+    source: SysUserGenderConst,
+  },
+  {
+    constraintName: 'ck_user_role_mode',
+    table: 'sys_user',
+    column: 'role_mode',
+    source: WalnutAdminConstRoleMode,
+  },
   { constraintName: 'ck_menu_type', table: 'sys_menu', column: 'type', source: MenuType },
   { constraintName: 'ck_menu_ternal', table: 'sys_menu', column: 'ternal', source: MenuTernal },
-  { constraintName: 'ck_menu_cache_key_strategy', table: 'sys_menu', column: 'cache_key_strategy', source: CacheKeyStrategy },
-  { constraintName: 'ck_dict_data_tag_type', table: 'sys_dict_data', column: 'tag_type', source: SysDictDataTagTypeConst },
-  { constraintName: 'ck_user_device_link_type', table: 'sys_user_device', column: 'link_type', source: DeviceLinkConst },
-  { constraintName: 'ck_user_identity_type', table: 'sys_user_identity', column: 'type', source: WalnutAdminConstSysUserIdentityType },
-  { constraintName: 'ck_user_identity_purpose', table: 'sys_user_identity', column: 'purpose', source: WalnutAdminConstSysUserIdentityPurpose },
-  { constraintName: 'ck_user_lock_mode', table: 'sys_user_lock', column: 'lock_mode', source: LockModeConst },
-  { constraintName: 'ck_user_mfa_type', table: 'sys_user_mfa', column: 'type', source: WalnutAdminConstSysUserMfaType },
-  { constraintName: 'ck_user_oauth_provider', table: 'sys_user_oauth', column: 'provider', source: WalnutAdminConstSysUserOAuthProvider },
-  { constraintName: 'ck_user_preference_font_size', table: 'sys_user_preference', column: 'font_size', source: fontSizeConst },
-  { constraintName: 'ck_user_preference_color_mode', table: 'sys_user_preference', column: 'color_mode', source: colorModeConst },
-  { constraintName: 'ck_user_preference_cvd', table: 'sys_user_preference', column: 'cvd', source: CVDConst },
-  { constraintName: 'ck_user_preference_layout_mode', table: 'sys_user_preference', column: 'layout_mode', source: layoutModeConst },
-  { constraintName: 'ck_log_auth_type', table: 'sys_log_auth', column: 'type', source: WalnutAdminConstDecoratorLogAuthType },
-  { constraintName: 'ck_log_operate_action_type', table: 'sys_log_operate', column: 'action_type', source: WalnutAdminConstDecoratorLogOperateAction },
-  { constraintName: 'ck_log_operate_operation', table: 'sys_log_operate', column: 'operation', source: WalnutAdminConstDecoratorLogOperateType },
-  { constraintName: 'ck_log_operate_method', table: 'sys_log_operate', column: 'method', source: WalnutAdminConstAppHTTPMethods },
+  {
+    constraintName: 'ck_menu_cache_key_strategy',
+    table: 'sys_menu',
+    column: 'cache_key_strategy',
+    source: CacheKeyStrategy,
+  },
+  {
+    constraintName: 'ck_dict_data_tag_type',
+    table: 'sys_dict_data',
+    column: 'tag_type',
+    source: SysDictDataTagTypeConst,
+  },
+  {
+    constraintName: 'ck_user_device_link_type',
+    table: 'sys_user_device',
+    column: 'link_type',
+    source: DeviceLinkConst,
+  },
+  {
+    constraintName: 'ck_user_identity_type',
+    table: 'sys_user_identity',
+    column: 'type',
+    source: WalnutAdminConstSysUserIdentityType,
+  },
+  {
+    constraintName: 'ck_user_identity_purpose',
+    table: 'sys_user_identity',
+    column: 'purpose',
+    source: WalnutAdminConstSysUserIdentityPurpose,
+  },
+  {
+    constraintName: 'ck_user_lock_mode',
+    table: 'sys_user_lock',
+    column: 'lock_mode',
+    source: LockModeConst,
+  },
+  {
+    constraintName: 'ck_user_mfa_type',
+    table: 'sys_user_mfa',
+    column: 'type',
+    source: WalnutAdminConstSysUserMfaType,
+  },
+  {
+    constraintName: 'ck_user_oauth_provider',
+    table: 'sys_user_oauth',
+    column: 'provider',
+    source: WalnutAdminConstSysUserOAuthProvider,
+  },
+  {
+    constraintName: 'ck_user_preference_font_size',
+    table: 'sys_user_preference',
+    column: 'font_size',
+    source: fontSizeConst,
+  },
+  {
+    constraintName: 'ck_user_preference_color_mode',
+    table: 'sys_user_preference',
+    column: 'color_mode',
+    source: colorModeConst,
+  },
+  {
+    constraintName: 'ck_user_preference_cvd',
+    table: 'sys_user_preference',
+    column: 'cvd',
+    source: CVDConst,
+  },
+  {
+    constraintName: 'ck_user_preference_layout_mode',
+    table: 'sys_user_preference',
+    column: 'layout_mode',
+    source: layoutModeConst,
+  },
+  {
+    constraintName: 'ck_log_auth_type',
+    table: 'sys_log_auth',
+    column: 'type',
+    source: WalnutAdminConstDecoratorLogAuthType,
+  },
+  {
+    constraintName: 'ck_log_operate_action_type',
+    table: 'sys_log_operate',
+    column: 'action_type',
+    source: WalnutAdminConstDecoratorLogOperateAction,
+  },
+  {
+    constraintName: 'ck_log_operate_operation',
+    table: 'sys_log_operate',
+    column: 'operation',
+    source: WalnutAdminConstDecoratorLogOperateType,
+  },
+  {
+    constraintName: 'ck_log_operate_method',
+    table: 'sys_log_operate',
+    column: 'method',
+    source: WalnutAdminConstAppHTTPMethods,
+  },
   // 后端写死通道（无 DTO 面）：revoke_reason 全部由 auth/refresh 与 force-quit 代码写入
-  { constraintName: 'ck_refresh_token_revoke_reason', table: 'auth_refresh_token', column: 'revoke_reason', source: WalnutAdminConstRevokeRTType },
+  {
+    constraintName: 'ck_refresh_token_revoke_reason',
+    table: 'auth_refresh_token',
+    column: 'revoke_reason',
+    source: WalnutAdminConstRevokeRTType,
+  },
 ]
 
 /** camelCase → snake_case（吞并连续大写：CVD → cvd，cacheKeyStrategy → cache_key_strategy） */
@@ -590,29 +847,38 @@ function toSnakeCase(input: string): string {
 }
 
 /** InitSchema.ts 静态文本抽取 `CONSTRAINT ck_x CHECK (col IN ('a', 'b'))` 值集 */
-function parseInitSchemaCheckEnums(): Map<string, { table: string, column: string, values: Array<string | number> }> {
-  const text = readFileSync(resolve(process.cwd(), 'apps/api/migrations/1792922206018-InitSchema.ts'), 'utf8')
+function parseInitSchemaCheckEnums(): Map<
+  string,
+  { table: string; column: string; values: Array<string | number> }
+> {
+  const text = readFileSync(
+    resolve(process.cwd(), 'apps/api/migrations/1792922206018-InitSchema.ts'),
+    'utf8',
+  )
 
   // 逐段扫描：CREATE TABLE <name> 与其后的 CONSTRAINT 同段 —— 按最近一次 CREATE TABLE 归属
   const createTableRe = /CREATE TABLE (\w+)/g
-  const tableStarts: Array<{ name: string, index: number }> = []
+  const tableStarts: Array<{ name: string; index: number }> = []
   for (const match of text.matchAll(createTableRe)) {
     tableStarts.push({ name: match[1], index: match.index })
   }
 
   const checkRe = /CONSTRAINT\s+(ck_\w+)\s+CHECK\s*\(\s*(\w+)\s+IN\s*\(([^)]*)\)/g
-  const parsed = new Map<string, { table: string, column: string, values: Array<string | number> }>()
+  const parsed = new Map<
+    string,
+    { table: string; column: string; values: Array<string | number> }
+  >()
 
   for (const match of text.matchAll(checkRe)) {
     const [, name, column, rawValues] = match
-    const owner = [...tableStarts].reverse().find(t => t.index < match.index)
+    const owner = [...tableStarts].reverse().find((t) => t.index < match.index)
     // 'a', 'b' 拆值：引号段按 '' 转义还原，裸段转数字
     const values = (rawValues.match(/'(?:[^']|'')*'|[^,]+/g) ?? [])
-      .map(raw => raw.trim())
-      .filter(raw => raw.length > 0 && raw !== ',')
+      .map((raw) => raw.trim())
+      .filter((raw) => raw.length > 0 && raw !== ',')
       .map((raw) => {
-        if (raw.startsWith('\'') && raw.endsWith('\'')) {
-          return raw.slice(1, -1).replace(/''/g, '\'')
+        if (raw.startsWith("'") && raw.endsWith("'")) {
+          return raw.slice(1, -1).replace(/''/g, "'")
         }
         return Number(raw)
       })
@@ -625,7 +891,7 @@ function parseInitSchemaCheckEnums(): Map<string, { table: string, column: strin
 
 /** 值集规范化：`typeof:value` 串的排序数组 —— 连 '1' ↔ 1 的类型漂移一起拦 */
 function normalizeValueSet(values: Array<string | number>): string[] {
-  return values.map(v => `${typeof v}:${String(v)}`).sort()
+  return values.map((v) => `${typeof v}:${String(v)}`).sort()
 }
 
 interface IEnumValidationRow {
@@ -636,7 +902,9 @@ interface IEnumValidationRow {
 
 /** DTOBase 上 IsEnum/IsIn 元数据值集（class-validator 0.15：两者都挂 type=customValidation，以 name 区分） */
 function dtoEnumValueSets(dtoBase: ClassConstructor<object>): Map<string, Array<string | number>> {
-  const storage = getMetadataStorage() as unknown as { validationMetadatas: Map<ClassConstructor<object>, IEnumValidationRow[]> }
+  const storage = getMetadataStorage() as unknown as {
+    validationMetadatas: Map<ClassConstructor<object>, IEnumValidationRow[]>
+  }
   const result = new Map<string, Array<string | number>>()
 
   for (const row of storage.validationMetadatas.get(dtoBase) ?? []) {
@@ -644,7 +912,11 @@ function dtoEnumValueSets(dtoBase: ClassConstructor<object>): Map<string, Array<
       continue
     }
     const raw = row.constraints[0]
-    const values = Array.isArray(raw) ? raw : raw !== null && typeof raw === 'object' ? Object.values(raw) : []
+    const values = Array.isArray(raw)
+      ? raw
+      : raw !== null && typeof raw === 'object'
+        ? Object.values(raw)
+        : []
     if (!result.has(row.propertyName)) {
       result.set(row.propertyName, values as Array<string | number>)
     }
@@ -655,16 +927,18 @@ function dtoEnumValueSets(dtoBase: ClassConstructor<object>): Map<string, Array<
 
 /** entity 的 @Entity 表名 */
 function entityTableName(entity: ClassConstructor<object>): string | undefined {
-  return getMetadataArgsStorage().tables.find(t => t.target === entity)?.name
+  return getMetadataArgsStorage().tables.find((t) => t.target === entity)?.name
 }
 
 describe('枚举三方守卫（DTO IsEnum/IsIn ↔ 源常量 ↔ InitSchema CHECK，静态文本 + reflection，零 DB）', () => {
   it('① migration 里每个 `CHECK (col IN (...))` 都登记在 ENUM_SOURCE_CASES，登记项无失效（新 CHECK 不登记即红）', () => {
     const parsed = parseInitSchemaCheckEnums()
     const parsedNames = [...parsed.keys()].sort()
-    const registeredNames = ENUM_SOURCE_CASES.map(c => c.constraintName).sort()
+    const registeredNames = ENUM_SOURCE_CASES.map((c) => c.constraintName).sort()
 
-    expect(parsedNames, 'InitSchema 新增 CHECK IN 约束未登记进 ENUM_SOURCE_CASES').toEqual(registeredNames)
+    expect(parsedNames, 'InitSchema 新增 CHECK IN 约束未登记进 ENUM_SOURCE_CASES').toEqual(
+      registeredNames,
+    )
 
     const problems: string[] = []
     for (const c of ENUM_SOURCE_CASES) {
@@ -673,9 +947,11 @@ describe('枚举三方守卫（DTO IsEnum/IsIn ↔ 源常量 ↔ InitSchema CHEC
         continue // 上面已拦
       }
       if (entry.table !== c.table || entry.column !== c.column) {
-        problems.push(`${c.constraintName}: 登记 ${c.table}.${c.column} ↔ 实际 ${entry.table}.${entry.column} 不一致`)
+        problems.push(
+          `${c.constraintName}: 登记 ${c.table}.${c.column} ↔ 实际 ${entry.table}.${entry.column} 不一致`,
+        )
       }
-      if (entry.values.some(v => Number.isNaN(v))) {
+      if (entry.values.some((v) => Number.isNaN(v))) {
         problems.push(`${c.constraintName}: 值集解析出 NaN（CHECK 文本形态变了？）`)
       }
       if (c.source === null && c.inlineSourceDto === undefined) {
@@ -700,8 +976,13 @@ describe('枚举三方守卫（DTO IsEnum/IsIn ↔ 源常量 ↔ InitSchema CHEC
         problems.push(`${c.constraintName}: InitSchema 里找不到该约束`)
         continue
       }
-      if (JSON.stringify(normalizeValueSet(sourceValues)) !== JSON.stringify(normalizeValueSet(entry.values))) {
-        problems.push(`${c.constraintName} (${c.table}.${c.column}): 常量值集 [${normalizeValueSet(sourceValues).join(', ')}] ≠ CHECK 值集 [${normalizeValueSet(entry.values).join(', ')} —— 以常量为准改 migration，或反之`)
+      if (
+        JSON.stringify(normalizeValueSet(sourceValues)) !==
+        JSON.stringify(normalizeValueSet(entry.values))
+      ) {
+        problems.push(
+          `${c.constraintName} (${c.table}.${c.column}): 常量值集 [${normalizeValueSet(sourceValues).join(', ')}] ≠ CHECK 值集 [${normalizeValueSet(entry.values).join(', ')} —— 以常量为准改 migration，或反之`,
+        )
       }
     }
 
@@ -711,7 +992,7 @@ describe('枚举三方守卫（DTO IsEnum/IsIn ↔ 源常量 ↔ InitSchema CHEC
   it('③ DTO IsEnum/IsIn 元数据值集 ≡ 对应 CHECK 值集（entity 表名 + snake_case(属性) 对列）', () => {
     const parsed = parseInitSchemaCheckEnums()
     const byTableColumn = new Map<string, Array<string | number>>(
-      [...parsed.values()].map(e => [`${e.table}.${e.column}`, e.values]),
+      [...parsed.values()].map((e) => [`${e.table}.${e.column}`, e.values]),
     )
 
     const coveredConstraints = new Set<string>()
@@ -732,13 +1013,20 @@ describe('枚举三方守卫（DTO IsEnum/IsIn ↔ 源常量 ↔ InitSchema CHEC
           continue
         }
 
-        const constraintName = [...parsed.entries()].find(([, e]) => `${e.table}.${e.column}` === key)?.[0]
+        const constraintName = [...parsed.entries()].find(
+          ([, e]) => `${e.table}.${e.column}` === key,
+        )?.[0]
         if (constraintName !== undefined) {
           coveredConstraints.add(constraintName)
         }
 
-        if (JSON.stringify(normalizeValueSet(values)) !== JSON.stringify(normalizeValueSet(checkValues))) {
-          problems.push(`${dtoBase.name}.${propertyName} → ${key}: DTO 值集 [${normalizeValueSet(values).join(', ')}] ≠ CHECK 值集 [${normalizeValueSet(checkValues).join(', ')}]`)
+        if (
+          JSON.stringify(normalizeValueSet(values)) !==
+          JSON.stringify(normalizeValueSet(checkValues))
+        ) {
+          problems.push(
+            `${dtoBase.name}.${propertyName} → ${key}: DTO 值集 [${normalizeValueSet(values).join(', ')}] ≠ CHECK 值集 [${normalizeValueSet(checkValues).join(', ')}]`,
+          )
         }
       }
     }

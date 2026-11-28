@@ -1,12 +1,12 @@
+import type { IWalnutAdminDataScopeRlsSettings, WalnutTxContext } from '@walnut-server/db'
+import type { LocaleType } from '@walnut/contract'
 import type { Recordable } from 'easy-fns-ts'
 import type { Request, Response } from 'express'
 import type { IResult } from 'ua-parser-js'
-import type { LocaleType } from '@walnut/contract'
-import type { IWalnutAdminDataScopeRlsSettings, WalnutTxContext } from '@walnut-server/db'
 
 declare global {
   namespace Express {
-    interface User extends IWalnutAdminAccessTokenPayload { }
+    interface User extends IWalnutAdminAccessTokenPayload {}
   }
 
   interface IWalnutadminCookie {
@@ -140,7 +140,7 @@ declare global {
     realRefreshToken: string
   }
 
-  interface IWalnutAdminExpressResponse extends Response { }
+  interface IWalnutAdminExpressResponse extends Response {}
 }
 
-export { }
+export {}

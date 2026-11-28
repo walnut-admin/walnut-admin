@@ -98,7 +98,7 @@ describe('g1 · worker import 闭包（模块求值级隔离）', () => {
     //
     // 钉子形态：精确相等。新增任何一条 import 都会让本行变红。
     const importers = [...workerClosure.files]
-      .filter(file => specifiersOf(resolve(SERVER_ROOT, file)).includes('@nestjs/throttler'))
+      .filter((file) => specifiersOf(resolve(SERVER_ROOT, file)).includes('@nestjs/throttler'))
       .sort()
 
     expect(importers).toEqual([

@@ -1,22 +1,24 @@
+import { Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common'
+import { ApiTags } from '@nestjs/swagger'
 import {
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Post,
-  Req,
-  UseGuards,
-} from '@nestjs/common'
-import {
-  ApiTags,
-} from '@nestjs/swagger'
-import { AuthCorePermissionsDTO, AuthSecretKeysResponseDTO, AuthService, WalnutAdminGuardJwtFree } from '@walnut-server/auth'
+  AuthCorePermissionsDTO,
+  AuthSecretKeysResponseDTO,
+  AuthService,
+  WalnutAdminGuardJwtFree,
+} from '@walnut-server/auth'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 
 import { AppTechCookieService } from '@walnut-server/cookie'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger'
-import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorEncryptResponse, WalnutAdminDecoratorJti, WalnutAdminDecoratorUser, WalnutAdminGuardDeviceFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import {
+  WalnutAdminDecoratorDeviceId,
+  WalnutAdminDecoratorEncryptResponse,
+  WalnutAdminDecoratorJti,
+  WalnutAdminDecoratorUser,
+  WalnutAdminGuardDeviceFree,
+  WalnutAdminGuardSignFree,
+} from '@walnut-server/guards'
 import { AuthRoutes } from '@walnut/contract'
 import { JwtRefreshGuard } from './modules/refresh/refresh.guard'
 
@@ -26,7 +28,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly cookieService: AppTechCookieService,
-  ) { }
+  ) {}
 
   @Get('permissions')
   @HttpCode(HttpStatus.OK)

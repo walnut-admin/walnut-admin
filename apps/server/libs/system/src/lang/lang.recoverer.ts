@@ -1,6 +1,9 @@
 import type { WalnutAdminRecoverableRegistry } from '@walnut-server/repository'
 import { WalnutModelName } from '@walnut-server/db'
-import { createWalnutAdminRecoverableRegistrar, createWalnutAdminSnapshotRecoverer } from '@walnut-server/repository'
+import {
+  createWalnutAdminRecoverableRegistrar,
+  createWalnutAdminSnapshotRecoverer,
+} from '@walnut-server/repository'
 import { SysLangEntity } from './entity/lang.entity'
 
 /**
@@ -14,4 +17,6 @@ export function registerSysLangRecoverable(registry: WalnutAdminRecoverableRegis
   })
 }
 
-export const sysLangRecoverableProvider = createWalnutAdminRecoverableRegistrar(registerSysLangRecoverable)
+export const sysLangRecoverableProvider = createWalnutAdminRecoverableRegistrar(
+  registerSysLangRecoverable,
+)

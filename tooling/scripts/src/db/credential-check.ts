@@ -51,8 +51,7 @@ export function parseCredentialCheckArgs(argv: readonly string[]): CredentialChe
     const arg = argv[i]
     const next = (): string => {
       const value = argv[++i]
-      if (value === undefined)
-        throw new PreconditionError(`${arg} 后面缺参数值`)
+      if (value === undefined) throw new PreconditionError(`${arg} 后面缺参数值`)
       return value
     }
     switch (arg) {
@@ -82,7 +81,12 @@ export function readIdentityCryptoKeys(envFile: string): IdentityCryptoKeys {
   const env = parseEnvFile(readFileSync(envFile, 'utf8'))
   const encryptionKey = env.USER_ID_ENCRYPTION_KEY
   const hashSalt = env.USER_ID_HASH_SALT
-  if (encryptionKey === undefined || encryptionKey === '' || hashSalt === undefined || hashSalt === '') {
+  if (
+    encryptionKey === undefined ||
+    encryptionKey === '' ||
+    hashSalt === undefined ||
+    hashSalt === ''
+  ) {
     throw new PreconditionError(
       `env 里缺 USER_ID_ENCRYPTION_KEY / USER_ID_HASH_SALT（${envFile}）—— 必须与后端实际使用的那份同源`,
     )
@@ -138,7 +142,10 @@ function seedSuggestion(userName: string): string {
  * - `stale-format`：AES-GCM 解不开，或解出来不是 base64url 记录（旧明文 / 换过密钥 / 坏行）；
  * - `ok`：解开了；`hashMatch` 单独报告 value_hash 是否自洽。
  */
-export function analyzePasswordIdentity(row: PasswordIdentityRow, keys: IdentityCryptoKeys): CredentialCheckRow {
+export function analyzePasswordIdentity(
+  row: PasswordIdentityRow,
+  keys: IdentityCryptoKeys,
+): CredentialCheckRow {
   const userName = row.userName ?? '(未关联用户)'
   const base = { userName, userId: row.userId }
 
@@ -155,8 +162,7 @@ export function analyzePasswordIdentity(row: PasswordIdentityRow, keys: Identity
   let plain: string
   try {
     plain = decryptIdentityValue(row.value, keys.encryptionKey)
-  }
-  catch (error) {
+  } catch (error) {
     return {
       ...base,
       format: 'stale-format',
@@ -196,15 +202,14 @@ export function hasCredentialProblem(row: CredentialCheckRow): boolean {
 }
 
 function hashMatchLabel(hashMatch: boolean | null): string {
-  if (hashMatch === null)
-    return '不可校验'
+  if (hashMatch === null) return '不可校验'
   return hashMatch ? '一致' : '不一致'
 }
 
 /** 探针表（纯函数，便于逐字断言；账号 / userId 之外不打印任何凭证内容） */
 export function formatCredentialCheckReport(rows: readonly CredentialCheckRow[]): string[] {
   const header = ['账号', 'userId', '格式', 'valueHash', '建议']
-  const body = rows.map(row => [
+  const body = rows.map((row) => [
     row.userName,
     row.userId,
     row.format,
@@ -212,10 +217,13 @@ export function formatCredentialCheckReport(rows: readonly CredentialCheckRow[])
     row.suggestion,
   ])
   const widths = header.map((_, column) =>
-    Math.max(header[column]!.length, ...body.map(cells => cells[column]!.length)))
+    Math.max(header[column]!.length, ...body.map((cells) => cells[column]!.length)),
+  )
   const render = (cells: readonly string[]): string =>
-    cells.map((cell, column) => (column === cells.length - 1 ? cell : cell.padEnd(widths[column]!))).join('  ')
-  const separator = widths.map(width => '-'.repeat(width)).join('  ')
+    cells
+      .map((cell, column) => (column === cells.length - 1 ? cell : cell.padEnd(widths[column]!)))
+      .join('  ')
+  const separator = widths.map((width) => '-'.repeat(width)).join('  ')
   return [render(header), separator, ...body.map(render)]
 }
 
@@ -236,45 +244,51 @@ export async function main(): Promise<void> {
   await pg.connect()
   let rows: CredentialCheckRow[]
   try {
-    const result = await pg.query<{ user_id: string, user_name: string | null, value: string | null, value_hash: string | null }>(
+    const result = await pg.query<{
+      user_id: string
+      user_name: string | null
+      value: string | null
+      value_hash: string | null
+    }>(
       `SELECT i.user_id, u.user_name, i.value, i.value_hash
        FROM sys_user_identity i
        LEFT JOIN sys_user u ON u.id = i.user_id
        WHERE i.type = 'password'
        ORDER BY u.user_name NULLS LAST, i.user_id`,
     )
-    rows = result.rows.map(row => analyzePasswordIdentity({
-      userName: row.user_name,
-      userId: row.user_id,
-      value: row.value,
-      valueHash: row.value_hash,
-    }, keys))
-  }
-  finally {
+    rows = result.rows.map((row) =>
+      analyzePasswordIdentity(
+        {
+          userName: row.user_name,
+          userId: row.user_id,
+          value: row.value,
+          valueHash: row.value_hash,
+        },
+        keys,
+      ),
+    )
+  } finally {
     await pg.end()
   }
 
   if (rows.length === 0) {
-    line('warning', '库里没有任何 type=\'password\' 的 sys_user_identity 行（新库还没建口令？）')
+    line('warning', "库里没有任何 type='password' 的 sys_user_identity 行（新库还没建口令？）")
     return
   }
 
-  for (const reportLine of formatCredentialCheckReport(rows))
-    out(reportLine)
+  for (const reportLine of formatCredentialCheckReport(rows)) out(reportLine)
 
-  const stale = rows.filter(row => row.format !== 'ok')
-  const hashMismatch = rows.filter(row => row.format === 'ok' && row.hashMatch === false)
+  const stale = rows.filter((row) => row.format !== 'ok')
+  const hashMismatch = rows.filter((row) => row.format === 'ok' && row.hashMatch === false)
 
   if (stale.length > 0 || hashMismatch.length > 0) {
     const parts: string[] = []
-    if (stale.length > 0)
-      parts.push(`${stale.length} 行格式不可用（旧明文 / 换过密钥 / 缺值）`)
-    if (hashMismatch.length > 0)
-      parts.push(`${hashMismatch.length} 行 valueHash 不一致`)
+    if (stale.length > 0) parts.push(`${stale.length} 行格式不可用（旧明文 / 换过密钥 / 缺值）`)
+    if (hashMismatch.length > 0) parts.push(`${hashMismatch.length} 行 valueHash 不一致`)
     throw new ViolationError(
-      `口令凭证探针：${parts.join('；')}。`
-      + '按上表「建议」列逐账号重跑 `pnpm walnut db:seed:pg --admin <账号> --password <新口令>`'
-      + '（该命令写完会自验一次完整 OPAQUE 登录握手）。',
+      `口令凭证探针：${parts.join('；')}。` +
+        '按上表「建议」列逐账号重跑 `pnpm walnut db:seed:pg --admin <账号> --password <新口令>`' +
+        '（该命令写完会自验一次完整 OPAQUE 登录握手）。',
     )
   }
 

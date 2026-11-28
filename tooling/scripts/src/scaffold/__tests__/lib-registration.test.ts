@@ -160,31 +160,35 @@ describe('文本变换（每个都必须幂等）', () => {
       '',
     ].join('\n')
     const once = insertAppInclude(fixture, 'probe')
-    expect(JSON.parse(once).include).toEqual(['src/**/*', '../../libs/token/src/**/*', '../../libs/probe/src/**/*'])
+    expect(JSON.parse(once).include).toEqual([
+      'src/**/*',
+      '../../libs/token/src/**/*',
+      '../../libs/probe/src/**/*',
+    ])
     expect(insertAppInclude(once, 'probe')).toBe(once)
   })
   it('⑥ eslint 名单：仍在同一行（drift 守卫按单行正则读）', () => {
-    const fixture = 'const INFRA_LIBS = [\'config\', \'utils\'] as const\n'
+    const fixture = "const INFRA_LIBS = ['config', 'utils'] as const\n"
     const once = insertLayerList(fixture, 'INFRA_LIBS', 'probe')
-    expect(once).toBe('const INFRA_LIBS = [\'config\', \'utils\', \'probe\'] as const\n')
+    expect(once).toBe("const INFRA_LIBS = ['config', 'utils', 'probe'] as const\n")
     expect(lineCount(once)).toBe(lineCount(fixture))
     expect(insertLayerList(once, 'INFRA_LIBS', 'probe')).toBe(once)
   })
   it('⑥b 单成员层的 layer(...) 字面量数组', () => {
-    const fixture = 'layer(\'guards\', [\'guards\'], [\'app-domain\'], \'guards 装配层\')\n'
+    const fixture = "layer('guards', ['guards'], ['app-domain'], 'guards 装配层')\n"
     const once = insertLayerLiteral(fixture, 'guards', 'probe')
-    expect(once).toBe('layer(\'guards\', [\'guards\', \'probe\'], [\'app-domain\'], \'guards 装配层\')\n')
+    expect(once).toBe("layer('guards', ['guards', 'probe'], ['app-domain'], 'guards 装配层')\n")
     expect(insertLayerLiteral(once, 'guards', 'probe')).toBe(once)
   })
   it('⑦ drift spec 的 LAYER_MATRIX 行仍是单行、且可被解析', () => {
-    const fixture = '  { name: \'tech-base\', libs: [\'als\', \'ip\'] },\n'
+    const fixture = "  { name: 'tech-base', libs: ['als', 'ip'] },\n"
     const once = insertMatrixRow(fixture, 'tech-base', 'probe')
-    expect(once).toBe('  { name: \'tech-base\', libs: [\'als\', \'ip\', \'probe\'] },\n')
+    expect(once).toBe("  { name: 'tech-base', libs: ['als', 'ip', 'probe'] },\n")
     expect(insertMatrixRow(once, 'tech-base', 'probe')).toBe(once)
   })
 })
 describe('planScaffold 在真实文件上：幂等 + 增量可解释', () => {
-  const worker = (): { root: string, cleanup: () => void } => {
+  const worker = (): { root: string; cleanup: () => void } => {
     const root = mkdtempSync(path.join(os.tmpdir(), 'walnut-scaffold-'))
     for (const relative of REGISTRATION_FILES) {
       const target = path.join(root, relative)
@@ -197,28 +201,34 @@ describe('planScaffold 在真实文件上：幂等 + 增量可解释', () => {
     const { root, cleanup } = worker()
     try {
       const first = planScaffold(root, 'probe-lib', 'tech-base')
-      const pending = first.filter(file => file.before !== file.after)
+      const pending = first.filter((file) => file.before !== file.after)
       // 12 个既有注册面 + 2 个新文件（tsconfig.lib.json / src/index.ts）
-      expect(pending.map(file => file.path)).toHaveLength(14)
+      expect(pending.map((file) => file.path)).toHaveLength(14)
       const changed = applyScaffold(root, first)
       expect(changed).toHaveLength(14)
       const netLines = first
-        .filter(file => file.before !== null)
+        .filter((file) => file.before !== null)
         .reduce((sum, file) => sum + lineCount(file.after) - lineCount(file.before as string), 0)
       // 6（paths）+ 3×10（nest filenames 1 + projects 块 9）+ 3×2（swcrc）+ 3×1（app include）
       // + 0（eslint 名单 / drift 矩阵都是改同一行 ⇒ 净增 0）
       // 注：R1 的复核表把 nest projects 记成 8 行、app include 记成 1 个文件，实测是 9 行 / 3 个文件。
       expect(netLines).toBe(45)
       const second = planScaffold(root, 'probe-lib', 'tech-base')
-      expect(second.filter(file => file.before !== file.after)).toEqual([])
-    }
-    finally {
+      expect(second.filter((file) => file.before !== file.after)).toEqual([])
+    } finally {
       cleanup()
     }
   })
   it('两个新文件与既有 34 个 lib 的形状一致（6 行 tsconfig.lib.json）', () => {
-    expect(renderTsconfigLib('probe-lib').split('\n').filter(line => line !== '')).toHaveLength(6)
-    const reference = readFileSync(path.join(REPO_ROOT, 'apps/server/libs/scope-resolver/tsconfig.lib.json'), 'utf8')
+    expect(
+      renderTsconfigLib('probe-lib')
+        .split('\n')
+        .filter((line) => line !== ''),
+    ).toHaveLength(6)
+    const reference = readFileSync(
+      path.join(REPO_ROOT, 'apps/server/libs/scope-resolver/tsconfig.lib.json'),
+      'utf8',
+    )
     expect(renderTsconfigLib('scope-resolver')).toBe(reference)
   })
 })

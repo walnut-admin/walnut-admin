@@ -12,10 +12,6 @@ import { AppMonitorUserHttpModule } from './user/user-http.module'
  * Swagger 路径顺序不变。
  */
 @Module({
-  imports: [
-    AppMonitorCacheModule,
-    AppMonitorUserHttpModule,
-    AppMonitorServerModule,
-  ],
+  imports: [AppMonitorCacheModule, AppMonitorUserHttpModule, AppMonitorServerModule],
 })
 export class AppMonitorModule {}

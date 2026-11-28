@@ -7,6 +7,4 @@ export const WalnutAdminConstAppPermissionType = {
   ALL: 'all' as const,
 } as const
 
-export type IWalnutAdminConstAppPermissionType = ValueOf<
-    typeof WalnutAdminConstAppPermissionType
->
+export type IWalnutAdminConstAppPermissionType = ValueOf<typeof WalnutAdminConstAppPermissionType>

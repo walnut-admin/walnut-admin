@@ -44,19 +44,30 @@ describe('组织基础表：system/post CRUD + 唯一键 + RESTRICT（真实 HTT
     }
   }
 
-  async function createPost(tag: string, overrides: Record<string, unknown> = {}): Promise<PostRow> {
+  async function createPost(
+    tag: string,
+    overrides: Record<string, unknown> = {},
+  ): Promise<PostRow> {
     const res = await api.root('POST', api.apiPath('/system/post'), postPayload(tag, overrides))
     expectOk(res, `post create ${tag}`)
     return bodyOf<PostRow>(res).data
   }
 
   async function purgeRows() {
-    await api.pgDataSource.query('DELETE FROM sys_employee WHERE employee_no LIKE $1', [`${employeePrefix}%`])
+    await api.pgDataSource.query('DELETE FROM sys_employee WHERE employee_no LIKE $1', [
+      `${employeePrefix}%`,
+    ])
     await api.pgDataSource.query('DELETE FROM sys_post WHERE post_code LIKE $1', [`${postPrefix}%`])
     await api.pgDataSource.query('DELETE FROM sys_dept WHERE dept_code LIKE $1', [`${deptPrefix}%`])
-    await api.pgDataSource.query('DELETE FROM sys_deleted WHERE content->>\'postCode\' LIKE $1', [`${postPrefix}%`])
-    await api.pgDataSource.query('DELETE FROM sys_deleted WHERE content->>\'employeeNo\' LIKE $1', [`${employeePrefix}%`])
-    await api.pgDataSource.query('DELETE FROM sys_deleted WHERE content->>\'deptCode\' LIKE $1', [`${deptPrefix}%`])
+    await api.pgDataSource.query("DELETE FROM sys_deleted WHERE content->>'postCode' LIKE $1", [
+      `${postPrefix}%`,
+    ])
+    await api.pgDataSource.query("DELETE FROM sys_deleted WHERE content->>'employeeNo' LIKE $1", [
+      `${employeePrefix}%`,
+    ])
+    await api.pgDataSource.query("DELETE FROM sys_deleted WHERE content->>'deptCode' LIKE $1", [
+      `${deptPrefix}%`,
+    ])
   }
 
   beforeAll(async () => {
@@ -115,7 +126,7 @@ describe('组织基础表：system/post CRUD + 唯一键 + RESTRICT（真实 HTT
       page: { page: 1, pageSize: 10 },
     })
     expectOk(listRes, 'post list')
-    const list = bodyOf<{ data: PostRow[], total: number }>(listRes).data
+    const list = bodyOf<{ data: PostRow[]; total: number }>(listRes).data
     expect(list.total).toBe(1)
     expect(list.data[0].id).toBe(created.id)
   })
@@ -127,9 +138,13 @@ describe('组织基础表：system/post CRUD + 唯一键 + RESTRICT（真实 HTT
     const dupCreate = await api.root('POST', api.apiPath('/system/post'), postPayload('U1'))
     expect(bodyOf(dupCreate).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_EXISTS)
 
-    const dupUpdate = await api.root('PUT', api.apiPath(`/system/post/${another.id}`), postPayload('U2', {
-      postCode: `${postPrefix}-U1`,
-    }))
+    const dupUpdate = await api.root(
+      'PUT',
+      api.apiPath(`/system/post/${another.id}`),
+      postPayload('U2', {
+        postCode: `${postPrefix}-U1`,
+      }),
+    )
     expect(bodyOf(dupUpdate).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_EXISTS)
   })
 

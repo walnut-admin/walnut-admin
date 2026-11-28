@@ -12,8 +12,7 @@ export type { ObjectToPathsOptions, PathRecord } from '@walnut/utils/object-path
 export function getDefaultSlotText(slots: Slots): string {
   const str = (slots.default && slots.default()[0].children) as string
 
-  if (str)
-    return str.trimStart().trimEnd()
+  if (str) return str.trimStart().trimEnd()
 
   return ''
 }
@@ -27,7 +26,8 @@ export function isInSetup() {
 export const getBoolean = (val: any, df = true) => (isUndefined(val) ? df : val)
 
 // get boolean or return value is boolean
-export const getFunctionBoolean = <T>(val: any, cbParams: T, defaultVal = true) => (isUndefined(val) ? defaultVal : typeof val === 'boolean' ? val : val(cbParams))
+export const getFunctionBoolean = <T>(val: any, cbParams: T, defaultVal = true) =>
+  isUndefined(val) ? defaultVal : typeof val === 'boolean' ? val : val(cbParams)
 
 // easy detect device type
 export function detectDeviceType() {
@@ -35,11 +35,12 @@ export function detectDeviceType() {
 
   if (/mobile/i.test(userAgent)) {
     return 'Mobile'
-  }
-  else if (/tablet/i.test(userAgent) || (/android/i.test(userAgent) && !/mobile/i.test(userAgent))) {
+  } else if (
+    /tablet/i.test(userAgent) ||
+    (/android/i.test(userAgent) && !/mobile/i.test(userAgent))
+  ) {
     return 'Tablet'
-  }
-  else {
+  } else {
     return 'Desktop'
   }
 }
@@ -49,8 +50,7 @@ export async function getIsInIncognitoMode() {
   try {
     const result = await detectIncognito()
     return result.isPrivate
-  }
-  catch (error) {
+  } catch (error) {
     console.error(error)
     return false
   }
@@ -60,8 +60,7 @@ export async function getIsInIncognitoMode() {
 export function getCPUCoreCount() {
   if ('hardwareConcurrency' in navigator) {
     return navigator.hardwareConcurrency
-  }
-  else {
+  } else {
     console.warn('navigator.hardwareConcurrency is not supported')
     return 0
   }
@@ -77,8 +76,7 @@ export function getMemoryGB(): number {
   if ('deviceMemory' in navigator) {
     const memory = navigator.deviceMemory
     return typeof memory === 'number' ? memory : 0
-  }
-  else {
+  } else {
     console.warn('navigator.deviceMemory is not supported')
     return 0
   }
@@ -98,13 +96,11 @@ export async function getGPUArchitecture() {
       const device = await adapter.requestDevice()
 
       return device.adapterInfo.architecture
-    }
-    else {
+    } else {
       console.warn('navigator.gpu is not supported')
       return 'not supported'
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error(error)
     return 'not supported'
   }

@@ -12,10 +12,7 @@ import { OtpService } from './otp.service'
 import { OtpSharedService } from './shared/otp.shared.service'
 
 @Injectable()
-export class OtpStrategy extends PassportStrategy(
-  Strategy,
-  WALNUT_ADMIN_OTP_STRATEGY,
-) {
+export class OtpStrategy extends PassportStrategy(Strategy, WALNUT_ADMIN_OTP_STRATEGY) {
   private readonly logger = new Logger(OtpStrategy.name)
 
   constructor(
@@ -29,11 +26,7 @@ export class OtpStrategy extends PassportStrategy(
     })
   }
 
-  async validate(
-    request: IWalnutAdminExpressRequest,
-    identifier: string,
-    verifyCode: string,
-  ) {
+  async validate(request: IWalnutAdminExpressRequest, identifier: string, verifyCode: string) {
     const type = (request.body as OtpVerifyDTO).type
 
     this.logger.log(`validate: ${type} - ${identifier}, ${verifyCode}`)
@@ -54,11 +47,6 @@ export class OtpStrategy extends PassportStrategy(
 
     const deviceId = getWalnutAdminCookie(request, WalnutAdminConstCookieKeys.DEVICE_ID)
 
-    return this.otpService.validateIdentity(
-      type,
-      identifier,
-      request.language,
-      deviceId,
-    )
+    return this.otpService.validateIdentity(type, identifier, request.language, deviceId)
   }
 }

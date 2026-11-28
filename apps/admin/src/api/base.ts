@@ -19,7 +19,7 @@ function omitUnnecessaryFields<T extends { id?: string }>(data: T) {
 export class BaseAPI<T extends { id: string }> {
   private readonly baseAPI: string
 
-  constructor({ model, section }: { model: string, section: string }) {
+  constructor({ model, section }: { model: string; section: string }) {
     this.baseAPI = `/${model}/${section}`
   }
 
@@ -31,12 +31,10 @@ export class BaseAPI<T extends { id: string }> {
   }
 
   create(data: T) {
-    return AppAxios.post(
-      {
-        url: `${this.baseAPI}`,
-        data: omitUnnecessaryFields<T>(data),
-      },
-    )
+    return AppAxios.post({
+      url: `${this.baseAPI}`,
+      data: omitUnnecessaryFields<T>(data),
+    })
   }
 
   read(id: StringOrNumber) {
@@ -49,35 +47,27 @@ export class BaseAPI<T extends { id: string }> {
   detail() {}
 
   update(data: T) {
-    return AppAxios.put<T>(
-      {
-        url: `${this.baseAPI}/${data.id}`,
-        data: omitUnnecessaryFields<T>(data),
-      },
-    )
+    return AppAxios.put<T>({
+      url: `${this.baseAPI}/${data.id}`,
+      data: omitUnnecessaryFields<T>(data),
+    })
   }
 
   delete(id: StringOrNumber) {
-    return AppAxios.delete<T>(
-      {
-        url: `${this.baseAPI}/${id}`,
-      },
-    )
+    return AppAxios.delete<T>({
+      url: `${this.baseAPI}/${id}`,
+    })
   }
 
   deleteMany(id: string) {
-    return AppAxios.delete<T[]>(
-      {
-        url: `${this.baseAPI}/deleteMany/${id}`,
-      },
-    )
+    return AppAxios.delete<T[]>({
+      url: `${this.baseAPI}/deleteMany/${id}`,
+    })
   }
 
   clear() {
-    return AppAxios.delete<T>(
-      {
-        url: `${this.baseAPI}/clear`,
-      },
-    )
+    return AppAxios.delete<T>({
+      url: `${this.baseAPI}/clear`,
+    })
   }
 }

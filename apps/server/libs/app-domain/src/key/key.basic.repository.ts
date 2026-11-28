@@ -35,13 +35,18 @@ export class AppKeyBasicRepository extends WalnutAdminCommonPgBaseRepository<App
    * 重读不到 ACTIVE 行（已被置 DEPRECATED）→ 受控 40401，不再产生两条同 version ACTIVE。
    * 只读调用方（getCurrent）不传 lock，保持无锁快路径。
    */
-  public async getCurrentActiveKey(type: string, em?: EntityManager, lock = false): Promise<AppKeyEntity | null> {
+  public async getCurrentActiveKey(
+    type: string,
+    em?: EntityManager,
+    lock = false,
+  ): Promise<AppKeyEntity | null> {
     // 悲观锁只在活跃事务里有意义（TypeORM 对非事务上下文直接抛
     // PessimisticLockTransactionRequiredError）；非事务调用退化为普通读，
     // 并发保护由 rotate 的调用方（HTTP @WalnutTx / cron transactional）保证
-    const pessimisticLock = lock && em?.queryRunner?.isTransactionActive
-      ? { mode: 'pessimistic_write' as const }
-      : undefined
+    const pessimisticLock =
+      lock && em?.queryRunner?.isTransactionActive
+        ? { mode: 'pessimistic_write' as const }
+        : undefined
     // 数据权限：app_key 在豁免清单（系统级密钥配置），直连不构成 scope 绕过
     return this.getManager(em)
       .getRepository(AppKeyEntity)

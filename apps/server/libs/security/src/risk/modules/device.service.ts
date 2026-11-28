@@ -35,22 +35,22 @@ export class SecurityRiskDeviceService {
     return `${key}:${deviceId}`
   }
 
-  async evaluateDevice(deviceId: string): Promise<IWalnutAdminRiskEvaluationResult<IWalnutAdminDeviceRiskInfo>> {
+  async evaluateDevice(
+    deviceId: string,
+  ): Promise<IWalnutAdminRiskEvaluationResult<IWalnutAdminDeviceRiskInfo>> {
     const infoKey = this.getInfoKey(deviceId)
-    const cached = await this.redis.get(infoKey) as string
+    const cached = (await this.redis.get(infoKey)) as string
 
     let deviceInfo: IWalnutAdminDeviceRiskInfo | null
 
     if (cached) {
       try {
         deviceInfo = JSON.parse(cached) as IWalnutAdminDeviceRiskInfo
-      }
-      catch {
+      } catch {
         this.logger.warn(`Failed to parse cached device info for ${deviceId}`)
         deviceInfo = await this.evaluateDeviceWithLock(deviceId)
       }
-    }
-    else {
+    } else {
       deviceInfo = await this.evaluateDeviceWithLock(deviceId)
     }
 
@@ -83,13 +83,12 @@ export class SecurityRiskDeviceService {
       200,
       async () => {
         const infoKey = this.getInfoKey(deviceId)
-        const doubleCheck = await this.redis.get(infoKey) as string
+        const doubleCheck = (await this.redis.get(infoKey)) as string
 
         if (doubleCheck) {
           try {
             return JSON.parse(doubleCheck) as IWalnutAdminDeviceRiskInfo
-          }
-          catch {}
+          } catch {}
         }
 
         return this.performDeviceEvaluation(deviceId)
@@ -111,8 +110,7 @@ export class SecurityRiskDeviceService {
     if (daysSinceCreated < this.configService.thresholds.device.newDeviceDays) {
       score += this.configService.getWeight(WalnutAdminConstRiskFactor.DEVICE_NEW)
       factors.push(WalnutAdminConstRiskFactor.DEVICE_NEW)
-    }
-    else if (daysSinceCreated < this.configService.thresholds.device.recentDeviceDays) {
+    } else if (daysSinceCreated < this.configService.thresholds.device.recentDeviceDays) {
       score += this.configService.getWeight(WalnutAdminConstRiskFactor.DEVICE_RECENT)
       factors.push(WalnutAdminConstRiskFactor.DEVICE_RECENT)
     }
@@ -121,13 +119,19 @@ export class SecurityRiskDeviceService {
       const latestIp = device.ipHistory.at(-1) ?? ''
       const isBlacklisted = await this.sharedIpService.isIpBlacklisted(latestIp)
       if (isBlacklisted) {
-        score += this.configService.getWeight(WalnutAdminConstRiskFactor.DEVICE_CURRENT_IP_BLACKLISTED)
+        score += this.configService.getWeight(
+          WalnutAdminConstRiskFactor.DEVICE_CURRENT_IP_BLACKLISTED,
+        )
         factors.push(WalnutAdminConstRiskFactor.DEVICE_CURRENT_IP_BLACKLISTED)
       }
 
-      const hasHistoryBlacklisted = await Promise.all(device.ipHistory.map(async ip => this.sharedIpService.isIpBlacklisted(ip)))
+      const hasHistoryBlacklisted = await Promise.all(
+        device.ipHistory.map(async (ip) => this.sharedIpService.isIpBlacklisted(ip)),
+      )
       if (hasHistoryBlacklisted.some(Boolean)) {
-        score += this.configService.getWeight(WalnutAdminConstRiskFactor.DEVICE_HISTORY_IP_BLACKLISTED)
+        score += this.configService.getWeight(
+          WalnutAdminConstRiskFactor.DEVICE_HISTORY_IP_BLACKLISTED,
+        )
         factors.push(WalnutAdminConstRiskFactor.DEVICE_HISTORY_IP_BLACKLISTED)
       }
     }
@@ -162,22 +166,17 @@ export class SecurityRiskDeviceService {
     }
 
     const infoKey = this.getInfoKey(deviceId)
-    await this.redis.setEx(
-      infoKey,
-      this.configService.ttl.deviceInfo,
-      JSON.stringify(result),
-    )
+    await this.redis.setEx(infoKey, this.configService.ttl.deviceInfo, JSON.stringify(result))
 
     if (level === WalnutAdminConstRiskLevel.HIGH || level === WalnutAdminConstRiskLevel.CRITICAL) {
       this.logger.warn(
-        `High risk device detected - Device: ${deviceId}, Score: ${finalScore.toFixed(3)}, `
-        + `Level: ${level}, Factors: [${factors.join(', ')}]`,
+        `High risk device detected - Device: ${deviceId}, Score: ${finalScore.toFixed(3)}, ` +
+          `Level: ${level}, Factors: [${factors.join(', ')}]`,
       )
-    }
-    else {
+    } else {
       this.logger.debug(
-        `Device evaluated - ID: ${deviceId}, Score: ${finalScore.toFixed(3)}, `
-        + `Level: ${level}, Factors: [${factors.join(', ')}]`,
+        `Device evaluated - ID: ${deviceId}, Score: ${finalScore.toFixed(3)}, ` +
+          `Level: ${level}, Factors: [${factors.join(', ')}]`,
       )
     }
 

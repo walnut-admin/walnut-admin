@@ -53,7 +53,10 @@ export function makeEmployee(options: MakeEmployeeOptions): Record<string, unkno
 }
 
 /** app/demo 标准 CRUD payload（数组列显式给值：phase2 4.20 的 NOT NULL 列） */
-export function makeDemo(demoString: string, overrides: Record<string, unknown> = {}): Record<string, unknown> {
+export function makeDemo(
+  demoString: string,
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
   return {
     demoString,
     demoPhoneNumber: `138${randomUUID().replaceAll('-', '').slice(0, 8)}`,

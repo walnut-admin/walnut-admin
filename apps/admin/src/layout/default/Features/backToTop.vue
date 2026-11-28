@@ -27,7 +27,7 @@ watch(
 
 <template>
   <n-back-top
-    v-if=" showBackToTop"
+    v-if="showBackToTop"
     :listen-to="`#${String($route.name)}`"
     :bottom="80"
     :right="40"

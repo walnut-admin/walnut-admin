@@ -19,10 +19,7 @@ export class Axios {
     } = transform
 
     this.createRequestInterceptor(requestInterceptors, requestInterceptorsCatch)
-    this.createResponseInterceptor(
-      responseInterceptors,
-      responseInterceptorsCatch,
-    )
+    this.createResponseInterceptor(responseInterceptors, responseInterceptorsCatch)
   }
 
   private createRequestInterceptor(
@@ -39,9 +36,7 @@ export class Axios {
     this.instance.interceptors.response.use(interceptor, error)
   }
 
-  request<T = any, D = any>(
-    config: AxiosRequestConfig<D, T>,
-  ): Promise<T> {
+  request<T = any, D = any>(config: AxiosRequestConfig<D, T>): Promise<T> {
     return this.instance.request<T, T>(config)
   }
 

@@ -21,7 +21,12 @@ import { SysDeviceSharedModule } from './shared/device.shared.module'
     SysDeviceRepositoryModule,
   ],
   controllers: [],
-  providers: [SysDeviceBasicRepository, SysDeviceService, SysDeviceSettingService, sysDeviceRecoverableProvider],
+  providers: [
+    SysDeviceBasicRepository,
+    SysDeviceService,
+    SysDeviceSettingService,
+    sysDeviceRecoverableProvider,
+  ],
   exports: [SysDeviceService],
 })
 export class SysDeviceModule {}

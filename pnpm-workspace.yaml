@@ -55,6 +55,14 @@ publicHoistPattern:
   # 只是 winston 的依赖、不是 nest-winston 的依赖 ⇒ nestLike 返回 error 类型
   # （logger/index.ts 的 ts/no-unsafe-argument）。
   - logform
+  # vite-plugin-checker 的 vue-tsc fixture：prepareVueTsc 把解析到的 `typescript`（本仓经
+  # catalog/overrides 换成了 TNB）**整目录复制**到 checker 自己的 dist 下，再在副本里
+  # `require.resolve('@typescript-native-bridge/<platform>-<arch>')` 找 native bridge。
+  # 副本的 node_modules 只有 .bin，兄弟目录的平台包在 hoist: false 下又解析不到 ⇒
+  # dev/build 一启动就 `tsgoChecker: bridge shared library not found`、vite 不监听端口。
+  # 这里用**scope 内 glob**（只有 7 个平台包，同一发布者、同一用途）：写死单个平台名会让
+  # CI（linux-x64）与非 Windows 开发机重蹈覆辙。
+  - '@typescript-native-bridge/*'
 
 # 拒绝"可信度下降"的版本：某包此前由可信发布者发布，现在只剩 provenance 或无可信证据时不安装。
 trustPolicy: no-downgrade
@@ -65,6 +73,12 @@ trustPolicyExclude:
   - langium@3.3.1
   - semver@5.7.2
   - semver@6.3.1
+  # tsrs 是 2026-10 起由 oxc-project 发布的那一个包（0.0.0 的 description 与 repository 就
+  # 指向 oxc-project/tsrs，名字历来属于本项目），但 2026-10 起的版本改用 GitHub Actions OIDC
+  # 发布（`_npmUser` = GitHub Actions，带 SLSA provenance + registry 签名，7.1.0-beta.tsrs5 实测）；
+  # pnpm 的 no-downgrade 把「发布者从个人账号换成 OIDC」判成 `possible package takeover`，
+  # 整包所有版本都被拒。**只豁免要装的那一个精确版本**，策略本身不关（执行计划 §9.1、§11 第 7 行）。
+  - tsrs@7.1.0-beta.tsrs5
   - undici-types@6.21.0
 # 阻止传递依赖走 git / 直连 tarball 等异源，只允许从 registry 解析。
 blockExoticSubdeps: true
@@ -111,8 +125,7 @@ versioning:
   #    新增 workspace 包时必须加进来，否则 `pnpm change check` 与 versioning-config.test.ts 都会拦。
   fixed:
     # 类型是 string[][]（组的数组，每组是包名的数组）。单组也要写成嵌套序列。
-    -
-      - '@walnut/admin'
+    - - '@walnut/admin'
       - '@walnut/e2e'
       - '@walnut/server'
       - '@walnut/docs'
@@ -129,6 +142,12 @@ versioning:
       - '@walnut/vite-config'
       - '@walnut/scripts'
       - '@walnut/release'
+
+# 批次 8（P5c）实验态：catalog 换成 TNB 之后，**还要**用 overrides 强制传递依赖走同一包面。
+# 只改 catalog 时，未在 package.json 直接声明 typescript 的包仍会解析到 stock TS
+# （catalog 只管显式写 `catalog:` 的声明）；nest CLI 从仓库根解析，必须拿到 TNB 外壳。
+overrides:
+  typescript: npm:typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2
 
 catalog:
   '@alicloud/dypnsapi20170525': 2.0.0
@@ -161,7 +180,6 @@ catalog:
   '@iconify/vue': 5.0.1
   '@julr/vite-plugin-validate-env': 2.2.2
   '@keyv/redis': 5.1.6
-  '@mermaid-js/mermaid-mindmap': 9.3.0
   '@nestjs-modules/mailer': 2.3.4
   '@nestjs/axios': 12.0.1
   '@nestjs/bull': 12.0.0
@@ -185,7 +203,10 @@ catalog:
   '@nestjs/websockets': 12.3.2
   # 全链路 E2E（apps/e2e）。CLI 与浏览器修订号由这一个版本决定；`playwright` 由它**传递依赖**，
   # 不单列 catalog —— 单列只会多一个要跟着升的版本号，而它本来就与 @playwright/test 同版。
-  '@playwright/test': 1.59.0
+  # 1.65.1 发布于 2026-11-13（满足 minimumReleaseAge 24h）。跨 1.60–1.65 的 breaking 面已在
+  # 本仓逐条核对：inert 等待 / RFC 6265 cookie / useDefineForClassFields / 空 shard /
+  # params 追加 / test.fixme 描述 —— 本仓无 shard、无 page object 继承、cookie 调用不带 URL 匹配。
+  '@playwright/test': 1.65.1
   '@scalar/nestjs-api-reference': 1.1.5
   '@sentry/vite-plugin': 5.2.1
   '@sentry/vue': 10.52.0
@@ -208,7 +229,6 @@ catalog:
   '@types/express': 5.0.6
   '@types/express-xss-sanitizer': 2.0.0
   '@types/gtag.js': 0.0.20
-  '@types/intro.js': 5.1.5
   '@types/lodash': 4.17.24
   '@types/lodash-es': 4.17.12
   '@types/markdown-it': 14.1.2
@@ -224,16 +244,13 @@ catalog:
   '@types/serve-favicon': 2.5.7
   '@types/sortablejs': 1.15.9
   '@types/supertest': 7.2.0
-  '@unocss/preset-icons': 66.6.8
   '@unocss/reset': 66.6.8
-  '@unocss/transformer-variant-group': 66.6.8
   '@vitejs/plugin-legacy': 8.0.1
   '@vitejs/plugin-vue': 6.0.6
   '@vitejs/plugin-vue-jsx': 5.1.5
-  '@vitest/coverage-v8': 4.1.2
+  '@vitest/coverage-v8': 5.1.2
   '@vueuse/core': 14.3.0
   '@vueuse/integrations': 14.3.0
-  '@vueuse/router': 14.3.0
   '@zxcvbn-ts/core': 3.0.4
   ali-oss: 6.23.0
   animate.css: 4.1.1
@@ -246,7 +263,6 @@ catalog:
   class-validator: 0.15.1
   codemirror: 6.0.2
   colorizr: 5.0.1
-  compare-versions: 6.1.1
   compression: 1.8.1
   cookie-parser: 1.4.7
   cookie-session: 2.1.1
@@ -259,6 +275,12 @@ catalog:
   easy-fns-ts: 2.1.1
   echarts: 6.0.0
   eslint: 10.3.0
+  # ESLint 退出格式职责后的兜底（关掉与 oxfmt 冲突的格式化规则），见 tooling/eslint-config 三个预设。
+  # 锁 10.1.8：10.1.9 发布于 2026-11-27、未过 minimumReleaseAge；两个版本都带 `/flat` 子路径。
+  eslint-config-prettier: 10.1.8
+  # 把 .oxlintrc.json 翻译成「关掉 oxlint 已覆盖规则」的 ESLint flat config 段（双轨去重）。
+  # **必须与 oxlint 同版**（插件按 oxlint 的规则表生成 key）；升级两者要一起动。
+  eslint-plugin-oxlint: 1.95.0
   eslint-plugin-turbo: 2.11.2
   express-csp-header: 6.3.1
   express-xss-sanitizer: 2.0.2
@@ -272,7 +294,6 @@ catalog:
   idb: 8.0.3
   is-localhost-ip: 3.0.1
   isbot: 5.1.37
-  javascript-obfuscator: 5.4.2
   # ESLint 加载 `eslint.config.ts` 需要它（ESLint 官方的 TS 配置加载器）
   jiti: 2.7.0
   jose: 6.2.2
@@ -291,7 +312,6 @@ catalog:
   mathjs: 15.1.1
   mermaid: 11.8.0
   mind-elixir: 5.11.0
-  mockjs: 1.1.0
   murlock: 4.4.0
   naive-ui: 2.44.1
   nanoid: 5.1.11
@@ -303,6 +323,14 @@ catalog:
   # 7.13.0 为 latest 稳定（2026-02-11 发布）；上游仓库 8.4k stars、2026-09 仍有提交，维护活跃。
   openapi-typescript: 7.13.0
   otplib: 13.4.0
+  # 格式化器（Rust / Oxc）—— 格式的唯一真源；ESLint 已退出格式职责（stylistic: false）。
+  # 精确锁 0.80.0：0.x 的配置 key 会跨版本改名，抄旧配置会静默失效；升级单独成批、逐 key
+  # 对照当版文档（口径见 plans/rust-toolchain-migration-execution.md §6.1）。
+  oxfmt: 0.80.0
+  # 快速检查器（Rust / Oxc）—— 双轨期与 ESLint 并行：correctness 兜底在这里跑，
+  # Vue 模板 / 本地规则 / 类型感知分层仍归 ESLint（口径见 plans/rust-toolchain-migration-execution.md §7）。
+  # 精确锁：与 eslint-plugin-oxlint **锁步**，两者版本必须一致。
+  oxlint: 1.95.0
   pagefind: 1.3.0
   passport: 0.7.0
   passport-jwt: 4.0.1
@@ -312,17 +340,14 @@ catalog:
   pinia: 3.0.4
   qrcode: 1.5.4
   qs: 6.15.1
-  raw-body: 3.0.2
   redis: 5.11.0
   reflect-metadata: 0.2.2
   response-time: 2.3.4
   rimraf: 6.1.3
   rxjs: 7.8.2
   sass: 1.99.0
-  segment: 0.1.3
   serve-favicon: 2.5.1
   sharp: 0.34.5
-  sharp-ico: 0.1.5
   signature_pad: 5.1.3
   socket.io: 4.8.4
   socket.io-client: 4.8.4
@@ -332,13 +357,24 @@ catalog:
   syncpack: 15.3.2
   systeminformation: 5.31.5
   taze: 19.11.0
-  tencentcloud-sdk-nodejs: 4.1.204
   tinyglobby: 0.2.16
   tinymce: 8.5.0
-  ts-json-schema-generator: 2.9.1-next.18
+  # 共享包（platform-any/{utils-core,contract}）的 lib 打包器，替代 Vite lib 模式 + vite-plugin-dts。
+  # 0.x 版本，**精确锁**：0.23 是 breaking 版本，升级要单独成批并跑完全套验收（执行计划 §8.1）。
+  tsdown: 0.23.7
+  # 检查侧快查（tsc 的 Rust 移植）。**精确锁、禁用范围**：`tsrsN` 的版本文本排序最多到 tsrs9，
+  # registry 也没有 `next` tag（只有 `latest`），写范围会在跨 N 时排序错乱。
+  # 已转正（2026-11-28）：`types:check` 主脚本就是 tsrs，不再有 report-only 影子脚本。
+  # 例外：admin 与 docs 走 vue-tsc（docs 只因 vue-tsc 认 `.vue` 导入，见 typescript.md），
+  # `@walnut/commitlint-config` 与 `@walnut/types` 仍用 tsc，纯 JSON 预设包是 echo 跳过。
+  tsrs: 7.1.0-beta.tsrs5
   turbo: 2.11.2
   typeorm: 1.1.2
-  typescript: 6.0.3
+  # 批次 8（P5c）实验态：typescript 包面换成 TNB（classic 6.0.3 API 外壳 + 进程内 tsgo 7.0.2 引擎）。
+  # 消费者仍 require('typescript')，拿到的却是 tsgo 引擎；nest CLI 的守卫按 API 形状判
+  # （`typeof ts.getParsedCommandLineOfConfigFile !== 'function'` 才抛，与包版本号无关）。
+  # 精确锁：桥接串本身自带 tsgo 版本，写范围会在跨 N 时误升到另一版 tsgo。
+  typescript: npm:typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2
   ua-parser-js: 2.0.9
   unocss: 66.6.8
   unplugin-info: 1.3.2
@@ -346,16 +382,15 @@ catalog:
   unplugin-turbo-console: 2.3.2
   unplugin-vue-components: 32.0.0
   untyper: 1.0.0
-  vite: 8.0.11
+  vite: 8.4.0
   vite-bundle-analyzer: 1.3.8
   vite-plugin-banner: 0.8.1
   vite-plugin-bundle-obfuscator: 1.11.0
   vite-plugin-cdn2: 1.1.0
-  vite-plugin-checker: 0.14.5
+  vite-plugin-checker: 1.1.0
   vite-plugin-compression2: 2.5.3
   vite-plugin-csp-guard: 4.0.1
   vite-plugin-devtools-json: 1.0.0
-  vite-plugin-dts: 4.5.4
   vite-plugin-image-optimizer: 2.0.3
   vite-plugin-mkcert: 2.0.0
   vite-plugin-restart: 2.0.0
@@ -365,12 +400,14 @@ catalog:
   vitepress-mermaid-renderer: 1.1.5
   vitepress-plugin-pagefind: 0.4.14
   vitepress-plugin-tabs: 0.7.3
-  vitest: 4.1.2
+  # 5.x 与 Vite 8 同一条线（vite 是它的 peer）；4.1.2 → 5.1.2 的 breaking 逐条核对与验收判据见
+  # docs 的 `plans/testing-infrastructure-rust-plan.md` P2。`clearMocks` 默认变 true 是里面有影响的一条。
+  vitest: 5.1.2
   vue: 3.5.34
   vue-codemirror: 6.1.1
   vue-i18n: 11.4.2
   vue-router: 5.0.6
-  vue-tsc: 3.2.8
+  vue-tsc: 3.3.14
   vue3-google-signin: 2.1.1
   web-vitals: 5.2.0
   winston: 3.19.0

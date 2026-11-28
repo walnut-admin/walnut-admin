@@ -4,7 +4,11 @@ import type { ICompExtraPhoneNumberInputUpdateParams } from '@/components/Extra/
 import { useState } from '@walnut/client/hooks/core/useState'
 import { isEmailAddress, isPhoneNumber } from '@walnut/client/regex'
 import { computed, ref } from 'vue'
-import { bindUserIdentityAPI, checkUserIdentityAPI, verifyUserIdentityAPI } from '@/api/system/user_identity'
+import {
+  bindUserIdentityAPI,
+  checkUserIdentityAPI,
+  verifyUserIdentityAPI,
+} from '@/api/system/user_identity'
 import { useForm } from '@/components/UI/Form'
 import { useAppMsgSuccess } from '@/hooks/component/useMessage'
 
@@ -53,7 +57,9 @@ function resetFormData() {
   resetFormDataVerify()
 }
 
-const [registerVerify, { onOpen: onOpenVerifyModal, onClose: onCloseVerifyModal }] = useForm<typeof formDataVerify.value>({
+const [registerVerify, { onOpen: onOpenVerifyModal, onClose: onCloseVerifyModal }] = useForm<
+  typeof formDataVerify.value
+>({
   dialogPreset: 'modal',
   baseRules: true,
   dialogProps: {
@@ -96,13 +102,18 @@ async function onVerify() {
       purpose,
       verifyCode: formDataVerify.value.verifyCode!.join(''),
     })
-  }
-  else {
+  } else {
     await bindUserIdentityAPI({
       type: type.value!,
       purpose,
-      identifier: type.value === 'phoneNumber' ? formDataPhone.value.identifier! : formDataEmail.value.identifier!,
-      setAsSecurity: type.value === 'phoneNumber' ? formDataPhone.value.setAsSecurity : formDataEmail.value.setAsSecurity,
+      identifier:
+        type.value === 'phoneNumber'
+          ? formDataPhone.value.identifier!
+          : formDataEmail.value.identifier!,
+      setAsSecurity:
+        type.value === 'phoneNumber'
+          ? formDataPhone.value.setAsSecurity
+          : formDataEmail.value.setAsSecurity,
       verifyCode: formDataVerify.value.verifyCode!.join(''),
     })
   }
@@ -112,7 +123,9 @@ async function onVerify() {
   resetFormData()
 }
 
-const [registerPhone, { onOpen: onOpenPhoneModal, onClose: onClosePhoneModal }] = useForm<typeof formDataPhone.value>({
+const [registerPhone, { onOpen: onOpenPhoneModal, onClose: onClosePhoneModal }] = useForm<
+  typeof formDataPhone.value
+>({
   dialogPreset: 'modal',
   dialogProps: {
     width: '30%',
@@ -131,8 +144,7 @@ const [registerPhone, { onOpen: onOpenPhoneModal, onClose: onClosePhoneModal }] 
         })
         onClosePhoneModal()
         onOpenVerifyModal()
-      }
-      finally {
+      } finally {
         done()
       }
     },
@@ -200,7 +212,9 @@ const [registerPhone, { onOpen: onOpenPhoneModal, onClose: onClosePhoneModal }] 
   ],
 })
 
-const [registerEmail, { onOpen: onOpenEmailModal, onClose: onCloseEmailModal }] = useForm<typeof formDataEmail.value>({
+const [registerEmail, { onOpen: onOpenEmailModal, onClose: onCloseEmailModal }] = useForm<
+  typeof formDataEmail.value
+>({
   dialogPreset: 'modal',
   dialogProps: {
     width: '30%',
@@ -219,8 +233,7 @@ const [registerEmail, { onOpen: onOpenEmailModal, onClose: onCloseEmailModal }] 
         })
         onCloseEmailModal()
         onOpenVerifyModal()
-      }
-      finally {
+      } finally {
         done()
       }
     },
@@ -249,8 +262,7 @@ const [registerEmail, { onOpen: onOpenEmailModal, onClose: onCloseEmailModal }] 
             type: 'string',
             trigger: ['input', 'change'],
             validator: (rule, value) => {
-              if (!isEmailAddress(value))
-                return Promise.reject(t('app.base.emailAddress.rule'))
+              if (!isEmailAddress(value)) return Promise.reject(t('app.base.emailAddress.rule'))
 
               return Promise.resolve()
             },
@@ -285,7 +297,12 @@ const [registerEmail, { onOpen: onOpenEmailModal, onClose: onCloseEmailModal }] 
 })
 
 defineExpose({
-  onOpen: (_type: SystemUserIdentityType, _securityBound: boolean, _maskedValue: string, _needTip = true) => {
+  onOpen: (
+    _type: SystemUserIdentityType,
+    _securityBound: boolean,
+    _maskedValue: string,
+    _needTip = true,
+  ) => {
     type.value = _type
     securityBound.value = _securityBound
     maskedValue.value = _maskedValue
@@ -293,8 +310,7 @@ defineExpose({
 
     if (_type === 'phoneNumber') {
       onOpenPhoneModal()
-    }
-    else if (_type === 'emailAddress') {
+    } else if (_type === 'emailAddress') {
       onOpenEmailModal()
     }
   },
@@ -317,7 +333,8 @@ defineExpose({
             {{ $t('security.phone.bindTitle') }}
           </n-checkbox>
         </template>
-        <span v-if="securityBound">{{ $t('security.phone.bindDesc', { maskedValue }) }}, </span>{{ $t('security.phone.bindTip') }}
+        <span v-if="securityBound">{{ $t('security.phone.bindDesc', { maskedValue }) }}, </span
+        >{{ $t('security.phone.bindTip') }}
       </n-alert>
     </template>
   </WForm>
@@ -331,7 +348,8 @@ defineExpose({
             {{ $t('security.email.bindTitle') }}
           </n-checkbox>
         </template>
-        <span v-if="securityBound">{{ $t('security.email.bindDesc', { maskedValue }) }}, </span>{{ $t('security.email.bindTip') }}
+        <span v-if="securityBound">{{ $t('security.email.bindDesc', { maskedValue }) }}, </span
+        >{{ $t('security.email.bindTip') }}
       </n-alert>
     </template>
   </WForm>

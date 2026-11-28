@@ -22,20 +22,18 @@ declare global {
 
   type IWADTEnumResOpt = IWalnutAdminDecoratorTransformerEnumResponseOptions
 
-  interface IWalnutAdminDecoratorTransformEnumOptions
-    extends IWalnutAdminDecoratorTransformOptions<
-      IWalnutAdminDecoratorTransformerEnumRequestOptions,
-      IWalnutAdminDecoratorTransformerEnumResponseOptions
-    > {}
+  interface IWalnutAdminDecoratorTransformEnumOptions extends IWalnutAdminDecoratorTransformOptions<
+    IWalnutAdminDecoratorTransformerEnumRequestOptions,
+    IWalnutAdminDecoratorTransformerEnumResponseOptions
+  > {}
 
   type IWADTEnumOpt = IWalnutAdminDecoratorTransformEnumOptions
 
   // field option
-  interface IWalnutAdminDecoratorFieldEnumOptions
-    extends IWalnutAdminDecoratorBasicOptions<
-      IWalnutAdminDecoratorValidatorEnumOptions,
-      IWalnutAdminDecoratorTransformEnumOptions
-    > {}
+  interface IWalnutAdminDecoratorFieldEnumOptions extends IWalnutAdminDecoratorBasicOptions<
+    IWalnutAdminDecoratorValidatorEnumOptions,
+    IWalnutAdminDecoratorTransformEnumOptions
+  > {}
 
   type IWADEnumOpt = IWalnutAdminDecoratorFieldEnumOptions
 }

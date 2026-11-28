@@ -3,7 +3,11 @@ import type { EntityMetadata, ObjectLiteral, SelectQueryBuilder } from 'typeorm'
 import type { IWalnutPgListQueryContext } from '../pg-list.builder'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract'
 import { describe, expect, it } from 'vitest'
-import { applyPgListQuery, buildPgListQueryOptions, buildPgListQueryOptionsFromQb } from '../pg-list.builder'
+import {
+  applyPgListQuery,
+  buildPgListQueryOptions,
+  buildPgListQueryOptionsFromQb,
+} from '../pg-list.builder'
 
 /**
  * builder 的算子/排序/分页行为 —— 用**结构化 fake qb**（零 DB）固化：
@@ -21,8 +25,8 @@ interface IFakeColumn {
 
 function makeMetadata(columns: IFakeColumn[], pks: string[] = ['id']): EntityMetadata {
   return {
-    columns: columns.map(c => ({ ...c, isArray: c.isArray ?? false })),
-    primaryColumns: pks.map(propertyName => ({ propertyName })),
+    columns: columns.map((c) => ({ ...c, isArray: c.isArray ?? false })),
+    primaryColumns: pks.map((propertyName) => ({ propertyName })),
   } as unknown as EntityMetadata
 }
 
@@ -37,7 +41,7 @@ const METADATA = makeMetadata([
 ])
 
 interface IFakeQb {
-  where: Array<{ sql: string, params: Record<string, unknown> }>
+  where: Array<{ sql: string; params: Record<string, unknown> }>
   orderBys: Record<string, 'ASC' | 'DESC'>
   offsetValue?: number
   limitValue?: number
@@ -47,7 +51,7 @@ interface IFakeQb {
 function makeQb(): IFakeQb {
   const where: IFakeQb['where'] = []
   const orderBys: IFakeQb['orderBys'] = {}
-  const state: { offsetValue?: number, limitValue?: number } = {}
+  const state: { offsetValue?: number; limitValue?: number } = {}
 
   const qb: IWalnutPgListQueryContext & Record<string, unknown> = {
     expressionMap: { mainAlias: { metadata: METADATA }, orderBys },
@@ -72,8 +76,12 @@ function makeQb(): IFakeQb {
   return {
     where,
     orderBys,
-    get offsetValue() { return state.offsetValue },
-    get limitValue() { return state.limitValue },
+    get offsetValue() {
+      return state.offsetValue
+    },
+    get limitValue() {
+      return state.limitValue
+    },
     qb,
   }
 }
@@ -90,7 +98,7 @@ describe('buildPgListQueryOptionsFromQb · 值 → 条件（列类型驱动）',
     const options = applyTo(fake, { query: { id: 'abc' } } as never)
 
     expect(options.match.id).toBeUndefined()
-    expect(fake.where.map(w => w.sql).join(' ')).not.toContain('"id"')
+    expect(fake.where.map((w) => w.sql).join(' ')).not.toContain('"id"')
   })
 
   it('timestamptz 列收到标量日期 ⇒ 等值（不是 ILIKE）', () => {
@@ -127,7 +135,9 @@ describe('buildPgListQueryOptionsFromQb · 值 → 条件（列类型驱动）',
 
   it('smallint 列收到 "abc" ⇒ 丢弃；收到数字数组 ⇒ IN', () => {
     const dropped = makeQb()
-    expect(applyTo(dropped, { query: { riskScore: 'abc' } } as never).match.riskScore).toBeUndefined()
+    expect(
+      applyTo(dropped, { query: { riskScore: 'abc' } } as never).match.riskScore,
+    ).toBeUndefined()
 
     const inCase = makeQb()
     const options = applyTo(inCase, { query: { riskScore: [1, 2] } } as never)
@@ -140,7 +150,9 @@ describe('buildPgListQueryOptionsFromQb · 值 → 条件（列类型驱动）',
     expect(applyTo(bad, { query: { deviceInfo: 'abc' } } as never).match.deviceInfo).toBeUndefined()
 
     const good = makeQb()
-    expect(applyTo(good, { query: { deviceInfo: { os: 'iOS' } } } as never).match.deviceInfo?.op).toBe('eq')
+    expect(
+      applyTo(good, { query: { deviceInfo: { os: 'iOS' } } } as never).match.deviceInfo?.op,
+    ).toBe('eq')
   })
 
   it('text 列收到字符串 ⇒ ILIKE，通配符被字面量转义', () => {
@@ -153,7 +165,9 @@ describe('buildPgListQueryOptionsFromQb · 值 → 条件（列类型驱动）',
 
   it('原生数组列（text[]）⇒ 丢弃', () => {
     const fake = makeQb()
-    expect(applyTo(fake, { query: { ipHistory: '1.2.3.4' } } as never).match.ipHistory).toBeUndefined()
+    expect(
+      applyTo(fake, { query: { ipHistory: '1.2.3.4' } } as never).match.ipHistory,
+    ).toBeUndefined()
   })
 
   it('非实体列 ⇒ 静默丢弃（不 warn 刷屏）', () => {
@@ -260,10 +274,14 @@ describe('page · 正规化落到 offset/limit', () => {
 
   it('pageAdjusted 只在入参被改写时为 true', () => {
     const normal = makeQb()
-    expect(buildPgListQueryOptionsFromQb(normal.qb, { page: { page: 2, pageSize: 20 } }).pageAdjusted).toBe(false)
+    expect(
+      buildPgListQueryOptionsFromQb(normal.qb, { page: { page: 2, pageSize: 20 } }).pageAdjusted,
+    ).toBe(false)
 
     const adjusted = makeQb()
-    expect(buildPgListQueryOptionsFromQb(adjusted.qb, { page: { page: -1, pageSize: 20 } }).pageAdjusted).toBe(true)
+    expect(
+      buildPgListQueryOptionsFromQb(adjusted.qb, { page: { page: -1, pageSize: 20 } }).pageAdjusted,
+    ).toBe(true)
   })
 })
 
@@ -274,62 +292,52 @@ describe('applyPgListQuery · 权威裁决（外部塞进来的 match 也要过�
     const legacy = buildPgListQueryOptions({ query: { id: 'abc' } }, {}, undefined, METADATA)
     expect(legacy.match.id?.op).toBe('ilike')
 
-    applyPgListQuery(
-      fake.qb as SelectQueryBuilder<ObjectLiteral>,
-      'entity',
-      legacy,
-    )
+    applyPgListQuery(fake.qb as SelectQueryBuilder<ObjectLiteral>, 'entity', legacy)
 
     expect(fake.where).toHaveLength(0)
   })
 
   it('手写 match 无 raw 时按 op×kind 兼容性裁决', () => {
     const fake = makeQb()
-    applyPgListQuery(
-      fake.qb as SelectQueryBuilder<ObjectLiteral>,
-      'entity',
-      {
-        match: {
-          createdAt: { op: 'ilike', value: 'x' },
-          deviceInfo: { op: 'range', value: [new Date(), new Date()] },
-          id: { op: 'eq', value: 'not-a-uuid' },
-        },
-        sort: {},
-        skip: 0,
-        limit: 10,
-        metadata: METADATA,
+    applyPgListQuery(fake.qb as SelectQueryBuilder<ObjectLiteral>, 'entity', {
+      match: {
+        createdAt: { op: 'ilike', value: 'x' },
+        deviceInfo: { op: 'range', value: [new Date(), new Date()] },
+        id: { op: 'eq', value: 'not-a-uuid' },
       },
-    )
+      sort: {},
+      skip: 0,
+      limit: 10,
+      metadata: METADATA,
+    })
 
     // ilike 打 timestamptz / range 打 jsonb ⇒ 都不允许；eq 无 raw 时按 op×kind 放行（值由调用方保证）
-    expect(fake.where.map(w => w.sql).join(' ')).not.toContain('ILIKE')
-    expect(fake.where.map(w => w.sql).join(' ')).not.toContain('>=')
+    expect(fake.where.map((w) => w.sql).join(' ')).not.toContain('ILIKE')
+    expect(fake.where.map((w) => w.sql).join(' ')).not.toContain('>=')
   })
 
   it('无任何可排序字段落入时补默认排序（防翻页重复/丢行）', () => {
     const fake = makeQb()
-    applyPgListQuery(
-      fake.qb as SelectQueryBuilder<ObjectLiteral>,
-      'entity',
-      { match: {}, sort: { notAColumn: 'ASC' }, skip: 0, limit: 10, metadata: METADATA },
-    )
+    applyPgListQuery(fake.qb as SelectQueryBuilder<ObjectLiteral>, 'entity', {
+      match: {},
+      sort: { notAColumn: 'ASC' },
+      skip: 0,
+      limit: 10,
+      metadata: METADATA,
+    })
 
     expect(fake.orderBys).toEqual({ 'entity.createdAt': 'DESC', 'entity.id': 'DESC' })
   })
 
   it('列名含空格/分号等注入尝试 ⇒ 不生成任何 SQL（被列白名单丢弃）', () => {
     const fake = makeQb()
-    applyPgListQuery(
-      fake.qb as SelectQueryBuilder<ObjectLiteral>,
-      'entity',
-      {
-        match: { 'id; DROP TABLE sys_user': { op: 'eq', value: 'x' } },
-        sort: { 'devicename) OR 1=1--': 'ASC' },
-        skip: 0,
-        limit: 10,
-        metadata: METADATA,
-      },
-    )
+    applyPgListQuery(fake.qb as SelectQueryBuilder<ObjectLiteral>, 'entity', {
+      match: { 'id; DROP TABLE sys_user': { op: 'eq', value: 'x' } },
+      sort: { 'devicename) OR 1=1--': 'ASC' },
+      skip: 0,
+      limit: 10,
+      metadata: METADATA,
+    })
 
     expect(fake.where).toHaveLength(0)
     // 仍然有兜底排序，但列名来自实体元数据，不含注入串
@@ -344,7 +352,9 @@ describe('applyPgListQuery · 权威裁决（外部塞进来的 match 也要过�
 describe('filters · 显式 op × 列类型', () => {
   it('text 列 + like ⇒ ILIKE（通配符仍转义），条件带 filterOp', () => {
     const fake = makeQb()
-    const options = applyTo(fake, { filters: [{ field: 'deviceName', op: 'like', value: '100%' }] } as never)
+    const options = applyTo(fake, {
+      filters: [{ field: 'deviceName', op: 'like', value: '100%' }],
+    } as never)
 
     expect(options.match.deviceName?.op).toBe('ilike')
     expect(options.match.deviceName?.filterOp).toBe('like')
@@ -367,16 +377,23 @@ describe('filters · 显式 op × 列类型', () => {
 
   it('boolean 列 + eq ⇒ 归一为布尔', () => {
     const fake = makeQb()
-    const options = applyTo(fake, { filters: [{ field: 'active', op: 'eq', value: 'true' }] } as never)
+    const options = applyTo(fake, {
+      filters: [{ field: 'active', op: 'eq', value: 'true' }],
+    } as never)
 
     expect(options.match.active?.value).toBe(true)
   })
 
   // 批次 9 · C6：字典布尔值（`sys_shared_status` 的 "true"/"false"）走的是表头的 like 形态，
   // 布尔列上裁决成等值 —— 这是「字典值 → 真布尔」的唯一转换点（见 pg-column-op 的同名注释）。
-  it.each([['true', true], ['false', false]])('boolean 列 + like %s ⇒ 裁决成等值 %s', (raw, expected) => {
+  it.each([
+    ['true', true],
+    ['false', false],
+  ])('boolean 列 + like %s ⇒ 裁决成等值 %s', (raw, expected) => {
     const fake = makeQb()
-    const options = applyTo(fake, { filters: [{ field: 'active', op: 'like', value: raw }] } as never)
+    const options = applyTo(fake, {
+      filters: [{ field: 'active', op: 'like', value: raw }],
+    } as never)
 
     expect(options.match.active).toEqual({ op: 'eq', value: expected, filterOp: 'like' })
     expect(fake.where[0].params[Object.keys(fake.where[0].params)[0]]).toBe(expected)
@@ -385,15 +402,23 @@ describe('filters · 显式 op × 列类型', () => {
   it('boolean 列 + like 的值不是布尔字面量 ⇒ 仍然 40099（只放行字典那两颗值）', () => {
     const fake = makeQb()
 
-    expect(() => applyTo(fake, { filters: [{ field: 'active', op: 'like', value: 'yes' }] } as never)).toThrowError(
-      expect.objectContaining({ response: expect.objectContaining({ errCode: WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR }) }),
+    expect(() =>
+      applyTo(fake, { filters: [{ field: 'active', op: 'like', value: 'yes' }] } as never),
+    ).toThrowError(
+      expect.objectContaining({
+        response: expect.objectContaining({
+          errCode: WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+        }),
+      }),
     )
     expect(fake.where).toHaveLength(0)
   })
 
   it('数值列 + in ⇒ IN（不再按值类型猜）', () => {
     const fake = makeQb()
-    const options = applyTo(fake, { filters: [{ field: 'riskScore', op: 'in', value: [1, 2] }] } as never)
+    const options = applyTo(fake, {
+      filters: [{ field: 'riskScore', op: 'in', value: [1, 2] }],
+    } as never)
 
     expect(options.match.riskScore?.op).toBe('in')
     expect(fake.where[0].sql).toContain('IN (:...')
@@ -422,14 +447,18 @@ describe('filters · 显式 op × 列类型', () => {
 
   it('jsonb 列 + eq 对象 ⇒ 等值', () => {
     const fake = makeQb()
-    const options = applyTo(fake, { filters: [{ field: 'deviceInfo', op: 'eq', value: { os: 'iOS' } }] } as never)
+    const options = applyTo(fake, {
+      filters: [{ field: 'deviceInfo', op: 'eq', value: { os: 'iOS' } }],
+    } as never)
 
     expect(options.match.deviceInfo?.op).toBe('eq')
   })
 
   it('非实体列 ⇒ 仍按列白名单丢弃（过滤面含 JOIN 别名键，不 400）', () => {
     const fake = makeQb()
-    const options = applyTo(fake, { filters: [{ field: 'totallyBogus', op: 'like', value: 'x' }] } as never)
+    const options = applyTo(fake, {
+      filters: [{ field: 'totallyBogus', op: 'like', value: 'x' }],
+    } as never)
 
     expect(options.match.totallyBogus).toBeUndefined()
     expect(fake.where).toHaveLength(0)
@@ -437,7 +466,7 @@ describe('filters · 显式 op × 列类型', () => {
 })
 
 /** R1 矩阵里会产生 PG 错误的组合 —— 全部必须在进 SQL 前被拒成 40099 */
-const REJECTED_FILTERS: Array<[string, Array<{ field: string, op: string, value?: unknown }>]> = [
+const REJECTED_FILTERS: Array<[string, Array<{ field: string; op: string; value?: unknown }>]> = [
   ['like 打 uuid 列', [{ field: 'id', op: 'like', value: 'abc' }]],
   ['like 打 boolean 列', [{ field: 'active', op: 'like', value: 'abc' }]],
   ['like 打 jsonb 列', [{ field: 'deviceInfo', op: 'like', value: 'abc' }]],
@@ -452,7 +481,10 @@ const REJECTED_FILTERS: Array<[string, Array<{ field: string, op: string, value?
   ['timestamptz 列收到布尔', [{ field: 'createdAt', op: 'eq', value: true }]],
   ['smallint 列收到 "abc"', [{ field: 'riskScore', op: 'eq', value: 'abc' }]],
   ['range 打 boolean 列', [{ field: 'active', op: 'range', value: ['2024-01-01', '2024-12-31'] }]],
-  ['range 打 jsonb 列', [{ field: 'deviceInfo', op: 'range', value: ['2024-01-01', '2024-12-31'] }]],
+  [
+    'range 打 jsonb 列',
+    [{ field: 'deviceInfo', op: 'range', value: ['2024-01-01', '2024-12-31'] }],
+  ],
   ['range 打数值列', [{ field: 'riskScore', op: 'range', value: ['2024-01-01', '2024-12-31'] }]],
   ['range 端点是非时间数值', [{ field: 'createdAt', op: 'range', value: [1, 2] }]],
   ['range 端点长度不足', [{ field: 'createdAt', op: 'range', value: ['2024-01-01'] }]],
@@ -469,7 +501,11 @@ describe('filters · 非法 op/值 ⇒ 40099（永不 50000）', () => {
     const fake = makeQb()
 
     expect(() => applyTo(fake, { filters } as never)).toThrowError(
-      expect.objectContaining({ response: expect.objectContaining({ errCode: WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR }) }),
+      expect.objectContaining({
+        response: expect.objectContaining({
+          errCode: WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+        }),
+      }),
     )
     // 一条 SQL 都不该发出去
     expect(fake.where).toHaveLength(0)
@@ -479,18 +515,20 @@ describe('filters · 非法 op/值 ⇒ 40099（永不 50000）', () => {
     const fake = makeQb()
 
     expect(() =>
-      applyPgListQuery(
-        fake.qb as SelectQueryBuilder<ObjectLiteral>,
-        'entity',
-        {
-          match: { id: { op: 'ilike', value: 'abc', filterOp: 'like' } },
-          sort: {},
-          skip: 0,
-          limit: 10,
-          metadata: METADATA,
-        },
-      ),
-    ).toThrowError(expect.objectContaining({ response: expect.objectContaining({ errCode: WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR }) }))
+      applyPgListQuery(fake.qb as SelectQueryBuilder<ObjectLiteral>, 'entity', {
+        match: { id: { op: 'ilike', value: 'abc', filterOp: 'like' } },
+        sort: {},
+        skip: 0,
+        limit: 10,
+        metadata: METADATA,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        response: expect.objectContaining({
+          errCode: WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
+        }),
+      }),
+    )
     expect(fake.where).toHaveLength(0)
   })
 })

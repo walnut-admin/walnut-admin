@@ -24,11 +24,7 @@
  *
  * 全部走协议客户端（秒级）；不 sleep 等 CAP / TOTP 窗口。
  */
-import {
-  createLoginableUser,
-  deleteLoginableUser,
-  loginAs,
-} from '../../lib/account-fixtures.ts'
+import { createLoginableUser, deleteLoginableUser, loginAs } from '../../lib/account-fixtures.ts'
 import { trackDevice, uniqueLocalIp } from '../../lib/device-fixtures.ts'
 import {
   countActiveRefreshTokensForDevice,
@@ -73,8 +69,11 @@ async function profileEnvelope(client: WalnutProtocolClient): Promise<Envelope> 
 }
 
 /** 建一个挂 test-home 角色的可登录用户（MFA 未绑定；设备由清理 fixture 收） */
-async function createPlainUser(root: WalnutProtocolClient, prefix: string): Promise<Awaited<ReturnType<typeof createLoginableUser>>> {
-  const roleId = await withPg(pg => findRoleIdByName(pg, NON_MFA_FREE_ROLE))
+async function createPlainUser(
+  root: WalnutProtocolClient,
+  prefix: string,
+): Promise<Awaited<ReturnType<typeof createLoginableUser>>> {
+  const roleId = await withPg((pg) => findRoleIdByName(pg, NON_MFA_FREE_ROLE))
   return createLoginableUser(root, { userNamePrefix: prefix, roleId })
 }
 
@@ -103,8 +102,7 @@ test.describe('auth 面矩阵（MFA / 会话 / 登出）', { tag: '@risk' }, () 
         expect(deviceRow, '登录后应有该设备的 sys_user_device 行').not.toBeNull()
         expect(deviceRow!.trusted, '未走 TOTP 验证的设备不应是 trusted').toBe(false)
       })
-    }
-    finally {
+    } finally {
       await deleteLoginableUser(user)
     }
   })
@@ -132,16 +130,16 @@ test.describe('auth 面矩阵（MFA / 会话 / 登出）', { tag: '@risk' }, () 
       // 用 TOTP 完成设备级验证（trusted=false ⇒ 不写信任时间）
       await deviceB.verifyTotpForDevice(secret, { trusted: false })
       const passed = await profileEnvelope(deviceB)
-      expect(passed.code, `TOTP 验证后应 20000，实际 ${passed.code} ${passed.msg ?? ''}`)
-        .toBe(WalnutAdminConstAppResponseCode.SUCCESS)
+      expect(passed.code, `TOTP 验证后应 20000，实际 ${passed.code} ${passed.msg ?? ''}`).toBe(
+        WalnutAdminConstAppResponseCode.SUCCESS,
+      )
 
       await withPg(async (pg) => {
         const row = await findUserDeviceRow(pg, user.userId, deviceB.deviceId)
         expect(row, 'TOTP 设备验证后没有 sys_user_device 行').not.toBeNull()
         expect(row!.trusted, 'trusted=false 的验证不应把设备标成 trusted').toBe(false)
       })
-    }
-    finally {
+    } finally {
       await deleteLoginableUser(user)
     }
   })
@@ -176,18 +174,25 @@ test.describe('auth 面矩阵（MFA / 会话 / 登出）', { tag: '@risk' }, () 
 
       // 一次性：同一枚备用码再用一次 ⇒ 40000，且不会二次消费
       const tokens = deviceB.tokens!
-      const reuse = await deviceB.requestFree<Envelope>('POST', SystemEndpointRoutes.USER_MFA_TOTP_VERIFY, {
-        body: { code: backupCode, trusted: false },
-        headers: { Authorization: `Bearer ${tokens.accessToken}` },
-      })
-      expect(reuse.code, `已消费的备用码应被拒 40000，实际 ${reuse.code} ${reuse.msg ?? ''}`)
-        .toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+      const reuse = await deviceB.requestFree<Envelope>(
+        'POST',
+        SystemEndpointRoutes.USER_MFA_TOTP_VERIFY,
+        {
+          body: { code: backupCode, trusted: false },
+          headers: { Authorization: `Bearer ${tokens.accessToken}` },
+        },
+      )
+      expect(reuse.code, `已消费的备用码应被拒 40000，实际 ${reuse.code} ${reuse.msg ?? ''}`).toBe(
+        WalnutAdminConstAppResponseCode.BAD_REQUEST,
+      )
 
       await withPg(async (pg) => {
-        expect((await findTotpMfaRow(pg, user.userId))!.backupCodesLeft, '失败重放不应再消费备用码').toBe(9)
+        expect(
+          (await findTotpMfaRow(pg, user.userId))!.backupCodesLeft,
+          '失败重放不应再消费备用码',
+        ).toBe(9)
       })
-    }
-    finally {
+    } finally {
       await deleteLoginableUser(user)
     }
   })
@@ -201,15 +206,25 @@ test.describe('auth 面矩阵（MFA / 会话 / 登出）', { tag: '@risk' }, () 
       const first = await device.bindTotpWithBackupCodes()
       await withPg(async (pg) => {
         expect(await findTotpMfaRow(pg, user.userId), 'bind 后应有 totp 行').not.toBeNull()
-        expect(await readUserMfaSetup(pg, user.userId), 'bind + verify 后 mfa_setup 应为 true').toBe(true)
+        expect(
+          await readUserMfaSetup(pg, user.userId),
+          'bind + verify 后 mfa_setup 应为 true',
+        ).toBe(true)
       })
 
-      await expect(device.root<boolean>('DELETE', SystemEndpointRoutes.USER_MFA_TOTP_UNBIND)).resolves.toBe(true)
+      await expect(
+        device.root<boolean>('DELETE', SystemEndpointRoutes.USER_MFA_TOTP_UNBIND),
+      ).resolves.toBe(true)
 
       await withPg(async (pg) => {
-        expect(await findTotpMfaRow(pg, user.userId), 'unbind 后 sys_user_mfa 行应被删除').toBeNull()
+        expect(
+          await findTotpMfaRow(pg, user.userId),
+          'unbind 后 sys_user_mfa 行应被删除',
+        ).toBeNull()
         // ②（2026-11）：账号级标志在同一事务里立即回落，不再等 cron
-        expect(await readUserMfaSetup(pg, user.userId), 'unbind 后 mfa_setup 应立即为 false').toBe(false)
+        expect(await readUserMfaSetup(pg, user.userId), 'unbind 后 mfa_setup 应立即为 false').toBe(
+          false,
+        )
       })
 
       // 「只存在禁用和重新绑定」：同设备重新 generate → bind → verify，拿到新的一批备用码
@@ -221,13 +236,15 @@ test.describe('auth 面矩阵（MFA / 会话 / 登出）', { tag: '@risk' }, () 
         const row = await findTotpMfaRow(pg, user.userId)
         expect(row, '重绑后没有 totp 行').not.toBeNull()
         expect(row!.backupCodesLeft).toBe(10)
-        expect(await readUserMfaSetup(pg, user.userId), '重绑 + verify 后 mfa_setup 应回到 true').toBe(true)
+        expect(
+          await readUserMfaSetup(pg, user.userId),
+          '重绑 + verify 后 mfa_setup 应回到 true',
+        ).toBe(true)
       })
       await expect(profileEnvelope(device)).resolves.toMatchObject({
         code: WalnutAdminConstAppResponseCode.SUCCESS,
       })
-    }
-    finally {
+    } finally {
       await deleteLoginableUser(user)
     }
   })
@@ -243,32 +260,36 @@ test.describe('auth 面矩阵（MFA / 会话 / 登出）', { tag: '@risk' }, () 
     await deviceB.login(credentials.userName, credentials.password)
     await deviceB.verifyTotpForDevice(credentials.totpSecret)
 
-    const adminUserId = await withPg(pg => findUserIdByUserName(pg, credentials.userName))
+    const adminUserId = await withPg((pg) => findUserIdByUserName(pg, credentials.userName))
 
     try {
       // 多设备在线：device/list 同时列出 A / B，且只有 A 是 current
       const devices = await deviceA.root<{
-        data: Array<{ deviceId: string, current: boolean }>
+        data: Array<{ deviceId: string; current: boolean }>
         total: number
       }>('GET', SystemEndpointRoutes.USER_DEVICE_LIST)
       expect(devices.total, 'device/list 应至少有两台在线设备').toBeGreaterThanOrEqual(2)
-      const listedB = devices.data.find(row => row.deviceId === deviceB.deviceId)
+      const listedB = devices.data.find((row) => row.deviceId === deviceB.deviceId)
       expect(listedB, 'device/list 里没有第二台设备').not.toBeUndefined()
       expect(listedB!.current, '第二台设备不应标成 current').toBe(false)
-      const listedA = devices.data.find(row => row.deviceId === deviceA.deviceId)
+      const listedA = devices.data.find((row) => row.deviceId === deviceA.deviceId)
       expect(listedA?.current, '当前设备应标成 current').toBe(true)
 
       // force-quit 的前置：真实 UI 设备由 socket 写 monitor 行；协议设备补一条等价行
-      await withPg(pg => insertMonitorUserRow(pg, adminUserId, deviceB.deviceId))
+      await withPg((pg) => insertMonitorUserRow(pg, adminUserId, deviceB.deviceId))
 
       await expect(
-        deviceA.root<boolean>('DELETE', `${SystemRoutes.USER_DEVICE}/force-quit/${deviceB.deviceId}`),
+        deviceA.root<boolean>(
+          'DELETE',
+          `${SystemRoutes.USER_DEVICE}/force-quit/${deviceB.deviceId}`,
+        ),
       ).resolves.toBe(true)
 
       // 被踢设备：JWT 会话键已清 ⇒ 旧 AT 下一次请求 40101
       const kicked = await profileEnvelope(deviceB)
-      expect(kicked.code, `被踢设备的旧 AT 应 40101，实际 ${kicked.code} ${kicked.msg ?? ''}`)
-        .toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+      expect(kicked.code, `被踢设备的旧 AT 应 40101，实际 ${kicked.code} ${kicked.msg ?? ''}`).toBe(
+        WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
+      )
 
       // 本机不受影响
       await expect(profileEnvelope(deviceA)).resolves.toMatchObject({
@@ -276,12 +297,16 @@ test.describe('auth 面矩阵（MFA / 会话 / 登出）', { tag: '@risk' }, () 
       })
 
       await withPg(async (pg) => {
-        expect(await countActiveRefreshTokensForDevice(pg, deviceB.deviceId), '被踢设备的 RT 仍有现役行').toBe(0)
+        expect(
+          await countActiveRefreshTokensForDevice(pg, deviceB.deviceId),
+          '被踢设备的 RT 仍有现役行',
+        ).toBe(0)
       })
-      await expect(withRedis(redis => scanKeys(redis, authSessionKeyPattern(deviceB.deviceId)))).resolves.toEqual([])
-    }
-    finally {
-      await withPg(pg => deleteMonitorUserByDeviceId(pg, deviceB.deviceId)).catch(() => {})
+      await expect(
+        withRedis((redis) => scanKeys(redis, authSessionKeyPattern(deviceB.deviceId))),
+      ).resolves.toEqual([])
+    } finally {
+      await withPg((pg) => deleteMonitorUserByDeviceId(pg, deviceB.deviceId)).catch(() => {})
     }
   })
 
@@ -292,12 +317,15 @@ test.describe('auth 面矩阵（MFA / 会话 / 登出）', { tag: '@risk' }, () 
     await expect(client.root<boolean>('POST', AuthRoutes.SIGNOUT)).resolves.toBe(true)
 
     const after = await profileEnvelope(client)
-    expect(after.code, `登出后旧 AT 应 40101，实际 ${after.code} ${after.msg ?? ''}`)
-      .toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+    expect(after.code, `登出后旧 AT 应 40101，实际 ${after.code} ${after.msg ?? ''}`).toBe(
+      WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
+    )
 
     await withPg(async (pg) => {
       expect(await countActiveRefreshTokensForDevice(pg, deviceId), '登出后仍有现役 RT 行').toBe(0)
     })
-    await expect(withRedis(redis => scanKeys(redis, authSessionKeyPattern(deviceId)))).resolves.toEqual([])
+    await expect(
+      withRedis((redis) => scanKeys(redis, authSessionKeyPattern(deviceId))),
+    ).resolves.toEqual([])
   })
 })

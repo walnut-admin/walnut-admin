@@ -12,10 +12,8 @@ import { bumpPriority, parseFrontmatterLine } from './intents.ts'
 export function resolveAutoBump(intents: Intent[]): Bump {
   let best: Bump = 'none'
   for (const intent of intents) {
-    if (intent.bump === 'none')
-      continue
-    if (bumpPriority(intent.bump) > bumpPriority(best))
-      best = intent.bump
+    if (intent.bump === 'none') continue
+    if (bumpPriority(intent.bump) > bumpPriority(best)) best = intent.bump
   }
   return best
 }
@@ -27,8 +25,7 @@ export function bumpChangesVersion(bump: Bump): boolean {
 
 /** 汇总出的人类标签 */
 export function bumpLabel(bump: Bump): string {
-  if (bump === 'none')
-    return 'none（不发版）'
+  if (bump === 'none') return 'none（不发版）'
   return bump
 }
 
@@ -41,27 +38,26 @@ export function bumpLabel(bump: Bump): string {
  *
  * 只改 frontmatter 段（`---` 之间），正文里的同形文字不动。
  */
-export function overrideIntentBump(content: string, bump: Bump): { content: string, changed: number } {
+export function overrideIntentBump(
+  content: string,
+  bump: Bump,
+): { content: string; changed: number } {
   const normalized = content.replace(/\r\n/g, '\n')
   const matched = /^---\n([\s\S]*?)\n---/.exec(normalized)
-  if (!matched)
-    return { content, changed: 0 }
+  if (!matched) return { content, changed: 0 }
 
   let changed = 0
   const frontmatter = matched[1]
     .split('\n')
     .map((line) => {
       const entry = parseFrontmatterLine(line)
-      if (!entry)
-        return line
-      if (entry.bump === bump)
-        return line
+      if (!entry) return line
+      if (entry.bump === bump) return line
       changed++
       return `${entry.prefix}${bump}${entry.suffix}`
     })
     .join('\n')
 
-  if (changed === 0)
-    return { content, changed: 0 }
+  if (changed === 0) return { content, changed: 0 }
   return { content: normalized.replace(matched[1], frontmatter), changed }
 }

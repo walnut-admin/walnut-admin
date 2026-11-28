@@ -18,11 +18,19 @@ const [DefineJSONEditor, ReuseJSONEditor] = createReusableTemplate()
 
 const showModal = ref(false)
 
-watch(() => isDark.value, async (v) => {
-  if (v) {
-    await loadLink()
-  }
-}, { immediate: true })
+function onOpenModal() {
+  showModal.value = true
+}
+
+watch(
+  () => isDark.value,
+  async (v) => {
+    if (v) {
+      await loadLink()
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -38,7 +46,7 @@ watch(() => isDark.value, async (v) => {
     </DefineJSONEditor>
 
     <template v-if="button">
-      <WButton type="primary" @click="showModal = true">
+      <WButton type="primary" @click="onOpenModal">
         {{ $t('app.base.checkOrEdit') }}
       </WButton>
 

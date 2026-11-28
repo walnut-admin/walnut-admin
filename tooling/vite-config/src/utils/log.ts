@@ -16,9 +16,7 @@ export function configureBuildLogger(packageName: string) {
 }
 
 function title(stage: string) {
-  return chalk.magenta.bgBlack(
-    `[${logPackageName.toUpperCase()}] - [${getNow()}] - [${stage}]`,
-  )
+  return chalk.magenta.bgBlack(`[${logPackageName.toUpperCase()}] - [${getNow()}] - [${stage}]`)
 }
 
 export function BuildUtilsLog(msg: string, stage = 'Log') {

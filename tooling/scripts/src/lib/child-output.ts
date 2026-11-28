@@ -30,12 +30,10 @@ export class TailBuffer {
   /** 吃进一块输出 */
   push(chunk: string): void {
     for (const line of chunk.split('\n')) {
-      if (line.trim() === '')
-        continue
+      if (line.trim() === '') continue
       this.count += 1
       this.buffer.push(line)
-      while (this.buffer.length > this.limit)
-        this.buffer.shift()
+      while (this.buffer.length > this.limit) this.buffer.shift()
     }
   }
 
@@ -57,7 +55,6 @@ export class TailBuffer {
  */
 export function renderFailureTail(lines: string[], max: number = TAIL_LINES): string {
   const tail = max > 0 && lines.length > max ? lines.slice(-max) : lines
-  if (tail.length === 0)
-    return '   （子进程没有输出任何内容）'
-  return `   ── 失败前的最后 ${tail.length} 行输出 ──\n${tail.map(line => `   ${line}`).join('\n')}`
+  if (tail.length === 0) return '   （子进程没有输出任何内容）'
+  return `   ── 失败前的最后 ${tail.length} 行输出 ──\n${tail.map((line) => `   ${line}`).join('\n')}`
 }

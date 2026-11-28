@@ -6,10 +6,8 @@ import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
 const userStorePreference = useAppStoreUserPreference()
 const isReducedMotion = useSharedPreferredReducedMotion()
 
-export const modalColor = computed(
-  () => getMergedTheme.value?.Drawer.common?.modalColor as string,
-)
+export const modalColor = computed(() => getMergedTheme.value?.Drawer.common?.modalColor as string)
 
 export const getCanAnimate = computed(
-  () => isReducedMotion.value || userStorePreference.getReducedMotion as boolean,
+  () => isReducedMotion.value || (userStorePreference.getReducedMotion as boolean),
 )

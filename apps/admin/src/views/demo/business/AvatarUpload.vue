@@ -28,8 +28,7 @@ async function onUploadAvatar() {
 
   if (isSuccess) {
     useAppMsgSuccess()
-  }
-  else {
+  } else {
     useAppMsgInfo('Upload avatar fail')
   }
 }
@@ -39,21 +38,13 @@ async function onUploadAvatar() {
   <WDemoCard title="Avatar Upload Demo">
     <n-list>
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Basic
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Basic </WTitle>
 
         <WJSON :value="{ avatarCropperUrl }" />
 
-        <WAvatarUpload
-          ref="avatarUpload"
-          @change="onAvatarChange"
-          @success="onUploadSuccess"
-        />
+        <WAvatarUpload ref="avatarUpload" @change="onAvatarChange" @success="onUploadSuccess" />
 
-        <n-button class="mt-2" @click="onUploadAvatar">
-          Upload
-        </n-button>
+        <n-button class="mt-2" @click="onUploadAvatar"> Upload </n-button>
       </n-list-item>
     </n-list>
   </WDemoCard>

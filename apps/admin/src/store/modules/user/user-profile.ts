@@ -26,10 +26,8 @@ const useAppStoreUserProfileInside = defineStore(StoreKeys.USER_PROFILE, {
     },
 
     getDisplayName(): string {
-      if (this.profile.nickName)
-        return upperFirst(this.profile.nickName)
-      if (this.profile.userName)
-        return upperFirst(this.profile.userName)
+      if (this.profile.nickName) return upperFirst(this.profile.nickName)
+      if (this.profile.userName) return upperFirst(this.profile.userName)
       return ''
     },
 
@@ -84,7 +82,6 @@ const useAppStoreUserProfileInside = defineStore(StoreKeys.USER_PROFILE, {
 const useAppStoreUserProfileOutside = () => useAppStoreUserProfileInside(store)
 
 export function useAppStoreUserProfile() {
-  if (getCurrentInstance())
-    return useAppStoreUserProfileInside()
+  if (getCurrentInstance()) return useAppStoreUserProfileInside()
   return useAppStoreUserProfileOutside()
 }

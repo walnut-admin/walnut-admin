@@ -108,16 +108,12 @@ const [register4] = useTree({
       <n-list-item>
         <n-grid :cols="2">
           <n-gi>
-            <WTitle prefix="bar" class="mb-2">
-              Single Choose Tree
-            </WTitle>
+            <WTitle prefix="bar" class="mb-2"> Single Choose Tree </WTitle>
 
             <WTree v-model:value="state.tree1" @hook="register1" />
           </n-gi>
           <n-gi>
-            <WTitle prefix="bar" class="mb-2">
-              Multiple Choose Tree
-            </WTitle>
+            <WTitle prefix="bar" class="mb-2"> Multiple Choose Tree </WTitle>
 
             <WTree v-model:value="state.tree2" @hook="register2" />
           </n-gi>
@@ -127,16 +123,12 @@ const [register4] = useTree({
       <n-list-item>
         <n-grid :cols="2">
           <n-gi>
-            <WTitle prefix="bar" class="mb-2">
-              Single Feedback
-            </WTitle>
+            <WTitle prefix="bar" class="mb-2"> Single Feedback </WTitle>
 
             <WTree v-model:value="state.tree3" @hook="register3" />
           </n-gi>
           <n-gi>
-            <WTitle prefix="bar" class="mb-2">
-              Multiple Feedback
-            </WTitle>
+            <WTitle prefix="bar" class="mb-2"> Multiple Feedback </WTitle>
 
             <WTree v-model:value="state.tree4" @hook="register4" />
           </n-gi>

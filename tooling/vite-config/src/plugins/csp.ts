@@ -17,37 +17,37 @@ export function createCSPPlugin(env: IViteEnv) {
     },
     policy: {
       // 限制所有资源类型的默认源
-      'default-src': ['\'self\'', 'https:'],
+      'default-src': ["'self'", 'https:'],
 
       // 限制脚本来源
-      'script-src': ['\'self\'', '\'unsafe-inline\'', 'https:', 'http:'],
+      'script-src': ["'self'", "'unsafe-inline'", 'https:', 'http:'],
 
       // 限制样式表来源
-      'style-src': ['\'self\'', '\'unsafe-inline\'', 'https:'],
+      'style-src': ["'self'", "'unsafe-inline'", 'https:'],
 
       // 限制图像来源
-      'img-src': ['\'self\'', 'data:', 'https:', 'http:', 'blob:'],
+      'img-src': ["'self'", 'data:', 'https:', 'http:', 'blob:'],
 
       // 限制字体来源
-      'font-src': ['\'self\'', 'data:', 'https:', 'http:'],
+      'font-src': ["'self'", 'data:', 'https:', 'http:'],
 
       // 限制媒体文件来源
-      'media-src': ['\'self\'', 'https:', 'http:'],
+      'media-src': ["'self'", 'https:', 'http:'],
 
       // 限制框架来源
-      'frame-src': ['\'self\'', 'https:', 'http:'],
+      'frame-src': ["'self'", 'https:', 'http:'],
 
       // 限制 WebSocket 和 EventSource 连接
-      'connect-src': ['\'self\'', 'https:', 'http:'],
+      'connect-src': ["'self'", 'https:', 'http:'],
 
       // 限制 worker 脚本来源
-      'worker-src': ['\'self\'', 'blob:'],
+      'worker-src': ["'self'", 'blob:'],
 
       // 限制浏览器自动填充表单
-      'form-action': ['\'self\'', 'https:', 'http:'],
+      'form-action': ["'self'", 'https:', 'http:'],
 
-      'script-src-elem': ['\'self\'', 'https:', '\'unsafe-inline\''],
-      'style-src-elem': ['\'self\'', '\'unsafe-inline\''],
+      'script-src-elem': ["'self'", 'https:', "'unsafe-inline'"],
+      'style-src-elem': ["'self'", "'unsafe-inline'"],
 
       // 'default-src': ['\'self\'', 'https:'],
       // 'script-src': ['\'self\'', '\'unsafe-inline\'', '\'unsafe-eval\'', 'https://*.googletagmanager.com'],

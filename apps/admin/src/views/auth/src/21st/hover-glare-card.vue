@@ -29,7 +29,7 @@ const props = withDefaults(defineProps<Props>(), {
 const overlayRef = shallowRef<HTMLElement>()
 const hasAnimated = ref(false)
 
-const getDefaultGlareColor = computed(() => isDark.value ? props.glareColor : '#000000')
+const getDefaultGlareColor = computed(() => (isDark.value ? props.glareColor : '#000000'))
 
 function hexToRgba(hex: string, alpha: number): string {
   if (!/^#[\dA-F]{3,6}$/i.test(hex)) {
@@ -39,7 +39,10 @@ function hexToRgba(hex: string, alpha: number): string {
   let color = hex.substring(1)
 
   if (color.length === 3) {
-    color = color.split('').map(char => char + char).join('')
+    color = color
+      .split('')
+      .map((char) => char + char)
+      .join('')
   }
 
   const r = Number.parseInt(color.substring(0, 2), 16)
@@ -51,8 +54,7 @@ function hexToRgba(hex: string, alpha: number): string {
 
 function animateIn() {
   const el = overlayRef.value
-  if (!el || (props.playOnce && hasAnimated.value))
-    return
+  if (!el || (props.playOnce && hasAnimated.value)) return
 
   el.style.transition = 'none'
   el.style.backgroundPosition = '-100% -100%, 0 0'
@@ -70,8 +72,7 @@ function animateIn() {
 
 function animateOut() {
   const el = overlayRef.value
-  if (!el || (props.playOnce && hasAnimated.value))
-    return
+  if (!el || (props.playOnce && hasAnimated.value)) return
 
   el.style.transition = `${props.transitionDuration}ms ease`
   el.style.backgroundPosition = '-100% -100%, 0 0'
@@ -91,7 +92,9 @@ const overlayStyle = computed((): CSSProperties => {
   }
 })
 
-const containerClass = computed(() => `relative grid place-items-center overflow-hidden cursor-pointer ${props.className}`)
+const containerClass = computed(
+  () => `relative grid place-items-center overflow-hidden cursor-pointer ${props.className}`,
+)
 </script>
 
 <template>

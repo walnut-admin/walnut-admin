@@ -42,7 +42,7 @@ const [register] = useForm<typeof formData.value>({
 })
 
 const nums = ref([1, 2, 3])
-const items = computed(() => nums.value.filter(i => i % 2 === 0))
+const items = computed(() => nums.value.filter((i) => i % 2 === 0))
 
 function onAddRandom() {
   nums.value.push(random(3, 100))
@@ -53,9 +53,7 @@ function onAddRandom() {
   <WDemoCard title="Transition & Transition Select">
     <n-list>
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Transition
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Transition </WTitle>
 
         <WForm :model="formData" @hook="register" />
 
@@ -67,17 +65,17 @@ function onAddRandom() {
       </n-list-item>
 
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Transition Group
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Transition Group </WTitle>
 
-        <n-button class="mb-2" @click="onAddRandom">
-          Add Random
-        </n-button>
+        <n-button class="mb-2" @click="onAddRandom"> Add Random </n-button>
 
         <div class="flex flex-row flex-wrap gap-2">
           <WTransition :transition-name="formData.name" group>
-            <div v-for="(item, index) in items" :key="index" class="h-36 w-36 flex items-center justify-center bg-red-400 text-center text-16 font-bold">
+            <div
+              v-for="(item, index) in items"
+              :key="index"
+              class="h-36 w-36 flex items-center justify-center bg-red-400 text-center text-16 font-bold"
+            >
               {{ item }}
             </div>
           </WTransition>

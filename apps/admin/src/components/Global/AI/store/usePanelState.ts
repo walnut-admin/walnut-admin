@@ -7,9 +7,7 @@ import { useAIPreferences } from './useAIPreferences'
 export const usePanelState = createGlobalState(() => {
   const aiPrefs = useAIPreferences()
 
-  const visible = ref(
-    aiPrefs.value.panelMode === 'content-aside' && aiPrefs.value.asidePinned,
-  )
+  const visible = ref(aiPrefs.value.panelMode === 'content-aside' && aiPrefs.value.asidePinned)
 
   const transitioning = ref(false)
 
@@ -17,9 +15,7 @@ export const usePanelState = createGlobalState(() => {
 
   const isContentAside = computed(() => aiPrefs.value.panelMode === 'content-aside')
 
-  const panelSize = computed(() =>
-    isPanelLarge.value ? LARGE_PANEL_SIZE : PANEL_SIZE,
-  )
+  const panelSize = computed(() => (isPanelLarge.value ? LARGE_PANEL_SIZE : PANEL_SIZE))
 
   const floatingPosition = computed(() => ({
     right: `${aiPrefs.value.panelRight ?? 48}px`,
@@ -42,8 +38,14 @@ export const usePanelState = createGlobalState(() => {
    */
   watch(isPanelLarge, () => {
     const { width: w, height: h } = panelSize.value
-    aiPrefs.value.panelRight = Math.max(0, Math.min(aiPrefs.value.panelRight, window.innerWidth - w))
-    aiPrefs.value.panelBottom = Math.max(0, Math.min(aiPrefs.value.panelBottom, window.innerHeight - h))
+    aiPrefs.value.panelRight = Math.max(
+      0,
+      Math.min(aiPrefs.value.panelRight, window.innerWidth - w),
+    )
+    aiPrefs.value.panelBottom = Math.max(
+      0,
+      Math.min(aiPrefs.value.panelBottom, window.innerHeight - h),
+    )
   })
 
   /** Show the AI panel */
@@ -63,8 +65,7 @@ export const usePanelState = createGlobalState(() => {
 
   /** Cycle through panel modes: panel -> large-panel -> content-aside -> panel. Uses View Transition API when transitioning to/from content-aside */
   function cyclePanelMode() {
-    if (transitioning.value)
-      return
+    if (transitioning.value) return
     const idx = PANEL_MODES.indexOf(aiPrefs.value.panelMode)
     const next = PANEL_MODES[(idx + 1) % PANEL_MODES.length]
     const involvesAside = isContentAside.value || next === 'content-aside'
@@ -78,7 +79,12 @@ export const usePanelState = createGlobalState(() => {
       vt.ready.then(() => {
         document.documentElement.animate(
           { opacity: [1, 0] },
-          { duration: 500, easing: 'ease', pseudoElement: '::view-transition-old(root)', fill: 'forwards' },
+          {
+            duration: 500,
+            easing: 'ease',
+            pseudoElement: '::view-transition-old(root)',
+            fill: 'forwards',
+          },
         )
       })
       vt.finished.finally(() => {
@@ -88,8 +94,7 @@ export const usePanelState = createGlobalState(() => {
           transitioning.value = false
         })
       })
-    }
-    else {
+    } else {
       aiPrefs.value.panelMode = next
     }
   }
@@ -100,11 +105,27 @@ export const usePanelState = createGlobalState(() => {
    * Use case: User clicks pin button — panel should become visible to show pinned state
    * Side effect: Calls open() — sets visible = true
    */
-  watch(() => aiPrefs.value.asidePinned, (pinned) => {
-    if (pinned && isContentAside.value && !visible.value) {
-      open()
-    }
-  })
+  watch(
+    () => aiPrefs.value.asidePinned,
+    (pinned) => {
+      if (pinned && isContentAside.value && !visible.value) {
+        open()
+      }
+    },
+  )
 
-  return { visible, transitioning, isPanelLarge, isContentAside, panelSize, panelInnerWidth, panelInnerHeight, floatingPosition, open, close, toggle, cyclePanelMode }
+  return {
+    visible,
+    transitioning,
+    isPanelLarge,
+    isContentAside,
+    panelSize,
+    panelInnerWidth,
+    panelInnerHeight,
+    floatingPosition,
+    open,
+    close,
+    toggle,
+    cyclePanelMode,
+  }
 })

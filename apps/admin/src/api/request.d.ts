@@ -1,14 +1,18 @@
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/browser'
-import type { components, SystemDeleted, SystemUser, SystemUserIdentityPurpose, SystemUserIdentityType } from '@walnut/api-types'
+import type {
+  components,
+  SystemDeleted,
+  SystemUser,
+  SystemUserIdentityPurpose,
+  SystemUserIdentityType,
+} from '@walnut/api-types'
 
 export namespace IRequestPayload {
   export namespace App {}
 
   export namespace Auth {
-
     export namespace MFA {
       export namespace Totp {
-
         export interface Generate {
           name: string
         }
@@ -51,7 +55,6 @@ export namespace IRequestPayload {
     }
 
     export namespace OTP {
-
       interface Base {
         type: 'sms' | 'email'
       }
@@ -76,7 +79,6 @@ export namespace IRequestPayload {
     }
 
     export namespace Opaque {
-
       export namespace Admin {
         // 管理端按 user 主键（uuid）定位，对齐 server AuthOpaqueAdminUserIdDTO（B7a）
         export interface UpdatePasswordStart extends Opaque.Register.Start {
@@ -122,7 +124,6 @@ export namespace IRequestPayload {
   export namespace Shared {}
 
   export namespace System {
-
     export namespace UserIdentity {
       export interface Status {
         type: SystemUserIdentityType
@@ -196,7 +197,6 @@ export namespace IRequestPayload {
         deviceId: string
         lockPwdHash?: string
       }
-
     }
   }
 }

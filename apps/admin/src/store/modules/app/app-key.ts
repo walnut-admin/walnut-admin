@@ -15,8 +15,8 @@ const useAppStoreKeyInside = defineStore(StoreKeys.APP_KEY, {
   }),
 
   getters: {
-    getBaiduAK: state => state.baiduAK!,
-    getUrlMaskingAesKey: state => state.urlMaskingAesKey!,
+    getBaiduAK: (state) => state.baiduAK!,
+    getUrlMaskingAesKey: (state) => state.urlMaskingAesKey!,
   },
 
   actions: {
@@ -29,8 +29,7 @@ const useAppStoreKeyInside = defineStore(StoreKeys.APP_KEY, {
     },
 
     async initBaiduKey() {
-      if (this.getBaiduAK)
-        return
+      if (this.getBaiduAK) return
 
       const res = await getBaiduKeyAPI()
 
@@ -38,8 +37,7 @@ const useAppStoreKeyInside = defineStore(StoreKeys.APP_KEY, {
     },
 
     async initUrlMaskingAesKey() {
-      if (this.getUrlMaskingAesKey)
-        return
+      if (this.getUrlMaskingAesKey) return
 
       const res = await urlKeyAPI()
 
@@ -56,7 +54,6 @@ const useAppStoreKeyInside = defineStore(StoreKeys.APP_KEY, {
 const useAppStoreKeyOutside = () => useAppStoreKeyInside(store)
 
 export function useAppStoreKey() {
-  if (getCurrentInstance())
-    return useAppStoreKeyInside()
+  if (getCurrentInstance()) return useAppStoreKeyInside()
   return useAppStoreKeyOutside()
 }

@@ -19,11 +19,11 @@ const useAppStoreMenuInside = defineStore(StoreKeys.APP_MENU, {
   }),
 
   getters: {
-    getCollapse: state => state.collapse,
-    getShowAside: state => state.showAside,
-    getMenus: state => state.menus,
-    getKeepAliveRouteNames: state => state.keepAliveRouteNames,
-    getIndexMenuName: state => state.indexMenuName,
+    getCollapse: (state) => state.collapse,
+    getShowAside: (state) => state.showAside,
+    getMenus: (state) => state.menus,
+    getKeepAliveRouteNames: (state) => state.keepAliveRouteNames,
+    getIndexMenuName: (state) => state.indexMenuName,
   },
 
   actions: {
@@ -69,7 +69,6 @@ const useAppStoreMenuInside = defineStore(StoreKeys.APP_MENU, {
 const useAppStoreMenuOutside = () => useAppStoreMenuInside(store)
 
 export function useAppStoreMenu() {
-  if (getCurrentInstance())
-    return useAppStoreMenuInside()
+  if (getCurrentInstance()) return useAppStoreMenuInside()
   return useAppStoreMenuOutside()
 }

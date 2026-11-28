@@ -12,7 +12,11 @@ import { Role } from '@walnut/contract'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from '../../helpers/api-client'
-import { attemptHttpOpaqueLogin, performHttpOpaqueLogin, registerRootUserFixture } from '../../helpers/auth-login'
+import {
+  attemptHttpOpaqueLogin,
+  performHttpOpaqueLogin,
+  registerRootUserFixture,
+} from '../../helpers/auth-login'
 import { createApiApp } from '../../helpers/create-api-app'
 import { cleanupPermissionChainSeed, seedPermissionChainUser } from '../../helpers/seed-permissions'
 
@@ -157,23 +161,34 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
 
   const createdIds: string[] = []
 
-  const allFixtures = () => [
-    deptAAll,
-    deptAManager,
-    deptAStaff,
-    childManager,
-    childStaff,
-    deptBManager,
-    custom,
-    combo,
-    solo,
-    visitor,
-    noRole,
-  ].filter(item => item !== undefined)
+  const allFixtures = () =>
+    [
+      deptAAll,
+      deptAManager,
+      deptAStaff,
+      childManager,
+      childStaff,
+      deptBManager,
+      custom,
+      combo,
+      solo,
+      visitor,
+      noRole,
+    ].filter((item) => item !== undefined)
 
   function allRows(): string[] {
-    return [rootRow, deptA1, deptA2, deptA3, childRow, deptB1, soloRow, comboRow, visitorRow, ownerlessRow]
-      .filter(id => id !== '')
+    return [
+      rootRow,
+      deptA1,
+      deptA2,
+      deptA3,
+      childRow,
+      deptB1,
+      soloRow,
+      comboRow,
+      visitorRow,
+      ownerlessRow,
+    ].filter((id) => id !== '')
   }
 
   async function createClient(): Promise<WalnutApiClient> {
@@ -192,19 +207,28 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
     return client
   }
 
-  async function loginAs(client: WalnutApiClient, fixture: { userId: string, userName: string, password: string }) {
+  async function loginAs(
+    client: WalnutApiClient,
+    fixture: { userId: string; userName: string; password: string },
+  ) {
     const tokens = await performHttpOpaqueLogin(client, app, fixture)
     client.setAuth(tokens)
     await client.seedMfaVerifiedCache(fixture.userId)
     // 非 root 的权限串必须经一次 /auth/permissions 写入 AUTH:PERMISSIONS
-    expectOk(await client.root('GET', client.apiPath('/auth/permissions')), `prime permissions ${fixture.userName}`)
+    expectOk(
+      await client.root('GET', client.apiPath('/auth/permissions')),
+      `prime permissions ${fixture.userName}`,
+    )
   }
 
   async function seedUser(
     prefix: string,
     dataScope: number,
     deptId: string | null = null,
-    options: { roleMode?: typeof WalnutAdminConstRoleMode[keyof typeof WalnutAdminConstRoleMode], secondRolePermissions?: string[] } = {},
+    options: {
+      roleMode?: (typeof WalnutAdminConstRoleMode)[keyof typeof WalnutAdminConstRoleMode]
+      secondRolePermissions?: string[]
+    } = {},
   ): Promise<UserFixture> {
     const client = await createClient()
     const fixture = await seedPermissionChainUser(app, rootApi.pgDataSource, {
@@ -243,7 +267,11 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
   }
 
   async function bindEmployee(employeeId: string, userId: string) {
-    const res = await rootApi.root('POST', rootApi.apiPath(`/system/employee/${employeeId}/bind-user`), { userId })
+    const res = await rootApi.root(
+      'POST',
+      rootApi.apiPath(`/system/employee/${employeeId}/bind-user`),
+      { userId },
+    )
     expectOk(res, 'employee bind user')
   }
 
@@ -254,7 +282,11 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
   }
 
   async function createDemo(client: WalnutApiClient, tag: string): Promise<string> {
-    const res = await client.root('POST', client.apiPath('/app/demo'), demoPayload(`${group}-${tag}`))
+    const res = await client.root(
+      'POST',
+      client.apiPath('/app/demo'),
+      demoPayload(`${group}-${tag}`),
+    )
     expectOk(res, `demo create ${tag}`)
     const id = bodyOf<DemoRow>(res).data.id
     createdIds.push(id)
@@ -277,7 +309,10 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
   }
 
   /** role update 的 PUT 是整体替换：必填核回填当前值，只改 dataScope / deptIds */
-  async function updateRoleScope(roleId: string, payload: { dataScope: number, deptIds?: string[] }) {
+  async function updateRoleScope(
+    roleId: string,
+    payload: { dataScope: number; deptIds?: string[] },
+  ) {
     const role = await readRole(roleId)
     const res = await rootApi.root('PUT', rootApi.apiPath(`/system/role/${roleId}`), {
       roleName: role.roleName,
@@ -323,10 +358,10 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
     combo = await seedUser('dsm-combo', WalnutAdminConstDataScope.DEPT, deptB, {
       secondRolePermissions: ['app:demo:read'],
     })
-    await rootApi.pgDataSource.query(
-      'UPDATE sys_role SET data_scope = $2 WHERE id = $1',
-      [combo.fixture.secondRoleId, WalnutAdminConstDataScope.SELF],
-    )
+    await rootApi.pgDataSource.query('UPDATE sys_role SET data_scope = $2 WHERE id = $1', [
+      combo.fixture.secondRoleId,
+      WalnutAdminConstDataScope.SELF,
+    ])
     solo = await seedUser('dsm-solo', WalnutAdminConstDataScope.SELF, null)
     noRole = await seedUser('dsm-no-role', WalnutAdminConstDataScope.SELF, null)
 
@@ -359,7 +394,9 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
     )
 
     // 无角色用户：登录闸对空 roles_list 直接 40104（M9 的语义落点），先清 junction
-    await rootApi.pgDataSource.query('DELETE FROM sys_user_role WHERE user_id = $1', [noRole.fixture.userId])
+    await rootApi.pgDataSource.query('DELETE FROM sys_user_role WHERE user_id = $1', [
+      noRole.fixture.userId,
+    ])
 
     // ── 职工行（create 回填 dept 的输入）──────────────────────────────────
     await attachEmployee(deptAAll, 'a-all', deptA)
@@ -380,7 +417,7 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
     )
 
     // ── 登录（deptAAll 起每个用户独立设备；noRole 走登录被拒断言，不在此登录）──
-    for (const user of allFixtures().filter(item => item !== noRole)) {
+    for (const user of allFixtures().filter((item) => item !== noRole)) {
       await loginAs(user.client, user.fixture)
     }
 
@@ -399,9 +436,15 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
     // combo 的行挪到「无部门」——SELF 腿与 DEPT 腿的并集才能被单独观察
     await rootApi.pgDataSource.query('UPDATE app_demo SET dept_id = NULL WHERE id = $1', [comboRow])
     // visitor 的行改 owner（visitor 无 :create 权限；fixture 直改 owner 是唯一通道）
-    await rootApi.pgDataSource.query('UPDATE app_demo SET created_by = $1, dept_id = NULL WHERE id = $2', [visitor.fixture.userId, visitorRow])
+    await rootApi.pgDataSource.query(
+      'UPDATE app_demo SET created_by = $1, dept_id = NULL WHERE id = $2',
+      [visitor.fixture.userId, visitorRow],
+    )
     // 无主行：owner 与 dept 都 NULL（仅 ALL 可见）
-    await rootApi.pgDataSource.query('UPDATE app_demo SET created_by = NULL, dept_id = NULL WHERE id = $1', [ownerlessRow])
+    await rootApi.pgDataSource.query(
+      'UPDATE app_demo SET created_by = NULL, dept_id = NULL WHERE id = $1',
+      [ownerlessRow],
+    )
   })
 
   afterAll(async () => {
@@ -411,60 +454,79 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
       const step = async (label: string, fn: () => Promise<unknown>) => {
         try {
           await fn()
-        }
-        catch (error) {
+        } catch (error) {
           console.warn(`[data-scope-matrix] cleanup step failed: ${label}`, error)
         }
       }
 
       // M10b 的防御性收尾：设置行若因用例异常残留，会把 functional.role 带进后续 spec
       await step('restore app.functional.role setting', async () => {
-        await rootApi.pgDataSource.query('DELETE FROM app_setting WHERE setting_key = $1', ['app.functional.role'])
+        await rootApi.pgDataSource.query('DELETE FROM app_setting WHERE setting_key = $1', [
+          'app.functional.role',
+        ])
         await rootApi.root('POST', rootApi.apiPath('/app/setting/cache/refresh'))
       })
 
       await step('delete demo rows', async () => {
         if (createdIds.length > 0) {
-          await rootApi.pgDataSource.query('DELETE FROM app_demo WHERE id = ANY($1::uuid[])', [createdIds])
-          await rootApi.pgDataSource.query('DELETE FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])', [createdIds])
+          await rootApi.pgDataSource.query('DELETE FROM app_demo WHERE id = ANY($1::uuid[])', [
+            createdIds,
+          ])
+          await rootApi.pgDataSource.query(
+            'DELETE FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])',
+            [createdIds],
+          )
         }
       })
 
       // 职工先于部门（dept FK RESTRICT）；demo 行也先于部门（上面已删）
       await step('delete employees', async () => {
-        await rootApi.pgDataSource.query('DELETE FROM sys_employee WHERE employee_no LIKE $1', [`${employeePrefix}%`])
+        await rootApi.pgDataSource.query('DELETE FROM sys_employee WHERE employee_no LIKE $1', [
+          `${employeePrefix}%`,
+        ])
       })
 
       await step('cleanup permission chain seed', async () => {
         await cleanupPermissionChainSeed(
           rootApi,
-          allFixtures().map(item => item.fixture),
-          clients.map(client => client.deviceId),
+          allFixtures().map((item) => item.fixture),
+          clients.map((client) => client.deviceId),
         )
       })
 
       // 部门树自底向上删（FK self RESTRICT）
       await step('delete depts', async () => {
         await rootApi.pgDataSource.query('DELETE FROM sys_dept WHERE id = $1', [deptChild])
-        await rootApi.pgDataSource.query('DELETE FROM sys_dept WHERE id = ANY($1::uuid[])', [[deptA, deptB]])
+        await rootApi.pgDataSource.query('DELETE FROM sys_dept WHERE id = ANY($1::uuid[])', [
+          [deptA, deptB],
+        ])
       })
 
       await step('delete visitor role', async () => {
         if (createdVisitorRoleId !== null) {
-          await rootApi.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [createdVisitorRoleId])
+          await rootApi.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [
+            createdVisitorRoleId,
+          ])
         }
       })
 
       await step('delete root fixture', async () => {
         if (rootFixture !== undefined) {
-          await rootApi.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [rootFixture.userId])
-          await rootApi.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [rootFixture.roleId])
-          await rootApi.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [clients.map(client => client.deviceId)])
+          await rootApi.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [
+            rootFixture.userId,
+          ])
+          await rootApi.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [
+            rootFixture.roleId,
+          ])
+          await rootApi.pgDataSource.query(
+            'DELETE FROM sys_device WHERE device_id = ANY($1::text[])',
+            [clients.map((client) => client.deviceId)],
+          )
           await rootApi.cleanupWalnutCacheKeys(
             seed8,
-            ...clients.map(client => client.deviceId),
+            ...clients.map((client) => client.deviceId),
             rootFixture.userId,
-            ...allFixtures().map(item => item.fixture.userId),
+            ...allFixtures().map((item) => item.fixture.userId),
           )
         }
       })
@@ -474,10 +536,10 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
   })
 
   it('create 归属回填：dept_id 取创建者职工部门；无职工行 → NULL；owner 仍为创建者', async () => {
-    const deptARows: Array<{ created_by: string, dept_id: string | null }> = await rootApi.pgDataSource.query(
-      'SELECT created_by, dept_id FROM app_demo WHERE id = $1',
-      [deptA1],
-    )
+    const deptARows: Array<{ created_by: string; dept_id: string | null }> =
+      await rootApi.pgDataSource.query('SELECT created_by, dept_id FROM app_demo WHERE id = $1', [
+        deptA1,
+      ])
     expect(deptARows[0].created_by).toBe(deptAManager.fixture.userId)
     expect(deptARows[0].dept_id).toBe(deptA)
 
@@ -492,13 +554,13 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
       'SELECT dept_id FROM app_demo WHERE id = ANY($1::uuid[])',
       [[soloRow, rootRow]],
     )
-    expect(noDeptRows.map(row => row.dept_id)).toEqual([null, null])
+    expect(noDeptRows.map((row) => row.dept_id)).toEqual([null, null])
   })
 
   it('M1 root（ALL）看到全部 10 行（含无主行）；total 与行集一致', async () => {
     const list = await listDemo(rootApi)
 
-    expect(new Set(list.data.map(row => row.id))).toEqual(new Set(allRows()))
+    expect(new Set(list.data.map((row) => row.id))).toEqual(new Set(allRows()))
     expect(list.total).toBe(allRows().length)
     expect(list.data).toHaveLength(list.total)
   })
@@ -506,14 +568,14 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
   it('M1b deptA-all（ALL，非 root）同样看到全部（ALL 不按部门收窄）', async () => {
     const list = await listDemo(deptAAll.client)
 
-    expect(new Set(list.data.map(row => row.id))).toEqual(new Set(allRows()))
+    expect(new Set(list.data.map((row) => row.id))).toEqual(new Set(allRows()))
     expect(list.total).toBe(allRows().length)
   })
 
   it('M2 deptA-manager（DEPT）：只见 deptA 的 3 行；越权 read/update → 404', async () => {
     const list = await listDemo(deptAManager.client)
 
-    expect(new Set(list.data.map(row => row.id))).toEqual(new Set([deptA1, deptA2, deptA3]))
+    expect(new Set(list.data.map((row) => row.id))).toEqual(new Set([deptA1, deptA2, deptA3]))
     expect(list.total).toBe(3)
 
     expectNotFound(
@@ -530,18 +592,28 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
       await deptAManager.client.root('GET', deptAManager.client.apiPath(`/app/demo/${deptA1}`)),
       'DEPT user read own dept row',
     )
-    expectOk(await updateDemoOwn(deptAManager.client, deptA1, 'M2-OWN'), 'DEPT user update own dept row')
+    expectOk(
+      await updateDemoOwn(deptAManager.client, deptA1, 'M2-OWN'),
+      'DEPT user update own dept row',
+    )
   })
 
   it('M2b app_demo update 提交 deptId 被 strip：归属不变（含 root / 部门管理员两条通道）', async () => {
     // deptA-manager 可见 deptA1，但 dept_id 是创建时派生的归属 —— update 不接受改
-    const deptRes = await deptAManager.client.root('PUT', deptAManager.client.apiPath(`/app/demo/${deptA1}`), {
-      ...demoPayload(`${group}-M2B`),
-      deptId: deptB,
-    })
+    const deptRes = await deptAManager.client.root(
+      'PUT',
+      deptAManager.client.apiPath(`/app/demo/${deptA1}`),
+      {
+        ...demoPayload(`${group}-M2B`),
+        deptId: deptB,
+      },
+    )
     expectOk(deptRes, 'DEPT user update with deptId is stripped')
 
-    const deptRead = await deptAManager.client.root('GET', deptAManager.client.apiPath(`/app/demo/${deptA1}`))
+    const deptRead = await deptAManager.client.root(
+      'GET',
+      deptAManager.client.apiPath(`/app/demo/${deptA1}`),
+    )
     expectOk(deptRead, 'read after stripped update')
     expect(bodyOf<DemoRow>(deptRead).data.deptId).toBe(deptA)
 
@@ -560,7 +632,9 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
   it('M3 child-manager（DEPT_AND_CHILD）：deptA 3 行 + child 1 行；越权 deptB → 404', async () => {
     const list = await listDemo(childManager.client)
 
-    expect(new Set(list.data.map(row => row.id))).toEqual(new Set([deptA1, deptA2, deptA3, childRow]))
+    expect(new Set(list.data.map((row) => row.id))).toEqual(
+      new Set([deptA1, deptA2, deptA3, childRow]),
+    )
     expect(list.total).toBe(4)
 
     expectNotFound(
@@ -581,7 +655,7 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
   it('M4 deptB-manager（DEPT）：只见 deptB 的 1 行', async () => {
     const list = await listDemo(deptBManager.client)
 
-    expect(new Set(list.data.map(row => row.id))).toEqual(new Set([deptB1]))
+    expect(new Set(list.data.map((row) => row.id))).toEqual(new Set([deptB1]))
     expect(list.total).toBe(1)
   })
 
@@ -589,14 +663,16 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
     const list = await listDemo(combo.client)
 
     // deptB 腿 = deptB1；SELF 腿 = comboRow（dept 为 NULL，只有 owner 关系）
-    expect(new Set(list.data.map(row => row.id))).toEqual(new Set([deptB1, comboRow]))
+    expect(new Set(list.data.map((row) => row.id))).toEqual(new Set([deptB1, comboRow]))
     expect(list.total).toBe(2)
   })
 
   it('M6 custom（CUSTOM: deptA+deptB）：两部门行，不含 child / 无部门行', async () => {
     const list = await listDemo(custom.client)
 
-    expect(new Set(list.data.map(row => row.id))).toEqual(new Set([deptA1, deptA2, deptA3, deptB1]))
+    expect(new Set(list.data.map((row) => row.id))).toEqual(
+      new Set([deptA1, deptA2, deptA3, deptB1]),
+    )
     expect(list.total).toBe(4)
 
     // 角色 read 回显自定义部门清单（junction 读回）
@@ -607,7 +683,7 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
   it('M7 solo（SELF）：仅本人 1 行（无部门归属行按 owner 可见）；改他人 → 404', async () => {
     const list = await listDemo(solo.client)
 
-    expect(new Set(list.data.map(row => row.id))).toEqual(new Set([soloRow]))
+    expect(new Set(list.data.map((row) => row.id))).toEqual(new Set([soloRow]))
     expect(list.total).toBe(1)
 
     expectNotFound(
@@ -624,7 +700,7 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
   it('M8 visitor（SELF）：仅本人行（visitor 无 create 权限，行由 fixture 归属）', async () => {
     const list = await listDemo(visitor.client)
 
-    expect(new Set(list.data.map(row => row.id))).toEqual(new Set([visitorRow]))
+    expect(new Set(list.data.map((row) => row.id))).toEqual(new Set([visitorRow]))
     expect(list.total).toBe(1)
   })
 
@@ -654,7 +730,7 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
     expect(customB.dataScope).toBe(WalnutAdminConstDataScope.CUSTOM)
     expect(customB.deptIds).toEqual([deptB])
     const afterMove = await listDemo(custom.client)
-    expect(new Set(afterMove.data.map(row => row.id))).toEqual(new Set([deptB1]))
+    expect(new Set(afterMove.data.map((row) => row.id))).toEqual(new Set([deptB1]))
 
     // 3) 清空清单 → 默认拒绝（空集 → SQL 恒假），不是 ALL
     await updateRoleScope(custom.fixture.mainRoleId, {
@@ -677,13 +753,14 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
     // 预置：combo（COMBINE）= DEPT deptB 腿 + SELF 腿 → 2 行
     expect((await listDemo(combo.client)).total).toBe(2)
 
-    const functionalRoleValue = (roleMode: string) => JSON.stringify({
-      scope: WalnutAdminConstAppSettingScopeType.GLOBAL,
-      globalValue: roleMode,
-      localKey: 'roleMode',
-      // 本用例不消费 defaultRole；给主角色 uuid 保持形状完整
-      defaultRole: combo.fixture.mainRoleId,
-    })
+    const functionalRoleValue = (roleMode: string) =>
+      JSON.stringify({
+        scope: WalnutAdminConstAppSettingScopeType.GLOBAL,
+        globalValue: roleMode,
+        localKey: 'roleMode',
+        // 本用例不消费 defaultRole；给主角色 uuid 保持形状完整
+        defaultRole: combo.fixture.mainRoleId,
+      })
 
     // root 会话写 app.functional.role（create 走 setting.service → bumpEpoch）
     const created = await rootApi.root('POST', rootApi.apiPath('/app/setting'), {
@@ -698,7 +775,7 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
     try {
       // 同一个 AT / 同一设备：下一请求立即按 SWITCH 只看 currentRole（主角色 DEPT deptB）
       const switched = await listDemo(combo.client)
-      expect(new Set(switched.data.map(row => row.id))).toEqual(new Set([deptB1]))
+      expect(new Set(switched.data.map((row) => row.id))).toEqual(new Set([deptB1]))
       expect(switched.total).toBe(1)
 
       // 切回 COMBINE → SELF 腿重新并入
@@ -711,13 +788,15 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
       expectOk(updated, 'update app.functional.role back to COMBINE')
 
       const combined = await listDemo(combo.client)
-      expect(new Set(combined.data.map(row => row.id))).toEqual(new Set([deptB1, comboRow]))
+      expect(new Set(combined.data.map((row) => row.id))).toEqual(new Set([deptB1, comboRow]))
       expect(combined.total).toBe(2)
-    }
-    finally {
+    } finally {
       // 集成库 app_setting 基线为空：删行 + 重提取，缓存回到「无该设置」的默认口径
       await rootApi.pgDataSource.query('DELETE FROM app_setting WHERE id = $1', [settingId])
-      expectOk(await rootApi.root('POST', rootApi.apiPath('/app/setting/cache/refresh')), 'restore setting cache')
+      expectOk(
+        await rootApi.root('POST', rootApi.apiPath('/app/setting/cache/refresh')),
+        'restore setting cache',
+      )
       // 同时清掉 combo 的描述符缓存：本用例的 epoch 残留不应影响后续用例/文件的同用户断言
       await app.get(DataScopeService).invalidateForUser(combo.fixture.userId)
     }

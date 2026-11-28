@@ -30,11 +30,9 @@ export function writeOut(text: string, toStdErr: boolean): void {
       return
     }
     fs.writeSync(toStdErr ? 2 : 1, text)
-  }
-  catch (error) {
+  } catch (error) {
     const code = (error as { code?: unknown }).code
-    if (typeof code !== 'string' || !SWALLOWED_WRITE_ERRORS.has(code))
-      throw error
+    if (typeof code !== 'string' || !SWALLOWED_WRITE_ERRORS.has(code)) throw error
   }
 }
 

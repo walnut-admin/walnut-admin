@@ -5,7 +5,10 @@ import type { WForm } from '@/components/UI/Form'
 import { computed, onActivated, onBeforeMount, onMounted, ref, watch } from 'vue'
 import { localeAPI } from '@/api/system/locale'
 import { useCRUD } from '@/components/Advanced/CRUD'
-import { WTablePresetCreatedAtColumn, WTablePresetUpdatedAtColumn } from '@/components/UI/Table/src/utils/presetColumns'
+import {
+  WTablePresetCreatedAtColumn,
+  WTablePresetUpdatedAtColumn,
+} from '@/components/UI/Table/src/utils/presetColumns'
 import { useRouterQuery } from '@/hooks/web/useRouterQuery'
 
 import { useAppStoreLocale } from '@/store/modules/app/app-locale'
@@ -50,7 +53,7 @@ const [
 
   tableProps: {
     localeUniqueKey: key,
-    rowKey: row => row[keyField]!,
+    rowKey: (row) => row[keyField]!,
     striped: true,
     bordered: true,
     singleLine: false,
@@ -102,8 +105,7 @@ const [
             onClear() {
               if (langId.value) {
                 langId.value = undefined
-              }
-              else {
+              } else {
                 onSetDefaultQueryFormData({ langId: null })
                 onApiList()
               }
@@ -120,12 +122,10 @@ const [
             clearable: true,
             tag: true,
             filterable: true,
-            options: ['app.', 'sys.', 'form.', 'table.', 'dict.'].map(
-              i => ({
-                value: i,
-                label: i,
-              }),
-            ),
+            options: ['app.', 'sys.', 'form.', 'table.', 'dict.'].map((i) => ({
+              value: i,
+              label: i,
+            })),
             onUpdateValue() {
               onApiList()
             },
@@ -178,7 +178,7 @@ const [
       {
         key: 'process',
         width: 100,
-        formatter: row => `${(row.process! * 100).toFixed(2)}%`,
+        formatter: (row) => `${(row.process! * 100).toFixed(2)}%`,
       },
 
       {
@@ -243,7 +243,7 @@ const [
         },
       },
 
-      ...langList.value.map<WForm.Schema.Item<SystemLocale>>(i => ({
+      ...langList.value.map<WForm.Schema.Item<SystemLocale>>((i) => ({
         type: 'Base:Input',
         formProp: {
           path: i.value as keyof SystemLocale,

@@ -39,8 +39,7 @@ const active = new Map<ChildProcess, ActiveChild>()
 
 /** 登记一个子进程（重复登记无副作用；`unregisterChild` 负责清账） */
 export function registerChild(child: ChildProcess): void {
-  if (active.has(child))
-    return
+  if (active.has(child)) return
   let resolveExit: () => void = () => {}
   const exited = new Promise<void>((resolve) => {
     resolveExit = resolve
@@ -51,8 +50,7 @@ export function registerChild(child: ChildProcess): void {
 /** 子进程结束时清账（child-run 在 `close` / `error` 两条路径上都调它，`waitForActiveChildExit` 靠它解开） */
 export function unregisterChild(child: ChildProcess): void {
   const entry = active.get(child)
-  if (!entry)
-    return
+  if (!entry) return
   active.delete(child)
   entry.resolveExit()
 }
@@ -62,8 +60,7 @@ function tryKill(child: ChildProcess, signal: NodeJS.Signals): boolean {
   try {
     child.kill(signal)
     return true
-  }
-  catch {
+  } catch {
     return false
   }
 }
@@ -82,16 +79,20 @@ function isAlive(child: ChildProcess): boolean {
  * - win32：`taskkill /PID <pid> /T /F`（argv 直传、`stdio: 'ignore'`；`process.kill(-pid)` 在 Windows 上抛 ESRCH）
  * - 其它：负 pid 杀**进程组**（由 spawn 的 `detached: true` 建立），宽限期后升级 SIGKILL
  */
-export function killChildTree(child: ChildProcess, platform: NodeJS.Platform = process.platform): boolean {
-  if (child.pid === undefined || !isAlive(child))
-    return true
+export function killChildTree(
+  child: ChildProcess,
+  platform: NodeJS.Platform = process.platform,
+): boolean {
+  if (child.pid === undefined || !isAlive(child)) return true
   const pid = child.pid
   if (platform === 'win32') {
     try {
-      execFileSync('taskkill', ['/PID', String(pid), '/T', '/F'], { stdio: 'ignore', timeout: KILL_GRACE_MS })
+      execFileSync('taskkill', ['/PID', String(pid), '/T', '/F'], {
+        stdio: 'ignore',
+        timeout: KILL_GRACE_MS,
+      })
       return true
-    }
-    catch {
+    } catch {
       // taskkill 不在 / 权限不足：退回单杀，并如实告诉调用方「树没确认收掉」
       tryKill(child, 'SIGKILL')
       return false
@@ -100,20 +101,17 @@ export function killChildTree(child: ChildProcess, platform: NodeJS.Platform = p
   let groupKilled = true
   try {
     process.kill(-pid, 'SIGTERM')
-  }
-  catch {
+  } catch {
     // 没有进程组可杀（子进程不是组长）：退回单进程
     groupKilled = tryKill(child, 'SIGTERM')
   }
   // SIGKILL 升级：SIGTERM 之后若它还在，宽限期到点强杀。**只在它还活着时**升级 ——
   // 直接子进程已退出后 pid 可能被系统复用，此时对 `-pid` 补刀会误伤一个无关的进程组。
   const escalate = setTimeout(() => {
-    if (!isAlive(child))
-      return
+    if (!isAlive(child)) return
     try {
       process.kill(-pid, 'SIGKILL')
-    }
-    catch {
+    } catch {
       tryKill(child, 'SIGKILL')
     }
   }, KILL_GRACE_MS)
@@ -133,16 +131,14 @@ export function killChildTree(child: ChildProcess, platform: NodeJS.Platform = p
 export function killActiveChild(platform: NodeJS.Platform = process.platform): boolean {
   let allConfirmed = true
   for (const child of [...active.keys()]) {
-    if (!killChildTree(child, platform))
-      allConfirmed = false
+    if (!killChildTree(child, platform)) allConfirmed = false
   }
   return allConfirmed
 }
 
 /** 等**全部**活跃子进程退出；超时返回 `false`（没有任何活跃子进程时返回 `true`） */
 export async function waitForActiveChildExit(ms: number): Promise<boolean> {
-  if (active.size === 0)
-    return true
+  if (active.size === 0) return true
   let timer: NodeJS.Timeout | undefined
   const timeout = new Promise<false>((resolve) => {
     // 刻意**不** unref：调用方要的就是「真的等到退出 / 到点」（unref 的计时器在没有其它 ref 句柄时
@@ -150,12 +146,10 @@ export async function waitForActiveChildExit(ms: number): Promise<boolean> {
     // 所以 race 一结束就 clearTimeout。
     timer = setTimeout(resolve, ms, false)
   })
-  const all = Promise.all([...active.values()].map(entry => entry.exited)).then(() => true)
+  const all = Promise.all([...active.values()].map((entry) => entry.exited)).then(() => true)
   try {
     return await Promise.race([all, timeout])
-  }
-  finally {
-    if (timer)
-      clearTimeout(timer)
+  } finally {
+    if (timer) clearTimeout(timer)
   }
 }

@@ -26,13 +26,17 @@ type ContractModule = typeof import('@walnut/contract')
 function load(): ContractModule {
   try {
     return require('@walnut/contract') as ContractModule
-  }
-  catch (error) {
-    const pkgDir = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../packages/platform-any/contract')
+  } catch (error) {
+    const pkgDir = resolve(
+      dirname(fileURLToPath(import.meta.url)),
+      '../../../../packages/platform-any/contract',
+    )
     const distHint = existsSync(resolve(pkgDir, 'dist/index.cjs'))
       ? '（dist 存在但解析失败，检查 node_modules 链接）'
       : '（dist 不存在 —— 先跑 `pnpm --filter @walnut/contract build`）'
-    throw new Error(`[e2e] 加载 @walnut/contract 的 CJS 产物失败${distHint}：${(error as Error).message}`)
+    throw new Error(
+      `[e2e] 加载 @walnut/contract 的 CJS 产物失败${distHint}：${(error as Error).message}`,
+    )
   }
 }
 

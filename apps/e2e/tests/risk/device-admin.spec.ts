@@ -19,7 +19,7 @@ import { expect, test } from '../fixtures.ts'
 /** `POST /system/device/list` 的列表壳（生成物的行只 pick 了 deviceId / id 等字段） */
 interface DeviceListEnvelope {
   code: number
-  data: { data: Array<{ id: string, deviceId: string }>, total: number }
+  data: { data: Array<{ id: string; deviceId: string }>; total: number }
 }
 
 test.describe('设备管理页', { tag: '@risk' }, () => {
@@ -29,7 +29,7 @@ test.describe('设备管理页', { tag: '@risk' }, () => {
     await victim.bootstrap()
     trackDevice(victim.deviceId)
 
-    const victimRow = await withPg(pg => findDeviceRow(pg, victim.deviceId))
+    const victimRow = await withPg((pg) => findDeviceRow(pg, victim.deviceId))
     if (victimRow === null) {
       throw new Error(`[e2e] sys_device 没有 ${victim.deviceId} 的行`)
     }
@@ -42,16 +42,23 @@ test.describe('设备管理页', { tag: '@risk' }, () => {
     try {
       // 列表请求在页面挂载时发出：先挂监听再导航
       const initialList = page.waitForResponse(
-        response => response.url().includes(`${SystemRoutes.DEVICE}/list`) && response.request().method() === 'POST',
+        (response) =>
+          response.url().includes(`${SystemRoutes.DEVICE}/list`) &&
+          response.request().method() === 'POST',
         { timeout: 40_000 },
       )
       await page.goto(SystemRoutes.DEVICE)
-      await page.locator(SIDEBAR_MENU_SELECTOR).first().waitFor({ state: 'visible', timeout: 30_000 })
+      await page
+        .locator(SIDEBAR_MENU_SELECTOR)
+        .first()
+        .waitFor({ state: 'visible', timeout: 30_000 })
 
       // 页面可达：路由停在该页 + 列表 20000
       expect(new URL(page.url()).pathname).toBe(SystemRoutes.DEVICE)
-      const initialBody = await (await initialList).json() as DeviceListEnvelope
-      expect(initialBody.code, '设备列表首屏请求不是 20000').toBe(WalnutAdminConstAppResponseCode.SUCCESS)
+      const initialBody = (await (await initialList).json()) as DeviceListEnvelope
+      expect(initialBody.code, '设备列表首屏请求不是 20000').toBe(
+        WalnutAdminConstAppResponseCode.SUCCESS,
+      )
       expect(Array.isArray(initialBody.data.data), '设备列表缺 data 数组').toBe(true)
 
       // 列表含本条用例造的设备：用查询表单按 deviceName 过滤（唯一名由服务端生成）
@@ -61,7 +68,9 @@ test.describe('设备管理页', { tag: '@risk' }, () => {
       await nameInput.fill(victimRow.device_name)
 
       const searchedList = page.waitForResponse(
-        response => response.url().includes(`${SystemRoutes.DEVICE}/list`) && response.request().method() === 'POST',
+        (response) =>
+          response.url().includes(`${SystemRoutes.DEVICE}/list`) &&
+          response.request().method() === 'POST',
         { timeout: 30_000 },
       )
       // 回车 = `componentProp.onKeyupEnter` 触发查询（与搜索按钮同一条 onApiList；
@@ -69,16 +78,18 @@ test.describe('设备管理页', { tag: '@risk' }, () => {
       await nameInput.press('Enter')
       const searchedResponse = await searchedList
       const requestBody = searchedResponse.request().postDataJSON() as {
-        filters?: Array<{ field: string, op: string, value: unknown }>
+        filters?: Array<{ field: string; op: string; value: unknown }>
       }
       expect(
-        requestBody.filters?.some(filter => filter.field === 'deviceName' && filter.value === victimRow.device_name),
+        requestBody.filters?.some(
+          (filter) => filter.field === 'deviceName' && filter.value === victimRow.device_name,
+        ),
         '搜索请求的 filters 里没有 deviceName（查询表单没有提交？）',
       ).toBe(true)
-      const searchedBody = await searchedResponse.json() as DeviceListEnvelope
+      const searchedBody = (await searchedResponse.json()) as DeviceListEnvelope
       expect(searchedBody.code).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
       expect(
-        searchedBody.data.data.some(row => row.deviceId === victim.deviceId),
+        searchedBody.data.data.some((row) => row.deviceId === victim.deviceId),
         '过滤后的列表不包含本条用例的设备',
       ).toBe(true)
 
@@ -89,23 +100,34 @@ test.describe('设备管理页', { tag: '@risk' }, () => {
 
       // 打开详情抽屉：先等 read 请求（20000），再断言 deviceId 字段是 victim
       const readResponse = page.waitForResponse(
-        response => response.url().endsWith(`${SystemRoutes.DEVICE}/${victimRow.id}`) && response.request().method() === 'GET',
+        (response) =>
+          response.url().endsWith(`${SystemRoutes.DEVICE}/${victimRow.id}`) &&
+          response.request().method() === 'GET',
         { timeout: 30_000 },
       )
       await card.locator('button').first().click()
-      const readBody = await (await readResponse).json() as { code: number }
-      expect(readBody.code, '设备详情 read 请求不是 20000').toBe(WalnutAdminConstAppResponseCode.SUCCESS)
+      const readBody = (await (await readResponse).json()) as { code: number }
+      expect(readBody.code, '设备详情 read 请求不是 20000').toBe(
+        WalnutAdminConstAppResponseCode.SUCCESS,
+      )
 
       // admin 的 UI 库前缀是 `w-`（Naive UI 的 prefix 定制）：抽屉 / 对话框 / 卡片都不是 `n-` 类名
       const drawer = page.locator('.w-drawer')
       const footerButtons = drawer.locator('.w-drawer-footer button')
-      await expect(footerButtons.first(), '详情抽屉的 footer 按钮没有出现').toBeVisible({ timeout: 20_000 })
+      await expect(footerButtons.first(), '详情抽屉的 footer 按钮没有出现').toBeVisible({
+        timeout: 20_000,
+      })
       // 详情是 WForm 的 description 形态（表格文本，不是 input）：确认抽屉里是本用例的设备
-      await expect(drawer.getByText(victim.deviceId, { exact: true }).first(), '详情抽屉的设备 ID 不是 victim').toBeVisible()
+      await expect(
+        drawer.getByText(victim.deviceId, { exact: true }).first(),
+        '详情抽屉的设备 ID 不是 victim',
+      ).toBeVisible()
 
       // 点 lock（footer 第一个按钮）→ 确认对话框 → 正按钮
       const lockResponse = page.waitForResponse(
-        response => response.url().endsWith(`${SystemRoutes.DEVICE}/${victimRow.id}/lock`) && response.request().method() === 'PATCH',
+        (response) =>
+          response.url().endsWith(`${SystemRoutes.DEVICE}/${victimRow.id}/lock`) &&
+          response.request().method() === 'PATCH',
         { timeout: 30_000 },
       )
       await footerButtons.first().click()
@@ -113,7 +135,7 @@ test.describe('设备管理页', { tag: '@risk' }, () => {
       await expect(confirmButton, '确认对话框没有出现').toBeVisible({ timeout: 15_000 })
       await confirmButton.click()
 
-      const lockBody = await (await lockResponse).json() as { code: number }
+      const lockBody = (await (await lockResponse).json()) as { code: number }
       expect(lockBody.code, 'lock 操作没有回 20000').toBe(WalnutAdminConstAppResponseCode.SUCCESS)
 
       // DB 行是最终判据：locked=true，banned 不受影响
@@ -123,8 +145,7 @@ test.describe('设备管理页', { tag: '@risk' }, () => {
         expect(row!.locked, 'UI 点了 lock，但 sys_device.locked 不是 true').toBe(true)
         expect(row!.banned, 'lock 不应顺带改 banned').toBe(false)
       })
-    }
-    finally {
+    } finally {
       await session.context.close()
     }
   })

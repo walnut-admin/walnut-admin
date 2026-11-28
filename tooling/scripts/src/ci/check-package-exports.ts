@@ -78,16 +78,16 @@ export function flattenExportTargets(pkgName: string, exportsField: unknown): Ex
   const out: ExportTarget[] = []
   const walk = (value: unknown, subpath: string | null, condition: string): void => {
     if (typeof value === 'string') {
-      out.push({ label: `${pkgName} exports[${JSON.stringify(subpath)}]${condition === '' ? '' : `.${condition}`}`, target: value })
+      out.push({
+        label: `${pkgName} exports[${JSON.stringify(subpath)}]${condition === '' ? '' : `.${condition}`}`,
+        target: value,
+      })
       return
     }
-    if (value === null || typeof value !== 'object')
-      return
+    if (value === null || typeof value !== 'object') return
     for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
-      if (subpath === null)
-        walk(child, key, '') // 顶层键 = 子路径
-      else
-        walk(child, subpath, condition === '' ? key : `${condition}.${key}`) // 再往下 = 条件
+      if (subpath === null) walk(child, key, '') // 顶层键 = 子路径
+      else walk(child, subpath, condition === '' ? key : `${condition}.${key}`) // 再往下 = 条件
     }
   }
   walk(exportsField, null, '')
@@ -105,32 +105,30 @@ export function flattenExportTargets(pkgName: string, exportsField: unknown): Ex
  */
 export function exportsPatternMatches(pattern: string, cwd = REPO_ROOT): boolean {
   const star = pattern.indexOf('*')
-  if (star < 0)
-    return globMatchesSomething(pattern, cwd)
+  if (star < 0) return globMatchesSomething(pattern, cwd)
 
   const slash = pattern.lastIndexOf('/', star)
   const base = slash < 0 ? '.' : pattern.slice(0, slash)
   const rest = slash < 0 ? pattern : pattern.slice(slash + 1)
   const abs = path.join(cwd, base)
-  if (!existsSync(abs))
-    return false
+  if (!existsSync(abs)) return false
 
   const re = new RegExp(`^${rest.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`)
 
   let entries
   try {
     entries = readdirSync(abs, { recursive: true, withFileTypes: true })
-  }
-  catch {
+  } catch {
     return false
   }
   for (const entry of entries) {
-    if (!entry.isFile())
-      continue
+    if (!entry.isFile()) continue
     // Dirent.parentPath 是本轮 readdir 的父目录（Node 20.12+；Node >= 24 是本仓下限）
-    const relative = path.relative(abs, path.join(entry.parentPath, entry.name)).split(path.sep).join('/')
-    if (re.test(relative))
-      return true
+    const relative = path
+      .relative(abs, path.join(entry.parentPath, entry.name))
+      .split(path.sep)
+      .join('/')
+    if (re.test(relative)) return true
   }
   return false
 }
@@ -138,9 +136,8 @@ export function exportsPatternMatches(pattern: string, cwd = REPO_ROOT): boolean
 /** 条件对象的键顺序：`types` 是否排在会吃掉它的那几个之前 */
 export function typesComesFirst(keys: string[]): boolean {
   const typesAt = keys.indexOf('types')
-  if (typesAt === -1)
-    return true
-  const firstJs = keys.findIndex(k => (JS_CONDITIONS as readonly string[]).includes(k))
+  if (typesAt === -1) return true
+  const firstJs = keys.findIndex((k) => (JS_CONDITIONS as readonly string[]).includes(k))
   return firstJs === -1 || typesAt < firstJs
 }
 
@@ -155,11 +152,9 @@ export function collectFindings(
   // 先把所有「要问 git」的路径攒起来，一次问完（逐条 spawn 是 15 秒级的代价，实测）
   const candidates = new Set<string>()
   for (const { dir, manifest } of packages) {
-    if (manifest.exports === undefined)
-      continue
+    if (manifest.exports === undefined) continue
     for (const { target } of flattenExportTargets(manifest.name ?? dir, manifest.exports)) {
-      if (!target.startsWith('./'))
-        continue
+      if (!target.startsWith('./')) continue
       candidates.add(`${dir}/${target.slice(2)}`)
     }
   }
@@ -173,29 +168,42 @@ export function collectFindings(
   for (const { dir, manifest } of packages) {
     const name = manifest.name ?? dir
     const exportsField = manifest.exports
-    if (exportsField === undefined)
-      continue
+    if (exportsField === undefined) continue
 
     if (typeof exportsField !== 'object' || exportsField === null) {
-      findings.push({ rule: 'exports-target-exists', package: name, detail: '`exports` 必须是对象（字符串形式没法表达子路径）' })
+      findings.push({
+        rule: 'exports-target-exists',
+        package: name,
+        detail: '`exports` 必须是对象（字符串形式没法表达子路径）',
+      })
       continue
     }
 
     for (const { label, target } of flattenExportTargets(name, exportsField)) {
       if (!target.startsWith('./')) {
-        findings.push({ rule: 'exports-target-exists', package: name, detail: `${label} → \`${target}\` 不是相对路径（本仓所有 exports 目标都以 ./ 开头）` })
+        findings.push({
+          rule: 'exports-target-exists',
+          package: name,
+          detail: `${label} → \`${target}\` 不是相对路径（本仓所有 exports 目标都以 ./ 开头）`,
+        })
         continue
       }
       const repoRelative = `${dir}/${target.slice(2)}`
-      if (isArtifact(repoRelative))
-        continue // 产物：构建后才在，不查存在性（见文件头）
+      if (isArtifact(repoRelative)) continue // 产物：构建后才在，不查存在性（见文件头）
       if (target.includes('*')) {
         // exports 的子路径模式与「文件 glob」不是一套语义：这里的 `*` 跨 `/`（见 exportsPatternMatches）
         if (!exportsPatternMatches(repoRelative, cwd))
-          findings.push({ rule: 'exports-glob-matches', package: name, detail: `${label} → \`${target}\` 一个文件都没命中（通配写错了？）` })
-      }
-      else if (!globMatchesSomething(repoRelative, cwd)) {
-        findings.push({ rule: 'exports-target-exists', package: name, detail: `${label} → \`${target}\` 不存在` })
+          findings.push({
+            rule: 'exports-glob-matches',
+            package: name,
+            detail: `${label} → \`${target}\` 一个文件都没命中（通配写错了？）`,
+          })
+      } else if (!globMatchesSomething(repoRelative, cwd)) {
+        findings.push({
+          rule: 'exports-target-exists',
+          package: name,
+          detail: `${label} → \`${target}\` 不存在`,
+        })
       }
     }
 
@@ -239,24 +247,28 @@ export function main(): void {
   let findings: Finding[]
   try {
     findings = collectFindings()
-  }
-  catch (e) {
+  } catch (e) {
     throw new PreconditionError(`拿不到包清单或 gitignore 信息：${(e as Error).message}`)
   }
 
   const packages = workspacePackages()
-  const withExports = packages.filter(p => p.manifest.exports !== undefined).length
-  out(`包 exports 形态体检：${packages.length} 个 workspace 包，其中 ${withExports} 个声明了 \`exports\``)
+  const withExports = packages.filter((p) => p.manifest.exports !== undefined).length
+  out(
+    `包 exports 形态体检：${packages.length} 个 workspace 包，其中 ${withExports} 个声明了 \`exports\``,
+  )
 
   if (findings.length === 0) {
     line('ok', '目标都存在 / 通配都有命中 / `types` 条件在前 / 与顶层 main·types 不矛盾。')
-    out('   提示：**产物（gitignore 的路径，如 ./dist/*.cjs）不查存在性** —— 判据是"仓库里该有的文件在不在"。')
+    out(
+      '   提示：**产物（gitignore 的路径，如 ./dist/*.cjs）不查存在性** —— 判据是"仓库里该有的文件在不在"。',
+    )
     return
   }
 
   lineErr('violation', `有 ${findings.length} 处 exports 形态问题：\n`)
-  for (const f of findings)
-    err(`  [${f.rule}] ${f.detail}`)
-  err('\n改完请跑 `pnpm walnut lint:exports` 复验；这类错的症状通常出现在很远的下游（解析到别的入口 / 类型丢失）。')
+  for (const f of findings) err(`  [${f.rule}] ${f.detail}`)
+  err(
+    '\n改完请跑 `pnpm walnut lint:exports` 复验；这类错的症状通常出现在很远的下游（解析到别的入口 / 类型丢失）。',
+  )
   throw new ViolationError(`包 exports 有 ${findings.length} 处形态问题（明细见上）`)
 }

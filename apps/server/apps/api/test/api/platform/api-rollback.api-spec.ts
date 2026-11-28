@@ -67,10 +67,14 @@ describe('H1：API 级事务回滚直测（真实 HTTP 触发中途失败 → �
         await api.pgDataSource.query('DELETE FROM app_demo WHERE id = ANY($1::uuid[])', [demoIds])
       }
       if (deletedDemoIds.length > 0) {
-        await api.pgDataSource.query('DELETE FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])', [deletedDemoIds])
+        await api.pgDataSource.query('DELETE FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])', [
+          deletedDemoIds,
+        ])
       }
       const deviceIds = [api.deviceId, ...(hookDeviceId !== '' ? [hookDeviceId] : [])]
-      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [deviceIds])
+      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [
+        deviceIds,
+      ])
       // fixture 清场（其余 spec 同款两行，此前缺漏）：fixture 的 'root' 角色行若泄漏，
       // 且本文件恰是 menu.role.pg.int-spec（对 roleName='root' 裸插）前最后一个用
       // registerRootUserFixture 的 spec，全量跑 menu.role 必撞 uq_role_name（实测复现）
@@ -210,12 +214,11 @@ describe('H1：API 级事务回滚直测（真实 HTTP 触发中途失败 → �
       )
       expect(userRows[0].c).toBe(0)
       const snapshotRows: Array<{ c: number }> = await api.pgDataSource.query(
-        'SELECT count(*)::int AS c FROM sys_deleted WHERE content ->> \'userName\' = $1',
+        "SELECT count(*)::int AS c FROM sys_deleted WHERE content ->> 'userName' = $1",
         [userName],
       )
       expect(snapshotRows[0].c).toBe(0)
-    }
-    finally {
+    } finally {
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [validRoleId])
     }
   })
@@ -247,10 +250,10 @@ describe('H1：API 级事务回滚直测（真实 HTTP 触发中途失败 → �
       })
       expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
 
-      const rows: Array<{ status: boolean, current_role_id: string | null }> = await api.pgDataSource.query(
-        'SELECT status, current_role_id FROM sys_user WHERE id = $1',
-        [created.id],
-      )
+      const rows: Array<{ status: boolean; current_role_id: string | null }> =
+        await api.pgDataSource.query('SELECT status, current_role_id FROM sys_user WHERE id = $1', [
+          created.id,
+        ])
       expect(rows).toHaveLength(1)
       expect(rows[0].status).toBe(true)
       expect(rows[0].current_role_id).toBe(validRoleId)
@@ -260,11 +263,10 @@ describe('H1：API 级事务回滚直测（真实 HTTP 触发中途失败 → �
         'SELECT role_id FROM sys_user_role WHERE user_id = $1',
         [created.id],
       )
-      expect(junctionRows.map(row => row.role_id)).toEqual([validRoleId])
+      expect(junctionRows.map((row) => row.role_id)).toEqual([validRoleId])
 
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [created.id])
-    }
-    finally {
+    } finally {
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [validRoleId])
     }
   })

@@ -44,6 +44,14 @@
  * 于是推送者以为验过了 —— 那是**机器在说谎**，不是文档没写清。现在：跳过行打 `-` 并注明
  * `[SKIP 未验证]`，**成功汇总里也单列**，段名逐段列出。默认**不**判红（没装工具的机器不该被
  * 挡在推送之外），要「未验证即失败」就 `PREPUSH_STRICT=1`。
+ *
+ * ## 原生崩溃重试不产生第四种结局
+ *
+ * Windows 上 Node 进程偶发以访问冲突（`0xC0000005`）退出：不留输出、不留 JS 栈，等价于「这一步
+ * 没跑」。turbo 重道的三段（`lint` / `types` / `test`）只在**这个特征**上于同一次运行内重试一次，
+ * 普通失败绝不重试；三态仍然只由重跑的结果决定。但「先崩后过」必须看得见（结果行标
+ * `[崩溃后重试]`，成功汇总单列），因为那说明这台机器不稳。判据与上游证据见
+ * {@link isNativeCrashFailure} 的注释。
  */
 
 import process from 'node:process'
@@ -178,6 +186,20 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     why: '根级文件（`eslint.config.ts` / `knip.config.ts` / `package.json` / `pnpm-workspace.yaml`）**不在任何包的 lint 范围里**（它们不进 turbo 的包图），所以必须单独一段。',
   },
   {
+    id: 'lint:oxlint',
+    label: 'oxlint 快速检查（correctness 兜底）',
+    // 不经 turbo：oxlint 在根跑一次（命令表 `exec oxlint --quiet`），改 `.oxlintrc.json` 立刻生效。
+    // 实测（2026-11-28）2164 文件 / 111ms，整段含 pnpm 启动 0.3s —— 全表最便宜的一段。
+    argv: ['lint:oxlint'],
+    why: 'oxlint 双轨期的 correctness 兜底（约 0.1s）：Vue 模板、本地规则、类型感知分层仍归 ESLint，但「明显写错」的第一道快速通道不能只在 CI 里跑 —— 推送前 0.3s 就能拿到结论，没必要等 CI 的 `Lint (affected)`。',
+  },
+  {
+    id: 'format',
+    label: '格式检查（oxfmt --check）',
+    argv: ['format:check'],
+    why: '格式的唯一真源已从 ESLint 拆到 oxfmt（stylistic: false）；缺这一段时唯一能看见格式漂移的是 CI',
+  },
+  {
     id: 'types',
     label: '类型检查（不排任何包）',
     argv: ['exec', 'turbo', 'run', 'types:check'],
@@ -276,7 +298,17 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     // 用 --stat 只为把失败输出压成一行改动统计：openapi.json 是全量重排，整份 diff 上万行，
     // 灌进门禁失败回放里等于没人看得见结论。
     followups: [
-      ['exec', 'git', 'diff', '--cached', '--exit-code', '--stat', '--', 'apps/server/openapi.json', 'packages/generated/api-types/src/schema.d.ts'],
+      [
+        'exec',
+        'git',
+        'diff',
+        '--cached',
+        '--exit-code',
+        '--stat',
+        '--',
+        'apps/server/openapi.json',
+        'packages/generated/api-types/src/schema.d.ts',
+      ],
     ],
     // 剩下的边界面（F-53）：
     // 边界② **已修（2026-11 批次 4 · D9）**：原来 fork PR 拿不到 secret `ENV_KEYS` ⇒ CI 的
@@ -402,6 +434,13 @@ export interface GateResult {
   ms: number
   /** 捕获到的完整输出（并行下不直接转播，避免多路输出交织） */
   output: string
+  /**
+   * 这一段是否因**原生崩溃**（0xC0000005）被自动重试过。
+   *
+   * 它不是第四态：三态仍然只由第二次尝试的结果决定。单独记这一位是因为「先崩后过」与
+   * 「一次就过」在门禁结论上同形、在环境健康上完全不同 —— 前者的机器在告诉你它不稳。
+   */
+  retried?: boolean
 }
 
 /**
@@ -462,6 +501,18 @@ export function createPnpmGateExecutor(options: GateExecutorOptions = {}): GateE
 }
 
 /**
+ * `runGates` 的可注入口径。现在只有一项：平台。
+ *
+ * 为什么平台要可注入：崩溃重试**只在 Windows 上**生效，而用例要能在任何平台（含 Linux CI）
+ * 上同时验证「Windows 会重试」与「Linux 不重试」两侧。读 `process.platform` 会让后一条
+ * 在 Linux 上变成空转（永远为真），前一条在 Linux 上跑不了。
+ */
+export interface RunGatesOptions {
+  /** 平台（缺省 `process.platform`） */
+  platform?: NodeJS.Platform
+}
+
+/**
  * 有解并发地跑门禁表，**按完成顺序**回调（并行下没有「表里的顺序」可言）。
  * 返回全部结果（仍然按表里的顺序排列，便于断言与汇总）。
  *
@@ -472,13 +523,18 @@ export function createPnpmGateExecutor(options: GateExecutorOptions = {}): GateE
  * 领段的规则：worker 按**表里的顺序**领下一段**可领的**段。重道被占着的段先跳过（不占位、
  * 不改它在表里的顺序），等重道腾出来再领；所有没跑的段都被重道挡着时，空闲的 worker 等在
  * 那里 —— 任意一段结束都会把它们全部叫醒，醒来各自重新领（白醒一次无害）。
+ *
+ * 原生崩溃的重试也落在这一层（见 {@link isNativeCrashFailure}）：turbo 重道的段以崩溃特征
+ * 失败时**同一次运行内重跑一次**，三态只由重跑的结果决定，`GateResult.retried` 记下「先崩后过」。
  */
 export async function runGates(
   gates: readonly PrepushGate[],
   onDone: (result: GateResult) => void,
   concurrency: number = DEFAULT_CONCURRENCY,
   execute: GateExecutor = createPnpmGateExecutor(),
+  options: RunGatesOptions = {},
 ): Promise<GateResult[]> {
+  const platform = options.platform ?? process.platform
   const results = new Map<string, GateResult>()
   /** 还没被领走的段（保持表序；领走即移除） */
   const pending = [...gates]
@@ -489,13 +545,11 @@ export async function runGates(
 
   /** 领下一段可领的段；没有可领的返回 `null`（表空了，或都被重道挡着） */
   function take(): PrepushGate | null {
-    const index = pending.findIndex(gate => gate.lane === undefined || !busyLanes.has(gate.lane))
+    const index = pending.findIndex((gate) => gate.lane === undefined || !busyLanes.has(gate.lane))
     const gate = index === -1 ? undefined : pending[index]
-    if (gate === undefined)
-      return null
+    if (gate === undefined) return null
     pending.splice(index, 1)
-    if (gate.lane !== undefined)
-      busyLanes.add(gate.lane)
+    if (gate.lane !== undefined) busyLanes.add(gate.lane)
     return gate
   }
 
@@ -503,35 +557,60 @@ export async function runGates(
     for (;;) {
       const gate = take()
       if (gate === null) {
-        if (pending.length === 0)
-          return
-        await new Promise<void>(resolve => waiting.add(resolve))
+        if (pending.length === 0) return
+        await new Promise<void>((resolve) => waiting.add(resolve))
         continue
       }
       const started = Date.now()
       const chunks: string[] = []
       let status: GateStatus = 'ok'
-      try {
-        await execute(gate, text => chunks.push(text))
+      let retried = false
+      const write = (text: string): void => {
+        chunks.push(text)
       }
-      catch (error) {
-        // 子进程按**四态**退出码回报（lib/errors.ts）：3 = 环境缺失、这一步没跑。不认 3 的话，
-        // 跳过与失败在汇总里同形 —— 而这正是本文件这次要修的那件事。
-        status = error instanceof ChildRunError && error.exitCode === SKIPPED_EXIT_CODE
+      /** 四态退出码 → 三态：只有 3（环境缺失、这一步没跑）是跳过，其余非零都算失败 */
+      const classify = (error: unknown): GateStatus =>
+        error instanceof ChildRunError && error.exitCode === SKIPPED_EXIT_CODE
           ? 'skipped'
           : 'failed'
-        chunks.push(error instanceof Error ? error.message : String(error))
-      }
-      finally {
-        // 无论这一段怎么结束（通过 / 失败 / 跳过）重道都要腾出来：漏腾一次，同道的后一段永远不跑
-        // = 静默少跑一道闸。先腾道、后报结果 —— 叫醒的 worker 要等本轮同步代码跑完才会动，抢不到前面
-        if (gate.lane !== undefined)
-          busyLanes.delete(gate.lane)
-        for (const wake of waiting)
-          wake()
+      try {
+        await execute(gate, write)
+      } catch (error) {
+        // 原生崩溃不是检查结论（没有输出、没有 JS 栈），重跑与「第一次没跑」等价 —— 但它只
+        // 在 turbo 重道与 win32 上重试一次（判据与证据见 isNativeCrashFailure；普通失败绝不重试）。
+        if (gate.lane === TURBO_LANE && isNativeCrashFailure(error, chunks.join(''), platform)) {
+          // 重试要重跑整段（最坏 2 × 段预算 = 15 分钟），必须**当场**让人看见，不能等回放：
+          // 静默重试会让人以为门禁卡死。走 `out()`（stdout，立即写）而不是写进 chunks
+          // （chunks 只在段失败时回放，成功时随结果丢弃 —— 那就等于没打）。
+          out(`[prepush] ${gate.id}：检测到原生崩溃，自动重试一次（普通失败不重试）`)
+          retried = true
+          chunks.push(`\n${crashRetryNotice(error)}\n`)
+          try {
+            await execute(gate, write)
+          } catch (retryError) {
+            status = classify(retryError)
+            chunks.push(retryError instanceof Error ? retryError.message : String(retryError))
+          }
+        } else {
+          // 子进程按**四态**退出码回报（lib/errors.ts）：3 = 环境缺失、这一步没跑。不认 3 的话，
+          // 跳过与失败在汇总里同形 —— 而这正是本文件这次要修的那件事。
+          status = classify(error)
+          chunks.push(error instanceof Error ? error.message : String(error))
+        }
+      } finally {
+        // 无论这一段怎么结束（通过 / 失败 / 跳过 / 重试）重道都要腾出来：漏腾一次，同道的后一段
+        // 永远不跑 = 静默少跑一道闸。先腾道、后报结果 —— 叫醒的 worker 要等本轮同步代码跑完才会动
+        if (gate.lane !== undefined) busyLanes.delete(gate.lane)
+        for (const wake of waiting) wake()
         waiting.clear()
       }
-      const result: GateResult = { gate, status, ms: Date.now() - started, output: chunks.join('') }
+      const result: GateResult = {
+        gate,
+        status,
+        ms: Date.now() - started,
+        output: chunks.join(''),
+        ...(retried ? { retried } : {}),
+      }
       results.set(gate.id, result)
       onDone(result)
     }
@@ -540,7 +619,7 @@ export async function runGates(
   await Promise.all(
     Array.from({ length: Math.max(1, Math.min(concurrency, gates.length)) }, () => worker()),
   )
-  return gates.map(gate => results.get(gate.id)!).filter(Boolean)
+  return gates.map((gate) => results.get(gate.id)!).filter(Boolean)
 }
 
 /**
@@ -549,13 +628,16 @@ export async function runGates(
  * 三种标记**刻意用 ASCII 字形**（对勾 / 叉 / 短横）：表格靠 `padStart` 对齐，而 emoji 是**双宽**字符，
  * 混进去整列会歪（同一条理由见 `lib/log.ts` 的 `MARK` 注释）。
  * 跳过的行还要在尾巴上写明 `[SKIP 未验证]` —— 一个孤零零的 `-` 会被读成「无关紧要」，
- * 而这里要表达的恰恰相反：**它没验过**。
+ * 而这里要表达的恰恰相反：**它没验过**。原生崩溃后重试过的段标 `[崩溃后重试]`：门禁不判红，
+ * 但「先崩后过」与「一次就过」不能同形 —— 前者的机器在告诉你它不稳。
  */
 export function formatLine(result: GateResult): string {
   const mark = result.status === 'ok' ? '✓' : result.status === 'failed' ? '✗' : '-'
   const secs = `${(result.ms / 1000).toFixed(1)}s`
-  const note = result.status === 'skipped' ? '  [SKIP 未验证]' : ''
-  return `  ${mark} ${secs.padStart(7)}  ${result.gate.label}${note}`
+  const skipped = result.status === 'skipped' ? '  [SKIP 未验证]' : ''
+  // 「先崩后过」与「一次就过」在标记上同形，所以必须在行尾说出来：门禁不判红，但环境不健康
+  const retried = result.retried === true ? '  [崩溃后重试]' : ''
+  return `  ${mark} ${secs.padStart(7)}  ${result.gate.label}${skipped}${retried}`
 }
 
 /**
@@ -578,19 +660,30 @@ function isStrict(): boolean {
  * 纯函数（读入参，不读 `process.env`）：它是「未验证是否算失败」这条口径的**唯一一句**，
  * 而口径这种东西必须有用例钉住 —— main() 会真跑整张表，用例碰不到。
  */
-export function strictFailureMessage(strict: boolean, skippedIds: readonly string[]): string | null {
-  if (!strict || skippedIds.length === 0)
-    return null
-  return `${STRICT_ENV}=1：有 ${skippedIds.length} 段跳过（未验证）—— ${skippedIds.join(', ')}。`
-    + '装上对应的工具后重跑，或去掉这个环境变量（它默认关，只为「谁都不许把未验证当通过」的场景拧开）'
+export function strictFailureMessage(
+  strict: boolean,
+  skippedIds: readonly string[],
+): string | null {
+  if (!strict || skippedIds.length === 0) return null
+  return (
+    `${STRICT_ENV}=1：有 ${skippedIds.length} 段跳过（未验证）—— ${skippedIds.join(', ')}。` +
+    '装上对应的工具后重跑，或去掉这个环境变量（它默认关，只为「谁都不许把未验证当通过」的场景拧开）'
+  )
 }
 
-/** 一次 prepush 的**结论**（三态报数 + 跳过名单 + 严格开关的判决） */
+/** 一次 prepush 的**结论**（三态报数 + 跳过名单 + 重试名单 + 严格开关的判决） */
 export interface RunSummary {
   /** 三态报数行（真跑通过 / 跳过未验证）；永远存在，没有跳过时也不含跳过字样 */
   okLine: string
   /** 跳过单列行（没有跳过时为 `null`）：段名 + 「跳过不等于通过」+ 权威闸门指向 */
   skippedLine: string | null
+  /**
+   * 「原生崩溃后重试通过」的段（没有时为 `null`）。
+   *
+   * 为什么要单列：这种段在结果表里与一次就过同形，但它说明**机器不稳** —— 同一份仓库、
+   * 同一份命令，第一次是 0xC0000005。把它藏起来等于让下一个人再排查一遍「为什么偶发红」。
+   */
+  retriedPassedLine: string | null
   /** 严格模式下该判红的理由（非严格 / 无跳过 ⇒ `null`） */
   strictMessage: string | null
   failed: GateResult[]
@@ -598,28 +691,38 @@ export interface RunSummary {
 }
 
 /**
- * 把「跑完的那张表」变成「推给用户的那两行 + 一个判决」。
+ * 把「跑完的那张表」变成「推给用户的那几行 + 一个判决」。
  *
  * 为什么抽成纯函数：**跳过必须单列**这条口径只在成功汇总里看得见，而 main() 会真跑整张表
  * （分钟级、还依赖本机环境），用例碰不到。抽出来之后这条口径有真用例钉住，
- * 也让「跳过在成功汇总里也可见」不是靠人读代码确认。
+ * 也让「跳过在成功汇总里也可见」不是靠人读代码确认。重试名单同理：它只出现在 main() 的
+ * 成功路径上，不抽出来就没有真结论可断言。
  */
 export function summarizeRun(
   results: readonly GateResult[],
   totalSeconds: string,
   strict: boolean,
 ): RunSummary {
-  const failed = results.filter(result => result.status === 'failed')
-  const skipped = results.filter(result => result.status === 'skipped')
+  const failed = results.filter((result) => result.status === 'failed')
+  const skipped = results.filter((result) => result.status === 'skipped')
+  const retriedPassed = results.filter(
+    (result) => result.retried === true && result.status === 'ok',
+  )
   const passed = results.length - failed.length - skipped.length
-  const skippedIds = skipped.map(result => result.gate.id)
+  const skippedIds = skipped.map((result) => result.gate.id)
   // 有跳过时才追加那一段 —— 没有跳过时「0 段跳过」只是噪音；但只要**有**，它就必须出现在汇总里
   const skippedNote = skipped.length === 0 ? '' : ` / ${skipped.length} 段跳过（未验证）`
   return {
     okLine: `${results.length} 段：${passed} 段真跑通过${skippedNote}（总 ${totalSeconds}s）`,
-    skippedLine: skipped.length === 0
-      ? null
-      : `未验证的段：${skippedIds.join(', ')}（本机环境缺失，跳过不等于通过；权威闸门见 .github/workflows/）`,
+    skippedLine:
+      skipped.length === 0
+        ? null
+        : `未验证的段：${skippedIds.join(', ')}（本机环境缺失，跳过不等于通过；权威闸门见 .github/workflows/）`,
+    retriedPassedLine:
+      retriedPassed.length === 0
+        ? null
+        : `原生崩溃后重试通过的段：${retriedPassed.map((result) => result.gate.id).join(', ')}` +
+          '（先崩后过不是一次通过：这台机器运行 Node 原生命令不稳，详见 prepush.ts 的崩溃说明）',
     strictMessage: strictFailureMessage(strict, skippedIds),
     failed,
     skipped,
@@ -627,12 +730,128 @@ export function summarizeRun(
 }
 
 /**
- * 退出码 `0xC0000005`（访问冲突；十进制 3221225477，有符号 -1073741819）在工具输出里的两种写法。
+ * ── 原生崩溃（Windows 访问冲突）的识别与「只重试一次」策略 ──────────────────────────
  *
- * 只认**带上下文**的写法，不认裸数字：日志里碰巧出现这个数的概率不为零，认错了提示就是一条误导。
- * turbo 打的是 `… exited (-1073741819)`，pnpm 打的是 `exit code -1073741819`，npm 打的是 `Exit code 3221225477`。
+ * ## 为什么要有重试
+ *
+ * 本机三次观察到 Node 原生崩溃退出码 `0xC0000005`（十进制 3221225477 / 有符号 -1073741819），
+ * 共同特征是**与机器负载相关、重跑即过、输出里没有任何 JS 栈**：
+ *   · 批次 4：lint-staged 1471 文件、约 30 分块并发跑 `eslint --fix`；
+ *   · 批次 8：`VITE_BUILD_LEGACY=true` 构建（rolldown 的 transforming 阶段）；
+ *   · 终极验证：prepush 第一轮 `turbo run lint`（`@walnut/admin:lint` exit -1073741819）。
+ *
+ * 上游同类报告（截止 2026-11-28）都能对上，但没有任何一条给出「改配置即可」的解：
+ *   · nodejs/node#62991（2026-04-27）：v24.15.0 在 Windows 的 `npm ci` 解包阶段以 0xDEAD
+ *     原生崩溃，v24.14.1 零复现；修复进 v24.16.0。
+ *     https://github.com/nodejs/node/issues/62991
+ *   · dotnet/aspnetcore#67402（2026-06-24）：**v24.15.0 之后的每一个 24.x** 在 Windows CI 上
+ *     都偶发 `0xC0000005`（rollup 打包阶段）：7 天内 24.16.0 崩 2 次 / 24.17.0 崩 3 次 /
+ *     24.18.0 崩 4 次，24.14.1 为 0。结论是「上游 Node/V8 的 Windows 回归，代码侧无解」——
+ *     他们最终把 CI 钉回 24.14.1。
+ *     https://github.com/dotnet/aspnetcore/pull/67402
+ *   · nodejs/node#65756（2026-09-03，v24.19.0）：`node --test` 的子进程在**全部用例通过之后**
+ *     以 0xC0000005 退出，同一提交在 Linux / macOS 全绿；约 1/8 的概率。
+ *     https://github.com/nodejs/node/issues/65756
+ *   · christopher-buss/flux#198（2026-07-20）：ESLint 9.39.5 + Node v24.16.0 + Windows 11，
+ *     pre-commit 里 `eslint --fix .` 以 3221225477 退出，无规则输出、无栈，重跑不复现。
+ *     https://github.com/christopher-buss/flux/issues/198
+ *   · nodejs/node#67133（2026-10-30，open）：Windows 上 Worker 线程 + `process.report` 的
+ *     最小复现，24.22.1 / 26.13.0 均崩（24.14.0 也崩 —— Windows 原生崩溃不止一个根因）。
+ *     https://github.com/nodejs/node/issues/67133
+ *   · colbymchenry/codegraph 的修复记录（2026）：Worker 在 V8 concurrent marker 标记堆期间结束
+ *     （`terminate()` / `process.exit()` / 进程退出）会让 Windows 整进程以 3221225477 死掉、不留
+ *     报错与转储；`--no-concurrent-marking` 能绕开，但索引慢约三分之一，所以他们没把它当长期解。
+ *     https://github.com/colbymchenry/codegraph/commit/70fe0ec
+ *
+ * 本仓自己量过并**排除**的成因（apps/docs 的 tooling-restructure-plan.md 第 14 节）：提交内存
+ * 水位（崩溃时远低于上限）、ESLint worker 数（关掉并发照崩）、堆上限（8GB 确实生效）、turbo
+ * 包装（不经 turbo 照崩）。也就是说：没有能改的配置，**重跑是唯一确定有效的处置**。这里把
+ * 人肉重跑变成门禁的一部分。
+ *
+ * ## 口径
+ *
+ * · **只认崩溃特征**：普通 lint / 测试失败带着可读结论，重试只会把红拖长；
+ * · **只重试一次**：崩溃不是检查结论（没有输出、没有栈，等价于「没跑」），但无限重试会让坏机器
+ *   把每段都跑两遍；一次是「调度事故」与「环境真坏了」之间的最小判据；
+ * · **只在 Windows 上**：签名本身就是 Windows 的（POSIX 的崩溃是信号、退出码被截到 8 位），且这里
+ *   显式按 `process.platform === 'win32'` 收口 —— Linux CI 的行为不靠「签名碰巧不出现」来保证；
+ * · **只覆盖 turbo 重道**：`lint` / `types` / `test` 是唯一实测出该崩溃的扇出面，也是唯一值得付
+ *   「整段重跑」代价的地方（其余段秒级、没有崩溃报告）；
+ * · **预算按次算**：重试拿自己的完整预算（`runArgs` 按次计时），一段最坏墙钟是 2 × 段预算。
+ *   崩溃发生在任务中途而不是预算尽头；turbo 只缓存成功的任务，所以重试通常只重跑崩溃的那个包。
  */
-const NATIVE_CRASH_EXIT = /exited \((?:-1073741819|3221225477)\)|[eE]xit code (?:-1073741819|3221225477)\b/
+
+/**
+ * 工具输出里的崩溃退出码只认**带上下文**的写法，不认裸数字：日志里碰巧出现这个数的概率不为零，
+ * 认错了提示就是一条误导（用例里有正反两面样本）。
+ *
+ * turbo 打的是 `… exited (-1073741819)`，pnpm 打的是 `exit code -1073741819`，npm 打的是
+ * `Exit code 3221225477` / `Exit code: 3221225477`；十六进制 `exit code 0xC0000005` 也一并认
+ * （任务管理器 / 事件日志口径）。冒号是可选的：工具之间不一致，两种样本都进用例。
+ */
+const NATIVE_CRASH_EXIT =
+  /exited \((?:-?1073741819|3221225477|0xC0000005)\)|exit code:?\s*(?:-?1073741819|3221225477|0xC0000005)\b/i
+
+/** 直接以崩溃码退出的子进程（不经过 turbo / pnpm 转述时）：32 位无符号与有符号两种写法 */
+const NATIVE_CRASH_CODES: ReadonlySet<number> = new Set([0xc0000005, -1073741819])
+
+/** 崩溃转述要落在输出最后几行内（见 {@link hasNativeCrashSignature}） */
+const NATIVE_CRASH_TAIL_LINES = 5
+
+/** 普通失败摘要的标记（vitest 的失败十字 U+2715、turbo / pnpm 的 failed / FAIL） */
+const FAILURE_SUMMARY = /\u2715|\bfailed\b|\bFAIL(?:ED)?\b/
+
+/**
+ * 输出里是否认得出「Node 进程的原生崩溃」——**收敛后的文本判据**（{@link isNativeCrashFailure}
+ * 与 {@link nativeCrashNote} 共用，两处不能各判一套）。
+ *
+ * 为什么不能只看崩溃码正则：本仓的测试断言里**就含崩溃码字面量**（例如「崩溃码是 3221225477」
+ * 这类用例）。普通失败回放时输出里既有那个数、也有失败十字（U+2715）/ `failed` 失败摘要 —— 只看正则会把一条
+ * 真实的测试失败说成「原生崩溃，重跑就好」，甚至自动重试一次。
+ *
+ * 判据（宁可漏报不可误报）：
+ *   · 崩溃转述出现在**输出最后 {@link NATIVE_CRASH_TAIL_LINES} 行内** ⇒ 认；
+ *   · 或整段输出里**没有**失败摘要（失败十字 U+2715 / `failed` / `FAIL`） ⇒ 认（崩溃原生的形态本来就没有结论）；
+ *   · 其余一律不认。
+ * 已知残余：普通失败的输出尾部恰好含崩溃码串、且失败摘要在更早的行 —— 这种极端形态仍会误认。
+ * 真出现时把窗口收窄或改成「最后一条失败摘要之后必须紧跟崩溃行」，不要退回只看正则。
+ */
+export function hasNativeCrashSignature(output: string): boolean {
+  if (!NATIVE_CRASH_EXIT.test(output)) return false
+  if (!FAILURE_SUMMARY.test(output)) return true
+  const tail = output.trimEnd().split(/\r?\n/).slice(-NATIVE_CRASH_TAIL_LINES).join('\n')
+  return NATIVE_CRASH_EXIT.test(tail)
+}
+
+/**
+ * 这个异常是否意味着「进程以 Windows 访问冲突死掉」，而不是「命令给出了否定结论」。
+ *
+ * 判据的三条边（每条都有用例）：
+ * ① 平台必须是 win32 —— Linux / macOS 上这条路径永远不生效；
+ * ② 退出码 2 / 3 不算：2 是超时 / 没跑起来 / 被信号结束，3 是环境缺失、压根没跑。超时重试一次
+ *    等于把 15 分钟预算翻倍，会把「卡住」伪装成「再等等」；跳过更不是崩溃；
+ * ③ 崩溃码（直接子进程）或输出里**可信的**崩溃转述（经 turbo / pnpm；判据见
+ *    {@link hasNativeCrashSignature}）任一命中即可。
+ */
+export function isNativeCrashFailure(
+  error: unknown,
+  output: string,
+  platform: NodeJS.Platform = process.platform,
+): boolean {
+  if (platform !== 'win32') return false
+  if (!(error instanceof ChildRunError)) return false
+  if (error.exitCode === 2 || error.exitCode === SKIPPED_EXIT_CODE) return false
+  return NATIVE_CRASH_CODES.has(error.exitCode) || hasNativeCrashSignature(output)
+}
+
+/** 重试那一次开始前写进捕获输出的分界线（只在失败回放里被人看到，成功时随结果丢弃） */
+function crashRetryNotice(error: unknown): string {
+  const code = error instanceof ChildRunError ? error.exitCode : 1
+  return (
+    `[prepush] 检测到 Node 原生崩溃（访问冲突 0xC0000005，本段命令退出码 ${code}）：` +
+    '崩溃不是检查结论，同一次运行内自动重试一次（普通失败不重试）。'
+  )
+}
 
 /**
  * 一段的输出里认得出「Node 进程的原生崩溃」时给出一句提示；否则 `null`。
@@ -640,58 +859,71 @@ const NATIVE_CRASH_EXIT = /exited \((?:-1073741819|3221225477)\)|[eE]xit code (?
  * 为什么需要：这样退出的子进程**不留任何报错** —— 没有 JS 栈、没有 stderr，只剩上游工具转述的退出码。
  * 把它当一条普通的门禁失败去读，读到的是一屏 turbo 日志，看不出「重跑一次」是有依据的下一步。
  *
- * 实测背景（2026-11-24，本机 Windows + Node 24）：`@walnut/admin` 的 eslint 在机器安静时连跑十次
- * 零复现，别的重任务并行时约三次里有一次这样退出。逐一量过并排除了的成因：提交内存水位（崩溃时很低）、
- * worker 线程并发（关掉并发照崩）、堆上限配置（8GB 确实生效）、turbo 包装（不经 turbo 照崩）。
- * 成因**没有查明** —— 要看出错模块得有崩溃转储。所以这句提示只说事实、不猜成因，也不改判决：
- * 该红照样红。
+ * **平台门与 {@link isNativeCrashFailure} 同口径**：非 win32 返回 `null`（Linux / macOS 的崩溃是信号、
+ * 退出码被截到 8 位，这段签名只对 Windows 有意义）。
  *
- * 靠输出文本认而不是读 `exitCode`：走到这里时退出码早被 turbo / pnpm 收敛成 1 了，原文只存在于输出里。
+ * `retried` 为真时（崩溃后已自动重试过一次仍失败）文案必须换掉「重跑一次通常就过」：那一句已经被
+ * 机制执行过了，再让人重跑一次是把同一句话再说一遍 —— 反复出现时下一步是抓崩溃转储。
  */
-export function nativeCrashNote(output: string): string | null {
-  if (!NATIVE_CRASH_EXIT.test(output))
-    return null
-  return '这一段里有进程以访问冲突退出（0xC0000005）：Node 进程的原生崩溃，不是这条命令查出了问题，输出里不会有成因。'
-    + '本机实测它与机器负载相关，重跑一次通常就过；反复出现时再抓崩溃转储排查。'
+export function nativeCrashNote(
+  output: string,
+  retried = false,
+  platform: NodeJS.Platform = process.platform,
+): string | null {
+  if (platform !== 'win32') return null
+  if (!hasNativeCrashSignature(output)) return null
+  const head =
+    '这一段里有进程以访问冲突退出（0xC0000005）：Node 进程的原生崩溃，不是这条命令查出了问题，输出里不会有成因。'
+  return retried
+    ? `${head}本次已在崩溃后自动重试一次，这一段最终仍未通过：先看回放末尾的第二次输出（那才是结论）；若第二次仍是访问冲突，说明这不是一次调度事故 —— 重跑整段，再考虑抓崩溃转储。`
+    : `${head}本机实测它与机器负载相关，重跑一次通常就过；反复出现时再抓崩溃转储排查。`
 }
 
 export async function main(): Promise<void> {
   const concurrency = Math.max(1, Number(process.env.PREPUSH_CONCURRENCY) || DEFAULT_CONCURRENCY)
   const started = Date.now()
-  out(`推送前门禁：${PREPUSH_GATES.length} 段，最多并行 ${concurrency} 路（表在 tooling/scripts/src/ci/prepush.ts）`)
+  out(
+    `推送前门禁：${PREPUSH_GATES.length} 段，最多并行 ${concurrency} 路（表在 tooling/scripts/src/ci/prepush.ts）`,
+  )
 
-  const results = await runGates(PREPUSH_GATES, result => out(formatLine(result)), concurrency)
+  const results = await runGates(PREPUSH_GATES, (result) => out(formatLine(result)), concurrency)
   const total = ((Date.now() - started) / 1000).toFixed(1)
   const summary = summarizeRun(results, total, isStrict())
 
   if (summary.failed.length === 0) {
     // 三段式报数：真跑通过 / 跳过未验证（+ 跳过的段名）。**不再说「全部通过」** —— 那是谎。
     line('ok', summary.okLine)
+    // 「先崩后过」不判红，但必须在成功汇总里留名 —— 否则同一台机器上的下一次偶发红又得从头查
+    if (summary.retriedPassedLine !== null) line('warning', summary.retriedPassedLine)
     if (summary.skippedLine !== null) {
       line('skipped', summary.skippedLine)
-      if (summary.strictMessage !== null)
-        throw new ViolationError(summary.strictMessage)
+      if (summary.strictMessage !== null) throw new ViolationError(summary.strictMessage)
     }
     return
   }
 
   // 失败才回放输出：成功时那些输出没人看，失败时它是唯一线索
   for (const result of summary.failed) {
-    err(`\n${'─'.repeat(20)} ${result.gate.label} 失败（${(result.ms / 1000).toFixed(1)}s） ${'─'.repeat(20)}`)
+    err(
+      `\n${'─'.repeat(20)} ${result.gate.label} 失败（${(result.ms / 1000).toFixed(1)}s） ${'─'.repeat(20)}`,
+    )
     err(`为什么必须有这一段：${result.gate.why}`)
     err(result.output.trimEnd() || '（这一段没有输出，只有非零退出码）')
-    // 原生崩溃与「查出了问题」同形（都是非零退出码），但下一步完全不同：先说清是哪一种
-    const crashNote = nativeCrashNote(result.output)
-    if (crashNote !== null)
-      lineErr('warning', crashNote)
+    // 原生崩溃与「查出了问题」同形（都是非零退出码），但下一步完全不同：先说清是哪一种。
+    // 已自动重试过的段要换一句话 —— 「重跑一次通常就过」已经被机制执行过了。
+    const crashNote = nativeCrashNote(result.output, result.retried === true)
+    if (crashNote !== null) lineErr('warning', crashNote)
   }
   // 这一行是**明细**（哪几段、各自耗时），不带标记 —— 唯一那句结论由 `runCli` 打
-  err(`${summary.failed.length}/${results.length} 段失败：${summary.failed.map(r => r.gate.id).join(', ')}（总 ${total}s）`)
+  err(
+    `${summary.failed.length}/${results.length} 段失败：${summary.failed.map((r) => r.gate.id).join(', ')}（总 ${total}s）`,
+  )
+  // 已有失败时结论早就红了，但「有段先崩后过」仍是环境信号，照实说
+  if (summary.retriedPassedLine !== null) err(summary.retriedPassedLine)
   // 已经有失败时结论早就红了，但「还有几段没验过」仍要说 —— 严格口径在这里也只多一行，不改退出码
   if (summary.skippedLine !== null) {
     err(summary.skippedLine)
-    if (summary.strictMessage !== null)
-      err(summary.strictMessage)
+    if (summary.strictMessage !== null) err(summary.strictMessage)
   }
   throw new ViolationError(`${summary.failed.length} 段推送前门禁失败（明细见上）`)
 }

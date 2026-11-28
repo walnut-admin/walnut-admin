@@ -1,7 +1,4 @@
-import type {
-  ReferenceObject,
-  SchemaObject,
-} from '@nestjs/swagger'
+import type { ReferenceObject, SchemaObject } from '@nestjs/swagger'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract'
 
 /**
@@ -14,7 +11,9 @@ import { WalnutAdminConstAppResponseCode } from '@walnut/contract'
  * 而错误码体系此前只在一句 description 里提了个名字，openapi-typescript 生成的类型完全不含
  * 错误形态。枚举一次进 schema，消费方（前端分支 / 网关 / 代码生成）就能拿到全集。
  */
-export function WalnutAdminSwaggerResponseSuccessSchemeData(data: SchemaObject | ReferenceObject): SchemaObject {
+export function WalnutAdminSwaggerResponseSuccessSchemeData(
+  data: SchemaObject | ReferenceObject,
+): SchemaObject {
   return {
     allOf: [
       {
@@ -26,7 +25,7 @@ export function WalnutAdminSwaggerResponseSuccessSchemeData(data: SchemaObject |
             enum: Object.values(WalnutAdminConstAppResponseCode),
             default: WalnutAdminConstAppResponseCode.SUCCESS,
             description:
-            'response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details',
+              'response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details',
             nullable: true,
             readOnly: true,
           },

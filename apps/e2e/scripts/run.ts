@@ -32,7 +32,13 @@ import process from 'node:process'
 import { ensureTestDatabase } from './baseline.ts'
 import { assertE2eDatabase, assertE2ePgPort, E2E_PG_DB, E2E_PG_PORT, E2E_ROOT } from './env.ts'
 import { reportFailure } from './failure.ts'
-import { acquirePgLock, connectMaintenance, E2E_PG_LOCK_KEY, E2E_PROFILE_LOCK_KEY, releasePgLock } from './pg-lock.ts'
+import {
+  acquirePgLock,
+  connectMaintenance,
+  E2E_PG_LOCK_KEY,
+  E2E_PROFILE_LOCK_KEY,
+  releasePgLock,
+} from './pg-lock.ts'
 import { spawnPnpm } from './pnpm.ts'
 import { runPreflight } from './preflight.ts'
 import { runRedisGc } from './redis-gc.ts'
@@ -44,9 +50,9 @@ async function main(): Promise<void> {
   assertE2eDatabase(E2E_PG_DB)
   assertE2ePgPort(E2E_PG_PORT)
   console.log(
-    `[e2e/run] profile=${STACK_PROFILE.name}  db=${E2E_PG_DB}  `
-    + `backend=${STACK_PROFILE.backendPort} socket=${STACK_PROFILE.socketPort} web=${STACK_PROFILE.webPort}  `
-    + `baseline=${STACK_PROFILE.artifactDir}`,
+    `[e2e/run] profile=${STACK_PROFILE.name}  db=${E2E_PG_DB}  ` +
+      `backend=${STACK_PROFILE.backendPort} socket=${STACK_PROFILE.socketPort} web=${STACK_PROFILE.webPort}  ` +
+      `baseline=${STACK_PROFILE.artifactDir}`,
   )
 
   // 允许 `pnpm … e2e -- -g "登录"` 这种写法：包管理器会把分隔符一起传进来
@@ -56,18 +62,21 @@ async function main(): Promise<void> {
   }
 
   // `--rebuild-baseline` 是**本脚本自己的**参数，不能进 Playwright 的命令行
-  const rebuild = passthrough.includes('--rebuild-baseline') || process.env.E2E_REBUILD_BASELINE === '1'
-  const testArgs = passthrough.filter(arg => arg !== '--rebuild-baseline')
+  const rebuild =
+    passthrough.includes('--rebuild-baseline') || process.env.E2E_REBUILD_BASELINE === '1'
+  const testArgs = passthrough.filter((arg) => arg !== '--rebuild-baseline')
   // profile 与 project 的 1:1 约束在**动锁 / 动库之前**校验：配错直接退 2，不白重建一次库
   const finalTestArgs = resolveProfileTestArgs(STACK_PROFILE, testArgs)
 
   // 可发现性（R-C §4.1）：不设 --project 的 default 全量现在会带上 pages / journey
   // （5 个 project，10 分钟级）。在开始等之前说清楚，并指向日常入口。
-  const hasProjectFilter = finalTestArgs.some(arg => arg === '--project' || arg.startsWith('--project='))
+  const hasProjectFilter = finalTestArgs.some(
+    (arg) => arg === '--project' || arg.startsWith('--project='),
+  )
   if (STACK_PROFILE.name === 'default' && !hasProjectFilter) {
     console.log(
-      '[e2e/run] 注意：本次为全量 5 个 project（default 面 + pages + journey），预计 13–15 分钟；'
-      + '日常验收请用 `pnpm walnut e2e:default`（smoke + risk + network + mobile，约 5 分钟级）',
+      '[e2e/run] 注意：本次为全量 5 个 project（default 面 + pages + journey），预计 13–15 分钟；' +
+        '日常验收请用 `pnpm walnut e2e:default`（smoke + risk + network + mobile，约 5 分钟级）',
     )
   }
 
@@ -94,24 +103,25 @@ async function main(): Promise<void> {
       if (process.env.E2E_REDIS_GC !== '0') {
         try {
           await runRedisGc()
-        }
-        catch (error) {
-          console.warn(`[e2e/run] WARN Redis 设备键对账失败（不影响本轮用例）：${error instanceof Error ? error.message : String(error)}`)
+        } catch (error) {
+          console.warn(
+            `[e2e/run] WARN Redis 设备键对账失败（不影响本轮用例）：${error instanceof Error ? error.message : String(error)}`,
+          )
         }
       }
 
       writeStackInfo()
       console.log(`[e2e/run] pnpm exec playwright test ${finalTestArgs.join(' ')}`.trimEnd())
-      process.exitCode = spawnPnpm(['exec', 'playwright', 'test', ...finalTestArgs], E2E_ROOT, { ...process.env })
-    }
-    finally {
+      process.exitCode = spawnPnpm(['exec', 'playwright', 'test', ...finalTestArgs], E2E_ROOT, {
+        ...process.env,
+      })
+    } finally {
       // 释放顺序与获取相反；同一把 key 时它已经在全局锁那一步释放
       if (profileLocked) {
         await releasePgLock(lock, E2E_PROFILE_LOCK_KEY)
       }
     }
-  }
-  finally {
+  } finally {
     await releasePgLock(lock, E2E_PG_LOCK_KEY)
     await lock.end().catch(() => {})
   }

@@ -23,7 +23,9 @@ defineOptions({
 })
 
 const { t, te } = useAppI18n()
-const { copy, copied, isSupported } = useClipboard({ source: () => runtimeFatalError.value?.detail ?? '' })
+const { copy, copied, isSupported } = useClipboard({
+  source: () => runtimeFatalError.value?.detail ?? '',
+})
 
 /** 有语言包就用语言包，没有就用内置文案（见文件头第 2 条） */
 function tr(key: string, fallback: string): string {
@@ -43,13 +45,20 @@ const showDetail = ref(false)
     aria-modal="true"
     :aria-label="tr('app.error.title', '页面遇到无法恢复的错误')"
   >
-    <div class="max-h-[86vh] max-w-[880px] w-full overflow-auto rounded-xl bg-#1f1f1f p-6 text-white shadow-2xl">
+    <div
+      class="max-h-[86vh] max-w-[880px] w-full overflow-auto rounded-xl bg-#1f1f1f p-6 text-white shadow-2xl"
+    >
       <h1 class="m-0 text-xl text-red-300 font-semibold">
         {{ tr('app.error.title', '页面遇到无法恢复的错误') }}
       </h1>
 
       <p class="mb-4 mt-3 text-sm text-white/75 leading-relaxed">
-        {{ tr('app.error.hint', '已停止继续渲染，避免出现「界面在但点了没反应」的假象。常见原因：后端未就绪、数据库是空的、或前后端版本对不上。可以重新加载试试；若一直如此，把下面的技术细节发给我们。') }}
+        {{
+          tr(
+            'app.error.hint',
+            '已停止继续渲染，避免出现「界面在但点了没反应」的假象。常见原因：后端未就绪、数据库是空的、或前后端版本对不上。可以重新加载试试；若一直如此，把下面的技术细节发给我们。',
+          )
+        }}
       </p>
 
       <div class="flex flex-wrap gap-3">
@@ -77,7 +86,7 @@ const showDetail = ref(false)
         <pre
           v-if="showDetail"
           class="mt-2 max-h-[40vh] overflow-auto whitespace-pre-wrap break-words rounded-lg bg-#151515 p-3 text-xs text-red-200"
-        >{{ runtimeFatalError.detail }}</pre>
+          >{{ runtimeFatalError.detail }}</pre>
       </details>
     </div>
   </div>

@@ -37,14 +37,16 @@ function createCacheStub(): CacheStub {
     set: async (key, value) => {
       store.set(key, value)
     },
-    get: async key => (store.has(key) ? store.get(key) : null),
-    delAndCount: async key => (store.delete(key) ? 1 : 0),
+    get: async (key) => (store.has(key) ? store.get(key) : null),
+    delAndCount: async (key) => (store.delete(key) ? 1 : 0),
   }
 }
 
 function createHarness() {
   const cache = createCacheStub()
-  const configService = { get: (key: string) => (key === 'app.session.secret' ? SECRET : undefined) }
+  const configService = {
+    get: (key: string) => (key === 'app.session.secret' ? SECRET : undefined),
+  }
 
   const service = new OAuthStateService(configService as never, cache as never)
 
@@ -57,7 +59,10 @@ function nonceCacheKey(nonce: string) {
 
 /** 解出 state 的明文段（签名段不验，验签由 consumeState 覆盖） */
 function decodePayload(state: string): Record<string, unknown> {
-  return JSON.parse(Buffer.from(state.split('.')[0], 'base64url').toString('utf8')) as Record<string, unknown>
+  return JSON.parse(Buffer.from(state.split('.')[0], 'base64url').toString('utf8')) as Record<
+    string,
+    unknown
+  >
 }
 
 describe('oauth state service (P2-13 + 批次6-B)', () => {
@@ -124,7 +129,12 @@ describe('oauth state service (P2-13 + 批次6-B)', () => {
     expect(await service.consumeState('', DEVICE_A)).toBeNull()
     expect(await service.consumeState('no-signature-part', DEVICE_A)).toBeNull()
     expect(await service.consumeState('a.b.c', DEVICE_A)).toBeNull()
-    expect(await service.consumeState(`${Buffer.from('{"nonce":"x"}', 'utf8').toString('base64url')}.bad`, DEVICE_A)).toBeNull()
+    expect(
+      await service.consumeState(
+        `${Buffer.from('{"nonce":"x"}', 'utf8').toString('base64url')}.bad`,
+        DEVICE_A,
+      ),
+    ).toBeNull()
   })
 
   it('空 deviceId 既不签发也不接受（F5：不依赖 null == null 的伪绑定）', async () => {
@@ -144,7 +154,10 @@ describe('oauth state service (P2-13 + 批次6-B)', () => {
     const nonce = 'a'.repeat(32)
     await cache.set(nonceCacheKey(nonce), { fp: 'legacy-fp', deviceId: DEVICE_A }, {})
 
-    const encoded = Buffer.from(JSON.stringify({ fp: 'legacy-fp', lang: 'zh_CN', nonce }), 'utf8').toString('base64url')
+    const encoded = Buffer.from(
+      JSON.stringify({ fp: 'legacy-fp', lang: 'zh_CN', nonce }),
+      'utf8',
+    ).toString('base64url')
     const signature = createHmac('sha256', SECRET).update(encoded, 'utf8').digest('base64url')
 
     const consumed = await service.consumeState(`${encoded}.${signature}`, DEVICE_A)

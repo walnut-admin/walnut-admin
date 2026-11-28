@@ -31,12 +31,10 @@ async function onInit() {
 
     if (Object.values(res).length) {
       info.value = res
-    }
-    else {
+    } else {
       empty.value = true
     }
-  }
-  finally {
+  } finally {
     loading.value = false
   }
 }

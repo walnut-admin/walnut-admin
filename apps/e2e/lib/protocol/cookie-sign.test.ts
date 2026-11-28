@@ -9,8 +9,9 @@ import { signCookieValue } from './cookie-sign.ts'
 
 describe('signCookieValue', () => {
   it('按 cookie-signature@1.0.6 的格式签名（s: + value + . + 无填充 base64 HMAC-SHA256）', () => {
-    expect(signCookieValue('not-a-cap-token', 'e2e-cookie-secret'))
-      .toBe('s:not-a-cap-token.3RiDUIUie6c7tOSU5SJqDm2Y1oVCbFuGWIFc9Dch4/o')
+    expect(signCookieValue('not-a-cap-token', 'e2e-cookie-secret')).toBe(
+      's:not-a-cap-token.3RiDUIUie6c7tOSU5SJqDm2Y1oVCbFuGWIFc9Dch4/o',
+    )
   })
 
   it('签名是确定性的，且同一值换密钥即不同', () => {

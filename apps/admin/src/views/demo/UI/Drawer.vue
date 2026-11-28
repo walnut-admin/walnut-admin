@@ -90,7 +90,7 @@ const [register] = useForm<typeof configFormData.value>({
         path: 'placement',
       },
       componentProp: {
-        options: ['top', 'right', 'bottom', 'left'].map(item => ({
+        options: ['top', 'right', 'bottom', 'left'].map((item) => ({
           label: item,
           value: item,
         })),
@@ -147,8 +147,6 @@ const [register] = useForm<typeof configFormData.value>({
     @yes="drawerShow = false"
     @no="drawerShow = false"
   >
-    <div v-for="item in configFormData.count" :key="item">
-      this is drawer content {{ item }}
-    </div>
+    <div v-for="item in configFormData.count" :key="item">this is drawer content {{ item }}</div>
   </WDrawer>
 </template>

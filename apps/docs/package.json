@@ -1,30 +1,26 @@
 {
   "name": "@walnut/docs",
-  "type": "module",
   "version": "0.1.24",
   "private": true,
   "description": "Walnut Admin Documentation",
+  "license": "MIT",
   "author": {
     "name": "zhaocl1997",
-    "url": "https://github.com/Zhaocl1997",
-    "email": "zhaocl97@foxmail.com"
+    "email": "zhaocl97@foxmail.com",
+    "url": "https://github.com/Zhaocl1997"
   },
-  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/walnut-admin/walnut-admin.git"
   },
-  "engines": {
-    "node": ">=24.15.0",
-    "pnpm": ">=12.0.0"
-  },
+  "type": "module",
   "scripts": {
     "dev": "vitepress",
     "build": "vitepress build",
     "preview": "vitepress preview",
     "lint": "eslint . --concurrency=4",
     "lint:fix": "eslint . --fix --concurrency=4",
-    "types:check": "echo skipped",
+    "types:check": "vue-tsc --noEmit",
     "taze": "taze -i -w"
   },
   "dependencies": {
@@ -33,17 +29,20 @@
     "vue": "catalog:"
   },
   "devDependencies": {
-    "@mermaid-js/mermaid-mindmap": "catalog:",
     "@types/node": "catalog:",
     "@walnut/eslint-config": "workspace:*",
     "@walnut/tsconfig": "workspace:*",
     "eslint": "catalog:",
     "mermaid": "catalog:",
     "pagefind": "catalog:",
-    "segment": "catalog:",
     "taze": "catalog:",
     "typescript": "catalog:",
     "vitepress-plugin-pagefind": "catalog:",
-    "vitepress-plugin-tabs": "catalog:"
+    "vitepress-plugin-tabs": "catalog:",
+    "vue-tsc": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.15.0",
+    "pnpm": ">=12.0.0"
   }
 }

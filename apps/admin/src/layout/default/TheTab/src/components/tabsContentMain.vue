@@ -27,18 +27,21 @@ const { start, stop } = useSortable(sortableRef, appStoreTab.tabs, {
 })
 
 watchEffect(() => {
-  if (appStoreSettingDev.getTabsSortable)
-    start()
-
-  else
-    stop()
+  if (appStoreSettingDev.getTabsSortable) start()
+  else stop()
 })
 
 const AppConstTabStyleModeInside = AppConstTabStyleMode
 
-const isCardType = computed(() => userStorePreference.getTabsStyleMode === AppConstTabStyleModeInside.CARD)
-const isFlexType = computed(() => userStorePreference.getTabsStyleMode === AppConstTabStyleModeInside.FLEX)
-const isRoundType = computed(() => userStorePreference.getTabsStyleMode === AppConstTabStyleModeInside.ROUND)
+const isCardType = computed(
+  () => userStorePreference.getTabsStyleMode === AppConstTabStyleModeInside.CARD,
+)
+const isFlexType = computed(
+  () => userStorePreference.getTabsStyleMode === AppConstTabStyleModeInside.FLEX,
+)
+const isRoundType = computed(
+  () => userStorePreference.getTabsStyleMode === AppConstTabStyleModeInside.ROUND,
+)
 
 const {
   scrollRef,
@@ -65,8 +68,8 @@ function onMouseUp(e: MouseEvent, name: string) {
   // 1 stands for mouse middle button
   if (e.button === 1) {
     const isRemoveable = !appStoreTab.tabs
-      .filter(i => i.meta.affix)
-      .map(i => i.name)
+      .filter((i) => i.meta.affix)
+      .map((i) => i.name)
       .includes(name)
 
     isRemoveable && onTabRemove(name)
@@ -104,21 +107,15 @@ function onMouseUp(e: MouseEvent, name: string) {
 
             /* card */
             isCardType && !userStorePreference.getReducedMotion && 'hvr-sweep-to-right',
-            isCardType
-              && $route.name === item.name
-              && 'bg-primary !text-bodyColor',
+            isCardType && $route.name === item.name && 'bg-primary !text-bodyColor',
 
             /* flex */
-            isFlexType
-              && !userStorePreference.getReducedMotion
-              && 'hvr-underline-from-left',
-            isFlexType
-              && $route.name === item.name
-              && 'border-b-1 border-primaryHover',
+            isFlexType && !userStorePreference.getReducedMotion && 'hvr-underline-from-left',
+            isFlexType && $route.name === item.name && 'border-b-1 border-primaryHover',
 
             /* round */
-            isRoundType
-              && `${
+            isRoundType &&
+              `${
                 !userStorePreference.getReducedMotion ? 'hvr-round-corners' : ''
               } rounded border-0.5 border-solid border-primaryHover`,
             isRoundType && $route.name === item.name && 'rounded-2xl',

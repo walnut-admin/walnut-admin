@@ -54,14 +54,18 @@ export class SysUserLockRepositoryService {
    * 写入路径显式 hash：payload 带 lockPwdHash 时先加盐 bcrypt（对齐原 pre('save')
    * 钩子「改动即 hash」的切入点），再 ON CONFLICT (user_id) upsert。
    */
-  async insertOrUpdateUserLockPre(userId: string, userLockPre: Partial<SysUserLockEntity>, em?: EntityManager) {
+  async insertOrUpdateUserLockPre(
+    userId: string,
+    userLockPre: Partial<SysUserLockEntity>,
+    em?: EntityManager,
+  ) {
     // `undefined` 键**必须摘掉**（2026-11-27 实测）：DTO 经 class-transformer 之后可能带
     // `lockCrossDevice: undefined` 这类自有属性，spread 进 `.values()` 会生成显式 NULL
     // —— `lock_cross_device` 是 NOT NULL，插入直接 50000。只保留「真的有值」的键。
     const payload: Partial<SysUserLockEntity> = {}
     for (const [key, value] of Object.entries(userLockPre)) {
       if (value !== undefined) {
-        (payload as Record<string, unknown>)[key] = value
+        ;(payload as Record<string, unknown>)[key] = value
       }
     }
 
@@ -81,8 +85,8 @@ export class SysUserLockRepositoryService {
     }
 
     const overwriteColumns = Object.keys(payload)
-      .filter(k => k !== 'userId')
-      .map(k => this.getPropertyColumnName(k))
+      .filter((k) => k !== 'userId')
+      .map((k) => this.getPropertyColumnName(k))
 
     await this.getManager(em)
       .createQueryBuilder()
@@ -124,7 +128,9 @@ export class SysUserLockRepositoryService {
    * 计数 + 截止时间在一把行锁内算完：并发失败不会互相覆盖（曲线真源在
    * `lock-pwd-backoff.ts`，SQL 不复制一份）。
    */
-  async recordUnlockFailure(userId: string): Promise<{ failCount: number, lockedUntil: Date | null } | null> {
+  async recordUnlockFailure(
+    userId: string,
+  ): Promise<{ failCount: number; lockedUntil: Date | null } | null> {
     return this.dataSource.transaction(async (manager) => {
       const rows: Array<{ lock_pwd_fail_count: number }> = await manager.query(
         'SELECT lock_pwd_fail_count FROM sys_user_lock WHERE user_id = $1 FOR UPDATE',
@@ -137,7 +143,8 @@ export class SysUserLockRepositoryService {
 
       const failCount = (rows[0].lock_pwd_fail_count ?? 0) + 1
       const backoffSeconds = getLockPwdBackoffSeconds(failCount)
-      const lockedUntil = backoffSeconds === null ? null : new Date(Date.now() + backoffSeconds * 1000)
+      const lockedUntil =
+        backoffSeconds === null ? null : new Date(Date.now() + backoffSeconds * 1000)
 
       await manager.query(
         `UPDATE sys_user_lock

@@ -54,13 +54,17 @@ export interface ExportPgOptions {
 
 export function parseExportPgArgs(argv: readonly string[]): ExportPgOptions {
   // 默认**不**写进 seed 目录：那里现在是 PG 行形态真源（快照写进去会把真源打回 Extended JSON）
-  const opts: ExportPgOptions = { seedDir: SEED_DIR, envFile: '', outDir: DEFAULT_EXPORT_OUT, anonymize: false }
+  const opts: ExportPgOptions = {
+    seedDir: SEED_DIR,
+    envFile: '',
+    outDir: DEFAULT_EXPORT_OUT,
+    anonymize: false,
+  }
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
     const next = (): string => {
       const value = argv[++i]
-      if (value === undefined)
-        throw new PreconditionError(`${arg} 后面缺参数值`)
+      if (value === undefined) throw new PreconditionError(`${arg} 后面缺参数值`)
       return value
     }
     switch (arg) {
@@ -74,7 +78,10 @@ export function parseExportPgArgs(argv: readonly string[]): ExportPgOptions {
         opts.anonymize = true
         break
       case '--only':
-        opts.only = next().split(',').map(s => s.trim()).filter(Boolean)
+        opts.only = next()
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
         break
       case '--pg-db':
         opts.pgDbName = next()
@@ -86,7 +93,9 @@ export function parseExportPgArgs(argv: readonly string[]): ExportPgOptions {
         opts.seedDir = next()
         break
       default:
-        throw new PreconditionError(`未知参数 ${arg}（支持 --out / --areas / --anonymize / --only / --pg-db / --env-file / --seed-dir）`)
+        throw new PreconditionError(
+          `未知参数 ${arg}（支持 --out / --areas / --anonymize / --only / --pg-db / --env-file / --seed-dir）`,
+        )
     }
   }
   return opts
@@ -99,7 +108,10 @@ export function parseExportPgArgs(argv: readonly string[]): ExportPgOptions {
 
 /** 逆向映射注册表：集合名 → (行 → Mongo 形态文档)；junction 由调用方预取注入 */
 export type PgRow = Record<string, unknown>
-export type ReverseMapper = (row: PgRow, extras: { junctionRows: readonly PgRow[] }) => Record<string, unknown>
+export type ReverseMapper = (
+  row: PgRow,
+  extras: { junctionRows: readonly PgRow[] },
+) => Record<string, unknown>
 
 function timestampsOf(row: PgRow): Record<string, unknown> {
   return { createdAt: row.created_at, updatedAt: row.updated_at }
@@ -115,7 +127,7 @@ const REVERSE_MAPPERS: Record<string, ReverseMapper> = {
     avatar: row.avatar,
     description: row.description,
     status: row.status,
-    roles: junctionRows.filter(j => j.user_id === row.id).map(j => j.role_id),
+    roles: junctionRows.filter((j) => j.user_id === row.id).map((j) => j.role_id),
     roleMode: row.role_mode,
     currentRole: row.current_role_id,
     mfaSetup: row.mfa_setup,
@@ -126,7 +138,7 @@ const REVERSE_MAPPERS: Record<string, ReverseMapper> = {
     roleName: row.role_name,
     description: row.description,
     order: row.sort_order,
-    menus: junctionRows.filter(j => j.role_id === row.id).map(j => j.menu_id),
+    menus: junctionRows.filter((j) => j.role_id === row.id).map((j) => j.menu_id),
     status: row.status,
     dataScope: row.data_scope,
     ...timestampsOf(row),
@@ -166,7 +178,7 @@ const REVERSE_MAPPERS: Record<string, ReverseMapper> = {
       ...timestampsOf(row),
     }
   },
-  sys_lang: row => ({
+  sys_lang: (row) => ({
     _id: row.id,
     lang: row.lang,
     description: row.description,
@@ -174,14 +186,14 @@ const REVERSE_MAPPERS: Record<string, ReverseMapper> = {
     status: row.status,
     ...timestampsOf(row),
   }),
-  sys_locale: row => ({
+  sys_locale: (row) => ({
     _id: row.id,
     langId: row.lang_id,
     key: row.key,
     value: row.value,
     ...timestampsOf(row),
   }),
-  sys_dict_type: row => ({
+  sys_dict_type: (row) => ({
     _id: row.id,
     name: row.name,
     type: row.type,
@@ -189,7 +201,7 @@ const REVERSE_MAPPERS: Record<string, ReverseMapper> = {
     description: row.description,
     ...timestampsOf(row),
   }),
-  sys_dict_data: row => ({
+  sys_dict_data: (row) => ({
     _id: row.id,
     typeId: row.type_id,
     label: row.label,
@@ -200,7 +212,7 @@ const REVERSE_MAPPERS: Record<string, ReverseMapper> = {
     description: row.description,
     ...timestampsOf(row),
   }),
-  app_setting: row => ({
+  app_setting: (row) => ({
     _id: row.id,
     settingName: row.setting_name,
     settingKey: row.setting_key,
@@ -210,7 +222,7 @@ const REVERSE_MAPPERS: Record<string, ReverseMapper> = {
     createdBy: row.created_by,
     ...timestampsOf(row),
   }),
-  shared_area: row => ({
+  shared_area: (row) => ({
     _id: row.id,
     code: row.code,
     name: row.name,
@@ -224,12 +236,14 @@ export async function exportPgCollection(
   name: string,
   extras: { junctionRows: readonly PgRow[] },
   anonymize: boolean,
-): Promise<{ text: string, count: number }> {
+): Promise<{ text: string; count: number }> {
   const mapper = REVERSE_MAPPERS[name]
   if (mapper === undefined)
     throw new PreconditionError(`集合 ${name} 没有反向映射（export-pg.ts 的 REVERSE_MAPPERS）`)
   const result = await pg.query(`SELECT * FROM ${name} ORDER BY id`)
-  const docs = (result.rows as PgRow[]).map(row => mapper(row, extras)).sort((a, b) => String(a._id).localeCompare(String(b._id)))
+  const docs = (result.rows as PgRow[])
+    .map((row) => mapper(row, extras))
+    .sort((a, b) => String(a._id).localeCompare(String(b._id)))
   const curated = applyPolicy(name, docs)
   const final = anonymize ? anonymizeDocs(curated) : curated
   return { text: stringifyCollectionFile(final), count: final.length }
@@ -242,30 +256,37 @@ export async function main(): Promise<void> {
   const sourceDir = resolvePath(repoRoot, opts.seedDir)
   // junction 文件（sys_user_role / sys_role_menu）在导出形态里是**父文档的数组**，不单独导出
   const names = listSeedCollections(sourceDir)
-    .filter(name => !JUNCTION_TABLES.includes(name))
-    .filter(name => opts.only === undefined || opts.only.includes(name))
+    .filter((name) => !JUNCTION_TABLES.includes(name))
+    .filter((name) => opts.only === undefined || opts.only.includes(name))
   if (names.length === 0)
     throw new PreconditionError(`没有可导出的集合（${sourceDir} 里没有 .json）`)
 
   const outDir = resolvePath(repoRoot, opts.outDir)
   // 与 Mongo 版同一条红线：脱敏是有损的，永远不许写回仓内 seed
-  if (opts.anonymize && resolvePath(repoRoot, opts.outDir) === resolvePath(repoRoot, opts.seedDir)) {
+  if (
+    opts.anonymize &&
+    resolvePath(repoRoot, opts.outDir) === resolvePath(repoRoot, opts.seedDir)
+  ) {
     throw new PreconditionError(
-      '脱敏导出必须用 --out 指定一个**别的**目录（例如 --out apps/server/.tmp/pg-snapshot）——'
-      + ' 脱敏是有损的，别让掩码快照覆盖仓内 seed',
+      '脱敏导出必须用 --out 指定一个**别的**目录（例如 --out apps/server/.tmp/pg-snapshot）——' +
+        ' 脱敏是有损的，别让掩码快照覆盖仓内 seed',
     )
   }
   // 真源是 PG 行形态：Extended JSON 写进 seed 目录 = 把真源打回旧格式（lint:seed 也会判红）
   if (resolvePath(repoRoot, opts.outDir) === resolvePath(repoRoot, opts.seedDir)) {
     throw new PreconditionError(
-      '导出结果**不能**写进 seed 目录：那里是 PG 行形态真源，本命令产出的是 Extended JSON 快照。'
-      + ' 要再生成真源请两步：\n'
-      + '    pnpm walnut db:export:pg --out apps/server/.tmp/pg-export\n'
-      + '    pnpm walnut db:seed:reshape --from apps/server/.tmp/pg-export',
+      '导出结果**不能**写进 seed 目录：那里是 PG 行形态真源，本命令产出的是 Extended JSON 快照。' +
+        ' 要再生成真源请两步：\n' +
+        '    pnpm walnut db:export:pg --out apps/server/.tmp/pg-export\n' +
+        '    pnpm walnut db:seed:reshape --from apps/server/.tmp/pg-export',
     )
   }
 
-  const { target } = resolvePgTarget(repoRoot, opts.envFile === '' ? undefined : opts.envFile, opts.pgDbName)
+  const { target } = resolvePgTarget(
+    repoRoot,
+    opts.envFile === '' ? undefined : opts.envFile,
+    opts.pgDbName,
+  )
   out(`导出集合：${names.length} 个（按仓内文件名清单；uuid 口径见 export-pg.ts 头注）`)
   out(`目标目录：${opts.outDir}`)
 
@@ -275,9 +296,9 @@ export async function main(): Promise<void> {
     // 数据权限三期：导出必须完整。本通道走管理角色（DATABASE_PG_USER），正常是
     // superuser / BYPASSRLS；若误配成普通角色，`SET row_security = off` 会让 PG 对
     // 启用 RLS 的表**直接报错**（而不是静默少行）—— 刻意选“响亮失败”，不降级。
-    const roleInfo = (await pg.query(
-      'SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user',
-    )).rows[0] as { rolsuper: boolean, rolbypassrls: boolean } | undefined
+    const roleInfo = (
+      await pg.query('SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user')
+    ).rows[0] as { rolsuper: boolean; rolbypassrls: boolean } | undefined
 
     if (roleInfo !== undefined && !roleInfo.rolsuper && !roleInfo.rolbypassrls) {
       out('警告：导出角色既非 superuser 也无 BYPASSRLS —— 依赖 SET row_security = off 的报错保护')
@@ -297,7 +318,12 @@ export async function main(): Promise<void> {
     }
 
     if (opts.areas !== undefined) {
-      const { text, count } = await exportPgCollection(pg, 'shared_area', { junctionRows: [] }, opts.anonymize)
+      const { text, count } = await exportPgCollection(
+        pg,
+        'shared_area',
+        { junctionRows: [] },
+        opts.anonymize,
+      )
       const areasPath = resolvePath(repoRoot, opts.areas)
       mkdirSync(dirname(areasPath), { recursive: true })
       writeFileSync(areasPath, text)
@@ -305,8 +331,7 @@ export async function main(): Promise<void> {
     }
 
     line('ok', `PG 导出完成：${names.length} 个集合（PG 生态回灌格式，非 Mongo seed 字节口径）`)
-  }
-  finally {
+  } finally {
     await pg.end()
   }
 }

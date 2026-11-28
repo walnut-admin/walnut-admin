@@ -12,8 +12,7 @@ export function createLeaveTipGuard(router: Router) {
     // enter the `leaveTip` page, hang on the unload event
     if (to.meta.leaveTip) {
       // if the old event listener not removed, remove it
-      if (removeEvent)
-        removeEvent()
+      if (removeEvent) removeEvent()
 
       removeEvent = useEventListener('beforeunload', (e) => {
         e.preventDefault()
@@ -32,8 +31,7 @@ export function createLeaveTipGuard(router: Router) {
         maskClosable: false,
       })
 
-      if (!confirmed)
-        return { ...from, replace: true }
+      if (!confirmed) return { ...from, replace: true }
 
       window.$loadingBar?.start()
       removeEvent()

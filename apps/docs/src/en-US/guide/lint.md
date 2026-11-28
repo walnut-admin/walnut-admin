@@ -21,17 +21,17 @@
 
 项目内集成了以下几种代码校验方式
 
-1. [eslint] 用于校验代码格式规范
+1. [eslint] 用于校验代码质量与规则（格式不在它职责内，见下方 Prettier 一节）
 2. [commitlint] 用于校验 git 提交信息规范
 3. ~~[stylelint] 用于校验 css/less 规范~~（已移除）
-4. ~~[prettier] 代码格式化~~（已移除，格式化由 [eslint] 的 stylistic 规则承担）
+4. ~~[prettier] 代码格式化~~（已移除，格式化由 oxfmt 承担）
 
 ::: warning
 lint 不是必须的，但是很有必要，一个项目做大了以后或者参与人员过多后，就会出现各种风格迥异的代码，对后续的维护造成了一定的麻烦
 :::
 
 :::info
-[eslint] 功能很强大，完全可以替代 [prettier]。本项目现在确实只保留 [eslint]：格式化规则由 `@antfu/eslint-config` 内置的 stylistic 规则承担。如果要开新项目的同学可以直接用 [eslint]。
+[eslint] 负责规则检查，格式化由 **oxfmt** 承担：ESLint 的三个预设都设 `stylistic: false`，再以 `eslint-config-prettier` 兜底，格式化规则不再由 ESLint 提供。
 :::
 
 ## ESLint
@@ -93,7 +93,7 @@ lint 不是必须的，但是很有必要，一个项目做大了以后或者参
 强烈不推荐关闭 eslint 的校验
 :::
 
-在根 `package.json` 的 [`lint-staged`](https://github.com/walnut-admin/walnut-admin/blob/main/package.json) 块里删掉 eslint 那条即可。
+在根 `package.json` 的 [`lint-staged`](https://github.com/walnut-admin/walnut-admin/blob/main/package.json) 块里删掉 eslint 那条即可（同一数组里还有 oxlint 的 `--fix` 与 oxfmt 的写入，它们是另外两条）。
 
 ## CommitLint
 
@@ -172,7 +172,7 @@ StyleLint 曾用于校验项目内部 css 的风格，加上编辑器的自动�
 
 ### 配置项
 
-项目已不再使用 stylelint（css 风格由 ESLint 的 stylistic 规则承担），原有的 `config/stylelint` 配置已随工具链收拢移除。
+项目已不再使用 stylelint，原有的 `config/stylelint` 配置已随工具链收拢移除。
 
 ### vscode 配合
 
@@ -198,19 +198,19 @@ stylelint 已移除，无需关闭。
 
 ### 配置项
 
-项目不使用 Prettier：格式化规则由 ESLint（`@antfu/eslint-config` 内置的 stylistic 规则）统一承担，详见[ESLint 配置](/content/monorepo/eslint.md)。
+项目不使用 Prettier：格式化由 **oxfmt** 统一承担，配置在根 `.oxfmtrc.json`（`printWidth: 100`，单引号、无分号、尾逗号 `all`）；ESLint 已 `stylistic: false` 只做规则检查，详见[ESLint 配置](/content/monorepo/eslint.md)。
 
 ### vscode 配合
 
-不再需要安装 prettier 插件（格式化由 ESLint 插件承担）。
+不再需要安装 prettier 插件（格式化由 `oxfmt` 命令承担）。
 
 ### 手动校验
 
-执行`pnpm lint:fix`，然后查看控制台即可。
+执行`pnpm walnut format:check`（只检查）或 `pnpm walnut format:fix`（写回文件），然后查看控制台即可。
 
 ### 规则
 
-没有独立的 prettier 规则文件（已随工具链收拢移除）。
+没有独立的 prettier 规则文件：格式选项在根 `.oxfmtrc.json`。
 
 :::tip
 所有的 prettier 规则请查看[rules](https://prettier.io/docs/en/options.html)。
@@ -218,7 +218,7 @@ stylelint 已移除，无需关闭。
 
 ### 如何关闭
 
-Prettier 已移除，无需关闭。
+Prettier 已移除（格式化由 oxfmt 承担），无需关闭。
 
 ## Git Hook
 
@@ -253,7 +253,15 @@ git commit -m "xxx" --no-verify
 ```json
 {
   "lint-staged": {
-    "*.{ts,vue,js}": "eslint --fix --concurrency=4"
+    "*.{ts,tsx,vue,js}": [
+      "oxlint --fix",
+      "eslint --fix --concurrency=4",
+      "oxfmt --write"
+    ],
+    "*.{json,yml,yaml}": [
+      "eslint --fix --concurrency=4",
+      "oxfmt --write"
+    ]
   }
 }
 ```

@@ -1,13 +1,25 @@
 import type { Page } from '@playwright/test'
-import { deleteLoginableUser, loginAs, setUserPasswordViaAdmin } from '../../lib/account-fixtures.ts'
+import {
+  deleteLoginableUser,
+  loginAs,
+  setUserPasswordViaAdmin,
+} from '../../lib/account-fixtures.ts'
 import { openDevice, resolveDeviceId, trackDevice } from '../../lib/device-fixtures.ts'
 import { countActiveRefreshTokensForDevice, findMonitorUserRow, withPg } from '../../lib/pg.ts'
-import { SystemEndpointRoutes, WalnutAdminConstAppResponseCode } from '../../lib/protocol/contract.ts'
+import {
+  SystemEndpointRoutes,
+  WalnutAdminConstAppResponseCode,
+} from '../../lib/protocol/contract.ts'
 import { rootClient } from '../../lib/protocol/root-client.ts'
 import { authSessionKeyPattern, scanKeys, withRedis } from '../../lib/redis.ts'
 import { captureEnvelopes, LOGIN_USERNAME_SELECTOR, loginViaUI } from '../../lib/ui.ts'
 import { expect, test } from '../fixtures.ts'
-import { captureSocketFrames, createJourneyUser, waitForSocketConnected, waitForSocketEvent } from './journey-support.ts'
+import {
+  captureSocketFrames,
+  createJourneyUser,
+  waitForSocketConnected,
+  waitForSocketEvent,
+} from './journey-support.ts'
 
 /**
  * J5 socket 强踢：管理员重置口令 → 目标浏览器收到 `force:quit` → 自动登出。
@@ -55,9 +67,15 @@ function collectBearerTokens(page: Page): string[] {
 }
 
 test.describe('socket 强踢 journey', { tag: '@journey' }, () => {
-  test('J5 管理员重置口令 → 浏览器收到 FORCE_QUIT → 自动登出；两台设备会话全部失效', async ({ browser }) => {
+  test('J5 管理员重置口令 → 浏览器收到 FORCE_QUIT → 自动登出；两台设备会话全部失效', async ({
+    browser,
+  }) => {
     const root = await rootClient()
-    const { user, totpSecret, client: deviceA } = await createJourneyUser(root, 'e2e-force-quit', { bindTotp: true })
+    const {
+      user,
+      totpSecret,
+      client: deviceA,
+    } = await createJourneyUser(root, 'e2e-force-quit', { bindTotp: true })
     expect(totpSecret).not.toBeNull()
 
     const session = await openDevice(browser, '/auth')
@@ -68,16 +86,22 @@ test.describe('socket 强踢 journey', { tag: '@journey' }, () => {
     const captured = captureEnvelopes(page)
 
     try {
-      await loginViaUI(page, { userName: user.userName, password: user.password, totpSecret: totpSecret! })
+      await loginViaUI(page, {
+        userName: user.userName,
+        password: user.password,
+        totpSecret: totpSecret!,
+      })
       session.deviceId = await resolveDeviceId(page)
       trackDevice(session.deviceId)
 
       // 0. 前置：socket 命名空间已连接（登录后的 setupSocket）+ 心跳行已上报（auth=true, left=false）
       await waitForSocketConnected(socketFrames)
-      await expect.poll(
-        async () => withPg(pg => findMonitorUserRow(pg, user.userId, session.deviceId)),
-        { timeout: 20_000, message: '浏览器设备没有 app_monitor_user 心跳行（在线态没建立，socket 不可能收到强踢）' },
-      ).toMatchObject({ auth: true, left: false })
+      await expect
+        .poll(async () => withPg((pg) => findMonitorUserRow(pg, user.userId, session.deviceId)), {
+          timeout: 20_000,
+          message: '浏览器设备没有 app_monitor_user 心跳行（在线态没建立，socket 不可能收到强踢）',
+        })
+        .toMatchObject({ auth: true, left: false })
 
       const oldBrowserAt = bearerTokens.at(-1)
       expect(oldBrowserAt, 'UI 登录后没有采集到浏览器的 AT（登录链路没完成？）').toBeTruthy()
@@ -97,36 +121,49 @@ test.describe('socket 强踢 journey', { tag: '@journey' }, () => {
       expect(frame).toContain('FORCE_IMMEDIATE_SIGNOUT')
 
       // 3. DOM 落地：自动登出回登录页，应用外壳卸载
-      await page.waitForURL(url => url.pathname === '/auth', { timeout: 30_000 })
+      await page.waitForURL((url) => url.pathname === '/auth', { timeout: 30_000 })
       await expect(page.locator(LOGIN_USERNAME_SELECTOR).first()).toBeVisible({ timeout: 20_000 })
       await expect(page.locator('[data-testid="sidebar-menu"], .w-menu')).toHaveCount(0)
 
       // 设备身份在登出后保留（证明是 signout 而不是设备重置 —— 后者会清 DEVICE_ID cookie）
-      const deviceCookieAfter = (await page.context().cookies()).find(cookie => cookie.name === 'DEVICE_ID')
-      expect(deviceCookieAfter, '登出后 DEVICE_ID cookie 不应被清（设备身份与登录态是两件事）').toBeTruthy()
+      const deviceCookieAfter = (await page.context().cookies()).find(
+        (cookie) => cookie.name === 'DEVICE_ID',
+      )
+      expect(
+        deviceCookieAfter,
+        '登出后 DEVICE_ID cookie 不应被清（设备身份与登录态是两件事）',
+      ).toBeTruthy()
 
       // 4. 旧 AT 被拒：40101（JWT validate 查 AUTH:SESSIONS 会话键，已随 security-policy 清空）
-      const replay = await page.evaluate(async ({ at, url }) => {
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: { Authorization: `Bearer ${at}` },
-          credentials: 'include',
-        })
-        return await response.json() as { code: number }
-      }, { at: oldBrowserAt!, url: '/api/system/user/me/profile' })
-      expect(replay.code, `旧 AT 重放应 40101（会话键已清），实际 ${replay.code}`)
-        .toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+      const replay = await page.evaluate(
+        async ({ at, url }) => {
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${at}` },
+            credentials: 'include',
+          })
+          return (await response.json()) as { code: number }
+        },
+        { at: oldBrowserAt!, url: '/api/system/user/me/profile' },
+      )
+      expect(replay.code, `旧 AT 重放应 40101（会话键已清），实际 ${replay.code}`).toBe(
+        WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
+      )
 
       // 5. 两台设备服务端归零：RT 撤销 + 会话键清空
       for (const deviceId of [deviceA.deviceId, session.deviceId]) {
-        await expect.poll(
-          () => withPg(pg => countActiveRefreshTokensForDevice(pg, deviceId)),
-          { timeout: 10_000, message: `设备 ${deviceId} 的现役 RT 没有被撤销` },
-        ).toBe(0)
-        await expect.poll(
-          () => withRedis(client => scanKeys(client, authSessionKeyPattern(deviceId))),
-          { timeout: 10_000, message: `设备 ${deviceId} 的 AUTH:SESSIONS 键没有清空` },
-        ).toEqual([])
+        await expect
+          .poll(() => withPg((pg) => countActiveRefreshTokensForDevice(pg, deviceId)), {
+            timeout: 10_000,
+            message: `设备 ${deviceId} 的现役 RT 没有被撤销`,
+          })
+          .toBe(0)
+        await expect
+          .poll(() => withRedis((client) => scanKeys(client, authSessionKeyPattern(deviceId))), {
+            timeout: 10_000,
+            message: `设备 ${deviceId} 的 AUTH:SESSIONS 键没有清空`,
+          })
+          .toEqual([])
       }
 
       // 6. 协议设备的旧 AT 同样被拒（40101）—— 全端下线，不是只踢浏览器
@@ -137,13 +174,14 @@ test.describe('socket 强踢 journey', { tag: '@journey' }, () => {
         SystemEndpointRoutes.USER_ME_PROFILE,
         { sign: false, headers: { Authorization: `Bearer ${deviceATokens!.accessToken}` } },
       )
-      expect(protocolReplay.code, '协议设备的旧 AT 应 40101').toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+      expect(protocolReplay.code, '协议设备的旧 AT 应 40101').toBe(
+        WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
+      )
 
       // 7. 新口令可用（重置不只是踢人，口令真的换了）：新设备 + 新口令能完成 OPAQUE 登录
       const relogin = await loginAs({ userName: user.userName, password: newPassword })
       expect(relogin.tokens, '重置后的新口令无法完成 OPAQUE 登录').not.toBeNull()
-    }
-    finally {
+    } finally {
       captured.stop()
       await session.context.close()
       await deleteLoginableUser(user)

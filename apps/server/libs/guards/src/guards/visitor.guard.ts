@@ -25,7 +25,10 @@ export class WalnutAdminGuardVisitorDeny implements CanActivate {
       return true
     }
 
-    if (user.roleMode === WalnutAdminConstRoleMode.SWITCH && user.currentRoleName === Role.VISITOR) {
+    if (
+      user.roleMode === WalnutAdminConstRoleMode.SWITCH &&
+      user.currentRoleName === Role.VISITOR
+    ) {
       throw new WalnutAdminExceptionNoAccessPermission()
     }
 

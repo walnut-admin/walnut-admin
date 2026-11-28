@@ -14,7 +14,7 @@ const { t } = useAppI18n()
 
 const active = defineModel<boolean>('active', { required: true })
 
-const getText = computed(() => active.value ? t('app.base.expand') : t('app.base.collapse'))
+const getText = computed(() => (active.value ? t('app.base.expand') : t('app.base.collapse')))
 
 const { formEvent, formSchemas, formItemIdCtx, formPropsCtx } = useFormContext<T>()
 
@@ -45,8 +45,7 @@ function onToggle() {
 }
 
 onMounted(() => {
-  if (props.defaultFold)
-    onToggle()
+  if (props.defaultFold) onToggle()
 })
 </script>
 

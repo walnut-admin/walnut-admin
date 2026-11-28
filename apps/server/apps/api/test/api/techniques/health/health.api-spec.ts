@@ -77,8 +77,7 @@ describe('B 段：app/health 五端点 + 根 controller（真实 HTTP 全链）'
         // 版本不抛 503，而是 20000 + indicator status 'down'（钉现状）
         const status = bodyOf<TerminusData>(res).data[endpoint]?.status
         expect(status === 'up' || status === 'down').toBe(true)
-      }
-      else {
+      } else {
         // 兜底通道：异常过滤器把非 HttpException/503 映射为 50000（非 50300 —— 钉现状）
         expect(code).toBe(WalnutAdminConstAppResponseCode.INTERNAL_SERVER_ERROR)
       }
@@ -91,10 +90,12 @@ describe('B 段：app/health 五端点 + 根 controller（真实 HTTP 全链）'
     const res = await api.anon('GET', api.apiPath('/'))
     expectOk(res, 'root hello')
     expect(bodyOf<string>(res).data).toBeTypeOf('string')
-    expect((bodyOf<string>(res).data).length).toBeGreaterThan(0)
+    expect(bodyOf<string>(res).data.length).toBeGreaterThan(0)
 
     const unsignedRes = await api.unsigned('GET', api.apiPath('/'))
-    expect(bodyOf(unsignedRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_SIGNATURE)
+    expect(bodyOf(unsignedRes).code).toBe(
+      WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_SIGNATURE,
+    )
 
     api.setAuth(tokens)
   })
@@ -106,7 +107,9 @@ describe('B 段：app/health 五端点 + 根 controller（真实 HTTP 全链）'
 
     api.setAuth(null)
     const anonRes = await api.anon('GET', api.apiPath('/auth'))
-    expect(bodyOf(anonRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+    expect(bodyOf(anonRes).code).toBe(
+      WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
+    )
     api.setAuth(tokens)
   })
 
@@ -114,13 +117,18 @@ describe('B 段：app/health 五端点 + 根 controller（真实 HTTP 全链）'
     const res = await api.root('GET', api.apiPath('/deps'))
     expectOk(res, 'root deps')
 
-    const data = bodyOf<{ dependencies: Record<string, string>, devDependencies: Record<string, string> }>(res).data
+    const data = bodyOf<{
+      dependencies: Record<string, string>
+      devDependencies: Record<string, string>
+    }>(res).data
     expect(Object.keys(data.dependencies).length).toBeGreaterThan(0)
     expect(Object.keys(data.devDependencies).length).toBeGreaterThan(0)
 
     api.setAuth(null)
     const anonRes = await api.anon('GET', api.apiPath('/deps'))
-    expect(bodyOf(anonRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+    expect(bodyOf(anonRes).code).toBe(
+      WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
+    )
     api.setAuth(tokens)
   })
 })

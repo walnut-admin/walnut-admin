@@ -11,9 +11,7 @@ export function ApiWalnutOkResponse({
   isArray = false,
   primitive,
 }: IWalnutAdminApiOkResponseOptions): MethodDecorator {
-  const decorators: MethodDecorator[] = [
-    ApiOperation({ summary: description }),
-  ]
+  const decorators: MethodDecorator[] = [ApiOperation({ summary: description })]
 
   let dataSchema: SchemaObject | ReferenceObject
 
@@ -26,8 +24,7 @@ export function ApiWalnutOkResponse({
       : {
           type: primitive,
         }
-  }
-  else if (DTO) {
+  } else if (DTO) {
     decorators.push(ApiExtraModels(DTO))
     dataSchema = isArray
       ? {
@@ -37,8 +34,7 @@ export function ApiWalnutOkResponse({
       : {
           $ref: getSchemaPath(DTO),
         }
-  }
-  else {
+  } else {
     dataSchema = { type: 'null' }
   }
 

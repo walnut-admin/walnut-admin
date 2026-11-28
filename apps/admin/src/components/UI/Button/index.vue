@@ -19,13 +19,17 @@ function onClick(e: MouseEvent) {
 
 const debounceClick = useDebounceFn(onClick, debounce)
 
-const onFinalClick = (e: MouseEvent) => debounce ? debounceClick(e) : onClick(e)
+const onFinalClick = (e: MouseEvent) => (debounce ? debounceClick(e) : onClick(e))
 
 const ButtonText = () => textProp && (typeof textProp === 'string' ? textProp : textProp())
 </script>
 
 <template>
-  <n-button v-if="!auth || auth && userStorePermission.hasPermission(auth)" :data-testid="testId" @click="onFinalClick">
+  <n-button
+    v-if="!auth || (auth && userStorePermission.hasPermission(auth))"
+    :data-testid="testId"
+    @click="onFinalClick"
+  >
     <template #default>
       <ButtonText v-if="textProp" />
       <slot v-else name="default" />

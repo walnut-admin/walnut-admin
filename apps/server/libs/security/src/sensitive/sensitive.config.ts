@@ -1,4 +1,9 @@
-import type { IWalnutAdminConstSecurityLevel, IWalnutAdminConstSecuritySensitiveType, IWalnutAdminConstVerifyMethod, IWalnutAdminConstVerifyStrength } from './sensitive.const'
+import type {
+  IWalnutAdminConstSecurityLevel,
+  IWalnutAdminConstSecuritySensitiveType,
+  IWalnutAdminConstVerifyMethod,
+  IWalnutAdminConstVerifyStrength,
+} from './sensitive.const'
 import type { ISecurityLevelStrategy } from './sensitive.type'
 import {
   WalnutAdminConstSecurityLevel,
@@ -10,7 +15,10 @@ import {
 /**
  * Verification method strength mapping
  */
-export const VERIFY_METHOD_STRENGTH: Record<IWalnutAdminConstVerifyMethod, IWalnutAdminConstVerifyStrength> = {
+export const VERIFY_METHOD_STRENGTH: Record<
+  IWalnutAdminConstVerifyMethod,
+  IWalnutAdminConstVerifyStrength
+> = {
   [WalnutAdminConstVerifyMethod.EMAIL]: WalnutAdminConstVerifyStrength.LOW,
   [WalnutAdminConstVerifyMethod.PASSWORD]: WalnutAdminConstVerifyStrength.MEDIUM,
   [WalnutAdminConstVerifyMethod.SMS]: WalnutAdminConstVerifyStrength.MEDIUM,
@@ -23,7 +31,9 @@ export const VERIFY_METHOD_STRENGTH: Record<IWalnutAdminConstVerifyMethod, IWaln
 export const SECURITY_LEVEL_STRATEGIES: Record<
   IWalnutAdminConstSecurityLevel,
   ISecurityLevelStrategy & {
-    operations?: Partial<Record<IWalnutAdminConstSecuritySensitiveType, Partial<ISecurityLevelStrategy>>>
+    operations?: Partial<
+      Record<IWalnutAdminConstSecuritySensitiveType, Partial<ISecurityLevelStrategy>>
+    >
   }
 > = {
   [WalnutAdminConstSecurityLevel.BASIC]: {
@@ -55,26 +65,17 @@ export const SECURITY_LEVEL_STRATEGIES: Record<
         supportedMethods: [WalnutAdminConstVerifyMethod.PASSWORD],
       },
       [WalnutAdminConstSecuritySensitiveType.PASSWORD_CHANGE]: {
-        supportedMethods: [
-          WalnutAdminConstVerifyMethod.SMS,
-          WalnutAdminConstVerifyMethod.MFA,
-        ],
+        supportedMethods: [WalnutAdminConstVerifyMethod.SMS, WalnutAdminConstVerifyMethod.MFA],
       },
       // P2-25：identity update/unbind 可作用于邮箱或手机号 —— 任一安全身份已绑定即可验证
       [WalnutAdminConstSecuritySensitiveType.IDENTITY_MANAGE]: {
-        supportedMethods: [
-          WalnutAdminConstVerifyMethod.EMAIL,
-          WalnutAdminConstVerifyMethod.SMS,
-        ],
+        supportedMethods: [WalnutAdminConstVerifyMethod.EMAIL, WalnutAdminConstVerifyMethod.SMS],
       },
     },
   },
 
   [WalnutAdminConstSecurityLevel.FINANCIAL]: {
-    supportedMethods: [
-      WalnutAdminConstVerifyMethod.SMS,
-      WalnutAdminConstVerifyMethod.MFA,
-    ],
+    supportedMethods: [WalnutAdminConstVerifyMethod.SMS, WalnutAdminConstVerifyMethod.MFA],
     minStrength: WalnutAdminConstVerifyStrength.HIGH,
   },
 

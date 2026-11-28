@@ -9,9 +9,7 @@ export class JwtRefreshTokenStrategy extends PassportStrategy(
   Strategy,
   WalnutAdminConstAppAuthStrategy.JWT_REFRESH_TOKEN,
 ) {
-  constructor(
-    private readonly configService: ConfigService,
-  ) {
+  constructor(private readonly configService: ConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         (request: IWalnutAdminExpressRequest) => request?.realRefreshToken,

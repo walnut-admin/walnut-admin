@@ -23,6 +23,8 @@ import legacy from '@vitejs/plugin-legacy'
 export function createLegacyPlugin() {
   return legacy({
     targets: ['last 10 versions and not dead, > 0.3%, Firefox ESR'],
-    modernTargets: ['edge>=105, firefox>=106, chrome>=105, safari>=16.4, chromeAndroid>=105, iOS>=16.4'],
+    modernTargets: [
+      'edge>=105, firefox>=106, chrome>=105, safari>=16.4, chromeAndroid>=105, iOS>=16.4',
+    ],
   })
 }

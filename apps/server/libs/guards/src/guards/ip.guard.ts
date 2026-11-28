@@ -16,16 +16,16 @@ export class WalnutAdminGuardIP implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly sharedIpService: SharedIpService,
-  ) { }
+  ) {}
 
   async canActivate(context: ExecutionContext) {
     const ctx = context.switchToHttp()
     const request = ctx.getRequest<IWalnutAdminExpressRequest>()
 
-    const ipFree = this.reflector.getAllAndOverride<boolean>(
-      WalnutAdminConstDecoratorIpFreeKey,
-      [context.getHandler(), context.getClass()],
-    )
+    const ipFree = this.reflector.getAllAndOverride<boolean>(WalnutAdminConstDecoratorIpFreeKey, [
+      context.getHandler(),
+      context.getClass(),
+    ])
 
     if (ipFree) {
       this.logger.debug('Skipping IP for endpoint')

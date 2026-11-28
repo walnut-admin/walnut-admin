@@ -47,13 +47,12 @@ export interface GithubClient {
 
 function headers(client: GithubClient): Record<string, string> {
   const base: Record<string, string> = {
-    'Accept': 'application/vnd.github+json',
+    Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': API_VERSION,
     'User-Agent': 'walnut-admin-release',
   }
   // 凭据一律走 Authorization 头，**不进 URL** —— 查询串会留在各层访问日志里
-  if (client.token)
-    base.Authorization = `Bearer ${client.token}`
+  if (client.token) base.Authorization = `Bearer ${client.token}`
   return base
 }
 
@@ -61,7 +60,10 @@ function headers(client: GithubClient): Record<string, string> {
 const RETRY_DELAYS_MS = [500, 2000]
 const RETRYABLE_STATUS = (status: number) => status >= 500
 
-async function getOnce(client: GithubClient, path: string): Promise<{ ok: true, text: string } | { ok: false, status: number, text: string }> {
+async function getOnce(
+  client: GithubClient,
+  path: string,
+): Promise<{ ok: true; text: string } | { ok: false; status: number; text: string }> {
   const url = `${apiBase(client.repo)}/repos/${client.repo.owner}/${client.repo.repo}${path}`
   const response = await fetch(url, {
     method: 'GET',
@@ -75,35 +77,32 @@ async function getOnce(client: GithubClient, path: string): Promise<{ ok: true, 
 async function get(client: GithubClient, path: string): Promise<unknown> {
   let text = ''
   for (let attempt = 0; ; attempt++) {
-    let outcome: { ok: true, text: string } | { ok: false, status: number, text: string }
+    let outcome: { ok: true; text: string } | { ok: false; status: number; text: string }
     try {
       outcome = await getOnce(client, path)
-    }
-    catch (error: any) {
+    } catch (error: any) {
       // 超时 / 网络错误同样重试；用尽后原样抛出（调用方按「查询失败」处理）
-      if (attempt >= RETRY_DELAYS_MS.length)
-        throw error
-      await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS_MS[attempt]))
+      if (attempt >= RETRY_DELAYS_MS.length) throw error
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]))
       continue
     }
     if (outcome.ok) {
       text = outcome.text
       break
     }
-    if (outcome.status === 404)
-      throw new NotFoundError(path)
+    if (outcome.status === 404) throw new NotFoundError(path)
     if (!RETRYABLE_STATUS(outcome.status) || attempt >= RETRY_DELAYS_MS.length) {
       // 错误体截断到 300 字，避免把整页 HTML 打进日志
-      throw new Error(`GitHub API GET ${path} 失败：HTTP ${outcome.status} ${outcome.text.slice(0, 300)}`)
+      throw new Error(
+        `GitHub API GET ${path} 失败：HTTP ${outcome.status} ${outcome.text.slice(0, 300)}`,
+      )
     }
-    await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS_MS[attempt]))
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]))
   }
-  if (text.trim() === '')
-    return null
+  if (text.trim() === '') return null
   try {
     return JSON.parse(text)
-  }
-  catch {
+  } catch {
     throw new Error(`GitHub API GET ${path} 返回的不是 JSON：${text.slice(0, 120)}`)
   }
 }
@@ -118,11 +117,9 @@ class NotFoundError extends Error {
 
 /** 把 API 返回体收口成 Release；**null / 非对象 / 缺 id 一律返回 null */
 function toReleaseOrNull(raw: unknown): GithubRelease | null {
-  if (raw === null || typeof raw !== 'object')
-    return null
+  if (raw === null || typeof raw !== 'object') return null
   const record = raw as Record<string, unknown>
-  if (record.id === null || record.id === undefined || record.id === '')
-    return null
+  if (record.id === null || record.id === undefined || record.id === '') return null
   return {
     id: Number(record.id),
     tagName: String(record.tag_name ?? ''),
@@ -144,15 +141,15 @@ function toReleaseOrNull(raw: unknown): GithubRelease | null {
  * 网络故障 / 5xx 用尽重试则**抛**，调用方据此把 `releaseChecked` 置 false ——
  * 「查询失败」绝不能被当成「远端没有 Release」。
  */
-export async function findRelease(client: GithubClient, tag: string): Promise<GithubRelease | null> {
+export async function findRelease(
+  client: GithubClient,
+  tag: string,
+): Promise<GithubRelease | null> {
   try {
     return toReleaseOrNull(await get(client, `/releases/tags/${encodeURIComponent(tag)}`))
-  }
-  catch (error: any) {
-    if (error instanceof NotFoundError)
-      return null
-    if (/HTTP 404/.test(String(error?.message)))
-      return null
+  } catch (error: any) {
+    if (error instanceof NotFoundError) return null
+    if (/HTTP 404/.test(String(error?.message))) return null
     throw error
   }
 }

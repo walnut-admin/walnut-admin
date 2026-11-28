@@ -96,11 +96,15 @@ describe('summaryLines —— 确认前必须说清的四件事', () => {
   })
 
   it('没有无关改动时不出现那一段', () => {
-    expect(summaryLines(summaryInput({ unrelated: [] })).join('\n')).not.toContain('与发版无关的改动')
+    expect(summaryLines(summaryInput({ unrelated: [] })).join('\n')).not.toContain(
+      '与发版无关的改动',
+    )
   })
 
   it('条目超过 12 条时列出前 12 条 + 「另有 N 条」', () => {
-    const entries = Array.from({ length: 14 }, (_, index) => intent({ file: `auto-${index}.md`, summary: `commit ${index}` }))
+    const entries = Array.from({ length: 14 }, (_, index) =>
+      intent({ file: `auto-${index}.md`, summary: `commit ${index}` }),
+    )
     const text = summaryLines(summaryInput({ entries })).join('\n')
     expect(text).toContain('变更条目  14 条')
     expect(text).toContain('… 另有 2 条')
@@ -114,18 +118,30 @@ describe('summaryLines —— 确认前必须说清的四件事', () => {
   })
 
   it('token 有无走两条不同的说明', () => {
-    expect(summaryLines(summaryInput({ tokenMasked: 'ghp_****mnop' })).join('\n')).toContain('git-cliff 用 ghp_****mnop 补 PR 号与作者')
-    expect(summaryLines(summaryInput({ tokenMasked: null })).join('\n')).toContain('未提供 GITHUB_TOKEN')
+    expect(summaryLines(summaryInput({ tokenMasked: 'ghp_****mnop' })).join('\n')).toContain(
+      'git-cliff 用 ghp_****mnop 补 PR 号与作者',
+    )
+    expect(summaryLines(summaryInput({ tokenMasked: null })).join('\n')).toContain(
+      '未提供 GITHUB_TOKEN',
+    )
   })
 
   it('暂缓的电池条数只在有暂缓项时才提', () => {
-    expect(summaryLines(summaryInput({ batterySkipped: 1 })).join('\n')).toContain('另有 1 条按配置暂缓')
+    expect(summaryLines(summaryInput({ batterySkipped: 1 })).join('\n')).toContain(
+      '另有 1 条按配置暂缓',
+    )
     expect(summaryLines(summaryInput({ batterySkipped: 0 })).join('\n')).not.toContain('按配置暂缓')
   })
 })
 
 describe('dryRunGenerateLines —— 演练横幅', () => {
-  const input = { generated: 3, target: '1.1.0', bump: 'minor', bumpOverridden: false, batteryCount: 7 }
+  const input = {
+    generated: 3,
+    target: '1.1.0',
+    bump: 'minor',
+    bumpOverridden: false,
+    batteryCount: 7,
+  }
 
   it('绝不出现与「将生成 N 个意图」自相矛盾的两句话', () => {
     // 这就是那个被记录过的缺陷：两句并列会让一次演练被读成「没有可发布的东西」
@@ -144,13 +160,19 @@ describe('dryRunGenerateLines —— 演练横幅', () => {
   })
 
   it('--bump 覆盖时标注出来', () => {
-    expect(dryRunGenerateLines({ ...input, bump: 'major', bumpOverridden: true }).join('\n')).toContain('（major，由 --bump 指定）')
+    expect(
+      dryRunGenerateLines({ ...input, bump: 'major', bumpOverridden: true }).join('\n'),
+    ).toContain('（major，由 --bump 指定）')
   })
 })
 
 describe('abortHintLines —— 中断后「重跑怎么接」', () => {
   it('明确说重跑能从断点接上', () => {
-    const text = abortHintLines({ signal: 'SIGINT', plan: { step: 'commit-tag-push', reason: '只剩提交' }, state: null }).join('\n')
+    const text = abortHintLines({
+      signal: 'SIGINT',
+      plan: { step: 'commit-tag-push', reason: '只剩提交' },
+      state: null,
+    }).join('\n')
     expect(text).toContain('收到 SIGINT 已停手')
     expect(text).toContain('直接重跑 pnpm release 即可从断点接上')
     expect(text).toContain('commit-tag-push')
@@ -161,7 +183,12 @@ describe('abortHintLines —— 中断后「重跑怎么接」', () => {
     const text = abortHintLines({
       signal: 'SIGTERM',
       plan: null,
-      state: { nextStep: 'consume-intents', toVersion: '1.1.0', bump: 'minor', updatedAt: '2026-01-01T00:00:00.000Z' },
+      state: {
+        nextStep: 'consume-intents',
+        toVersion: '1.1.0',
+        bump: 'minor',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
     }).join('\n')
     expect(text).toContain('按事实重算下一步失败')
     expect(text).toContain('下一步 consume-intents，目标 v1.1.0（minor）')
@@ -182,12 +209,18 @@ describe('statusLines —— 只读面', () => {
   })
 
   it('探测成功时给出两种确定说法', () => {
-    expect(statusLines(statusInput({ releaseChecked: true, remoteReleaseExists: true })).join('\n')).toContain('远端已有')
-    expect(statusLines(statusInput({ releaseChecked: true, remoteReleaseExists: false })).join('\n')).toContain('远端还没有（由 release.yml 创建）')
+    expect(
+      statusLines(statusInput({ releaseChecked: true, remoteReleaseExists: true })).join('\n'),
+    ).toContain('远端已有')
+    expect(
+      statusLines(statusInput({ releaseChecked: true, remoteReleaseExists: false })).join('\n'),
+    ).toContain('远端还没有（由 release.yml 创建）')
   })
 
   it('fixed 组没对齐时打出半升级块与修法', () => {
-    const lines = statusLines(statusInput({ groupMisaligned: ['@walnut/ui（0.0.1）', '@walnut/http（0.0.1）'] }))
+    const lines = statusLines(
+      statusInput({ groupMisaligned: ['@walnut/ui（0.0.1）', '@walnut/http（0.0.1）'] }),
+    )
     const text = lines.join('\n')
     expect(text).toContain('❌ 工作区不是可发版状态：fixed 组有 2 个包没对齐到 v1.0.0')
     expect(text).toContain('· @walnut/ui（0.0.1）')
@@ -196,19 +229,29 @@ describe('statusLines —— 只读面', () => {
   })
 
   it('没对齐的包超过 20 个时截断', () => {
-    const groupMisaligned = Array.from({ length: 22 }, (_, index) => `@walnut/pkg-${index}（0.0.1）`)
+    const groupMisaligned = Array.from(
+      { length: 22 },
+      (_, index) => `@walnut/pkg-${index}（0.0.1）`,
+    )
     const text = statusLines(statusInput({ groupMisaligned })).join('\n')
     expect(text).toContain('另有 2 个')
     expect(text).not.toContain('@walnut/pkg-21')
   })
 
   it('无关改动与状态文件都列出来', () => {
-    const text = statusLines(statusInput({
-      unrelated: ['turbo.json'],
-      state: { nextStep: 'consume-intents', toVersion: '1.1.0', bump: 'minor', updatedAt: '2026-01-01T00:00:00.000Z' },
-      versionConsumed: true,
-      branchPushed: false,
-    })).join('\n')
+    const text = statusLines(
+      statusInput({
+        unrelated: ['turbo.json'],
+        state: {
+          nextStep: 'consume-intents',
+          toVersion: '1.1.0',
+          bump: 'minor',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        },
+        versionConsumed: true,
+        branchPushed: false,
+      }),
+    ).join('\n')
     expect(text).toContain('与发版无关的改动 1 个（会被一并提交）')
     expect(text).toContain('· turbo.json')
     expect(text).toContain('.changeset/.release-state.json')

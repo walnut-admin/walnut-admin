@@ -15,7 +15,10 @@ export { WalnutAdminDecoratorCreate } from './create'
 export { WalnutAdminDecoratorDelete } from './delete'
 export { WalnutAdminDecoratorDeleteMany } from './deleteMany'
 export { WalnutAdminDecoratorList } from './list'
-export { WalnutAdminDecoratorOperateLog, WalnutAdminInterceptorRequestOperateLog } from './operate-log/operate-log.decorator'
+export {
+  WalnutAdminDecoratorOperateLog,
+  WalnutAdminInterceptorRequestOperateLog,
+} from './operate-log/operate-log.decorator'
 export {
   type IWalnutAdminOperateLogRecord,
   type IWalnutAdminOperateLogWriter,

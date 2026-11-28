@@ -62,7 +62,9 @@ describe('B 段：shared/area children + feedback（真实 HTTP 全链 + 自建�
   let fixture: WalnutRootUserFixture | null = null
 
   async function cleanupAreaData() {
-    await api.pgDataSource.getRepository(SharedAreaEntity).delete({ code: In(SEED.map(i => i.code)) })
+    await api.pgDataSource
+      .getRepository(SharedAreaEntity)
+      .delete({ code: In(SEED.map((i) => i.code)) })
     await api.cleanupFixedCacheKeys(...AREA_LEVEL_CACHE_KEYS)
   }
 
@@ -79,7 +81,7 @@ describe('B 段：shared/area children + feedback（真实 HTTP 全链 + 自建�
     // 层级缓存跨轮共享（Redis 不随集成库 drop）—— 先清掉保证本轮从冷态回源；
     // 行删除防御性清一次（重跑幂等）再插
     const repo = api.pgDataSource.getRepository(SharedAreaEntity)
-    await repo.delete({ code: In(SEED.map(i => i.code)) })
+    await repo.delete({ code: In(SEED.map((i) => i.code)) })
     await api.cleanupFixedCacheKeys(...AREA_LEVEL_CACHE_KEYS)
     for (const row of SEED) {
       await repo.insert(row)
@@ -107,13 +109,15 @@ describe('B 段：shared/area children + feedback（真实 HTTP 全链 + 自建�
     const rows = bodyOf<AreaRow[]>(res).data
     expect(Array.isArray(rows)).toBe(true)
     expect(rows.length).toBeGreaterThanOrEqual(1)
-    const ours = rows.find(i => i.code === '95')
+    const ours = rows.find((i) => i.code === '95')
     expect(ours).toBeDefined()
     expect(ours?.name).toBe('AP规范省')
     expect(ours?.pcode).toBe('0')
 
     // 缓存路径：首次回源后整层写 SHARED:AREA:PROVINCE
-    expect(await api.hasWalnutCacheKey(WalnutAdminConstAppCacheKeys.SHARED_AREA_PROVINCE)).toBe(true)
+    expect(await api.hasWalnutCacheKey(WalnutAdminConstAppCacheKeys.SHARED_AREA_PROVINCE)).toBe(
+      true,
+    )
   })
 
   it('children?pcode 形态外 → 40099（行政区划码管道：≤12 位数字或 0，修复前任意串直进查询与缓存键）', async () => {
@@ -140,16 +144,16 @@ describe('B 段：shared/area children + feedback（真实 HTTP 全链 + 自建�
     const tree = bodyOf<AreaTreeNode[]>(res).data
     expect(tree.length).toBeGreaterThanOrEqual(1)
 
-    const province = tree.find(i => i.code === '95')!
+    const province = tree.find((i) => i.code === '95')!
     expect(province).toBeDefined()
     expect(province.depth).toBe(0)
     expect(province.isLeaf).toBe(false)
 
-    const city = province.children!.find(i => i.code === '9501')!
+    const city = province.children!.find((i) => i.code === '9501')!
     expect(city.code).toBe('9501')
     expect(city.isLeaf).toBe(false)
 
-    const district = city.children!.find(i => i.code === '950102')!
+    const district = city.children!.find((i) => i.code === '950102')!
     expect(district.code).toBe('950102')
     expect(district.depth).toBe(2)
     // 最深返回层级（区层）isLeaf 一致为 true
@@ -161,18 +165,20 @@ describe('B 段：shared/area children + feedback（真实 HTTP 全链 + 自建�
     expectOk(res, 'area feedback multi')
 
     const tree = bodyOf<AreaTreeNode[]>(res).data
-    const province = tree.find(i => i.code === '95')!
+    const province = tree.find((i) => i.code === '95')!
     expect(province).toBeDefined()
     expect(province.depth).toBe(0)
 
-    const city = province.children!.find(i => i.code === '9501')!
+    const city = province.children!.find((i) => i.code === '9501')!
     expect(city.code).toBe('9501')
-    expect(city.children!.find(i => i.code === '950102')).toBeDefined()
+    expect(city.children!.find((i) => i.code === '950102')).toBeDefined()
   })
 
   it('边界：匿名 children → 40101；feedback 缺 codes → 40099', async () => {
     const anonRes = await api.anon('GET', api.apiPath('/shared/area/children?pcode=0'))
-    expect(bodyOf(anonRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+    expect(bodyOf(anonRes).code).toBe(
+      WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
+    )
 
     const missingCodes = await api.root('GET', api.apiPath('/shared/area/feedback'))
     expect(bodyOf(missingCodes).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)

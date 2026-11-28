@@ -6,9 +6,28 @@ import { EventEmitter2 } from '@nestjs/event-emitter'
 import { Test } from '@nestjs/testing'
 import { getDataSourceToken } from '@nestjs/typeorm'
 import { ALSRequestService } from '@walnut-server/als'
-import { AppErrorController, AppKeyController, AppKeyService, AppMonitorCacheController, AppMonitorUserService, AppSettingController, AppSettingRepositoryService, AppSettingService } from '@walnut-server/app-domain'
-import { AuthCookieService, AuthOpaqueCoreService, AuthSharedService, AuthSignoutService, OAuthStateService } from '@walnut-server/auth'
-import { AppTechCacheAppSettingsService, AppTechCachePermissionsService, AppTechCacheService } from '@walnut-server/cache'
+import {
+  AppErrorController,
+  AppKeyController,
+  AppKeyService,
+  AppMonitorCacheController,
+  AppMonitorUserService,
+  AppSettingController,
+  AppSettingRepositoryService,
+  AppSettingService,
+} from '@walnut-server/app-domain'
+import {
+  AuthCookieService,
+  AuthOpaqueCoreService,
+  AuthSharedService,
+  AuthSignoutService,
+  OAuthStateService,
+} from '@walnut-server/auth'
+import {
+  AppTechCacheAppSettingsService,
+  AppTechCachePermissionsService,
+  AppTechCacheService,
+} from '@walnut-server/cache'
 import { WALNUT_ADMIN_OPERATE_LOG_WRITER } from '@walnut-server/crud'
 import { WalnutPGConnectionName } from '@walnut-server/db'
 import { SysUserIdentitySharedService } from '@walnut-server/identity'
@@ -166,12 +185,18 @@ describe('补齐的 200 schema 端点（f-18 / DOC-07）', () => {
 
   describe('app/key', () => {
     it('init / rotate 的 data 是 AppKeyDTOSafe', () => {
-      expect(refOf(okDataSchema('/app/key/init', 'post'))).toBe('#/components/schemas/AppKeyDTOSafe')
-      expect(refOf(okDataSchema('/app/key/rotate/{type}', 'post'))).toBe('#/components/schemas/AppKeyDTOSafe')
+      expect(refOf(okDataSchema('/app/key/init', 'post'))).toBe(
+        '#/components/schemas/AppKeyDTOSafe',
+      )
+      expect(refOf(okDataSchema('/app/key/rotate/{type}', 'post'))).toBe(
+        '#/components/schemas/AppKeyDTOSafe',
+      )
     })
 
     it('rotate 的 {type} 仍是必填枚举参数', () => {
-      const type = parametersOf('/app/key/rotate/{type}', 'post').find(parameter => parameter.name === 'type')
+      const type = parametersOf('/app/key/rotate/{type}', 'post').find(
+        (parameter) => parameter.name === 'type',
+      )
 
       expect(type?.in).toBe('path')
       expect(type?.required).toBe(true)
@@ -180,8 +205,9 @@ describe('补齐的 200 schema 端点（f-18 / DOC-07）', () => {
 
   describe('app/setting 与 app/monitor', () => {
     it('setting private 的 data 是 AppSettingDTOPrivateResponse（此前无 schema）', () => {
-      expect(refOf(okDataSchema('/app/setting/private', 'get')))
-        .toBe('#/components/schemas/AppSettingDTOPrivateResponse')
+      expect(refOf(okDataSchema('/app/setting/private', 'get'))).toBe(
+        '#/components/schemas/AppSettingDTOPrivateResponse',
+      )
     })
 
     it('setting cache refresh / cache clear / monitor user state 的 data 是 boolean', () => {
@@ -192,7 +218,9 @@ describe('补齐的 200 schema 端点（f-18 / DOC-07）', () => {
     })
 
     it('force-quit 的 {id} 路径参数也补上了（自定义参数装饰器反射不到）', () => {
-      const id = parametersOf('/app/monitor/user/force-quit/{id}', 'delete').find(parameter => parameter.name === 'id')
+      const id = parametersOf('/app/monitor/user/force-quit/{id}', 'delete').find(
+        (parameter) => parameter.name === 'id',
+      )
 
       expect(id?.in).toBe('path')
       expect(id?.required).toBe(true)
@@ -215,7 +243,7 @@ describe('补齐的 200 schema 端点（f-18 / DOC-07）', () => {
       const data = okDataSchema('/security/sign/initial', 'post')
       const variants = (data.oneOf ?? []) as SchemaObject[]
 
-      expect(variants.map(variant => variant.type)).toEqual(['string', 'boolean'])
+      expect(variants.map((variant) => variant.type)).toEqual(['string', 'boolean'])
     })
 
     it('cap challenge / redeem 是裸 schema（FreeResponse 不套壳）', () => {
@@ -223,7 +251,9 @@ describe('补齐的 200 schema 端点（f-18 / DOC-07）', () => {
 
       expect(challengeSchema.allOf).toBeUndefined()
       expect(challengeSchema.required).toEqual(['challenge', 'token', 'expires'])
-      expect((challengeSchema.properties as Record<string, SchemaObject>).challenge.type).toBe('object')
+      expect((challengeSchema.properties as Record<string, SchemaObject>).challenge.type).toBe(
+        'object',
+      )
 
       const redeemSchema = okSchema('/security/cap/redeem', 'post')
 
@@ -238,7 +268,10 @@ describe('补齐的 200 schema 端点（f-18 / DOC-07）', () => {
     })
 
     it('oauth callback 按 text/html 渲染页声明（不是 JSON 业务壳）', () => {
-      const responses = operation('/auth/oauth/github/callback', 'get').responses as Record<string, ResponseObject>
+      const responses = operation('/auth/oauth/github/callback', 'get').responses as Record<
+        string,
+        ResponseObject
+      >
       const content = responses['200'].content ?? {}
 
       expect(Object.keys(content)).toEqual(['text/html'])
@@ -253,11 +286,15 @@ describe('补齐的 200 schema 端点（f-18 / DOC-07）', () => {
 
   describe('app/error/{code}', () => {
     it('code 是必填的响应码枚举参数', () => {
-      const code = parametersOf('/app/error/{code}', 'get').find(parameter => parameter.name === 'code')
+      const code = parametersOf('/app/error/{code}', 'get').find(
+        (parameter) => parameter.name === 'code',
+      )
 
       expect(code?.in).toBe('path')
       expect(code?.required).toBe(true)
-      expect((code?.schema as SchemaObject).enum).toEqual(Object.values(WalnutAdminConstAppResponseCode))
+      expect((code?.schema as SchemaObject).enum).toEqual(
+        Object.values(WalnutAdminConstAppResponseCode),
+      )
     })
 
     it('app/error 的 200 声明为恒抛的错误壳（data = null）', () => {

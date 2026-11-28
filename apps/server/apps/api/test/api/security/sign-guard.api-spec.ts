@@ -3,13 +3,21 @@ import type { Response as SuperTestResponse } from 'supertest'
 import { createHash, randomBytes } from 'node:crypto'
 import { ConfigService } from '@nestjs/config'
 import { AppTechCacheService } from '@walnut-server/cache'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+} from '@walnut-server/const/app/cache'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from '../helpers/api-client'
 import { createApiApp } from '../helpers/create-api-app'
-import { buildSignRaw, computeSingleFactorSign, generateNonce, WALNUT_TEST_USER_AGENT } from '../helpers/sign-handshake'
+import {
+  buildSignRaw,
+  computeSingleFactorSign,
+  generateNonce,
+  WALNUT_TEST_USER_AGENT,
+} from '../helpers/sign-handshake'
 import { signCookieValue, unsignCookieValue } from '../helpers/signed-cookie'
 
 /**
@@ -60,9 +68,12 @@ describe('A 路 · Sign 家族：40113 握手态 / ticket 校验 / 时间窗边�
   let stripPrefixRegex: RegExp
 
   /** guard 侧的三个缓存键（与 AppTechCacheSignService / AppTechCacheRsaService 同口径） */
-  const aesKeyKey = (deviceId: string) => `${WalnutAdminConstAppCacheKeys.SECURITY_SIGN_AES_KEY}:${deviceId}`
-  const ticketKey = (deviceId: string) => `${WalnutAdminConstAppCacheKeys.SECURITY_SIGN_TICKET}:${deviceId}`
-  const rsaKeyKey = (deviceId: string) => `${WalnutAdminConstAppCacheKeys.SECURITY_RSA_PUB_KEY}:${deviceId}`
+  const aesKeyKey = (deviceId: string) =>
+    `${WalnutAdminConstAppCacheKeys.SECURITY_SIGN_AES_KEY}:${deviceId}`
+  const ticketKey = (deviceId: string) =>
+    `${WalnutAdminConstAppCacheKeys.SECURITY_SIGN_TICKET}:${deviceId}`
+  const rsaKeyKey = (deviceId: string) =>
+    `${WalnutAdminConstAppCacheKeys.SECURITY_RSA_PUB_KEY}:${deviceId}`
 
   /**
    * CAP 验证缓存键（对照 `libs/cache/src/service/cap.cache.ts` 的 getCapTokenCacheKey：
@@ -93,8 +104,9 @@ describe('A 路 · Sign 家族：40113 握手态 / ticket 校验 / 时间窗边�
   afterAll(async () => {
     if (api !== undefined) {
       const pg = api.pgDataSource
-      const deviceIds = [api.deviceId, apiB?.deviceId, B5_LEGACY_DEVICE_ID]
-        .filter((id): id is string => typeof id === 'string' && id.length > 0)
+      const deviceIds = [api.deviceId, apiB?.deviceId, B5_LEGACY_DEVICE_ID].filter(
+        (id): id is string => typeof id === 'string' && id.length > 0,
+      )
 
       for (const deviceId of deviceIds) {
         await pg.query('DELETE FROM sys_device WHERE device_id = $1', [deviceId])
@@ -108,7 +120,11 @@ describe('A 路 · Sign 家族：40113 握手态 / ticket 校验 / 时间窗边�
   })
 
   /** 手工单因子签名头（匿名态）：时间戳 / nonce 可注入，其余按 sign.guard 的原文规则现算 */
-  function signHeaders(opts: { url: string, timestamp?: number, nonce?: string }): Record<string, string> {
+  function signHeaders(opts: {
+    url: string
+    timestamp?: number
+    nonce?: string
+  }): Record<string, string> {
     const timestamp = opts.timestamp ?? Date.now()
     const nonce = opts.nonce ?? generateNonce()
     const raw = buildSignRaw({
@@ -130,7 +146,7 @@ describe('A 路 · Sign 家族：40113 握手态 / ticket 校验 / 时间窗边�
   /** 从响应的 Set-Cookie 里挑出某键的**裸值**（去掉属性段），用于与缓存值比对 */
   function cookieValueFromResponse(res: SuperTestResponse, key: string): string | undefined {
     const setCookies = (res.headers['set-cookie'] ?? []) as unknown as string[]
-    const raw = setCookies.find(item => item.startsWith(`${key}=`))
+    const raw = setCookies.find((item) => item.startsWith(`${key}=`))
     return raw?.split(';')[0].slice(key.length + 1)
   }
 
@@ -154,8 +170,7 @@ describe('A 路 · Sign 家族：40113 握手态 / ticket 校验 / 时间窗边�
         // 算法差一处（少 s: / 分隔符不对 / base64 尾部 '=' 没去）都会被 cookie-parser 判成
         // false，于是走「ticket 失配」40112 —— 这条用例就是 helper 的验收判据。
         expectOk(await api.anon('GET', api.apiPath('/')), 'helper-signed ticket accepted')
-      }
-      finally {
+      } finally {
         api.setCookie(WalnutAdminConstCookieKeys.SIGN_TICKET, saved)
       }
     })
@@ -178,13 +193,14 @@ describe('A 路 · Sign 家族：40113 握手态 / ticket 校验 / 时间窗边�
       api.setCookie(WalnutAdminConstCookieKeys.SIGN_TICKET, foreign)
       try {
         const res = await api.anon('GET', api.apiPath('/'))
-        expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_SIGNATURE)
+        expect(bodyOf(res).code).toBe(
+          WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_SIGNATURE,
+        )
         // 副作用：失配在「缓存存在」的快速路径里直接抛出，续签那两行一行都没跑 ⇒ 没有 ticket 的 Set-Cookie
         expect(cookieValueFromResponse(res, WalnutAdminConstCookieKeys.SIGN_TICKET)).toBeUndefined()
         // 缓存没被写坏
         expect(await cache.get<string>(ticketKey(api.deviceId))).toBe(cachedTicket)
-      }
-      finally {
+      } finally {
         api.setCookie(WalnutAdminConstCookieKeys.SIGN_TICKET, saved)
       }
     })
@@ -204,8 +220,7 @@ describe('A 路 · Sign 家族：40113 握手态 / ticket 校验 / 时间窗边�
         const renewed = cookieValueFromResponse(res, WalnutAdminConstCookieKeys.SIGN_TICKET)
         expect(renewed).toBeTruthy()
         expect(unsignCookieValue(renewed!)).toBe(cachedTicket)
-      }
-      finally {
+      } finally {
         api.setCookie(WalnutAdminConstCookieKeys.SIGN_TICKET, saved)
       }
     })
@@ -258,7 +273,9 @@ describe('A 路 · Sign 家族：40113 握手态 / ticket 校验 / 时间窗边�
       expect(await cache.get<string>(ticketKey(api.deviceId))).toBe(renewed)
       // 旧 cookie 确实换掉了（jar 已捕获 Set-Cookie 的新值）
       expect(unsignCookieValue(oldCookie)).not.toBe(renewed)
-      expect(unsignCookieValue(api.getCookie(WalnutAdminConstCookieKeys.SIGN_TICKET)!)).toBe(renewed)
+      expect(unsignCookieValue(api.getCookie(WalnutAdminConstCookieKeys.SIGN_TICKET)!)).toBe(
+        renewed,
+      )
 
       // 续签后可继续用：第二次请求（jar 里的新 ticket）20000
       expectOk(await api.anon('GET', api.apiPath('/')), 'second request with renewed ticket')
@@ -291,7 +308,9 @@ describe('A 路 · Sign 家族：40113 握手态 / ticket 校验 / 时间窗边�
       )
       expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_SIGNATURE)
       // 副作用：nonce 未被落库（validateTimestamp 在 validateAndRecordNonce 之前）
-      expect(await cache.get<string>(`${WalnutAdminConstAppCacheKeys.SECURITY_SIGN_NONCE}:${nonce}`)).toBeNull()
+      expect(
+        await cache.get<string>(`${WalnutAdminConstAppCacheKeys.SECURITY_SIGN_NONCE}:${nonce}`),
+      ).toBeNull()
     })
   })
 
@@ -301,19 +320,23 @@ describe('A 路 · Sign 家族：40113 握手态 / ticket 校验 / 时间窗边�
   describe('B5：旧形态 64hex DEVICE_ID（Device guard 40605 vs 签名缺失 40112）', () => {
     it('helper 签的合法签名 + 64hex ⇒ Device guard 40605，且该 id 不落任何设备行', async () => {
       const saved = api.getCookie(WalnutAdminConstCookieKeys.DEVICE_ID)!
-      api.setCookie(WalnutAdminConstCookieKeys.DEVICE_ID, signCookieValue(cookieSecret, B5_LEGACY_DEVICE_ID))
+      api.setCookie(
+        WalnutAdminConstCookieKeys.DEVICE_ID,
+        signCookieValue(cookieSecret, B5_LEGACY_DEVICE_ID),
+      )
       try {
         // Device guard 是第 3 位（IP → Security → Device），先于 Risk/CAP/JWT ⇒ 直接 40605
         const res = await api.anon('GET', api.apiPath('/system/user/lock/read'))
-        expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED)
+        expect(bodyOf(res).code).toBe(
+          WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED,
+        )
         // 副作用：形态判据在**进任何身份逻辑之前**就拒掉，库里不会多出一行「旧形态设备」
         const rows: Array<{ id: string }> = await api.pgDataSource.query(
           'SELECT id FROM sys_device WHERE device_id = $1',
           [B5_LEGACY_DEVICE_ID],
         )
         expect(rows).toHaveLength(0)
-      }
-      finally {
+      } finally {
         api.setCookie(WalnutAdminConstCookieKeys.DEVICE_ID, saved)
       }
     })
@@ -329,7 +352,10 @@ describe('A 路 · Sign 家族：40113 握手态 / ticket 校验 / 时间窗边�
       })
 
       const saved = api.getCookie(WalnutAdminConstCookieKeys.DEVICE_ID)!
-      api.setCookie(WalnutAdminConstCookieKeys.DEVICE_ID, signCookieValue(cookieSecret, B5_LEGACY_DEVICE_ID))
+      api.setCookie(
+        WalnutAdminConstCookieKeys.DEVICE_ID,
+        signCookieValue(cookieSecret, B5_LEGACY_DEVICE_ID),
+      )
       try {
         // / 是 DeviceFree（不进 Device guard）但**不** SignFree ⇒ 请求会走到 Sign guard：
         // 签名合法 ⇒ signedCookies 里拿到的是那串 64hex 字符串 ⇒ 取 RSA 公钥缓存 miss ⇒ 40012。
@@ -340,9 +366,10 @@ describe('A 路 · Sign 家族：40113 握手态 / ticket 校验 / 时间窗边�
           undefined,
           signHeaders({ url: api.apiPath('/') }),
         )
-        expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_RSA_PUB_KEY_NOT_FOUND)
-      }
-      finally {
+        expect(bodyOf(res).code).toBe(
+          WalnutAdminConstAppResponseCode.BAD_REQUEST_RSA_PUB_KEY_NOT_FOUND,
+        )
+      } finally {
         api.setCookie(WalnutAdminConstCookieKeys.DEVICE_ID, saved)
       }
     })
@@ -359,9 +386,10 @@ describe('A 路 · Sign 家族：40113 握手态 / ticket 校验 / 时间窗边�
         )
         // 没有 s: 前缀的值 cookie-parser 不收录进 signedCookies ⇒ extractRequestMetadata 判「缺 deviceId」
         // ⇒ 40112。与上一条的 40012 一起，「签名合法但内容非法」与「签名坏→缺失」两条路径可分。
-        expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_SIGNATURE)
-      }
-      finally {
+        expect(bodyOf(res).code).toBe(
+          WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_SIGNATURE,
+        )
+      } finally {
         api.setCookie(WalnutAdminConstCookieKeys.DEVICE_ID, saved)
       }
     })
@@ -394,8 +422,7 @@ describe('A 路 · Sign 家族：40113 握手态 / ticket 校验 / 时间窗边�
         const renewed = cookieValueFromResponse(res, WalnutAdminConstCookieKeys.SIGN_TICKET)
         expect(renewed).toBeTruthy()
         expect(unsignCookieValue(renewed!)).toBe(cachedTicket)
-      }
-      finally {
+      } finally {
         api.setCookie(WalnutAdminConstCookieKeys.SIGN_TICKET, saved)
       }
     })
@@ -413,11 +440,12 @@ describe('A 路 · Sign 家族：40113 握手态 / ticket 校验 / 时间窗边�
       api.setCookie(WalnutAdminConstCookieKeys.SIGN_TICKET, foreign)
       try {
         const res = await api.anon('GET', api.apiPath('/'))
-        expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_SIGNATURE)
+        expect(bodyOf(res).code).toBe(
+          WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_SIGNATURE,
+        )
         // 失配在「缓存存在」的快速路径里直接抛 ⇒ 没有重签的 Set-Cookie
         expect(cookieValueFromResponse(res, WalnutAdminConstCookieKeys.SIGN_TICKET)).toBeUndefined()
-      }
-      finally {
+      } finally {
         api.setCookie(WalnutAdminConstCookieKeys.SIGN_TICKET, saved)
       }
     })

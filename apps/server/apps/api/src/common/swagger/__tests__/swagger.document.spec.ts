@@ -21,7 +21,10 @@ import { applySwaggerBearerAuth, createSwaggerDocument } from '../swagger.docume
 class SpecSwaggerProtectedController {
   /** 绝大多数端点的形态：走 ApiWalnutOkResponse 组装点 */
   @Get()
-  @ApiWalnutOkResponse({ description: 'protected endpoint with project response shell', primitive: 'boolean' })
+  @ApiWalnutOkResponse({
+    description: 'protected endpoint with project response shell',
+    primitive: 'boolean',
+  })
   withResponseShell() {
     return true
   }
@@ -45,7 +48,10 @@ class SpecSwaggerProtectedController {
 class SpecSwaggerOptionalController {
   @Get()
   @WalnutAdminGuardJwtOptional()
-  @ApiWalnutOkResponse({ description: 'optional endpoint (bearer or anonymous)', primitive: 'boolean' })
+  @ApiWalnutOkResponse({
+    description: 'optional endpoint (bearer or anonymous)',
+    primitive: 'boolean',
+  })
   optional() {
     return true
   }
@@ -70,7 +76,11 @@ class SpecSwaggerAnonymousController {
 async function createSwaggerTestApp() {
   const moduleRef = await Test.createTestingModule({
     imports: [DiscoveryModule],
-    controllers: [SpecSwaggerProtectedController, SpecSwaggerOptionalController, SpecSwaggerAnonymousController],
+    controllers: [
+      SpecSwaggerProtectedController,
+      SpecSwaggerOptionalController,
+      SpecSwaggerAnonymousController,
+    ],
   }).compile()
 
   const app = moduleRef.createNestApplication()
@@ -92,8 +102,7 @@ describe('createSwaggerDocument（F-08：bearer 声明批量注入）', () => {
       expect(document.paths['/spec/swagger/protected'].get?.security).toEqual([{ bearer: [] }])
       // 没有任何 swagger 装饰器 —— 覆盖「不走工厂的端点」这条判据
       expect(document.paths['/spec/swagger/protected'].post?.security).toEqual([{ bearer: [] }])
-    }
-    finally {
+    } finally {
       await app.close()
     }
   })
@@ -107,9 +116,10 @@ describe('createSwaggerDocument（F-08：bearer 声明批量注入）', () => {
       // OpenAPI 的 security 数组是「或」关系：{} = 不带任何凭据 → 匿名可达
       expect(document.paths['/spec/swagger/optional'].get?.security).toEqual([{ bearer: [] }, {}])
       // 同一 controller 里没有 Optional 的端点不受影响（判据是方法级元数据，不是类）
-      expect(document.paths['/spec/swagger/optional/protected'].get?.security).toEqual([{ bearer: [] }])
-    }
-    finally {
+      expect(document.paths['/spec/swagger/optional/protected'].get?.security).toEqual([
+        { bearer: [] },
+      ])
+    } finally {
       await app.close()
     }
   })
@@ -127,8 +137,7 @@ describe('createSwaggerDocument（F-08：bearer 声明批量注入）', () => {
 
       // 文档根必须留空：否则匿名端点会「继承」根上的 bearer，与实现（匿名可访问）相反
       expect(document.security).toBeUndefined()
-    }
-    finally {
+    } finally {
       await app.close()
     }
   })
@@ -143,7 +152,7 @@ describe('createSwaggerDocument（F-08：bearer 声明批量注入）', () => {
       for (const pathItem of Object.values(document.paths)) {
         for (const method of HTTP_METHODS) {
           for (const requirement of pathItem[method]?.security ?? []) {
-            Object.keys(requirement).forEach(name => referencedSchemes.add(name))
+            Object.keys(requirement).forEach((name) => referencedSchemes.add(name))
           }
         }
       }
@@ -151,9 +160,8 @@ describe('createSwaggerDocument（F-08：bearer 声明批量注入）', () => {
       expect(referencedSchemes.size).toBeGreaterThan(0)
 
       const declaredSchemes = Object.keys(document.components?.securitySchemes ?? {})
-      expect([...referencedSchemes].filter(name => !declaredSchemes.includes(name))).toEqual([])
-    }
-    finally {
+      expect([...referencedSchemes].filter((name) => !declaredSchemes.includes(name))).toEqual([])
+    } finally {
       await app.close()
     }
   })
@@ -170,8 +178,7 @@ describe('createSwaggerDocument（F-08：bearer 声明批量注入）', () => {
 
       // 已注入过 ⇒ 第二次是空转（幂等标记）
       expect(applySwaggerBearerAuth(app)).toBe(0)
-    }
-    finally {
+    } finally {
       await app.close()
     }
   })

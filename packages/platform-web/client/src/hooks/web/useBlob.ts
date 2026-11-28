@@ -21,8 +21,7 @@ export function useBlob() {
         destroyBlobUrl()
         tempBlobURL.value = URL.createObjectURL(b)
         resolve(tempBlobURL.value)
-      }
-      catch (error) {
+      } catch (error) {
         reject(error)
       }
     })

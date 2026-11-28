@@ -9,14 +9,17 @@ defineOptions({
 
 const currentComponentDemo = useRouterQuery('c')
 
-const demoOptions: SelectOption[]
-  = Object.entries(import.meta.glob('./*.vue', { import: 'default', eager: true }))
-    .filter(([key]) => !key.includes('index'))
-    .map(([key, value]) => {
-      return { value: key, label: key.replace('./', '').replace('.vue', ''), component: value }
-    })
+const demoOptions: SelectOption[] = Object.entries(
+  import.meta.glob('./*.vue', { import: 'default', eager: true }),
+)
+  .filter(([key]) => !key.includes('index'))
+  .map(([key, value]) => {
+    return { value: key, label: key.replace('./', '').replace('.vue', ''), component: value }
+  })
 
-const getCurrentComponent = computed(() => demoOptions.find(i => i.value === currentComponentDemo.value)?.component)
+const getCurrentComponent = computed(
+  () => demoOptions.find((i) => i.value === currentComponentDemo.value)?.component,
+)
 </script>
 
 <template>

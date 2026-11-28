@@ -23,8 +23,7 @@ function withAsyncEncryption(
 
     async getItem(key: string) {
       const string = await storage.getItem(key)
-      if (string === null)
-        return null
+      if (string === null) return null
       const decrypted = await decrypt(string)
       return decrypted
     },
@@ -52,7 +51,5 @@ export function withAsyncConditionalEncryption(
   crypto: IWithEncryptionAsyncOptions,
   shouldEncrypt: () => boolean,
 ): IStorageAsync {
-  return shouldEncrypt()
-    ? withAsyncEncryption(storage, crypto)
-    : storage
+  return shouldEncrypt() ? withAsyncEncryption(storage, crypto) : storage
 }

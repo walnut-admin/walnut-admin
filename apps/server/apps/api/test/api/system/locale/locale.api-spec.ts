@@ -54,7 +54,7 @@ describe('A 段试点：system/locale 非标 CRUD + message 缓存开关（真�
    * seed-aware 的 lang fixture：seed 层已含 zh_CN 时复用其 id（不能直接 INSERT，
    * uq_lang 会撞；也不能删它 —— 它挂着 1806 条 seed 语言包，FK CASCADE 会整组带走）。
    */
-  async function seedLang(lang: string): Promise<{ id: string, created: boolean }> {
+  async function seedLang(lang: string): Promise<{ id: string; created: boolean }> {
     const rows: Array<{ id: string }> = await api.pgDataSource.query(
       'INSERT INTO sys_lang (lang, description, "sort_order", status) VALUES ($1, $2, 1, true) ON CONFLICT (lang) DO NOTHING RETURNING id',
       [lang, `locale-spec ${seed8}`],
@@ -74,7 +74,10 @@ describe('A 段试点：system/locale 非标 CRUD + message 缓存开关（真�
     api = await WalnutApiClient.create(app)
 
     // 固定缓存键跨轮共享（Redis 不随集成库 drop），先清冷态
-    await api.cleanupFixedCacheKeys(zhMessageCacheKey, WalnutAdminConstAppCacheKeys.SYS_LANG_ID_LIST)
+    await api.cleanupFixedCacheKeys(
+      zhMessageCacheKey,
+      WalnutAdminConstAppCacheKeys.SYS_LANG_ID_LIST,
+    )
 
     fixture = await registerRootUserFixture(app, api.pgDataSource, `locale-${seed8}`)
     userId = fixture.userId
@@ -93,10 +96,17 @@ describe('A 段试点：system/locale 非标 CRUD + message 缓存开关（真�
   })
 
   afterEach(async () => {
-    await api.pgDataSource.query('DELETE FROM sys_locale WHERE key LIKE $1', [`api.spec.${seed8}.%`])
+    await api.pgDataSource.query('DELETE FROM sys_locale WHERE key LIKE $1', [
+      `api.spec.${seed8}.%`,
+    ])
     // 软删行已不在 sys_locale，快照行按 content 里的 key 清（jsonb）
-    await api.pgDataSource.query('DELETE FROM sys_deleted WHERE content->>\'key\' LIKE $1', [`api.spec.${seed8}.%`])
-    await api.cleanupFixedCacheKeys(zhMessageCacheKey, WalnutAdminConstAppCacheKeys.SYS_LANG_ID_LIST)
+    await api.pgDataSource.query("DELETE FROM sys_deleted WHERE content->>'key' LIKE $1", [
+      `api.spec.${seed8}.%`,
+    ])
+    await api.cleanupFixedCacheKeys(
+      zhMessageCacheKey,
+      WalnutAdminConstAppCacheKeys.SYS_LANG_ID_LIST,
+    )
   })
 
   afterAll(async () => {
@@ -109,9 +119,14 @@ describe('A 段试点：system/locale 非标 CRUD + message 缓存开关（真�
         ...(langIdOtherCreated ? [langIdOther] : []),
       ]
       if (createdLangIds.length > 0) {
-        await api.pgDataSource.query('DELETE FROM sys_lang WHERE id = ANY($1::uuid[])', [createdLangIds])
+        await api.pgDataSource.query('DELETE FROM sys_lang WHERE id = ANY($1::uuid[])', [
+          createdLangIds,
+        ])
       }
-      await api.cleanupFixedCacheKeys(zhMessageCacheKey, WalnutAdminConstAppCacheKeys.SYS_LANG_ID_LIST)
+      await api.cleanupFixedCacheKeys(
+        zhMessageCacheKey,
+        WalnutAdminConstAppCacheKeys.SYS_LANG_ID_LIST,
+      )
       await api.cleanupWalnutCacheKeys(seed8, api.deviceId, userId)
     }
     await app.close()
@@ -248,7 +263,10 @@ describe('A 段试点：system/locale 非标 CRUD + message 缓存开关（真�
     const readRes = await api.root('GET', api.apiPath(`/system/locale/${keyOf('d1')}`))
     expect(bodyOf<Record<string, string>>(readRes).data[langIdZh]).toBeUndefined()
 
-    const deleteManyRes = await api.root('DELETE', api.apiPath(`/system/locale/deleteMany/${keyOf('d2')}`))
+    const deleteManyRes = await api.root(
+      'DELETE',
+      api.apiPath(`/system/locale/deleteMany/${keyOf('d2')}`),
+    )
     expectOk(deleteManyRes, 'locale deleteMany')
     expect(bodyOf<LocaleRow[]>(deleteManyRes).data).toHaveLength(2)
   })

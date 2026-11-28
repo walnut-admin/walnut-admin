@@ -32,20 +32,18 @@ declare global {
 
   type IWADTObjResOpt = IWalnutAdminDecoratorTransformerObjectResponseOptions
 
-  interface IWalnutAdminDecoratorTransformObjectOptions
-    extends IWalnutAdminDecoratorTransformOptions<
-      IWalnutAdminDecoratorTransformerObjectRequestOptions,
-      IWalnutAdminDecoratorTransformerObjectResponseOptions
-    > {}
+  interface IWalnutAdminDecoratorTransformObjectOptions extends IWalnutAdminDecoratorTransformOptions<
+    IWalnutAdminDecoratorTransformerObjectRequestOptions,
+    IWalnutAdminDecoratorTransformerObjectResponseOptions
+  > {}
 
   type IWADTObjOpt = IWalnutAdminDecoratorTransformObjectOptions
 
   // field option
-  interface IWalnutAdminDecoratorFieldObjectOptions
-    extends IWalnutAdminDecoratorBasicOptions<
-      IWalnutAdminDecoratorValidatorObjectOptions,
-      IWalnutAdminDecoratorTransformObjectOptions
-    > {}
+  interface IWalnutAdminDecoratorFieldObjectOptions extends IWalnutAdminDecoratorBasicOptions<
+    IWalnutAdminDecoratorValidatorObjectOptions,
+    IWalnutAdminDecoratorTransformObjectOptions
+  > {}
 
   type IWADObjOpt = IWalnutAdminDecoratorFieldObjectOptions
 }

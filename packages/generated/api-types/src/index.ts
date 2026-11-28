@@ -104,7 +104,9 @@ export type SystemDevice = components['schemas']['SysDeviceDTOSafe'] & { id: str
  * `GET /system/device/{id}/history-users` 行形态（userName/nickName/id/lastActiveAt 摘要）。
  * P3-11 已补 `isArray: true`：端点响应 data 在生成 schema 里就是本类型的数组。
  */
-export type SystemDeviceHistoryUser = components['schemas']['SysDeviceDTOHistoryUsersResponse'] & { id: string }
+export type SystemDeviceHistoryUser = components['schemas']['SysDeviceDTOHistoryUsersResponse'] & {
+  id: string
+}
 
 /**
  * `POST /system/device/initial` 响应 —— 设备注册回显的公开面（codegen 收尾批校正）：
@@ -126,7 +128,7 @@ export type SystemLang = components['schemas']['SysLangDTO'] & { id: string }
  * `id` 仍按上面的 Safe 响应约定显式补上 —— swagger 的 `SysLocaleDTO.id` 是 `default: null`
  * 且不在 required 里（同一个 DTO 兼任 list 过滤面），但响应行经 ClassSerializer 必含 uuid。
  */
-export type SystemLocale = components['schemas']['SysLocaleDTO'] & { id: string, groupKey: string }
+export type SystemLocale = components['schemas']['SysLocaleDTO'] & { id: string; groupKey: string }
 
 /** `GET /system/lang/list/public` 行形态（order / lang / description 三列 raw 投影）。 */
 export type SystemLangPublicListItem = components['schemas']['SysLangDTOListPublicResponse']
@@ -252,11 +254,13 @@ export type SecuritySignAesKey = components['schemas']['SecuritySignSessionKeyRe
  * @simplewebauthn/server 的 PublicKeyCredentialCreationOptionsJSON 逐字段文档化，
  * 与 @simplewebauthn/browser 的 `startRegistration({ optionsJSON })` 入参结构等价。
  */
-export type AuthMfaWebauthnRegisterOptions = components['schemas']['SysUserMfaWebauthnRegisterResponseDTO']
+export type AuthMfaWebauthnRegisterOptions =
+  components['schemas']['SysUserMfaWebauthnRegisterResponseDTO']
 
 /**
  * `POST /system/user/mfa/webauthn/authenticate/options` 响应。`options` 的生成形态按
  * @simplewebauthn/server 的 PublicKeyCredentialRequestOptionsJSON 逐字段文档化，
  * 与 @simplewebauthn/browser 的 `startAuthentication({ optionsJSON })` 入参结构等价。
  */
-export type AuthMfaWebauthnAuthenticateOptions = components['schemas']['SysUserMfaWebauthnAuthenticateOptionsDTO']
+export type AuthMfaWebauthnAuthenticateOptions =
+  components['schemas']['SysUserMfaWebauthnAuthenticateOptionsDTO']

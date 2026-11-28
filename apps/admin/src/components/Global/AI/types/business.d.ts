@@ -4,7 +4,7 @@
 // ============================================
 interface CardPayloadMap {
   /** 示例占位，迁移完成后替换为实际业务类型 */
-  'example-card': { title: string, description: string }
+  'example-card': { title: string; description: string }
 }
 
 // ============================================

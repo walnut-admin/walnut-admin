@@ -53,10 +53,7 @@ export function WalnutAdminDecoratorValidatorString(
     ip,
     onlyIn,
     nullable,
-  } = Object.assign(
-    defaultOptions(),
-    options,
-  )
+  } = Object.assign(defaultOptions(), options)
 
   if (isArray) {
     decorators = WalnutAdminDecoratorValidatorArray(decorators, arrayOptions)

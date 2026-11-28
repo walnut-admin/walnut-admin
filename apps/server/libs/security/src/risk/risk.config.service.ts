@@ -207,16 +207,16 @@ const CRITICAL_FACTORS = new Set(
 
 const PRE_AUTH_CRITICAL_FACTORS = new Set(
   Object.entries(RISK_FACTORS)
-    .filter(([_, config]) =>
-      config.critical && (config.stage === 'pre-auth' || config.stage === 'both'),
+    .filter(
+      ([_, config]) => config.critical && (config.stage === 'pre-auth' || config.stage === 'both'),
     )
     .map(([factor]) => factor),
 )
 
 const POST_AUTH_CRITICAL_FACTORS = new Set(
   Object.entries(RISK_FACTORS)
-    .filter(([_, config]) =>
-      config.critical && (config.stage === 'post-auth' || config.stage === 'both'),
+    .filter(
+      ([_, config]) => config.critical && (config.stage === 'post-auth' || config.stage === 'both'),
     )
     .map(([factor]) => factor),
 )
@@ -232,12 +232,9 @@ export function getRiskLevel(
     LOW: 0.0,
   },
 ): IWalnutAdminConstRiskLevel {
-  if (score >= thresholds.CRITICAL)
-    return WalnutAdminConstRiskLevel.CRITICAL
-  if (score >= thresholds.HIGH)
-    return WalnutAdminConstRiskLevel.HIGH
-  if (score >= thresholds.MEDIUM)
-    return WalnutAdminConstRiskLevel.MEDIUM
+  if (score >= thresholds.CRITICAL) return WalnutAdminConstRiskLevel.CRITICAL
+  if (score >= thresholds.HIGH) return WalnutAdminConstRiskLevel.HIGH
+  if (score >= thresholds.MEDIUM) return WalnutAdminConstRiskLevel.MEDIUM
   return WalnutAdminConstRiskLevel.LOW
 }
 
@@ -249,7 +246,10 @@ export function isCriticalRisk(score: number, threshold = 0.8): boolean {
   return score >= threshold
 }
 
-export function calcScoreAndLevel(score: number): { score: number, level: IWalnutAdminConstRiskLevel } {
+export function calcScoreAndLevel(score: number): {
+  score: number
+  level: IWalnutAdminConstRiskLevel
+} {
   const finalScore = Math.min(score, 1.0)
   const level = getRiskLevel(finalScore)
   return { score: finalScore, level }

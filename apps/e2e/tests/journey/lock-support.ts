@@ -29,8 +29,11 @@ export interface LockTestUser {
 }
 
 /** root 建号 → 真实 OPAQUE 登录 → 绑 TOTP（绑完 mfa_setup=true，设备级已验证） */
-export async function createLockTestUser(root: WalnutProtocolClient, prefix: string): Promise<LockTestUser> {
-  const roleId = await withPg(pg => findRoleIdByName(pg, LOCK_TEST_ROLE))
+export async function createLockTestUser(
+  root: WalnutProtocolClient,
+  prefix: string,
+): Promise<LockTestUser> {
+  const roleId = await withPg((pg) => findRoleIdByName(pg, LOCK_TEST_ROLE))
   const user = await createLoginableUser(root, { userNamePrefix: prefix, roleId })
   const client = await loginAs(user)
   const totpSecret = await client.bindTotp()
@@ -39,7 +42,11 @@ export async function createLockTestUser(root: WalnutProtocolClient, prefix: str
 }
 
 /** 打开一台全新设备并完成 UI 登录（CAP + MFA），返回已登录会话 */
-export async function openLoggedInDevice(browser: Browser, user: LoginableUser, totpSecret: string): Promise<DeviceSession> {
+export async function openLoggedInDevice(
+  browser: Browser,
+  user: LoginableUser,
+  totpSecret: string,
+): Promise<DeviceSession> {
   const session = await openDevice(browser, '/auth')
   await loginViaUI(session.page, {
     userName: user.userName,
@@ -52,12 +59,18 @@ export async function openLoggedInDevice(browser: Browser, user: LoginableUser, 
 }
 
 /** 写锁屏偏好（协议侧；`lockPwdHash` 明文由服务端 bcrypt） */
-export async function setLockPreference(client: WalnutProtocolClient, payload: Record<string, unknown>): Promise<void> {
+export async function setLockPreference(
+  client: WalnutProtocolClient,
+  payload: Record<string, unknown>,
+): Promise<void> {
   await client.root('PATCH', SystemEndpointRoutes.USER_LOCK_PREFERENCE, payload)
 }
 
 /** security 模式的最小偏好 payload（跨设备开关由调用方覆盖） */
-export function securityLockPreference(lockPwdHash: string, overrides: Record<string, unknown> = {}): Record<string, unknown> {
+export function securityLockPreference(
+  lockPwdHash: string,
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
   return {
     lockMode: 'security',
     lockIdleSec: 300,
@@ -80,12 +93,18 @@ export async function lockDevice(client: WalnutProtocolClient, routeName = 'Me')
 }
 
 /** 用锁屏密码解除当前协议设备的锁 */
-export async function unlockDevice(client: WalnutProtocolClient, lockPwdHash: string): Promise<void> {
+export async function unlockDevice(
+  client: WalnutProtocolClient,
+  lockPwdHash: string,
+): Promise<void> {
   await client.root('PATCH', SystemEndpointRoutes.USER_LOCK_UNLOCK, { lockPwdHash })
 }
 
 /** 新设备 + 真实登录 + 设备级 TOTP 验证（J4 的第二台 / 第三台设备） */
-export async function loginVerifiedDevice(user: LoginableUser, totpSecret: string): Promise<WalnutProtocolClient> {
+export async function loginVerifiedDevice(
+  user: LoginableUser,
+  totpSecret: string,
+): Promise<WalnutProtocolClient> {
   const client = await loginAs(user)
   await client.verifyTotpForDevice(totpSecret)
   return client

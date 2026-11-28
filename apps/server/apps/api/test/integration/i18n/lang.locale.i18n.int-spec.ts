@@ -2,7 +2,14 @@ import type { INestApplication } from '@nestjs/common'
 import type { DataSource } from 'typeorm'
 import { randomUUID } from 'node:crypto'
 
-import { SysLangEntity, SysLangRepoService, SysLangService, SysLocaleEntity, SysLocaleService, SysLocaleSharedService } from '@walnut-server/system'
+import {
+  SysLangEntity,
+  SysLangRepoService,
+  SysLangService,
+  SysLocaleEntity,
+  SysLocaleService,
+  SysLocaleSharedService,
+} from '@walnut-server/system'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createIntegrationApp, getWalnutPgDataSource } from '../helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from '../helpers/integration.const'
@@ -47,23 +54,29 @@ describe('B2 lang/locale i18n aggregation rewrite (on real PG)', () => {
   async function createLangWithLocales(options: {
     lang?: string
     status?: boolean
-    locales: Array<{ key: string, value: string | null }>
+    locales: Array<{ key: string; value: string | null }>
   }) {
     const langRepo = pgDataSource.getRepository(SysLangEntity)
-    const lang = await langRepo.save(langRepo.create({
-      lang: options.lang ?? uniqueLangName(),
-      description: `int-spec ${Date.now()}`,
-      order: 1,
-      status: options.status ?? true,
-    }))
+    const lang = await langRepo.save(
+      langRepo.create({
+        lang: options.lang ?? uniqueLangName(),
+        description: `int-spec ${Date.now()}`,
+        order: 1,
+        status: options.status ?? true,
+      }),
+    )
 
     if (options.locales.length > 0) {
       const localeRepo = pgDataSource.getRepository(SysLocaleEntity)
-      await localeRepo.save(options.locales.map(locale => localeRepo.create({
-        langId: lang.id,
-        key: locale.key,
-        value: locale.value,
-      })))
+      await localeRepo.save(
+        options.locales.map((locale) =>
+          localeRepo.create({
+            langId: lang.id,
+            key: locale.key,
+            value: locale.value,
+          }),
+        ),
+      )
     }
 
     return lang
@@ -159,10 +172,10 @@ describe('B2 lang/locale i18n aggregation rewrite (on real PG)', () => {
 
     const result = await langRepoService.findPublic()
 
-    const disabledRow = result.find(row => row.lang === disabled.lang)
+    const disabledRow = result.find((row) => row.lang === disabled.lang)
     expect(disabledRow).toBeUndefined()
 
-    const ownRows = result.filter(row => row.lang.startsWith(LANG_PREFIX))
+    const ownRows = result.filter((row) => row.lang.startsWith(LANG_PREFIX))
     expect(ownRows.length).toBeGreaterThan(0)
     for (const row of ownRows) {
       expect(Object.keys(row).sort()).toEqual(['description', 'lang', 'order'])

@@ -10,8 +10,11 @@ import { SocketGateway } from '../socket.gateway'
  * - SOCKET_ADMIN_UI_USER / SOCKET_ADMIN_UI_PASSWORD 未**同时**配置 → 不挂载 instrument
  *   （fail-closed）并打 warn；
  * - 两者同时配置 → 以 auth: { type: 'basic', username, password } 挂载（不再 auth:false 裸奔）；
- * - mode 由 WalnutAdminEnv（libs/const）判定，production → 'production'，其余 → 'development'。
+ * - mode 由 ConfigService 的 NODE_ENV 判定，production → 'production'，其余 → 'development'。
  * 门禁只关 admin UI：连接鉴权中间件与 socketService 挂载不受影响。
+ *
+ * 文件级 `vi.mock('@socket.io/admin-ui')` 保留：全仓只有 socket.gateway 这一个被测源
+ * import 它，mock 不会波及别的测试文件（`isolate: false` 下模块 mock 是 worker 级的）。
  */
 
 vi.mock('@socket.io/admin-ui', () => ({ instrument: vi.fn() }))
@@ -19,7 +22,10 @@ vi.mock('@socket.io/admin-ui', () => ({ instrument: vi.fn() }))
 const ADMIN_USER = 'spec-admin'
 const ADMIN_PASSWORD = 'spec-strong-pass'
 
-function createGatewayClass(GatewayClass: typeof SocketGateway, env: Record<string, string | undefined>) {
+function createGatewayClass(
+  GatewayClass: typeof SocketGateway,
+  env: Record<string, string | undefined>,
+) {
   const configService = { get: (key: string) => env[key] }
   const socketService = { socket: null as unknown }
   const gateway = new GatewayClass(
@@ -70,7 +76,9 @@ describe('socketGateway.afterInit：F-01 admin UI 门禁（fail-closed）', () =
 
   it('只配 password 不配 user → 不挂载', () => {
     vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {})
-    const { gateway } = createGatewayClass(SocketGateway, { SOCKET_ADMIN_UI_PASSWORD: ADMIN_PASSWORD })
+    const { gateway } = createGatewayClass(SocketGateway, {
+      SOCKET_ADMIN_UI_PASSWORD: ADMIN_PASSWORD,
+    })
     const namespace = createNamespace()
 
     gateway.afterInit(namespace as never)
@@ -98,15 +106,13 @@ describe('socketGateway.afterInit：F-01 admin UI 门禁（fail-closed）', () =
     )
   })
 
-  it('生产环境（NODE_ENV=production）→ mode production（WalnutAdminEnv 判定，无裸 as 断言）', async () => {
-    vi.resetModules()
-    vi.stubEnv('NODE_ENV', WalnutAdminConstAppEnv.PROD)
-    // WalnutAdminEnv 在模块求值时读一次 NODE_ENV —— 用 resetModules 拿生产语境的新实例
-    const [{ instrument: freshInstrument }, { SocketGateway: ProdGateway }] = await Promise.all([
-      import('@socket.io/admin-ui'),
-      import('../socket.gateway'),
-    ])
-    const { gateway } = createGatewayClass(ProdGateway, {
+  it('生产环境（ConfigService 的 NODE_ENV=production）→ mode production（无裸 as 断言）', () => {
+    // mode 已改为从 ConfigService 读 NODE_ENV（与模块求值常量同源）——
+    // 直接传进 config 替身即可，不再 vi.resetModules() + 动态 import 拿新模块实例。
+    // （resetModules 会清空 worker 级共享模块图：后续文件的实体装饰器 / 注册表类身份
+    // 全部错位，data-scope 的完整性守卫会因此假红。）
+    const { gateway } = createGatewayClass(SocketGateway, {
+      NODE_ENV: WalnutAdminConstAppEnv.PROD,
       SOCKET_ADMIN_UI_USER: ADMIN_USER,
       SOCKET_ADMIN_UI_PASSWORD: ADMIN_PASSWORD,
     })
@@ -114,8 +120,8 @@ describe('socketGateway.afterInit：F-01 admin UI 门禁（fail-closed）', () =
 
     gateway.afterInit(namespace as never)
 
-    expect(freshInstrument).toHaveBeenCalledTimes(1)
-    expect(freshInstrument).toHaveBeenCalledWith(
+    expect(instrument).toHaveBeenCalledTimes(1)
+    expect(instrument).toHaveBeenCalledWith(
       namespace.server,
       expect.objectContaining({
         auth: { type: 'basic', username: ADMIN_USER, password: ADMIN_PASSWORD },

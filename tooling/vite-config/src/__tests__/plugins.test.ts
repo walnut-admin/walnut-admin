@@ -7,7 +7,11 @@ import { createLegacyPlugin } from '../plugins/legacy.ts'
 const CSP_PLUGIN = 'vite-plugin-csp-guard'
 const SENTRY_PLUGIN = 'sentry-vite-plugin'
 // @vitejs/plugin-legacy 一个工厂返回三支插件
-const LEGACY_PLUGINS = ['vite:legacy-config', 'vite:legacy-generate-polyfill-chunk', 'vite:legacy-post-process']
+const LEGACY_PLUGINS = [
+  'vite:legacy-config',
+  'vite:legacy-generate-polyfill-chunk',
+  'vite:legacy-post-process',
+]
 
 /** `useBuildEnv` 的输入：一份全部关闭的基线，用例只覆盖关心的键 */
 const BASE_ENV: Record<string, string> = {
@@ -15,7 +19,10 @@ const BASE_ENV: Record<string, string> = {
   VITE_HOST: '127.0.0.1',
   VITE_APP_TITLE: 'Walnut Test',
   VITE_PUBLIC_PATH: '/',
-  VITE_PROXY: JSON.stringify([[1, '/api', 'http://127.0.0.1:3000/w/v1'], [0, '/ws', 'ws://127.0.0.1:3000/w/v1', '']]),
+  VITE_PROXY: JSON.stringify([
+    [1, '/api', 'http://127.0.0.1:3000/w/v1'],
+    [0, '/ws', 'ws://127.0.0.1:3000/w/v1', ''],
+  ]),
   VITE_GA_ID: '',
   VITE_DEV_CSP: 'false',
   VITE_BUILD_OUT_DIR: 'dist',
@@ -75,11 +82,13 @@ function pluginNames(option: unknown): string[] {
 }
 
 function namesFor(mode: string, overrides: Record<string, string> = {}): string[] {
-  return pluginNames(createVitePlugins(mode, useBuildEnv({ ...BASE_ENV, ...overrides }), makeOptions()))
+  return pluginNames(
+    createVitePlugins(mode, useBuildEnv({ ...BASE_ENV, ...overrides }), makeOptions()),
+  )
 }
 
 function legacyNames(names: string[]): string[] {
-  return names.filter(name => name.startsWith('vite:legacy'))
+  return names.filter((name) => name.startsWith('vite:legacy'))
 }
 
 describe('createVitePlugins 的开关型插件', () => {
@@ -136,13 +145,17 @@ describe('createVitePlugins 的开关型插件', () => {
 
 describe('legacy 的现代目标（顶层 await 的回归锚）', () => {
   it('build.target 不含 es2020：它低于 ES2022，会让顶层 await 直接构建失败', async () => {
-    const configPlugin = createLegacyPlugin().find(plugin => plugin.name === 'vite:legacy-config')
+    const configPlugin = createLegacyPlugin().find((plugin) => plugin.name === 'vite:legacy-config')
     expect(configPlugin, 'legacy 的 config 插件不见了').toBeTruthy()
 
     // 插件的 config 钩子会**原地改写**传进去的 config.build.target（返回值里只有 define）
-    interface LegacyConfig { build: { target?: unknown } }
+    interface LegacyConfig {
+      build: { target?: unknown }
+    }
     const config: LegacyConfig = { build: {} }
-    const hook = configPlugin?.config as ((config: LegacyConfig, env: unknown) => unknown) | undefined
+    const hook = configPlugin?.config as
+      | ((config: LegacyConfig, env: unknown) => unknown)
+      | undefined
     await hook?.(config, { command: 'build', mode: 'production' })
 
     expect(Array.isArray(config.build.target)).toBe(true)

@@ -29,19 +29,23 @@ interface SignRawModule {
     nonce: string
     ua: string
   }) => string
-  splitPathAndQuery: (url: string) => { path: string, query?: string }
+  splitPathAndQuery: (url: string) => { path: string; query?: string }
 }
 
 function load(): SignRawModule {
   try {
     return require('@walnut/utils/sign-raw') as SignRawModule
-  }
-  catch (error) {
-    const pkgDir = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../packages/platform-any/utils-core')
+  } catch (error) {
+    const pkgDir = resolve(
+      dirname(fileURLToPath(import.meta.url)),
+      '../../../../packages/platform-any/utils-core',
+    )
     const distHint = existsSync(resolve(pkgDir, 'dist/sign-raw.cjs'))
       ? '（dist 存在但解析失败，检查 node_modules 链接）'
       : '（dist 不存在 —— 先跑 `pnpm --filter @walnut/utils build`）'
-    throw new Error(`[e2e] 加载 @walnut/utils/sign-raw 的 CJS 产物失败${distHint}：${(error as Error).message}`)
+    throw new Error(
+      `[e2e] 加载 @walnut/utils/sign-raw 的 CJS 产物失败${distHint}：${(error as Error).message}`,
+    )
   }
 }
 

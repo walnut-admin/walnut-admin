@@ -140,7 +140,7 @@ export class WalnutApiClient {
     })
     // challenge 也是 FreeResponse（无统一响应壳），body 即 cap.js 的 { challenge, token, expires }
     const challengeBody = challengeRes.body as {
-      challenge: { c: number, s: number, d: number }
+      challenge: { c: number; s: number; d: number }
       token: string
       expires: number
     }
@@ -152,7 +152,7 @@ export class WalnutApiClient {
       body: { token: challengeBody.token, solutions },
     })
     // redeem 是 FreeResponse（无统一响应壳），body 即 cap.js 的 { success, token?, expires? }
-    const redeemBody = redeemRes.body as { success?: boolean, message?: string }
+    const redeemBody = redeemRes.body as { success?: boolean; message?: string }
     if (redeemBody.success !== true) {
       throw new Error(`[api-client] cap redeem failed: ${JSON.stringify(redeemBody)}`)
     }
@@ -171,7 +171,7 @@ export class WalnutApiClient {
     })
     expectOk(aesKeyRes, 'sign aes-key')
 
-    const aesKeyData = bodyOf<{ aesKey: string, hkdfInfo: string }>(aesKeyRes).data
+    const aesKeyData = bodyOf<{ aesKey: string; hkdfInfo: string }>(aesKeyRes).data
     client.aesKey = decryptAesKeyEnvelope(privateKeyPem, aesKeyData.aesKey)
     client.hkdfInfo = aesKeyData.hkdfInfo
 
@@ -212,11 +212,22 @@ export class WalnutApiClient {
   }
 
   /** 已登录请求（双因子签名 + Authorization）；extraHeaders 供 guard 矩阵定制请求头（如 XFF） */
-  async root(method: WalnutHttpMethod, url: string, body?: unknown, extraHeaders: Record<string, string> = {}): Promise<SuperTestResponse> {
+  async root(
+    method: WalnutHttpMethod,
+    url: string,
+    body?: unknown,
+    extraHeaders: Record<string, string> = {},
+  ): Promise<SuperTestResponse> {
     if (this.auth === null) {
       throw new Error('[api-client] root() requires setAuth() first')
     }
-    return this.execute({ method, url, body, sign: true, headers: { Authorization: `Bearer ${this.auth.accessToken}`, ...extraHeaders } })
+    return this.execute({
+      method,
+      url,
+      body,
+      sign: true,
+      headers: { Authorization: `Bearer ${this.auth.accessToken}`, ...extraHeaders },
+    })
   }
 
   /** 匿名请求（单因子签名，无 Authorization） */
@@ -225,7 +236,12 @@ export class WalnutApiClient {
   }
 
   /** 原始请求：不签名（sign-free 引导端点与缺头负路径） */
-  async unsigned(method: WalnutHttpMethod, url: string, body?: unknown, headers?: Record<string, string>): Promise<SuperTestResponse> {
+  async unsigned(
+    method: WalnutHttpMethod,
+    url: string,
+    body?: unknown,
+    headers?: Record<string, string>,
+  ): Promise<SuperTestResponse> {
     return this.execute({ method, url, body, sign: false, headers })
   }
 
@@ -239,7 +255,10 @@ export class WalnutApiClient {
     const redis = this.app.get(AppTechRedisService).getClient()
     for (const fragment of fragments) {
       const keys: string[] = []
-      for await (const key of redis.scanIterator({ MATCH: `WALNUT_CACHE_*${fragment}*`, COUNT: 200 })) {
+      for await (const key of redis.scanIterator({
+        MATCH: `WALNUT_CACHE_*${fragment}*`,
+        COUNT: 200,
+      })) {
         keys.push(...key)
       }
       if (keys.length > 0) {
@@ -259,7 +278,9 @@ export class WalnutApiClient {
       return
     }
     const redis = this.app.get(AppTechRedisService).getClient()
-    await redis.del(keys.map(key => (key.startsWith('WALNUT_CACHE') ? key : `WALNUT_CACHE_${key}`)))
+    await redis.del(
+      keys.map((key) => (key.startsWith('WALNUT_CACHE') ? key : `WALNUT_CACHE_${key}`)),
+    )
   }
 
   /** 断言用：WALNUT_CACHE_<key> 是否存在（响应缓存路径验证） */
@@ -315,9 +336,13 @@ export class WalnutApiClient {
         ua: WALNUT_TEST_USER_AGENT,
       })
 
-      const sign = this.auth !== null
-        ? computeDualFactorSign(raw, deriveApiSignKey(this.auth.sessionKey, this.aesKey, this.hkdfInfo))
-        : computeSingleFactorSign(raw, this.aesKey)
+      const sign =
+        this.auth !== null
+          ? computeDualFactorSign(
+              raw,
+              deriveApiSignKey(this.auth.sessionKey, this.aesKey, this.hkdfInfo),
+            )
+          : computeSingleFactorSign(raw, this.aesKey)
 
       headers['X-Sign'] = sign
       headers['X-Timestamp'] = String(timestamp)
@@ -389,7 +414,9 @@ export interface WalnutAdminResponseBody<T = Record<string, unknown>> {
   meta?: Record<string, unknown>
 }
 
-export function bodyOf<T = Record<string, unknown>>(res: SuperTestResponse): WalnutAdminResponseBody<T> {
+export function bodyOf<T = Record<string, unknown>>(
+  res: SuperTestResponse,
+): WalnutAdminResponseBody<T> {
   return res.body as WalnutAdminResponseBody<T>
 }
 

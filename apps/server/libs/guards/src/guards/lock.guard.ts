@@ -39,10 +39,10 @@ export class WalnutAdminGuardLock implements CanActivate {
     const request = ctx.getRequest<IWalnutAdminExpressRequest>()
 
     // Step 1: 检查是否为免锁定端点
-    const lockFree = this.reflector.getAllAndOverride<boolean>(
-      WalnutAdminConstDecoratorLockKey,
-      [context.getHandler(), context.getClass()],
-    )
+    const lockFree = this.reflector.getAllAndOverride<boolean>(WalnutAdminConstDecoratorLockKey, [
+      context.getHandler(),
+      context.getClass(),
+    ])
     if (lockFree) {
       this.logger.debug('Lock check bypassed for lock-free endpoint')
       return true
@@ -94,10 +94,14 @@ export class WalnutAdminGuardLock implements CanActivate {
         const doubleCheckCache = await this.lockCacheService.checkIsLocked(user.userId, deviceId)
         if (doubleCheckCache !== null) {
           if (doubleCheckCache) {
-            this.logger.warn(`User locked (from double-check cache): userId=${user.userId}, deviceId=${deviceId}`)
+            this.logger.warn(
+              `User locked (from double-check cache): userId=${user.userId}, deviceId=${deviceId}`,
+            )
             throw new WalnutAdminExceptionUserLocked()
           }
-          this.logger.debug(`User unlocked (from double-check cache): userId=${user.userId}, deviceId=${deviceId}`)
+          this.logger.debug(
+            `User unlocked (from double-check cache): userId=${user.userId}, deviceId=${deviceId}`,
+          )
           return true
         }
 
@@ -114,7 +118,9 @@ export class WalnutAdminGuardLock implements CanActivate {
         )
 
         if (lockInfo.isLocked) {
-          this.logger.warn(`User locked (from DB): userId=${user.userId}, deviceId=${deviceId}, crossDevice=${lockInfo.isCrossDevice}`)
+          this.logger.warn(
+            `User locked (from DB): userId=${user.userId}, deviceId=${deviceId}, crossDevice=${lockInfo.isCrossDevice}`,
+          )
           throw new WalnutAdminExceptionUserLocked()
         }
 

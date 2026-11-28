@@ -33,28 +33,23 @@ export interface EnvToken {
 export function parseGithubRemote(url: string): GithubRepo | null {
   const trimmed = url.trim()
   const ssh = /^(?:ssh:\/\/)?git@([^:/]+)[:/]([^/]+)\/(.+?)(?:\.git)?\/?$/.exec(trimmed)
-  if (ssh)
-    return { host: ssh[1]!, owner: ssh[2]!, repo: ssh[3]! }
+  if (ssh) return { host: ssh[1]!, owner: ssh[2]!, repo: ssh[3]! }
   const http = /^https?:\/\/([^/]+)\/([^/]+)\/(.+?)(?:\.git)?\/?$/.exec(trimmed)
-  if (http)
-    return { host: http[1]!, owner: http[2]!, repo: http[3]! }
+  if (http) return { host: http[1]!, owner: http[2]!, repo: http[3]! }
   return null
 }
 
 /** 日志里只出现 token 的头尾，避免整串进 CI 日志 / 截图 */
 export function maskToken(token: string): string {
-  if (token.length <= 8)
-    return '****'
+  if (token.length <= 8) return '****'
   return `${token.slice(0, 4)}****${token.slice(-4)}`
 }
 
 /** github.com → api.github.com；企业域名 → `<host>/api/v3` */
 export function apiBase(repo: GithubRepo): string {
   const override = process.env.GITHUB_API_URL?.trim()
-  if (override)
-    return override.replace(/\/+$/, '')
-  if (repo.host === 'github.com' || repo.host === 'www.github.com')
-    return 'https://api.github.com'
+  if (override) return override.replace(/\/+$/, '')
+  if (repo.host === 'github.com' || repo.host === 'www.github.com') return 'https://api.github.com'
   return `https://${repo.host}/api/v3`
 }
 
@@ -69,11 +64,12 @@ export function webReleaseUrl(repo: GithubRepo, tag: string): string {
  * env 做成参数是为了可测（用例不必改 `process.env`）；默认值仍是进程环境。
  * trim 后为空的变量等于没给 —— 空串拼进 `Bearer` 头会得到一个 401，比「匿名查询」更难查。
  */
-export function tokenFromEnv(env: Readonly<Record<string, string | undefined>> = process.env): EnvToken {
+export function tokenFromEnv(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): EnvToken {
   for (const name of ['GITHUB_TOKEN', 'GH_TOKEN'] as const) {
     const value = env[name]?.trim()
-    if (value)
-      return { token: value, source: name }
+    if (value) return { token: value, source: name }
   }
   return { token: null, source: null }
 }

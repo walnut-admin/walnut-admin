@@ -5,9 +5,7 @@ import { Expose } from 'class-transformer'
 import { WalnutAdminDecoratorTransformerBoolean as WADTB } from '../transformer/base/boolean.transformer'
 import { WalnutAdminDecoratorValidatorBoolean as WADVB } from '../validator/base/boolean.validator'
 
-export function WalnutAdminDecoratorFieldBoolean(
-  options: IWADBoolOpt,
-): PropertyDecorator {
+export function WalnutAdminDecoratorFieldBoolean(options: IWADBoolOpt): PropertyDecorator {
   const decorators = [
     // used for list request payload sort field key
     Expose(),

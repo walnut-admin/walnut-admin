@@ -47,7 +47,9 @@ describe('renderList —— 每行一条「id、分组、说明」', () => {
   it('行数 == 命令数，顺序与表一致', () => {
     const lines = renderList(COMMANDS).split('\n')
     expect(lines).toHaveLength(COMMANDS.length)
-    expect(lines.map(line => line.trim().split(/\s+/)[0])).toEqual(COMMANDS.map(command => command.id))
+    expect(lines.map((line) => line.trim().split(/\s+/)[0])).toEqual(
+      COMMANDS.map((command) => command.id),
+    )
   })
 
   it('每行都带 id、分组与说明', () => {
@@ -62,7 +64,7 @@ describe('renderList —— 每行一条「id、分组、说明」', () => {
 
   it('说明列对齐（分组名是中文，按显示宽度补齐而不是码元数）', () => {
     const lines = renderList(TABLE).split('\n')
-    const starts = lines.map(line => line.indexOf('某'))
+    const starts = lines.map((line) => line.indexOf('某'))
     expect(starts[0]).toBe(starts[1])
   })
 })
@@ -70,7 +72,7 @@ describe('renderList —— 每行一条「id、分组、说明」', () => {
 describe('commandsToJson / renderJson —— 机器可读形态', () => {
   it('每项都有 id / group / label / why / kind / argv / budgetMs / positionalArgs 八个键', () => {
     const json = commandsToJson(TABLE)
-    expect(json.commands.map(command => Object.keys(command))).toEqual([
+    expect(json.commands.map((command) => Object.keys(command))).toEqual([
       ['id', 'group', 'label', 'why', 'kind', 'argv', 'budgetMs', 'positionalArgs'],
       ['id', 'group', 'label', 'why', 'kind', 'argv', 'budgetMs', 'positionalArgs'],
     ])
@@ -117,14 +119,19 @@ describe('commandsToJson / renderJson —— 机器可读形态', () => {
     // 真表里声明了位置参数的命令，用法提示不许是空串（空串等于没说）
     for (const command of COMMANDS) {
       if (command.positionalArgs !== undefined)
-        expect(command.positionalArgs.trim().length, `${command.id} 的 positionalArgs 是空串`).toBeGreaterThan(0)
+        expect(
+          command.positionalArgs.trim().length,
+          `${command.id} 的 positionalArgs 是空串`,
+        ).toBeGreaterThan(0)
     }
   })
 
   it('renderJson 是可 JSON.parse 的正文，且覆盖整张表', () => {
     const parsed = JSON.parse(renderJson(COMMANDS)) as { commands: { id: string }[] }
     expect(parsed.commands).toHaveLength(COMMANDS.length)
-    expect(parsed.commands.map(command => command.id)).toEqual(COMMANDS.map(command => command.id))
+    expect(parsed.commands.map((command) => command.id)).toEqual(
+      COMMANDS.map((command) => command.id),
+    )
   })
 })
 

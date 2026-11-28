@@ -7,7 +7,11 @@ import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.e
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
 import { maskIdentityValue } from '@walnut-server/utils/mask'
 import { isNil } from 'lodash'
-import { IIdentityOtpService, IOtpType, WALNUT_ADMIN_IDENTITY_OTP_SERVICE } from '../../identity.ports'
+import {
+  IIdentityOtpService,
+  IOtpType,
+  WALNUT_ADMIN_IDENTITY_OTP_SERVICE,
+} from '../../identity.ports'
 
 import { SysUserIdentityStatusResponseDTO } from '../dto/user_identity.dto'
 import {
@@ -40,11 +44,7 @@ export class SysUserIdentitySharedService {
     if (!value) {
       this.logger.error('Encrypted value is empty')
     }
-    return this.cryptoService.encrypt(
-      value,
-      this.IDENTITY_ENCRYPTION_KEY,
-      this.ENC_ADD,
-    )
+    return this.cryptoService.encrypt(value, this.IDENTITY_ENCRYPTION_KEY, this.ENC_ADD)
   }
 
   // Decrypt identity value
@@ -52,20 +52,12 @@ export class SysUserIdentitySharedService {
     if (!encryptedValue) {
       this.logger.error('Encrypted value is empty')
     }
-    return this.cryptoService.decrypt(
-      encryptedValue,
-      this.IDENTITY_ENCRYPTION_KEY,
-      this.ENC_ADD,
-    )
+    return this.cryptoService.decrypt(encryptedValue, this.IDENTITY_ENCRYPTION_KEY, this.ENC_ADD)
   }
 
   // Generate value hash for quick lookup
   generateValueHash(value: string) {
-    return this.cryptoService.hash(
-      value,
-      this.IDENTITY_HASH_SALT,
-      'hex',
-    )
+    return this.cryptoService.hash(value, this.IDENTITY_HASH_SALT, 'hex')
   }
 
   // Get identity status for a user (like Figure 1)
@@ -127,7 +119,12 @@ export class SysUserIdentitySharedService {
     em?: EntityManager,
   ) {
     const valueHash = this.generateValueHash(value)
-    const existing = await this.userIdentityRepoService.findByValueHash(type, purpose, valueHash, em)
+    const existing = await this.userIdentityRepoService.findByValueHash(
+      type,
+      purpose,
+      valueHash,
+      em,
+    )
     return !!existing
   }
 
@@ -138,12 +135,7 @@ export class SysUserIdentitySharedService {
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
     em?: EntityManager,
   ) {
-    return this.userIdentityRepoService.findByUserIdTypeAndPurpose(
-      userId,
-      type,
-      purpose,
-      em,
-    )
+    return this.userIdentityRepoService.findByUserIdTypeAndPurpose(userId, type, purpose, em)
   }
 
   // Create identity with auto encryption and hash generation
@@ -158,16 +150,19 @@ export class SysUserIdentitySharedService {
     const maskedValue = maskIdentityValue(type, value)
     const valueHash = this.generateValueHash(value)
 
-    return this.userIdentityRepoService.createIdentity({
-      userId,
-      type,
-      purpose,
-      value: encryptedValue,
-      valueHash,
-      maskedValue,
-      verified: false,
-      metadata: {},
-    }, em)
+    return this.userIdentityRepoService.createIdentity(
+      {
+        userId,
+        type,
+        purpose,
+        value: encryptedValue,
+        valueHash,
+        maskedValue,
+        verified: false,
+        metadata: {},
+      },
+      em,
+    )
   }
 
   // Mark identity as verified (called after OTP/GitHub/Gitee validation success)
@@ -199,12 +194,7 @@ export class SysUserIdentitySharedService {
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
     em?: EntityManager,
   ) {
-    return this.userIdentityRepoService.findByUserIdTypeAndPurpose(
-      userId,
-      type,
-      purpose,
-      em,
-    )
+    return this.userIdentityRepoService.findByUserIdTypeAndPurpose(userId, type, purpose, em)
   }
 
   // Get identity by userId, type, purpose - throws if not found
@@ -265,7 +255,9 @@ export class SysUserIdentitySharedService {
   ) {
     const valueExists = await this.checkValueExists(type, purpose, value, em)
     if (valueExists) {
-      throw new WalnutAdminExceptionBadRequest({ errMsg: isNil(errMsg) ? 'business.auth.identityAlreadyUsed' : errMsg })
+      throw new WalnutAdminExceptionBadRequest({
+        errMsg: isNil(errMsg) ? 'business.auth.identityAlreadyUsed' : errMsg,
+      })
     }
   }
 
@@ -285,15 +277,14 @@ export class SysUserIdentitySharedService {
       em,
     )
     if (existing) {
-      throw new WalnutAdminExceptionBadRequest({ errMsg: isNil(errMsg) ? 'business.auth.identityAlreadyBound' : errMsg })
+      throw new WalnutAdminExceptionBadRequest({
+        errMsg: isNil(errMsg) ? 'business.auth.identityAlreadyBound' : errMsg,
+      })
     }
   }
 
   // Prepare identity value for creation/update (encrypt, hash, mask)
-  prepareIdentityValue(
-    type: IWalnutAdminConstSysUserIdentityType,
-    value: string,
-  ) {
+  prepareIdentityValue(type: IWalnutAdminConstSysUserIdentityType, value: string) {
     return {
       value: this.encryptValue(value),
       valueHash: this.generateValueHash(value),

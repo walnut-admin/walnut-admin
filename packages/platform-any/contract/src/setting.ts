@@ -18,7 +18,9 @@ export const WalnutAdminConstAppSettingForceQuitStrategy = {
   FORCE_IMMEDIATE_SIGNOUT: 'FORCE_IMMEDIATE_SIGNOUT',
 } as const
 
-export type IWalnutAdminConstAppSettingForceQuitStrategy = ValueOf<typeof WalnutAdminConstAppSettingForceQuitStrategy>
+export type IWalnutAdminConstAppSettingForceQuitStrategy = ValueOf<
+  typeof WalnutAdminConstAppSettingForceQuitStrategy
+>
 
 /** Force quit setting keys — every reason maps to a strategy */
 export interface IWalnutAdminConstAppSettingForceQuit {

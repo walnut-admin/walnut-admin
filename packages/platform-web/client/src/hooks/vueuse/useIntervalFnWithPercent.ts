@@ -8,18 +8,15 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
  * @param durationRef Total duration of one timer cycle in milliseconds, supports reactive Ref
  * @param callback Invoked once per completed cycle
  */
-export function useIntervalFnWithPercent(
-  durationRef: Ref<number>,
-  callback: () => void,
-) {
+export function useIntervalFnWithPercent(durationRef: Ref<number>, callback: () => void) {
   const PERCENT_INTERVAL = 33 // Frequency of elapsed-time updates in ms
 
   const flag = ref(true)
   const startTime = ref<number | undefined>(undefined)
   const elapsed = ref(0)
 
-  const percentage = computed(() =>
-    +Math.min(100, (elapsed.value / durationRef.value) * 100).toFixed(2),
+  const percentage = computed(
+    () => +Math.min(100, (elapsed.value / durationRef.value) * 100).toFixed(2),
   )
 
   // Sync elapsed time against wall clock, guarding against large gaps (e.g. after tab suspension)
@@ -46,8 +43,7 @@ export function useIntervalFnWithPercent(
   watchThrottled(
     percentage,
     (v) => {
-      if (v < 100)
-        return
+      if (v < 100) return
       flag.value = false
       nextTick(() => {
         reset()

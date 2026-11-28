@@ -25,8 +25,7 @@ watch(
   (v) => {
     if (v) {
       mindmapRef.value?.changeTheme(MindElixir.DARK_THEME)
-    }
-    else {
+    } else {
       mindmapRef.value?.changeTheme(MindElixir.THEME)
     }
   },

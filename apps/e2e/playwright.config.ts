@@ -23,7 +23,13 @@ import path from 'node:path'
 import process from 'node:process'
 import { defineConfig, devices } from '@playwright/test'
 import { SIGN_USER_AGENT } from './lib/protocol/sign.ts'
-import { BACKEND_ORIGIN, backendEnvOverrides, E2E_ROOT, TEST_RESULTS_DIR, WEB_ORIGIN } from './scripts/env.ts'
+import {
+  BACKEND_ORIGIN,
+  backendEnvOverrides,
+  E2E_ROOT,
+  TEST_RESULTS_DIR,
+  WEB_ORIGIN,
+} from './scripts/env.ts'
 import { buildQuarantineGrepInvert, loadQuarantine, overdueEntries } from './scripts/quarantine.ts'
 
 /**
@@ -47,9 +53,13 @@ const reuseExistingServer = process.env.E2E_REUSE_SERVER === '1'
 const quarantineEntries = process.env.E2E_INCLUDE_QUARANTINE === '1' ? [] : loadQuarantine()
 const quarantineGrepInvert = buildQuarantineGrepInvert(quarantineEntries)
 if (quarantineGrepInvert !== undefined) {
-  console.log(`[e2e/quarantine] 默认排除 ${quarantineEntries.length} 条隔离用例（E2E_INCLUDE_QUARANTINE=1 显式包含）`)
+  console.log(
+    `[e2e/quarantine] 默认排除 ${quarantineEntries.length} 条隔离用例（E2E_INCLUDE_QUARANTINE=1 显式包含）`,
+  )
   for (const overdue of overdueEntries(quarantineEntries)) {
-    console.warn(`[e2e/quarantine] 已过复查日期 ${overdue.reviewAt}：${overdue.testName}（owner=${overdue.owner}，issue=${overdue.issue}）`)
+    console.warn(
+      `[e2e/quarantine] 已过复查日期 ${overdue.reviewAt}：${overdue.testName}（owner=${overdue.owner}，issue=${overdue.issue}）`,
+    )
   }
 }
 
@@ -173,9 +183,8 @@ export default defineConfig({
       // 整组挂 `@risk`；依赖真实外网的用例带 `@network` tag，由独立的 network project 跑
       // （离线环境里 risk 应为绿）。tag 与标题文字都能被 `--grep` 匹配，但本仓统一只用 tag。
       // P2-1 的隔离名单与 @network 排除**并存**：两条 grepInvert 都要生效。
-      grepInvert: quarantineGrepInvert === undefined
-        ? /@network/
-        : [/@network/, quarantineGrepInvert],
+      grepInvert:
+        quarantineGrepInvert === undefined ? /@network/ : [/@network/, quarantineGrepInvert],
       // 设备用例全部自建 context（每台设备一个），不继承 storageState
       use: { ...devices['Desktop Chrome'], userAgent: SIGN_USER_AGENT },
     },

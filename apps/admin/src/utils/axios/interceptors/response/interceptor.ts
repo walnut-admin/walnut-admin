@@ -6,7 +6,12 @@ import { removeCurrentPageRequests } from '@walnut/http/adapters/cancel'
 import { get, isArray, set } from 'lodash-es'
 import { useAppMsgError } from '@/hooks/component/useMessage'
 import { AppRouter } from '@/router/index'
-import { mainoutConst, mainoutLockRoute, mainoutMfaRequiredRoute, mainoutMfaVerifiedRoute } from '@/router/routes/mainout'
+import {
+  mainoutConst,
+  mainoutLockRoute,
+  mainoutMfaRequiredRoute,
+  mainoutMfaVerifiedRoute,
+} from '@/router/routes/mainout'
 import { useAppStoreRoute } from '@/store/modules/app/app-route'
 import { useAppStoreUserAuth } from '@/store/modules/user/user-auth'
 import { AppAxios } from '../..'
@@ -77,7 +82,10 @@ export async function responseInterceptors(res: AxiosResponse<ResponseBase<{ id:
   // 4 次/60 秒限流返回 42900 把用户直接踢到 /not-allowed 页。
   // 照 40101（refreshToken.ts）与 40605（下面的 `_deviceResetRetried`）的写法：
   // **每个请求最多自愈一次**，且**只有真拿到新 token 才重放**。
-  if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_REFRESH_REQUIRED && !config._capRefreshRetried) {
+  if (
+    code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_REFRESH_REQUIRED &&
+    !config._capRefreshRetried
+  ) {
     config._capRefreshRetried = true
 
     const capToken = await SingletonPromiseCapJSRefresh()
@@ -128,7 +136,10 @@ export async function responseInterceptors(res: AxiosResponse<ResponseBase<{ id:
   // 学 40101 的写法：清本地 device 缓存 → 重走 /system/device/initial → 重放原请求；
   // `_deviceResetRetried` 保证每个请求只自愈一次（自愈后仍 40605 就落到下面的
   // notAllowed 分支，不会打转）。自愈本身失败（initial 也被拒 / 网络）同样落到下面。
-  if (code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED && !config._deviceResetRetried) {
+  if (
+    code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED &&
+    !config._deviceResetRetried
+  ) {
     config._deviceResetRetried = true
 
     let healed = false
@@ -136,8 +147,7 @@ export async function responseInterceptors(res: AxiosResponse<ResponseBase<{ id:
     try {
       await SingletonPromiseDeviceReset()
       healed = true
-    }
-    catch (e) {
+    } catch (e) {
       console.warn('[device] reset failed, falling back to not-allowed page', e)
     }
 
@@ -180,7 +190,11 @@ export async function responseInterceptors(res: AxiosResponse<ResponseBase<{ id:
     [WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_BOT_DETECTED]: 'notAllowed',
   }
   if (Object.keys(notAllowedErrorCodeMap).map(Number).includes(code)) {
-    await AppRouter.replace({ name: mainoutConst.notAllowed.name, force: true, query: { type: notAllowedErrorCodeMap[code] } })
+    await AppRouter.replace({
+      name: mainoutConst.notAllowed.name,
+      force: true,
+      query: { type: notAllowedErrorCodeMap[code] },
+    })
     removeCurrentPageRequests(AppRouter.currentRoute.value.path)
     return Promise.reject(new Error('Not Allowed'))
   }
@@ -222,7 +236,10 @@ export async function responseInterceptors(res: AxiosResponse<ResponseBase<{ id:
   // - 重放前关掉 cache / throttle / merge 三层按 URL 复用在途 promise 的去重（同 40605 的理由：
   //   自愈前发出的同 URL 请求可能带着旧结果回来，复用它的在途 promise 等于没重放）；
   // - 并发 40119 由 `SingletonPromiseSensitiveVerify` 并成一次弹窗，各自拿到结果再重放。
-  if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_SENSITIVE_VERIFICATION_REQUIRED && !config._sensitiveVerifyRetried) {
+  if (
+    code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_SENSITIVE_VERIFICATION_REQUIRED &&
+    !config._sensitiveVerifyRetried
+  ) {
     config._sensitiveVerifyRetried = true
 
     const verified = await SingletonPromiseSensitiveVerify(meta)
@@ -246,9 +263,10 @@ export async function responseInterceptors(res: AxiosResponse<ResponseBase<{ id:
   //
   // 同时把 `code / msg / meta` 挂回 Error：锁屏解锁（40000）需要 `meta.retryAfterSec`
   // 做就地倒计时，旧实现只留 message，调用方无法拿到退避秒数。
-  const error: IAppResponseError = Object.assign(
-    new Error(`[${code}] ${msg || 'Unknown error'}`),
-    { code, msg, meta },
-  )
+  const error: IAppResponseError = Object.assign(new Error(`[${code}] ${msg || 'Unknown error'}`), {
+    code,
+    msg,
+    meta,
+  })
   return Promise.reject(error)
 }

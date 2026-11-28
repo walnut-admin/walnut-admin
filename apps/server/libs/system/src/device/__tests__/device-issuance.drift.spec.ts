@@ -29,7 +29,17 @@ import { describe, expect, it } from 'vitest'
 
 const SERVER_ROOT = process.cwd()
 const SCAN_DIRS = ['apps/api', 'libs']
-const SKIP_DIRS = new Set(['node_modules', 'dist', 'dist-stage', '.git', 'logs', 'coverage', 'env-local', 'env-encrypted', 'public'])
+const SKIP_DIRS = new Set([
+  'node_modules',
+  'dist',
+  'dist-stage',
+  '.git',
+  'logs',
+  'coverage',
+  'env-local',
+  'env-encrypted',
+  'public',
+])
 /**
  * 测试树按**目录**排除，不能只靠后缀：`'x.api-spec.ts'.endsWith('.spec.ts')` 是 **false**，
  * 只按后缀排除的话 `apps/api/test/` 下的 api-spec 会被当成生产源码 —— 今天它们没调
@@ -83,8 +93,7 @@ function withoutComments(text: string): string {
     if (inLineComment) {
       if (ch === '\n') {
         inLineComment = false
-      }
-      else {
+      } else {
         chars[i] = ' '
       }
       continue
@@ -96,8 +105,7 @@ function withoutComments(text: string): string {
         chars[i + 1] = ' '
         i += 1
         inBlockComment = false
-      }
-      else if (ch !== '\n') {
+      } else if (ch !== '\n') {
         chars[i] = ' '
       }
       continue
@@ -124,7 +132,7 @@ function withoutComments(text: string): string {
       inBlockComment = true
       continue
     }
-    if (ch === '\'' || ch === '"' || ch === '`') {
+    if (ch === "'" || ch === '"' || ch === '`') {
       inString = ch
     }
   }
@@ -138,14 +146,16 @@ function rel(file: string) {
 
 function isExcluded(file: string) {
   const path = rel(file)
-  return TEST_DIR_PREFIXES.some(prefix => path.startsWith(prefix))
-    || TEST_SUFFIXES.some(suffix => path.endsWith(suffix))
-    || EXCLUDED_PREFIXES.some(prefix => path.startsWith(prefix))
+  return (
+    TEST_DIR_PREFIXES.some((prefix) => path.startsWith(prefix)) ||
+    TEST_SUFFIXES.some((suffix) => path.endsWith(suffix)) ||
+    EXCLUDED_PREFIXES.some((prefix) => path.startsWith(prefix))
+  )
 }
 
-const productionFiles = SCAN_DIRS
-  .flatMap(dir => walkTsFiles(resolve(SERVER_ROOT, dir)))
-  .filter(file => !isExcluded(file))
+const productionFiles = SCAN_DIRS.flatMap((dir) => walkTsFiles(resolve(SERVER_ROOT, dir))).filter(
+  (file) => !isExcluded(file),
+)
 
 function rawOf(file: string) {
   return readFileSync(file, 'utf8')
@@ -164,15 +174,15 @@ const ISSUE_CALL_RE = /(?<!function\s)generateDeviceId\s*\(/g
 describe('设备身份签发：调用点唯一、指纹派生不复存在（B5 / 14-D）', () => {
   it('生产源码里 generateDeviceId( 的调用点恰好 1 处，且在 device.service.ts 的 initial', () => {
     const issueSites = productionFiles
-      .map(file => ({ file: rel(file), hits: (codeOf(file).match(ISSUE_CALL_RE) ?? []).length }))
-      .filter(site => site.hits > 0)
+      .map((file) => ({ file: rel(file), hits: (codeOf(file).match(ISSUE_CALL_RE) ?? []).length }))
+      .filter((site) => site.hits > 0)
 
     expect(issueSites).toEqual([{ file: 'libs/system/src/device/device.service.ts', hits: 1 }])
   })
 
   it('指纹派生函数（14-D 已删）在 apps/api 与 libs 里零命中，注释也算命中', () => {
     const leftovers = productionFiles
-      .filter(file => /getDeviceIdByFingerprint|hashDeviceFingerprint/.test(rawOf(file)))
+      .filter((file) => /getDeviceIdByFingerprint|hashDeviceFingerprint/.test(rawOf(file)))
       .map(rel)
 
     expect(leftovers).toEqual([])
@@ -180,7 +190,7 @@ describe('设备身份签发：调用点唯一、指纹派生不复存在（B5 /
 
   it('环境变量 DEVICE_ID_ENCRYPTION_KEY 已于 2026-11-04 退役：生产源码里零代码读者', () => {
     const readers = productionFiles
-      .filter(file => codeOf(file).includes('DEVICE_ID_ENCRYPTION_KEY'))
+      .filter((file) => codeOf(file).includes('DEVICE_ID_ENCRYPTION_KEY'))
       .map(rel)
       .sort()
 

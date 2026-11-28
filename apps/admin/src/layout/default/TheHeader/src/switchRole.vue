@@ -22,7 +22,9 @@ const { stateRef: formData } = useState({
   roleId: userStoreProfile.getCurrentRole,
 })
 
-const getCurrentRoleName = computed(() => userStoreProfile.getRoleList?.find(i => i.id === formData.value.roleId)?.roleName)
+const getCurrentRoleName = computed(
+  () => userStoreProfile.getRoleList?.find((i) => i.id === formData.value.roleId)?.roleName,
+)
 
 const [register, { onOpen }] = useForm<typeof formData.value>({
   showFeedback: false,
@@ -42,18 +44,19 @@ const [register, { onOpen }] = useForm<typeof formData.value>({
         return
       }
 
-      const { confirmed, inst } = await useAppConfirm(t('app.base.switchRole.confirm', { roleName: getCurrentRoleName.value }), { maskClosable: false })
+      const { confirmed, inst } = await useAppConfirm(
+        t('app.base.switchRole.confirm', { roleName: getCurrentRoleName.value }),
+        { maskClosable: false },
+      )
       if (confirmed) {
         try {
           await switchRoleAPI(formData.value.roleId!)
           useAppMessage()
           await userStoreAuth.ExecuteAfterSwitchRole()
-        }
-        finally {
+        } finally {
           done()
         }
-      }
-      else {
+      } else {
         inst.destroy()
         // TODO onYes need to expose close fn
         done()
@@ -70,7 +73,7 @@ const [register, { onOpen }] = useForm<typeof formData.value>({
         path: 'roleId',
       },
       componentProp: {
-        options: userStoreProfile.getRoleList?.map(i => ({ label: i.roleName!, value: i.id })),
+        options: userStoreProfile.getRoleList?.map((i) => ({ label: i.roleName!, value: i.id })),
       },
     },
   ],

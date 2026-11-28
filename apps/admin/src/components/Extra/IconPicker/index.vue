@@ -21,7 +21,7 @@ const { nTriggerFormInput, mergedDisabledRef, mergedStatusRef, mergedSizeRef } =
 
 const ALL = 'All'
 
-const value = defineModel<string>('value', { })
+const value = defineModel<string>('value', {})
 
 const rootInputRef = useTemplateRef<InputInst>('rootInputRef')
 
@@ -36,15 +36,13 @@ const currentIcon = ref<string>()
 const getTabLists = computed(() => [ALL, ...iconSet])
 
 const getIconListsWithTab = computed<string[]>(() =>
-  (iconList as string[]).filter(i =>
+  (iconList as string[]).filter((i) =>
     currentTab.value === ALL ? true : i.startsWith(currentTab.value),
   ),
 )
 
 const getResponse = computed(() => {
-  const filtered = getIconListsWithTab.value.filter(i =>
-    i.includes(filters.value),
-  )
+  const filtered = getIconListsWithTab.value.filter((i) => i.includes(filters.value))
 
   const mock = mockListApi(filtered)
 
@@ -136,21 +134,16 @@ function onPageInit() {
 }
 
 function onFeedback() {
-  if (!value.value)
-    return
+  if (!value.value) return
 
   // set currentIcon
   currentIcon.value = value.value
 
   // set currentTab
-  currentTab.value = iconSet.find((i: string) =>
-    value.value?.startsWith(i),
-  )!
+  currentTab.value = iconSet.find((i: string) => value.value?.startsWith(i))!
 
   // set current page
-  const iconIndex = getIconListsWithTab.value.findIndex(
-    item => item === value.value,
-  )
+  const iconIndex = getIconListsWithTab.value.findIndex((item) => item === value.value)
   page.value = Math.floor(iconIndex / pageSize.value) + 1
 }
 
@@ -225,10 +218,7 @@ onBeforeMount(() => {
           <n-tab-pane v-for="i in getTabLists" :key="i" :name="i" :tab="i" />
         </n-tabs>
 
-        <div
-          class="grid grid-cols-12 h-full w-full gap-2"
-          @mouseleave="onMouseLeave"
-        >
+        <div class="grid grid-cols-12 h-full w-full gap-2" @mouseleave="onMouseLeave">
           <div class="col-span-3 flex items-center justify-center">
             <WIcon
               :icon="currentIcon ?? 'ant-design:home-outlined'"
@@ -243,7 +233,8 @@ onBeforeMount(() => {
                 <WIcon
                   :icon="icon"
                   width="32"
-                  class="inline border-2 border-gray-700 rounded border-solid hover:cursor-pointer" :class="[
+                  class="inline border-2 border-gray-700 rounded border-solid hover:cursor-pointer"
+                  :class="[
                     {
                       'bg-light-blue-300': icon === value,
                       'hover:bg-warm-gray-300': icon !== value,

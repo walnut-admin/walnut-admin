@@ -10,7 +10,13 @@ defineOptions({
   name: 'WCompExtraLocaleSelect',
 })
 
-const { prefix, presetKey, creatable = true, refreshable = true, extra = [] } = defineProps<ICompExtraLocaleSelectProps>()
+const {
+  prefix,
+  presetKey,
+  creatable = true,
+  refreshable = true,
+  extra = [],
+} = defineProps<ICompExtraLocaleSelectProps>()
 const value = defineModel<string | null | undefined>('value', { required: true })
 
 const { locale, messages } = useAppI18n()
@@ -20,12 +26,11 @@ const show = ref(false)
 const options = computed(() =>
   Object.entries<any>(messages.value[`${locale.value}`])
     .map(([k, v]) => {
-      if (!prefix || k.startsWith(prefix!) || extra.includes(k))
-        return { value: k, label: v }
+      if (!prefix || k.startsWith(prefix!) || extra.includes(k)) return { value: k, label: v }
 
       return { value: undefined, label: undefined }
     })
-    .filter(i => i.value),
+    .filter((i) => i.value),
 )
 
 function onRenderLabel(option: SelectOption) {
@@ -46,8 +51,7 @@ async function onRefresh() {
     const appStoreLocale = useAppStoreLocale()
 
     await appStoreLocale.onLoadMessageNoCache(appStoreLocale.getLocale)
-  }
-  finally {
+  } finally {
     loading.value = false
   }
 }
@@ -63,7 +67,9 @@ onDeactivated(() => {
     v-model:value="value!"
     :options="options"
     :render-label="onRenderLabel"
-    clearable filterable tooltip
+    clearable
+    filterable
+    tooltip
     :tooltip-props="{
       placement: 'right',
     }"
@@ -76,7 +82,10 @@ onDeactivated(() => {
 
         <WButton
           v-if="refreshable"
-          size="small" icon="ant-design:sync-outlined" :loading="loading" :disabled="loading"
+          size="small"
+          icon="ant-design:sync-outlined"
+          :loading="loading"
+          :disabled="loading"
           @click="onRefresh"
         >
           {{ $t('app.base.refresh') }}

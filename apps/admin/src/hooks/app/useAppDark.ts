@@ -36,10 +36,7 @@ export function toggleDark(e: MouseEvent) {
   const { left, top, width, height } = target.getBoundingClientRect()
   const x = left + width / 2
   const y = top + height / 2
-  const endRadius = Math.hypot(
-    Math.max(x, innerWidth - x),
-    Math.max(y, innerHeight - y),
-  )
+  const endRadius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y))
   const ratioX = (100 * x) / innerWidth
   const ratioY = (100 * y) / innerHeight
   const referR = Math.hypot(innerWidth, innerHeight) / Math.SQRT2
@@ -52,17 +49,13 @@ export function toggleDark(e: MouseEvent) {
     ]
     document.documentElement.animate(
       {
-        clipPath: isDark.value
-          ? [...clipPath].reverse()
-          : clipPath,
+        clipPath: isDark.value ? [...clipPath].reverse() : clipPath,
       },
       {
         duration: 500,
         fill: 'both',
         easing: 'ease-in-out',
-        pseudoElement: isDark.value
-          ? '::view-transition-old(root)'
-          : '::view-transition-new(root)',
+        pseudoElement: isDark.value ? '::view-transition-old(root)' : '::view-transition-new(root)',
       },
     )
   })

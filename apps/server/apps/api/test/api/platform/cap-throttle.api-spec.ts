@@ -46,7 +46,7 @@ describe('G13：Throttle —— cap/challenge 4 次/60s（CAP 独立桶）', () 
   it('第 2-4 次连发 → challenge 成功（FreeResponse 形态：body.token 存在，无 {code,data} 壳）', async () => {
     for (let i = 0; i < 3; i++) {
       const res = await challenge()
-      const body = res.body as { token?: string, challenge?: { c: number } }
+      const body = res.body as { token?: string; challenge?: { c: number } }
       expect(typeof body.token).toBe('string')
       expect(body.challenge?.c).toBeGreaterThan(0)
     }

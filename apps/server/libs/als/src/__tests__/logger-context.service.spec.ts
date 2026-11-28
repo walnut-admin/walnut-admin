@@ -40,7 +40,8 @@ describe('logger 上下文与请求上下文共存（两个 AsyncLocalStorage �
           rawLoggerStore: loggerContextALS.getStore()?.requestId,
           hasRequestStore: requestContext.hasActiveContext(),
         }
-      }))
+      }),
+    )
 
     expect(seen).toEqual({
       requestUserId: 'user-2',
@@ -56,13 +57,16 @@ describe('logger 上下文与请求上下文共存（两个 AsyncLocalStorage �
 
     const seen = loggerContext.run({ requestId: 'outer' }, () =>
       requestContext.run(() => {
-        const innerRequestId = loggerContext.run({ requestId: 'inner' }, () => loggerContext.getRequestId())
+        const innerRequestId = loggerContext.run({ requestId: 'inner' }, () =>
+          loggerContext.getRequestId(),
+        )
         return {
           innerRequestId,
           outerAgain: loggerContext.getRequestId(),
           hasRequestStore: requestContext.hasActiveContext(),
         }
-      }))
+      }),
+    )
 
     expect(seen).toEqual({ innerRequestId: 'inner', outerAgain: 'outer', hasRequestStore: true })
   })

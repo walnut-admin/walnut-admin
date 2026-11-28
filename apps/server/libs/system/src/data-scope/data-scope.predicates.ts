@@ -6,7 +6,10 @@ import type {
   WalnutDataScopeFindWhere,
 } from '@walnut-server/repository'
 import type { FindOptionsWhere, ObjectLiteral, SelectQueryBuilder } from 'typeorm'
-import { WalnutAdminConstDataScope, WalnutAdminConstDataScopeMode } from '@walnut-server/const/app/dataScope'
+import {
+  WalnutAdminConstDataScope,
+  WalnutAdminConstDataScopeMode,
+} from '@walnut-server/const/app/dataScope'
 import { Role } from '@walnut/contract'
 import { In, IsNull } from 'typeorm'
 
@@ -88,15 +91,17 @@ export function buildWalnutDataScopeSqlPredicate(
   const listParam = `${paramPrefix}_users`
   const deptParam = `${paramPrefix}_depts`
 
-  const userIds = [...new Set((descriptor.userIds ?? []).filter(id => typeof id === 'string' && id !== ''))]
-  const deptIds = [...new Set((descriptor.deptIds ?? []).filter(id => typeof id === 'string' && id !== ''))]
+  const userIds = [
+    ...new Set((descriptor.userIds ?? []).filter((id) => typeof id === 'string' && id !== '')),
+  ]
+  const deptIds = [
+    ...new Set((descriptor.deptIds ?? []).filter((id) => typeof id === 'string' && id !== '')),
+  ]
 
-  const ownerClause = userIds.length > 0
-    ? `${column} IN (:...${listParam})`
-    : `${column} = :${userParam}`
-  const ownerParams: Record<string, unknown> = userIds.length > 0
-    ? { [listParam]: userIds }
-    : { [userParam]: userId }
+  const ownerClause =
+    userIds.length > 0 ? `${column} IN (:...${listParam})` : `${column} = :${userParam}`
+  const ownerParams: Record<string, unknown> =
+    userIds.length > 0 ? { [listParam]: userIds } : { [userParam]: userId }
 
   if (descriptor.mode === WalnutAdminConstDataScopeMode.SELF) {
     if (config.allowAnonymous) {
@@ -161,15 +166,13 @@ export function buildWalnutDataScopeFindWhere<Entity extends ObjectLiteral>(
 
   if (descriptor.mode === WalnutAdminConstDataScopeMode.SELF) {
     const ownerIsUser = { [column]: userId }
-    return (config.allowAnonymous
-      ? [ownerIsUser, ownerIsNull]
-      : [ownerIsUser]) as FindOptionsWhere<Entity>[]
+    return (
+      config.allowAnonymous ? [ownerIsUser, ownerIsNull] : [ownerIsUser]
+    ) as FindOptionsWhere<Entity>[]
   }
 
   if (descriptor.mode === WalnutAdminConstDataScopeMode.DEPT_OR_SELF) {
-    const ownerBranch = userIds.length > 0
-      ? { [column]: In(userIds) }
-      : { [column]: userId }
+    const ownerBranch = userIds.length > 0 ? { [column]: In(userIds) } : { [column]: userId }
 
     const branches: FindOptionsWhere<Entity>[] = [ownerBranch as FindOptionsWhere<Entity>]
 
@@ -249,7 +252,7 @@ export function resolveWalnutDataScopeDeptUpdate(
   const deptIds = new Set(
     (descriptor.deptIds ?? [])
       .filter((id): id is string => typeof id === 'string' && id !== '')
-      .map(id => id.toLowerCase()),
+      .map((id) => id.toLowerCase()),
   )
 
   return nextDeptId !== null && deptIds.has(nextDeptId) ? 'allow' : 'deny'
@@ -267,17 +270,14 @@ export function mergeWalnutDataScopeFindWhere<Entity extends ObjectLiteral>(
     return 'deny'
   }
 
-  const bases = base === undefined
-    ? [{} as FindOptionsWhere<Entity>]
-    : (Array.isArray(base) ? base : [base])
+  const bases =
+    base === undefined ? [{} as FindOptionsWhere<Entity>] : Array.isArray(base) ? base : [base]
 
   if (scope === null) {
     return bases
   }
 
-  return bases.flatMap(baseWhere =>
-    scope.map(scopeWhere => ({ ...baseWhere, ...scopeWhere })),
-  )
+  return bases.flatMap((baseWhere) => scope.map((scopeWhere) => ({ ...baseWhere, ...scopeWhere })))
 }
 
 /** QueryBuilder 便捷注入（基类与覆写 list 共用） */

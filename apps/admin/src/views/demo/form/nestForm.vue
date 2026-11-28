@@ -18,12 +18,7 @@ const objectFormData = ref<Recordable>({
       input2: '2',
     },
     {
-      input: [
-        [
-          '3',
-          '4',
-        ],
-      ],
+      input: [['3', '4']],
     },
   ],
   a: {

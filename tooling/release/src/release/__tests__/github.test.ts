@@ -39,10 +39,8 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  if (originalApiUrl === undefined)
-    delete process.env.GITHUB_API_URL
-  else
-    process.env.GITHUB_API_URL = originalApiUrl
+  if (originalApiUrl === undefined) delete process.env.GITHUB_API_URL
+  else process.env.GITHUB_API_URL = originalApiUrl
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 })
@@ -70,15 +68,19 @@ describe('findRelease —— 「没有 Release」与「查不到」分开', () =
   })
 
   it('200 + 真 Release ⇒ 收口成 GithubRelease', async () => {
-    stubFetch(responseOf(JSON.stringify({
-      id: 42,
-      tag_name: 'v1.2.0',
-      name: 'v1.2.0',
-      body: '正文',
-      html_url: 'https://github.com/o/r/releases/tag/v1.2.0',
-      draft: false,
-      prerelease: false,
-    })))
+    stubFetch(
+      responseOf(
+        JSON.stringify({
+          id: 42,
+          tag_name: 'v1.2.0',
+          name: 'v1.2.0',
+          body: '正文',
+          html_url: 'https://github.com/o/r/releases/tag/v1.2.0',
+          draft: false,
+          prerelease: false,
+        }),
+      ),
+    )
     await expect(findRelease({ token: null, repo: REPO }, 'v1.2.0')).resolves.toEqual({
       id: 42,
       tagName: 'v1.2.0',
@@ -108,7 +110,9 @@ describe('findRelease —— 「没有 Release」与「查不到」分开', () =
     expect(url).toBe('https://api.github.com/repos/o/r/releases/tags/v1.2.0')
     expect(url).not.toContain(token)
     expect(init?.method).toBe('GET')
-    expect((init?.headers as Record<string, string> | undefined)?.Authorization).toBe(`Bearer ${token}`)
+    expect((init?.headers as Record<string, string> | undefined)?.Authorization).toBe(
+      `Bearer ${token}`,
+    )
   })
 
   it('没有 token 时不带 Authorization 头（公开仓匿名查询）', async () => {

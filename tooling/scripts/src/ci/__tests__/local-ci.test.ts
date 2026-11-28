@@ -12,7 +12,12 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { ChildRunError } from '../../lib/child-run.ts'
 import { COMMANDS, KEPT_ROOT_SCRIPTS } from '../../lib/commands.ts'
-import { PreconditionError, SKIPPED_EXIT_CODE, SkippedError, ViolationError } from '../../lib/errors.ts'
+import {
+  PreconditionError,
+  SKIPPED_EXIT_CODE,
+  SkippedError,
+  ViolationError,
+} from '../../lib/errors.ts'
 import {
   failureToError,
   formatSnapshot,
@@ -34,18 +39,20 @@ import {
  * 表里 argv 首词的合法集合 = **可执行的名字**：保留的根脚本、命令表 id、pnpm 子命令。
  * 根脚本瘦身后 `package.json` 里只剩保留的那几条，拿它当全集会把被移走的步骤判成「不存在」。
  */
-const legalNames = new Set<string>([...KEPT_ROOT_SCRIPTS, ...COMMANDS.map(command => command.id)])
+const legalNames = new Set<string>([...KEPT_ROOT_SCRIPTS, ...COMMANDS.map((command) => command.id)])
 
 /** `argv[0]` 是 pnpm 自己的子命令（不是可执行名字）时的合法例外 —— 口径同 prepush.test.ts */
 const PNPM_SUBCOMMANDS = new Set(['exec', 'change'])
 
 describe('本地 CI 步骤表（LOCAL_CI_STEPS）—— 表本身', () => {
   it('id 无重复、都非空、且是 kebab（`--only=` / `--skip=` 要能原样写进命令行）', () => {
-    const ids = LOCAL_CI_STEPS.map(step => step.id)
+    const ids = LOCAL_CI_STEPS.map((step) => step.id)
     expect(new Set(ids).size).toBe(ids.length)
     for (const id of ids) {
       expect(id, 'id 不能为空').not.toBe('')
-      expect(id, `${id} 不是 kebab 形态（拼错一个 id 会让单步调试跑到别的步骤上）`).toMatch(/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/)
+      expect(id, `${id} 不是 kebab 形态（拼错一个 id 会让单步调试跑到别的步骤上）`).toMatch(
+        /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/,
+      )
     }
   })
 
@@ -53,20 +60,17 @@ describe('本地 CI 步骤表（LOCAL_CI_STEPS）—— 表本身', () => {
     // 这条守卫就是「表里打错一个名字」的拦网：那种错会让整步静默消失
     const bad: string[] = []
     for (const step of LOCAL_CI_STEPS) {
-      if (!('argv' in step))
-        continue
+      if (!('argv' in step)) continue
       const head = step.argv[0]
       if (head === undefined) {
         bad.push(`${step.id}: argv 为空`)
         continue
       }
       if (PNPM_SUBCOMMANDS.has(head)) {
-        if (step.argv.length < 2)
-          bad.push(`${step.id}: pnpm 子命令不该只有一段`)
+        if (step.argv.length < 2) bad.push(`${step.id}: pnpm 子命令不该只有一段`)
         continue
       }
-      if (!legalNames.has(head))
-        bad.push(`${step.id}: 根脚本与命令表里都没有 ${head}`)
+      if (!legalNames.has(head)) bad.push(`${step.id}: 根脚本与命令表里都没有 ${head}`)
     }
     expect(bad).toEqual([])
   })
@@ -79,30 +83,33 @@ describe('本地 CI 步骤表（LOCAL_CI_STEPS）—— 表本身', () => {
   })
 
   it('build-admin 必须带 --force（摘掉它 = 这一步退化成缓存回放，整个 ci:local 的理由就没了）', () => {
-    const step = LOCAL_CI_STEPS.find(item => item.id === 'build-admin')
-    expect(step, 'build-admin 这一步不见了 —— 那是 ci.yml 的 Build admin 一步记着的真实事故').toBeTruthy()
+    const step = LOCAL_CI_STEPS.find((item) => item.id === 'build-admin')
+    expect(
+      step,
+      'build-admin 这一步不见了 —— 那是 ci.yml 的 Build admin 一步记着的真实事故',
+    ).toBeTruthy()
     expect(step && 'argv' in step ? step.argv : []).toContain('--force')
   })
 
   it('build-admin 注入 VITE_BUILD_SENTRY=false：本地不向 Sentry 上传 sourcemap', () => {
-    const step = LOCAL_CI_STEPS.find(item => item.id === 'build-admin')
+    const step = LOCAL_CI_STEPS.find((item) => item.id === 'build-admin')
     expect(step?.env?.VITE_BUILD_SENTRY).toBe('false')
   })
 
   it('worker-smoke 是**自定义**步骤（它不是任何 pnpm 脚本，别改成 argv 蒙过去）', () => {
-    const step = LOCAL_CI_STEPS.find(item => item.id === 'worker-smoke')
+    const step = LOCAL_CI_STEPS.find((item) => item.id === 'worker-smoke')
     expect(step, 'worker-smoke 这一步不见了').toBeTruthy()
     expect(step && 'run' in step).toBe(true)
   })
 
   it('actionlint 经根脚本 lint:workflows 走（复用它现成的四态语义，别在这里另写探测）', () => {
-    const step = LOCAL_CI_STEPS.find(item => item.id === 'actionlint')
+    const step = LOCAL_CI_STEPS.find((item) => item.id === 'actionlint')
     expect(step).toBeTruthy()
     expect(step && 'argv' in step ? step.argv[0] : null).toBe('lint:workflows')
   })
 
   it('依赖顺序：构建在冒烟之前、admin 构建在产物去密之前', () => {
-    const at = (id: string): number => LOCAL_CI_STEPS.findIndex(step => step.id === id)
+    const at = (id: string): number => LOCAL_CI_STEPS.findIndex((step) => step.id === id)
     expect(at('build-server')).toBeLessThan(at('worker-smoke'))
     expect(at('build-admin')).toBeLessThan(at('smoke-dist'))
     expect(at('smoke-dist')).toBeLessThan(at('lint-dist'))
@@ -119,7 +126,9 @@ describe('步骤环境变量：叠加在 process.env 上，不是替换（替换
   })
 
   it('声明了 env 时保留 base 的键，且 extra 覆盖同名键', () => {
-    expect(stepEnv({ VITE_BUILD_SENTRY: 'false' }, { PATH: '/usr/bin', VITE_BUILD_SENTRY: 'true' })).toEqual({
+    expect(
+      stepEnv({ VITE_BUILD_SENTRY: 'false' }, { PATH: '/usr/bin', VITE_BUILD_SENTRY: 'true' }),
+    ).toEqual({
       PATH: '/usr/bin',
       VITE_BUILD_SENTRY: 'false',
     })
@@ -129,28 +138,32 @@ describe('步骤环境变量：叠加在 process.env 上，不是替换（替换
 describe('参数解析：未知 id / 未知旗标必须报错，不许静默忽略', () => {
   it('只给 --only 时按表里的顺序挑，且不受命令行顺序影响', () => {
     const picked = selectSteps(LOCAL_CI_STEPS, ['--only=actionlint,build-server'])
-    expect(picked.map(step => step.id)).toEqual(
-      LOCAL_CI_STEPS.map(step => step.id).filter(id => id === 'build-server' || id === 'actionlint'),
+    expect(picked.map((step) => step.id)).toEqual(
+      LOCAL_CI_STEPS.map((step) => step.id).filter(
+        (id) => id === 'build-server' || id === 'actionlint',
+      ),
     )
   })
 
   it('--skip 从全表里摘掉指定步骤', () => {
     const kept = selectSteps(LOCAL_CI_STEPS, ['--skip=worker-smoke'])
-    expect(kept.map(step => step.id)).not.toContain('worker-smoke')
+    expect(kept.map((step) => step.id)).not.toContain('worker-smoke')
     expect(kept.length).toBe(LOCAL_CI_STEPS.length - 1)
   })
 
   it('--only 与 --skip 可以一起给（先挑后摘）', () => {
-    const kept = selectSteps(LOCAL_CI_STEPS, ['--only=build-server,build-admin', '--skip=build-admin'])
-    expect(kept.map(step => step.id)).toEqual(['build-server'])
+    const kept = selectSteps(LOCAL_CI_STEPS, [
+      '--only=build-server,build-admin',
+      '--skip=build-admin',
+    ])
+    expect(kept.map((step) => step.id)).toEqual(['build-server'])
   })
 
   it('未知 id 抛 PreconditionError（退出码 2），并把真实 id 全列出来', () => {
     expect(() => selectSteps(LOCAL_CI_STEPS, ['--only=buidl-server'])).toThrow(PreconditionError)
     try {
       selectSteps(LOCAL_CI_STEPS, ['--skip=nope'])
-    }
-    catch (error) {
+    } catch (error) {
       // 报错必须带上真实清单：否则拼错的人只能去翻代码（而「静默忽略」是更糟的另一极）
       expect((error as Error).message).toContain('build-server')
     }
@@ -165,25 +178,31 @@ describe('参数解析：未知 id / 未知旗标必须报错，不许静默忽�
   })
 
   it('摘光了就报错（「一步都没跑」不许伪装成通过）', () => {
-    expect(() => selectSteps(LOCAL_CI_STEPS, [`--skip=${LOCAL_CI_STEPS.map(step => step.id).join(',')}`]))
-      .toThrow(PreconditionError)
+    expect(() =>
+      selectSteps(LOCAL_CI_STEPS, [`--skip=${LOCAL_CI_STEPS.map((step) => step.id).join(',')}`]),
+    ).toThrow(PreconditionError)
   })
 
   it('不传参数时跑整张表', () => {
-    expect(selectSteps(LOCAL_CI_STEPS, []).map(step => step.id))
-      .toEqual(LOCAL_CI_STEPS.map(step => step.id))
+    expect(selectSteps(LOCAL_CI_STEPS, []).map((step) => step.id)).toEqual(
+      LOCAL_CI_STEPS.map((step) => step.id),
+    )
   })
 
   it('解析确实生效（防止正则 / split 写错后所有用例空转）', () => {
-    expect(parseSelectionArgs(['--only=a,b', '--skip=c'])).toEqual({ only: ['a', 'b'], skip: ['c'] })
+    expect(parseSelectionArgs(['--only=a,b', '--skip=c'])).toEqual({
+      only: ['a', 'b'],
+      skip: ['c'],
+    })
     expect(parseSelectionArgs([])).toEqual({ only: null, skip: [] })
   })
 })
 
 describe('matchCronJobs —— 只认 cron jobs: N 这一个形态', () => {
   it('真的 worker 日志形态里能取到 N（带 Nest logger 前缀与任务名清单）', () => {
-    const log = '[Nest] 1234  - 2026/11/05 14:27:49     LOG [WorkerBootstrap] '
-      + 'worker process started (no HTTP listener); cron jobs: 3 [cleanup, rotate, sync]'
+    const log =
+      '[Nest] 1234  - 2026/11/05 14:27:49     LOG [WorkerBootstrap] ' +
+      'worker process started (no HTTP listener); cron jobs: 3 [cleanup, rotate, sync]'
     expect(matchCronJobs(log)).toBe(3)
   })
 
@@ -238,7 +257,9 @@ describe('snapshotFile / sameSnapshot —— .data 判据的三个指纹', () =>
     const after = snapshotFile(file)
     expect(after.sha256).toBe(before.sha256)
     expect(after.size).toBe(before.size)
-    expect(sameSnapshot(before, after), 'mtime 变了却没判红 —— CAP cleanup 的 touch 会被放过').toBe(false)
+    expect(sameSnapshot(before, after), 'mtime 变了却没判红 —— CAP cleanup 的 touch 会被放过').toBe(
+      false,
+    )
   })
 
   it('清理临时目录', () => {
@@ -261,7 +282,10 @@ describe('轮询上限：依据实测下界留 >=2 倍余量，且可被环境�
 
   it('非法 / 非正数一律当没给：轮询没有上限就等于永久挂着', () => {
     for (const value of ['', 'abc', '0', '-5']) {
-      expect(workerPollTimeoutMs({ [WORKER_POLL_TIMEOUT_ENV]: value }), `${value} 不该被当成上限`).toBe(WORKER_POLL_TIMEOUT_MS)
+      expect(
+        workerPollTimeoutMs({ [WORKER_POLL_TIMEOUT_ENV]: value }),
+        `${value} 不该被当成上限`,
+      ).toBe(WORKER_POLL_TIMEOUT_MS)
     }
   })
 })

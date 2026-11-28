@@ -29,8 +29,7 @@ export const useHighlight = createGlobalState(() => {
   const loading = ref(false)
 
   async function ensure() {
-    if (ready.value)
-      return
+    if (ready.value) return
     loading.value = true
     await ensureHljs()
     ready.value = true
@@ -38,13 +37,11 @@ export const useHighlight = createGlobalState(() => {
   }
 
   function highlight(code: string, lang?: string): string {
-    if (!hljsModule)
-      return ''
+    if (!hljsModule) return ''
     if (lang && hljsModule.getLanguage(lang)) {
       try {
         return hljsModule.highlight(code, { language: lang }).value
-      }
-      catch {
+      } catch {
         return hljsModule.highlightAuto(code).value
       }
     }

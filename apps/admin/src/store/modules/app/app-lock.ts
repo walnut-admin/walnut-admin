@@ -32,10 +32,10 @@ const useAppStoreLockInside = defineStore(StoreKeys.APP_LOCK, {
   }),
 
   getters: {
-    getEnable: state => state.enable,
-    getLoading: state => state.loading,
-    getLockCrossDevice: state => state.lockCrossDevice,
-    getLocked: state => state.locked,
+    getEnable: (state) => state.enable,
+    getLoading: (state) => state.loading,
+    getLockCrossDevice: (state) => state.lockCrossDevice,
+    getLocked: (state) => state.locked,
     getLockRoute: (state) => {
       if (!state.lockRoute) {
         const appStoreMenu = useAppStoreMenu()
@@ -44,10 +44,10 @@ const useAppStoreLockInside = defineStore(StoreKeys.APP_LOCK, {
       }
       return state.lockRoute
     },
-    getLockMode: state => state.lockMode,
-    getLockIdleSec: state => state.lockIdleSec,
-    getLockSecuritySec: state => state.lockSecuritySec,
-    getLockPwdSet: state => state.lockPwdSet,
+    getLockMode: (state) => state.lockMode,
+    getLockIdleSec: (state) => state.lockIdleSec,
+    getLockSecuritySec: (state) => state.lockSecuritySec,
+    getLockPwdSet: (state) => state.lockPwdSet,
   },
 
   actions: {
@@ -132,8 +132,7 @@ const useAppStoreLockInside = defineStore(StoreKeys.APP_LOCK, {
         })
 
         await this.logicAfterLock()
-      }
-      finally {
+      } finally {
         this.loading = false
       }
     },
@@ -144,8 +143,7 @@ const useAppStoreLockInside = defineStore(StoreKeys.APP_LOCK, {
     async logicAfterLock(push = true) {
       const appStoreRoute = useAppStoreRoute()
       appStoreRoute.addDynamicAuthRoute(mainoutLockRoute)
-      if (push)
-        await useAppRouterPush({ name: mainoutConst.lock.name, replace: true })
+      if (push) await useAppRouterPush({ name: mainoutConst.lock.name, replace: true })
     },
 
     /**
@@ -191,8 +189,7 @@ const useAppStoreLockInside = defineStore(StoreKeys.APP_LOCK, {
       try {
         await unlockAPI(lockPwdHash)
         await this.logicAfterUnlock()
-      }
-      finally {
+      } finally {
         this.loading = false
       }
     },
@@ -202,7 +199,6 @@ const useAppStoreLockInside = defineStore(StoreKeys.APP_LOCK, {
 const useAppStoreLockOutside = () => useAppStoreLockInside(store)
 
 export function useAppStoreLock() {
-  if (getCurrentInstance())
-    return useAppStoreLockInside()
+  if (getCurrentInstance()) return useAppStoreLockInside()
   return useAppStoreLockOutside()
 }

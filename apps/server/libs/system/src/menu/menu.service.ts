@@ -18,7 +18,7 @@ export class SysMenuService {
     private readonly menuBasicRepo: SysMenuBasicRepository,
     private readonly menuSharedService: SysMenuSharedService,
     private readonly localeSharedService: SysLocaleSharedService,
-  ) { }
+  ) {}
 
   /**
    * @description get full menu tree (delegate to shared)
@@ -48,8 +48,10 @@ export class SysMenuService {
     current: Partial<Pick<SysMenuEntity, 'permission' | 'status'>>,
     flattened: Partial<SysMenuEntity>,
   ): boolean {
-    return (flattened.permission !== undefined && flattened.permission !== current.permission)
-      || (flattened.status !== undefined && flattened.status !== current.status)
+    return (
+      (flattened.permission !== undefined && flattened.permission !== current.permission) ||
+      (flattened.status !== undefined && flattened.status !== current.status)
+    )
   }
 
   // base CRUD

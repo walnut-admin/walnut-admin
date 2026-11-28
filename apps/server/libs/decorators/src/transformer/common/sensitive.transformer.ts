@@ -8,8 +8,7 @@ export function WalnutAdminDecoratorTransformStringEmailMask(
   options: TransformOptions = {},
 ): PropertyDecorator {
   return Transform(({ value }: { value: string | null | undefined }) => {
-    if (isNil(value))
-      return null
+    if (isNil(value)) return null
 
     if (isArray && Array.isArray(value)) {
       return value.map(maskEmail)
@@ -24,8 +23,7 @@ export function WalnutAdminDecoratorTransformStringPhoneNumberMask(
   options: TransformOptions = {},
 ): PropertyDecorator {
   return Transform(({ value }: { value: string | null | undefined }) => {
-    if (isNil(value))
-      return null
+    if (isNil(value)) return null
 
     if (isArray && Array.isArray(value)) {
       return value.map(maskPhone)

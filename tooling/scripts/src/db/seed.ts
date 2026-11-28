@@ -13,8 +13,8 @@ export const SEED_DIR = 'apps/server/db/seed'
 /** seed 目录里的集合名（文件名去掉 `.json`） */
 export function listSeedCollections(dir: string): string[] {
   return readdirSync(dir)
-    .filter(f => f.endsWith('.json'))
-    .map(f => f.replace(/\.json$/, ''))
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => f.replace(/\.json$/, ''))
     .sort()
 }
 
@@ -29,7 +29,11 @@ export function listSeedCollections(dir: string): string[] {
  * Windows 上也不是），用例要能确定性地两种都测 —— 否则同一个断言在 Windows 绿、在 CI 的 Linux 红
  * （实测就是这么红的）。
  */
-export function resolvePath(repoRoot: string, p: string, isAbs: (path: string) => boolean = isAbsolute): string {
+export function resolvePath(
+  repoRoot: string,
+  p: string,
+  isAbs: (path: string) => boolean = isAbsolute,
+): string {
   return isAbs(p) ? p : join(repoRoot, p)
 }
 
@@ -38,14 +42,15 @@ export function parseEnvFile(text: string): Record<string, string> {
   const env: Record<string, string> = {}
   for (const raw of text.split(/\r?\n/)) {
     const lineText = raw.trim()
-    if (lineText === '' || lineText.startsWith('#'))
-      continue
+    if (lineText === '' || lineText.startsWith('#')) continue
     const eq = lineText.indexOf('=')
-    if (eq <= 0)
-      continue
+    if (eq <= 0) continue
     const key = lineText.slice(0, eq).trim()
     let value = lineText.slice(eq + 1).trim()
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith('\'') && value.endsWith('\'')))
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    )
       value = value.slice(1, -1)
     env[key] = value
   }
@@ -54,8 +59,7 @@ export function parseEnvFile(text: string): Record<string, string> {
 
 /** 取后端那份 env 文件（`NODE_ENV ?? development`，与后端同一口径） */
 export function resolveEnvFile(repoRoot: string, envFileOverride?: string): string {
-  if (envFileOverride !== undefined)
-    return resolvePath(repoRoot, envFileOverride)
+  if (envFileOverride !== undefined) return resolvePath(repoRoot, envFileOverride)
   const env = process.env.NODE_ENV ?? 'development'
   return join(repoRoot, 'apps/server/env-local', `.env.${env}`)
 }

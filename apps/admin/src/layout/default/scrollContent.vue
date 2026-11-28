@@ -18,8 +18,16 @@ const appStoreSettingDev = useAppStoreSettingDev()
 
 const { scrollWrapper, top, bottom, directionTop, y } = useScrollWrapper()
 
-const { targetRef: headerRef, targetShow: headerShow } = useFixedTopScroll('headerRef', toRefs(appStoreSettingDev.header), { top, y, directionTop })
-const { targetRef: tabsRef, targetShow: tabsShow } = useFixedTopScroll('tabsRef', toRefs(appStoreSettingDev.tabs), { top, y, directionTop })
+const { targetRef: headerRef, targetShow: headerShow } = useFixedTopScroll(
+  'headerRef',
+  toRefs(appStoreSettingDev.header),
+  { top, y, directionTop },
+)
+const { targetRef: tabsRef, targetShow: tabsShow } = useFixedTopScroll(
+  'tabsRef',
+  toRefs(appStoreSettingDev.tabs),
+  { top, y, directionTop },
+)
 
 watchEffect(() => {
   headerShow.value = appStoreSettingDev.getHeaderShow
@@ -46,8 +54,7 @@ watch(footerAtBottom, (v) => {
       footerHideTimer = null
     }
     isFooterVisible.value = true
-  }
-  else {
+  } else {
     footerHideTimer = setTimeout(() => {
       isFooterVisible.value = false
       footerHideTimer = null
@@ -92,7 +99,8 @@ watch(footerAtBottom, (v) => {
           class="h-full"
           :style="{
             width: appStoreSettingDev.getCalcContentWidth,
-            padding: $route.meta.ternal === 'internal' ? 0 : `${appStoreSettingDev.getContentPadding}rem`,
+            padding:
+              $route.meta.ternal === 'internal' ? 0 : `${appStoreSettingDev.getContentPadding}rem`,
           }"
         >
           <TheContent />

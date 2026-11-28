@@ -26,9 +26,7 @@ export function uint8ArrayToBase64(u8: Uint8Array): string {
 export function base64ToUint8Array(b64: string): Uint8Array<ArrayBuffer> {
   const u8 = Base64.toUint8Array(b64)
   // 确保是 ArrayBuffer 而不是 SharedArrayBuffer
-  return u8.buffer instanceof ArrayBuffer
-    ? u8 as Uint8Array<ArrayBuffer>
-    : new Uint8Array(u8)
+  return u8.buffer instanceof ArrayBuffer ? (u8 as Uint8Array<ArrayBuffer>) : new Uint8Array(u8)
 }
 
 /**
@@ -46,7 +44,7 @@ export function base64ToArrayBuffer(b64: string): ArrayBuffer {
  * @returns Hexadecimal string representation.
  */
 export function uint8ArrayToHex(u8: Uint8Array): string {
-  return [...u8].map(b => b.toString(16).padStart(2, '0')).join('')
+  return [...u8].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
 /**
@@ -57,11 +55,9 @@ export function uint8ArrayToHex(u8: Uint8Array): string {
  */
 export function hexToUint8Array(hex: string): Uint8Array {
   const len = hex.length
-  if (len % 2)
-    throw new TypeError('Odd hex string')
+  if (len % 2) throw new TypeError('Odd hex string')
   const out = new Uint8Array(len / 2)
-  for (let i = 0; i < len; i += 2)
-    out[i >> 1] = Number.parseInt(hex.slice(i, i + 2), 16)
+  for (let i = 0; i < len; i += 2) out[i >> 1] = Number.parseInt(hex.slice(i, i + 2), 16)
   return out
 }
 
@@ -88,6 +84,6 @@ export function uint8ArrayToUtf8(u8: Uint8Array): string {
  */
 export function arrayBufferToHex(buffer: ArrayBuffer): string {
   return Array.from(new Uint8Array(buffer))
-    .map(b => b.toString(16).padStart(2, '0'))
+    .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
 }

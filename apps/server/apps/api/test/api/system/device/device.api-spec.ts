@@ -44,9 +44,9 @@ interface DeviceRow {
   active?: boolean
   banned?: boolean
   locked?: boolean
-  sr?: { height?: number | null, width?: number | null } | null
-  vp?: { height?: number | null, width?: number | null } | null
-  locationInfo?: { country?: string | null, region?: string | null, city?: string | null } | null
+  sr?: { height?: number | null; width?: number | null } | null
+  vp?: { height?: number | null; width?: number | null } | null
+  locationInfo?: { country?: string | null; region?: string | null; city?: string | null } | null
 }
 
 describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 全链）', () => {
@@ -88,7 +88,9 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
       extraDeviceRowId = ''
     }
     if (extraHistoryUserId !== '') {
-      await api.pgDataSource.query('DELETE FROM sys_user_device WHERE user_id = $1', [extraHistoryUserId])
+      await api.pgDataSource.query('DELETE FROM sys_user_device WHERE user_id = $1', [
+        extraHistoryUserId,
+      ])
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [extraHistoryUserId])
       extraHistoryUserId = ''
     }
@@ -96,7 +98,9 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
 
   afterAll(async () => {
     if (api !== undefined && fixture !== null) {
-      await api.pgDataSource.query('DELETE FROM app_monitor_user WHERE device_id = $1', [api.deviceId])
+      await api.pgDataSource.query('DELETE FROM app_monitor_user WHERE device_id = $1', [
+        api.deviceId,
+      ])
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
       await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [api.deviceId])
@@ -164,7 +168,7 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
       page: { page: 1, pageSize: 10 },
     })
     expectOk(listRes, 'device list')
-    const list = bodyOf<{ data: DeviceRow[], total: number }>(listRes).data
+    const list = bodyOf<{ data: DeviceRow[]; total: number }>(listRes).data
     expect(list.total).toBe(1)
     expect(list.data[0].deviceId).toBe(api.deviceId)
     // 同指纹重放 initial 的整体覆盖语义：deviceName 已是重放载荷的名字
@@ -175,11 +179,14 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
   })
 
   it('current-active-user → 无 monitor 行回 null 填充壳；有行回用户简要', async () => {
-    const emptyRes = await api.root('GET', api.apiPath(`/system/device/${bootstrapDeviceRowId}/current-active-user`))
+    const emptyRes = await api.root(
+      'GET',
+      api.apiPath(`/system/device/${bootstrapDeviceRowId}/current-active-user`),
+    )
     expectOk(emptyRes, 'current active user empty')
     // `(await getCurrentActiveUser(id)) ?? {}` 经 plainToInstance(SysUserDTOReadResponse)
     // 深度实例化：空对象也带全字段 null 壳（钉现状）
-    const empty = bodyOf<{ id?: string, userName: string | null }>(emptyRes).data
+    const empty = bodyOf<{ id?: string; userName: string | null }>(emptyRes).data
     expect(empty.id).toBeUndefined()
     expect(empty.userName).toBeNull()
 
@@ -189,9 +196,12 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
       [`dev-spec-vis-${seed8}`, fixture!.userId, api.deviceId],
     )
 
-    const res = await api.root('GET', api.apiPath(`/system/device/${bootstrapDeviceRowId}/current-active-user`))
+    const res = await api.root(
+      'GET',
+      api.apiPath(`/system/device/${bootstrapDeviceRowId}/current-active-user`),
+    )
     expectOk(res, 'current active user')
-    const user = bodyOf<{ id: string, userName: string | null }>(res).data
+    const user = bodyOf<{ id: string; userName: string | null }>(res).data
     expect(user.id).toBe(fixture!.userId)
     expect(user.userName).toBe(fixture!.userName)
   })
@@ -217,10 +227,14 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
       [fixture!.userId, api.deviceId],
     )
 
-    const res = await api.root('GET', api.apiPath(`/system/device/${bootstrapDeviceRowId}/history-users`))
+    const res = await api.root(
+      'GET',
+      api.apiPath(`/system/device/${bootstrapDeviceRowId}/history-users`),
+    )
     expectOk(res, 'history users')
-    const rows = bodyOf<Array<{ id: string, userName: string | null, lastActiveAt: string | null }>>(res).data
-    expect(rows.map(row => row.id)).toEqual([extraHistoryUserId, fixture!.userId])
+    const rows =
+      bodyOf<Array<{ id: string; userName: string | null; lastActiveAt: string | null }>>(res).data
+    expect(rows.map((row) => row.id)).toEqual([extraHistoryUserId, fixture!.userId])
     expect(rows[0].userName).toBe(`dev-spec-history-${seed8}`)
     expect(rows[1].userName).toBe(fixture!.userName)
   })
@@ -231,17 +245,18 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
     // 同一载荷重放不会再撞 23505。P4 起 DTO 里的 deviceName 也被摘除（带了即 40099，
     // 由 libs/system/src/device/dto/device.dto.spec.ts 用同口径校验钉住 —— 这里不再
     // 多打一次 initial，本文件的调用数压在 4 次/60s 的限流上限）。
-    const mk = () => supertest(app.getHttpServer())
-      .post(api.apiPath('/system/device/initial'))
-      .set('user-agent', WALNUT_TEST_USER_AGENT)
-      .set('X-Fingerprint', `dev-spec-dup-${seed8}`)
-      .send({
-        deviceInfo: {},
-        hardwareInfo: {},
-        sr: { height: 1080, width: 1920 },
-        vp: { height: 900, width: 1600 },
-        private: false,
-      })
+    const mk = () =>
+      supertest(app.getHttpServer())
+        .post(api.apiPath('/system/device/initial'))
+        .set('user-agent', WALNUT_TEST_USER_AGENT)
+        .set('X-Fingerprint', `dev-spec-dup-${seed8}`)
+        .send({
+          deviceInfo: {},
+          hardwareInfo: {},
+          sr: { height: 1080, width: 1920 },
+          vp: { height: 900, width: 1600 },
+          private: false,
+        })
 
     // 只打一次：initial 有 4 次/60s 的限流（42900），本用例不再多占额度
     const a = await mk()
@@ -263,17 +278,22 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
 
     // 对照：非 23505 的异常仍走 catch-all → 40605（直接打到 service 层，绕过 DTO）
     const deviceService = app.get(SysDeviceService)
-    await expect(deviceService.initial(
-      {} as IWalnutAdminExpressRequest,
-      {} as never,
-      api.pgDataSource.manager,
-    )).rejects.toBeInstanceOf(WalnutAdminExceptionDeviceNotAcceptable)
+    await expect(
+      deviceService.initial(
+        {} as IWalnutAdminExpressRequest,
+        {} as never,
+        api.pgDataSource.manager,
+      ),
+    ).rejects.toBeInstanceOf(WalnutAdminExceptionDeviceNotAcceptable)
   })
 
   it('PATCH lock → DB locked=true + 缓存双写；清缓存后锁状态由 guard 回源库仍 40606', async () => {
     const cacheDeviceService = app.get(AppTechCacheDeviceService)
 
-    const lockRes = await api.root('PATCH', api.apiPath(`/system/device/${bootstrapDeviceRowId}/lock`))
+    const lockRes = await api.root(
+      'PATCH',
+      api.apiPath(`/system/device/${bootstrapDeviceRowId}/lock`),
+    )
     expectOk(lockRes, 'device lock')
     expect(bodyOf<boolean>(lockRes).data).toBe(true)
     expect((await cacheDeviceService.getSysDeviceCache(api.deviceId))?.locked).toBe(true)
@@ -290,7 +310,9 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
     expect(await cacheDeviceService.getSysDeviceCache(api.deviceId)).toBeNull()
 
     const blockedRes = await api.root('GET', api.apiPath(`/system/device/${bootstrapDeviceRowId}`))
-    expect(bodyOf(blockedRes).code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_LOCKED)
+    expect(bodyOf(blockedRes).code).toBe(
+      WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_LOCKED,
+    )
 
     const refilled = await cacheDeviceService.getSysDeviceCache(api.deviceId)
     expect(refilled?.locked).toBe(true)
@@ -309,7 +331,10 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
       ip: cached!.currentIp,
     })
 
-    const unlockRes = await api.root('PATCH', api.apiPath(`/system/device/${bootstrapDeviceRowId}/unlock`))
+    const unlockRes = await api.root(
+      'PATCH',
+      api.apiPath(`/system/device/${bootstrapDeviceRowId}/unlock`),
+    )
     expectOk(unlockRes, 'device unlock')
     expect(bodyOf<boolean>(unlockRes).data).toBe(true)
     expect((await cacheDeviceService.getSysDeviceCache(api.deviceId))?.locked).toBe(false)
@@ -327,7 +352,10 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
   it('PATCH ban → DB banned=true + 缓存双写；清缓存后封禁仍 40607', async () => {
     const cacheDeviceService = app.get(AppTechCacheDeviceService)
 
-    const banRes = await api.root('PATCH', api.apiPath(`/system/device/${bootstrapDeviceRowId}/ban`))
+    const banRes = await api.root(
+      'PATCH',
+      api.apiPath(`/system/device/${bootstrapDeviceRowId}/ban`),
+    )
     expectOk(banRes, 'device ban')
     // 拍板-4：这条 ban 同时把本设备「踢下线」（同事务撤全部 RT、提交后清会话/权限/MFA 键）。
     // 下面的 40607 由设备 guard 先拦，但本设备的登录态在此刻已经死了 —— 只能重新登录，
@@ -342,7 +370,9 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
 
     await cacheDeviceService.delSysDeviceCache(api.deviceId)
     const blockedRes = await api.root('GET', api.apiPath(`/system/device/${bootstrapDeviceRowId}`))
-    expect(bodyOf(blockedRes).code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_BANNED)
+    expect(bodyOf(blockedRes).code).toBe(
+      WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_BANNED,
+    )
     expect((await cacheDeviceService.getSysDeviceCache(api.deviceId))?.banned).toBe(true)
   })
 
@@ -368,7 +398,10 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
     api.setAuth(tokens)
     await api.seedMfaVerifiedCache(fixture!.userId)
 
-    const unbanRes = await api.root('PATCH', api.apiPath(`/system/device/${bootstrapDeviceRowId}/unban`))
+    const unbanRes = await api.root(
+      'PATCH',
+      api.apiPath(`/system/device/${bootstrapDeviceRowId}/unban`),
+    )
     expectOk(unbanRes, 'device unban')
     expect((await cacheDeviceService.getSysDeviceCache(api.deviceId))?.banned).toBe(false)
 
@@ -386,7 +419,10 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
     const readRes = await api.root('GET', api.apiPath(`/system/device/${randomUUID()}`))
     expect(bodyOf(readRes).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
 
-    const badUuid = await api.root('GET', api.apiPath('/system/device/not-a-uuid/current-active-user'))
+    const badUuid = await api.root(
+      'GET',
+      api.apiPath('/system/device/not-a-uuid/current-active-user'),
+    )
     expect(bodyOf(badUuid).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_INVALID_ID)
   })
 })

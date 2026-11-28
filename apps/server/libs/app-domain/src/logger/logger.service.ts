@@ -17,9 +17,7 @@ async function readLines(filePath: string, start: number, end: number) {
   const isGzip = filePath.endsWith('.gz')
   const fileStream = fsSync.createReadStream(filePath)
 
-  const stream = isGzip
-    ? fileStream.pipe(zlib.createGunzip())
-    : fileStream
+  const stream = isGzip ? fileStream.pipe(zlib.createGunzip()) : fileStream
 
   const rl = readline.createInterface({ input: stream })
 
@@ -50,7 +48,7 @@ export class AppLoggerService {
     [AppLoggerLogType.ERROR]: 'logs/error',
   }
 
-  constructor() { }
+  constructor() {}
 
   async list(params: AppLoggerDTOListRequest) {
     // 批次 1 · P0：分页入参走共享正规化（`@walnut-server/utils/list-page`）——
@@ -84,10 +82,11 @@ export class AppLoggerService {
             filePath: logType ? `${logType}/${filePath}` : filePath,
             fileSize: stat.size,
             fileMTime: stat.mtime,
-            logType: logType || (filePath.includes('error') ? AppLoggerLogType.ERROR : AppLoggerLogType.APPLICATION),
+            logType:
+              logType ||
+              (filePath.includes('error') ? AppLoggerLogType.ERROR : AppLoggerLogType.APPLICATION),
           }
-        }
-        catch {
+        } catch {
           return null
         }
       }),
@@ -98,7 +97,9 @@ export class AppLoggerService {
 
     // file name filter
     if (!isNil(fileName)) {
-      validFiles = validFiles.filter(item => item.fileName.toLocaleLowerCase().includes(fileName.toLocaleLowerCase()))
+      validFiles = validFiles.filter((item) =>
+        item.fileName.toLocaleLowerCase().includes(fileName.toLocaleLowerCase()),
+      )
     }
 
     // lodash order by file mtime desc
@@ -148,9 +149,7 @@ export class AppLoggerService {
     const resolvedTarget = path.resolve(target)
     const resolvedLogDir = path.resolve(logDir)
     if (!resolvedTarget.startsWith(`${resolvedLogDir}${path.sep}`)) {
-      throw new WalnutAdminExceptionRequestDataError(
-        `filePath escapes log directory: ${filePath}`,
-      )
+      throw new WalnutAdminExceptionRequestDataError(`filePath escapes log directory: ${filePath}`)
     }
 
     const content = await readLines(resolvedTarget, (page - 1) * 30, page * 30)

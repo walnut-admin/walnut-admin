@@ -11,11 +11,7 @@ import { WalnutAdminCommonBasicModel } from '../../shared/base.model'
 // 改名 SysUserOAuthDTOBase，WalnutAdminConstSysUserOAuthProvider 及其类型随基座类一并
 // 搬入），装饰器与字段本体零改动
 
-export const WalnutAdminConstSysUserOAuthProvider = [
-  'google-one-tap',
-  'gitee',
-  'github',
-] as const
+export const WalnutAdminConstSysUserOAuthProvider = ['google-one-tap', 'gitee', 'github'] as const
 
 export type IWalnutAdminConstSysUserOAuthProvider = ValueOf<
   typeof WalnutAdminConstSysUserOAuthProvider

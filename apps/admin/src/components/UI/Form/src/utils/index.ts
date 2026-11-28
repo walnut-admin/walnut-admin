@@ -19,30 +19,54 @@ type FormProps<T> = WForm.Props<T>
 
 function buildLocaleKey(type: WForm.LocaleType, base: string) {
   switch (type) {
-    case 'origin': return base
-    case 'helpMsg': return `${base}.helpMsg`
-    case 'placeholder': return `${base}.PH`
-    case 'rule': return `${base}.rule`
+    case 'origin':
+      return base
+    case 'helpMsg':
+      return `${base}.helpMsg`
+    case 'placeholder':
+      return `${base}.PH`
+    case 'rule':
+      return `${base}.rule`
   }
 }
 
 function getRawValue<T>(item: SchemaItem<T>, type: WForm.LocaleType) {
   const { formProp, componentProp } = item
   switch (type) {
-    case 'origin': return formProp?.label
-    case 'helpMsg': return formProp?.labelHelpMessage
-    case 'placeholder': return componentProp?.placeholder
-    case 'rule': return undefined
+    case 'origin':
+      return formProp?.label
+    case 'helpMsg':
+      return formProp?.labelHelpMessage
+    case 'placeholder':
+      return componentProp?.placeholder
+    case 'rule':
+      return undefined
   }
 }
 
 /**
  * @description get scope or global prop
  */
-export function getScopeOrGlobalProp<T>(item: SchemaItem<T>, itemField: 'transitionProp.transitionName', props: FormProps<T>): ValueOfAppConstTransitionName
-export function getScopeOrGlobalProp<T>(item: SchemaItem<T>, itemField: 'visibleProp.visibleMode', props: FormProps<T>): WForm.FormVisibleMode
-export function getScopeOrGlobalProp<T>(item: SchemaItem<T>, itemField: 'gridProp.span', props: FormProps<T>): number
-export function getScopeOrGlobalProp<T>(item: SchemaItem<T>, itemField: WForm.FormScopeGlobalFields, props: FormProps<T>) {
+export function getScopeOrGlobalProp<T>(
+  item: SchemaItem<T>,
+  itemField: 'transitionProp.transitionName',
+  props: FormProps<T>,
+): ValueOfAppConstTransitionName
+export function getScopeOrGlobalProp<T>(
+  item: SchemaItem<T>,
+  itemField: 'visibleProp.visibleMode',
+  props: FormProps<T>,
+): WForm.FormVisibleMode
+export function getScopeOrGlobalProp<T>(
+  item: SchemaItem<T>,
+  itemField: 'gridProp.span',
+  props: FormProps<T>,
+): number
+export function getScopeOrGlobalProp<T>(
+  item: SchemaItem<T>,
+  itemField: WForm.FormScopeGlobalFields,
+  props: FormProps<T>,
+) {
   return get(item, itemField) ?? props[itemField.split('.')[1] as keyof FormProps<T>]
 }
 
@@ -57,11 +81,15 @@ export const formItemUtils = {
   /**
    * @description get v-if/v-show boolean
    */
-  getIfOrShowBoolean<T>(item: SchemaItem<T>, props: FormProps<T>, field: WForm.MaybeBooleanField, defaultValue = true) {
+  getIfOrShowBoolean<T>(
+    item: SchemaItem<T>,
+    props: FormProps<T>,
+    field: WForm.MaybeBooleanField,
+    defaultValue = true,
+  ) {
     const maybeBool = item?.visibleProp?.[field]
 
-    if (typeof maybeBool === 'function')
-      return maybeBool({ formData: props.model! })
+    if (typeof maybeBool === 'function') return maybeBool({ formData: props.model! })
 
     return getBoolean(toRaw(maybeBool), defaultValue)
   },
@@ -92,11 +120,9 @@ export const formItemUtils = {
     const localeWithTable = itemFormProp.localeWithTable
 
     // dict name as label, so no need to translate
-    if (label === true)
-      return
+    if (label === true) return
     // description do not show, so no need to translate
-    if (!getBoolean(item?.descriptionProp?.show))
-      return
+    if (!getBoolean(item?.descriptionProp?.show)) return
 
     // base key priority first
     if (path && appStoreLocale.isBaseI18nKey(path)) {
@@ -108,8 +134,7 @@ export const formItemUtils = {
 
     // helpMsg special case
     if (path && type === 'helpMsg' && labelHelpMessage) {
-      if (!getBoolean(locale))
-        return labelHelpMessage
+      if (!getBoolean(locale)) return labelHelpMessage
     }
 
     // step1: judge whether need locale（parent + child）
@@ -121,8 +146,7 @@ export const formItemUtils = {
     }
 
     // step3: judge whether need table prefix（parent + child）
-    const isLocaleWithTable
-      = getBoolean(localeWithTable) && getBoolean(props.localeWithTable)
+    const isLocaleWithTable = getBoolean(localeWithTable) && getBoolean(props.localeWithTable)
 
     const prefix = isLocaleWithTable ? 'table' : 'form'
     const fullKey = buildLocaleKey(type, `${key}.${path}`)
@@ -147,9 +171,7 @@ export const inputFormItemTypeList = [
  */
 export function generateRuleMessage<T>(t: Fn, i: SchemaItem<T>, p: ComputedRef<FormProps<T>>) {
   return t('comp.form.rule', {
-    type: inputFormItemTypeList.includes(i.type)
-      ? t('comp.base.input')
-      : t('comp.base.choose'),
+    type: inputFormItemTypeList.includes(i.type) ? t('comp.base.input') : t('comp.base.choose'),
     label: formItemUtils.getTranslatedString(t, i, p.value),
   })
 }
@@ -162,10 +184,7 @@ export function generateBaseRules<T>(
   schemas: Ref<SchemaItem<T>[]>,
   props: ComputedRef<FormProps<T>>,
 ): FormRules {
-  const getBaseRuleObj = (
-    i: SchemaItem<T>,
-    extra?: FormItemRule[],
-  ): FormItemRule[] => {
+  const getBaseRuleObj = (i: SchemaItem<T>, extra?: FormItemRule[]): FormItemRule[] => {
     const base: FormItemRule[] = [
       {
         key: i?.formProp?.path as string,
@@ -198,7 +217,7 @@ export function generateBaseRules<T>(
         }
         return []
       })
-      .filter(i => i.length !== 0),
+      .filter((i) => i.length !== 0),
   )
 
   // 合并自定义规则
@@ -215,8 +234,7 @@ export function generateBaseRules<T>(
       mergedRules[key] = Array.isArray(baseRule)
         ? [...baseRule, ...(Array.isArray(customRule) ? customRule : [customRule])]
         : [baseRule, ...(Array.isArray(customRule) ? customRule : [customRule])]
-    }
-    else {
+    } else {
       // 如果基础规则不存在,直接使用自定义规则
       mergedRules[key] = customRule
     }
@@ -226,13 +244,12 @@ export function generateBaseRules<T>(
 }
 
 export function extractDefaultFormDataFromSchemas<T>(schemas: SchemaItem<T>[]) {
-  if (!schemas || !schemas.length)
-    return {} as T
+  if (!schemas || !schemas.length) return {} as T
 
   return Object.fromEntries(
     unref(schemas)
-      .filter(i => i.formProp?.path)
-      .map<[string, WForm.DefaultValue]>(i => [
+      .filter((i) => i.formProp?.path)
+      .map<[string, WForm.DefaultValue]>((i) => [
         i.formProp!.path as string,
         i?.componentProp?.defaultValue ?? null,
       ]),
@@ -268,9 +285,9 @@ export function calculateRemainingSpans(
   }
 
   // 确保 spans 数组长度与项目数一致
-  const normalizedSpans = spans.slice(0, totalItems).concat(
-    Array.from<number>({ length: totalItems - spans.length }).fill(1),
-  )
+  const normalizedSpans = spans
+    .slice(0, totalItems)
+    .concat(Array.from<number>({ length: totalItems - spans.length }).fill(1))
 
   // 计算总 span 数
   const totalSpans = normalizedSpans.reduce((sum, span) => sum + span, 0)
@@ -293,16 +310,14 @@ export function calculateRemainingSpans(
     if (currentRowSpans + span > itemsPerRow) {
       currentRow++
       currentRowSpans = span
-    }
-    else {
+    } else {
       currentRowSpans += span
     }
 
     // 只累加前面行的 span
     if (currentRow < totalRows) {
       usedSpansInPreviousRows += span
-    }
-    else {
+    } else {
       // 已经到最后一行，停止遍历
       break
     }

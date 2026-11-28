@@ -51,23 +51,21 @@ export class SysRoleSharedService {
 
     let payload: string[]
     if (effectiveRoleMode === WalnutAdminConstRoleMode.COMBINE) {
-      payload = user.roleIds.filter(roleId => boundRoleIdSet.has(roleId))
-    }
-    else if (user.currentRole !== null && boundRoleIdSet.has(user.currentRole)) {
+      payload = user.roleIds.filter((roleId) => boundRoleIdSet.has(roleId))
+    } else if (user.currentRole !== null && boundRoleIdSet.has(user.currentRole)) {
       payload = [user.currentRole]
-    }
-    else {
+    } else {
       payload = boundRoleIds.slice(0, 1)
     }
 
     const roles = await this.getRolesWithPopulatedMenus(payload, em)
 
-    const allMenus = roles.map(i => i.menusList).flat()
+    const allMenus = roles.map((i) => i.menusList).flat()
     // B5：主键 _id → id（PG uuid；多角色菜单去重的键随迁移换形）
     const uniMenus = uniqBy(allMenus, 'id')
 
     return {
-      roleNames: roles.map(i => i.roleName) as RoleType[],
+      roleNames: roles.map((i) => i.roleName) as RoleType[],
       menus: uniMenus,
     }
   }

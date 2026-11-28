@@ -28,16 +28,23 @@ const { setProps, getProps } = crudPropsCtx
 const actionType = ref<IActionType>('create')
 
 // create/update form data
-const { stateRef: formData, resetState: resetFormData, commit: commitFormData } = useState<T>({} as T)
+const {
+  stateRef: formData,
+  resetState: resetFormData,
+  commit: commitFormData,
+} = useState<T>({} as T)
 
 // safe form logic
-const { getIsFormModified, onClearStorage, onInitStorage } = useSafeForm(formData, getProps, actionType)
+const { getIsFormModified, onClearStorage, onInitStorage } = useSafeForm(
+  formData,
+  getProps,
+  actionType,
+)
 
 const defaultFormDataGenerated = ref(false)
 // this is necessary, otherwise reset won't work
 function onInitFormData() {
-  if (defaultFormDataGenerated.value)
-    return
+  if (defaultFormDataGenerated.value) return
   const initialFormData = extractDefaultFormDataFromSchemas(getProps.value.formProps!.schemas!)
   formData.value = Object.assign(formData.value!, initialFormData)
   // make this as default form data
@@ -51,7 +58,14 @@ const getBaseApi = computed(() => getProps.value.baseAPI!)
 
 // get create/update form data
 const getFormData = computed(() =>
-  getProps.value.strictFormData ? pick(formData.value, ([...getProps.value.formProps?.schemas?.filter(i => i.formProp?.path).map(i => i.formProp?.path) as (keyof T)[], 'id'])) : formData.value,
+  getProps.value.strictFormData
+    ? pick(formData.value, [
+        ...(getProps.value.formProps?.schemas
+          ?.filter((i) => i.formProp?.path)
+          .map((i) => i.formProp?.path) as (keyof T)[]),
+        'id',
+      ])
+    : formData.value,
 )
 
 // get table props
@@ -59,11 +73,11 @@ const getTableProps = computed((): WTable.Props<T> => ({
   ...getProps.value.tableProps,
 
   apiProps: {
-  // onBeforeRequest: isFunction(getProps.value.onBeforeRequest)
-  //   ? (query) => {
-  //       return getProps.value.onBeforeRequest!(query)!
-  //     }
-  //   : undefined,
+    // onBeforeRequest: isFunction(getProps.value.onBeforeRequest)
+    //   ? (query) => {
+    //       return getProps.value.onBeforeRequest!(query)!
+    //     }
+    //   : undefined,
 
     listApi: getBaseApi.value?.list.bind(getBaseApi.value),
 
@@ -76,13 +90,7 @@ const getTableProps = computed((): WTable.Props<T> => ({
 // table
 const [
   registerTable,
-  {
-    onApiList,
-    onApiDelete,
-    onApiDeleteMany,
-    onGetApiListParams,
-    onSetDefaultQueryFormData,
-  },
+  { onApiList, onApiDelete, onApiDeleteMany, onGetApiListParams, onSetDefaultQueryFormData },
 ] = useTable<T>(getTableProps)
 
 // get form props
@@ -107,8 +115,7 @@ const getFormProps = computed((): WForm.Props<T> => ({
             formData: getFormData.value,
             actionType: actionType.value,
           })
-        }
-        catch (error) {
+        } catch (error) {
           done({ closeModal: false })
           throw error
         }
@@ -131,7 +138,10 @@ const getFormProps = computed((): WForm.Props<T> => ({
       await onApiList()
     },
     onNo: (done) => {
-      if ((getProps.value.safeForm && !getProps.value.safeFormFeedback) || actionType.value !== 'create') {
+      if (
+        (getProps.value.safeForm && !getProps.value.safeFormFeedback) ||
+        actionType.value !== 'create'
+      ) {
         resetFormData()
       }
       done()
@@ -179,8 +189,7 @@ async function onReadAndOpenUpdateForm(id: StringOrNumber) {
           onInitStorage()
         })
       }
-    }
-    finally {
+    } finally {
       done()
     }
   })

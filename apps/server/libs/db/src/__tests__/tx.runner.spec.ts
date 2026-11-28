@@ -112,7 +112,9 @@ function fakeDataSource(runner: QueryRunner): Pick<DataSource, 'createQueryRunne
 }
 
 /** 假的 RLS 设置写入：与 `withWalnutRlsTransaction` 的 setup 同形 */
-async function applyFakeSetup(manager: { query: (sql: string) => Promise<unknown> }): Promise<void> {
+async function applyFakeSetup(manager: {
+  query: (sql: string) => Promise<unknown>
+}): Promise<void> {
   await manager.query('SELECT set_config(...)')
 }
 
@@ -131,7 +133,7 @@ describe('withQueryRunnerTransaction 生命周期（start / commit / rollback / 
 
     const result = await withQueryRunnerTransaction(
       fakeDataSource(runner),
-      async manager => `ok:${String(manager !== undefined)}`,
+      async (manager) => `ok:${String(manager !== undefined)}`,
       { setup: applyFakeSetup },
     )
 
@@ -139,7 +141,7 @@ describe('withQueryRunnerTransaction 生命周期（start / commit / rollback / 
     expect(calls).toEqual(['connect', 'start', 'set_config', 'commit', 'release'])
     // 还池判据：release 那一刻不能还有活跃事务
     expect(activeAtRelease).toEqual([false])
-    expect(calls.filter(c => c === 'release')).toHaveLength(1)
+    expect(calls.filter((c) => c === 'release')).toHaveLength(1)
   })
 
   it('readOnly：SET TRANSACTION READ ONLY 是事务里第一条语句（排在 setup 之前）', async () => {
@@ -163,17 +165,19 @@ describe('withQueryRunnerTransaction 生命周期（start / commit / rollback / 
   it('回调抛错：先 rollback 再 release，原始错误透传，还池的连接不带事务', async () => {
     const { runner, calls, activeAtRelease } = createFakeRunner()
 
-    await expect(withQueryRunnerTransaction(
-      fakeDataSource(runner),
-      async () => {
-        throw new Error('handler boom')
-      },
-      { setup: applyFakeSetup },
-    )).rejects.toThrow('handler boom')
+    await expect(
+      withQueryRunnerTransaction(
+        fakeDataSource(runner),
+        async () => {
+          throw new Error('handler boom')
+        },
+        { setup: applyFakeSetup },
+      ),
+    ).rejects.toThrow('handler boom')
 
     expect(activeAtRelease).toEqual([false])
     expect(calls).toEqual(['connect', 'start', 'set_config', 'rollback', 'release'])
-    expect(calls.filter(c => c === 'release')).toHaveLength(1)
+    expect(calls.filter((c) => c === 'release')).toHaveLength(1)
   })
 
   it('rollback 自身抛错：不掩盖原始错误，只记日志，release 仍然发生且只一次', async () => {
@@ -181,15 +185,14 @@ describe('withQueryRunnerTransaction 生命周期（start / commit / rollback / 
     const errorSpy = vi.spyOn(Logger.prototype, 'error')
 
     // 透传的必须是回调的错，不是 'pg rollback boom'
-    await expect(withQueryRunnerTransaction(
-      fakeDataSource(runner),
-      async () => {
+    await expect(
+      withQueryRunnerTransaction(fakeDataSource(runner), async () => {
         throw new Error('handler boom')
-      },
-    )).rejects.toThrow('handler boom')
+      }),
+    ).rejects.toThrow('handler boom')
 
     expect(calls).toEqual(['connect', 'start', 'rollback', 'release'])
-    expect(calls.filter(c => c === 'release')).toHaveLength(1)
+    expect(calls.filter((c) => c === 'release')).toHaveLength(1)
     // rollback 的异常没有被吞掉不报：它进了日志（否则「连接回滚失败」永远不可见）
     expect(errorSpy).toHaveBeenCalledTimes(1)
     // 这条用例钉住的是一个**做不到**的期望：ROLLBACK 语句自己失败时 runner 的
@@ -202,11 +205,11 @@ describe('withQueryRunnerTransaction 生命周期（start / commit / rollback / 
   it('setup 抛错（事务已开启）：同样 rollback → release，原始错误透传', async () => {
     const { runner, calls, activeAtRelease } = createFakeRunner({ setupThrows: true })
 
-    await expect(withQueryRunnerTransaction(
-      fakeDataSource(runner),
-      async () => 'never',
-      { setup: applyFakeSetup },
-    )).rejects.toThrow('pg set_config boom')
+    await expect(
+      withQueryRunnerTransaction(fakeDataSource(runner), async () => 'never', {
+        setup: applyFakeSetup,
+      }),
+    ).rejects.toThrow('pg set_config boom')
 
     expect(activeAtRelease).toEqual([false])
     expect(calls).toEqual(['connect', 'start', 'set_config', 'rollback', 'release'])
@@ -215,22 +218,22 @@ describe('withQueryRunnerTransaction 生命周期（start / commit / rollback / 
   it('startTransaction 抛错（1.1.2 已置 isTransactionActive）：不泄漏 —— rollback + release 各一次', async () => {
     const { runner, calls, activeAtRelease } = createFakeRunner({ startThrows: true })
 
-    await expect(withQueryRunnerTransaction(fakeDataSource(runner), async () => 'never'))
-      .rejects
-      .toThrow('pg start boom')
+    await expect(
+      withQueryRunnerTransaction(fakeDataSource(runner), async () => 'never'),
+    ).rejects.toThrow('pg start boom')
 
     // 旧实现（connect/start 写在 try 之外）在这里既不 rollback 也不 release：连接带事务留在池里
     expect(calls).toEqual(['connect', 'start', 'rollback', 'release'])
     expect(activeAtRelease).toEqual([false])
-    expect(calls.filter(c => c === 'release')).toHaveLength(1)
+    expect(calls.filter((c) => c === 'release')).toHaveLength(1)
   })
 
   it('connect 抛错（事务从未开启）：不 rollback（1.1.2 会抛 TransactionNotStartedError），release 一次', async () => {
     const { runner, calls, activeAtRelease } = createFakeRunner({ connectThrows: true })
 
-    await expect(withQueryRunnerTransaction(fakeDataSource(runner), async () => 'never'))
-      .rejects
-      .toThrow('pg connect boom')
+    await expect(
+      withQueryRunnerTransaction(fakeDataSource(runner), async () => 'never'),
+    ).rejects.toThrow('pg connect boom')
 
     expect(calls).toEqual(['connect', 'release'])
     expect(activeAtRelease).toEqual([false])
@@ -239,9 +242,9 @@ describe('withQueryRunnerTransaction 生命周期（start / commit / rollback / 
   it('commit 抛错：原始错误透传，仍补一条 rollback 清事务状态，release 一次', async () => {
     const { runner, calls, activeAtRelease } = createFakeRunner({ commitThrows: true })
 
-    await expect(withQueryRunnerTransaction(fakeDataSource(runner), async () => 'ok'))
-      .rejects
-      .toThrow('pg commit boom')
+    await expect(
+      withQueryRunnerTransaction(fakeDataSource(runner), async () => 'ok'),
+    ).rejects.toThrow('pg commit boom')
 
     // commit 失败后事务状态未知，补 ROLLBACK 是安全的（服务端已回滚时 PG 只回 WARNING）
     expect(calls).toEqual(['connect', 'start', 'commit', 'rollback', 'release'])
@@ -252,9 +255,9 @@ describe('withQueryRunnerTransaction 生命周期（start / commit / rollback / 
     const { runner, calls } = createFakeRunner({ releaseThrows: true })
     const errorSpy = vi.spyOn(Logger.prototype, 'error')
 
-    await expect(withQueryRunnerTransaction(fakeDataSource(runner), async () => 'committed'))
-      .resolves
-      .toBe('committed')
+    await expect(
+      withQueryRunnerTransaction(fakeDataSource(runner), async () => 'committed'),
+    ).resolves.toBe('committed')
 
     expect(calls).toEqual(['connect', 'start', 'commit', 'release'])
     expect(errorSpy).toHaveBeenCalledTimes(1)
@@ -280,7 +283,7 @@ describe('createQueryRunnerTxGuard 的幂等与守卫', () => {
     await tx.release()
     await tx.release()
 
-    expect(calls.filter(c => c === 'release')).toHaveLength(1)
+    expect(calls.filter((c) => c === 'release')).toHaveLength(1)
     expect(tx.released).toBe(true)
     expect(tx.committed).toBe(true)
   })

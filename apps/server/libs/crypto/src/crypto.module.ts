@@ -8,4 +8,4 @@ import { AppTechCryptoService } from './crypto.service'
   providers: [AppTechCryptoService],
   exports: [AppTechCryptoService],
 })
-export class AppTechCryptoModule { }
+export class AppTechCryptoModule {}

@@ -40,7 +40,7 @@ export class SysDeletedService {
     private readonly sysUserRepoService: SysUserRepositoryService,
     private readonly recoverRegistry: WalnutAdminRecoverableRegistry,
     private readonly dataScopeService: DataScopeService,
-  ) { }
+  ) {}
 
   async read(id: string) {
     const doc = await this.deletedBasicRepo.readById(id)
@@ -92,7 +92,10 @@ export class SysDeletedService {
     const deleted = await this.deletedBasicRepo.readById(id, em)
 
     if (deleted.deletedId !== deletedId) {
-      throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.delete.recoverFail', _devMsg: 'DeletedId Not Matched' })
+      throw new WalnutAdminExceptionBadRequest({
+        errMsg: 'business.system.delete.recoverFail',
+        _devMsg: 'DeletedId Not Matched',
+      })
     }
 
     await this.recoverSnapshot(deleted, em)
@@ -141,9 +144,11 @@ export class SysDeletedService {
     try {
       // recover to original collection（快照 jsonb 对象直插，含原 uuid 与时间戳）
       await recoverer.recover(deleted.content, em)
-    }
-    catch (e) {
-      throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.delete.recoverFail', _devMsg: e instanceof Error ? e.message : String(e) })
+    } catch (e) {
+      throw new WalnutAdminExceptionBadRequest({
+        errMsg: 'business.system.delete.recoverFail',
+        _devMsg: e instanceof Error ? e.message : String(e),
+      })
     }
 
     // delete from delete collection（同一 em → 与上一步同事务）；P3-9：断言恰好命中 1 行

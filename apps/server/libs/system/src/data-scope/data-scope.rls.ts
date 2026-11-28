@@ -1,4 +1,7 @@
-import type { IWalnutAdminDataScopeDescriptor, IWalnutAdminDataScopeRlsSettings } from '@walnut-server/db'
+import type {
+  IWalnutAdminDataScopeDescriptor,
+  IWalnutAdminDataScopeRlsSettings,
+} from '@walnut-server/db'
 import { WalnutAdminConstDataScopeMode } from '@walnut-server/const/app/dataScope'
 import { WALNUT_DATA_SCOPE_RLS_MODE } from '@walnut-server/db'
 
@@ -21,7 +24,7 @@ import { WALNUT_DATA_SCOPE_RLS_MODE } from '@walnut-server/db'
 export function buildWalnutDataScopeRlsSettings(
   descriptor: IWalnutAdminDataScopeDescriptor | undefined,
   userId: string | undefined,
-  options: { systemChannel?: boolean, userDeptId?: string | null } = {},
+  options: { systemChannel?: boolean; userDeptId?: string | null } = {},
 ): IWalnutAdminDataScopeRlsSettings {
   const userDeptId = options.userDeptId ?? ''
 
@@ -38,15 +41,18 @@ export function buildWalnutDataScopeRlsSettings(
     return {
       mode: WALNUT_DATA_SCOPE_RLS_MODE.SCOPED,
       userId: userId ?? '',
-      deptIds: [...new Set((descriptor.deptIds ?? []).filter(id => typeof id === 'string' && id !== ''))],
+      deptIds: [
+        ...new Set((descriptor.deptIds ?? []).filter((id) => typeof id === 'string' && id !== '')),
+      ],
       userDeptId,
     }
   }
 
   return {
-    mode: options.systemChannel === true
-      ? WALNUT_DATA_SCOPE_RLS_MODE.SYSTEM
-      : WALNUT_DATA_SCOPE_RLS_MODE.ANONYMOUS,
+    mode:
+      options.systemChannel === true
+        ? WALNUT_DATA_SCOPE_RLS_MODE.SYSTEM
+        : WALNUT_DATA_SCOPE_RLS_MODE.ANONYMOUS,
     userId: '',
     deptIds: [],
     userDeptId: '',

@@ -14,25 +14,19 @@ const icon3 = ref('emojione-v1:flag-for-china')
   <WDemoCard title="Icon Picker">
     <n-list>
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          【{{ icon }}】
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> 【{{ icon }}】 </WTitle>
 
         <WIconPicker v-model:value="icon" />
       </n-list-item>
 
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          【{{ icon2 }}】
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> 【{{ icon2 }}】 </WTitle>
 
         <WIconPicker v-model:value="icon2" />
       </n-list-item>
 
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          【{{ icon3 }}】
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> 【{{ icon3 }}】 </WTitle>
 
         <WIconPicker v-model:value="icon3" preset="icon" />
       </n-list-item>

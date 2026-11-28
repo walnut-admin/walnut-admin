@@ -16,8 +16,7 @@ const { getInterruptedExpanded, toggleInterrupted } = useMessageExpandState()
 const expanded = computed(() => getInterruptedExpanded(props.msg.id).value)
 
 const segments = computed(() => {
-  if (!props.msg.content)
-    return []
+  if (!props.msg.content) return []
   return splitMarkdown(props.msg.content, `interrupted-${props.msg.id}`)
 })
 </script>
@@ -32,7 +31,10 @@ const segments = computed(() => {
       <span>{{ expanded ? '输出已中断 (点击折叠)' : '输出已中断 (点击展开)' }}</span>
     </div>
     <Transition name="collapse" @after-enter="triggerRemeasure()" @after-leave="triggerRemeasure()">
-      <div v-if="expanded && (msg.thinkingContent || segments.length > 0)" class="mt-2 flex flex-col gap-2">
+      <div
+        v-if="expanded && (msg.thinkingContent || segments.length > 0)"
+        class="mt-2 flex flex-col gap-2"
+      >
         <div
           v-if="msg.thinkingContent"
           class="bg-fill text-text-placeholder whitespace-pre-wrap rounded-lg px-3 py-2.5 text-12px leading-relaxed"

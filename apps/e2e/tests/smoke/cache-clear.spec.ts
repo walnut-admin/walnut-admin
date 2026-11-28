@@ -47,59 +47,82 @@ async function cacheRowsForKey(
   client: Awaited<ReturnType<typeof rootClient>>,
   key: string,
 ): Promise<AppMonitorCacheListPage['data']> {
-  const page = await client.root<AppMonitorCacheListPage>('POST', `${AppRoutes.MONITOR_CACHE}/list`, {
-    filters: [{ field: 'key', op: 'eq', value: key }],
-    page: { page: 1, pageSize: 20 },
-  })
+  const page = await client.root<AppMonitorCacheListPage>(
+    'POST',
+    `${AppRoutes.MONITOR_CACHE}/list`,
+    {
+      filters: [{ field: 'key', op: 'eq', value: key }],
+      page: { page: 1, pageSize: 20 },
+    },
+  )
   return page.data
 }
 
-test('缓存清空后系统仍可用：控制器缓存被清并自动重建，设置/权限/菜单仍 20000', { tag: '@smoke' }, async () => {
-  const root = await rootClient()
+test(
+  '缓存清空后系统仍可用：控制器缓存被清并自动重建，设置/权限/菜单仍 20000',
+  { tag: '@smoke' },
+  async () => {
+    const root = await rootClient()
 
-  // 1. 预热 CONTROLLER 类型缓存：public 语言列表由 @WalnutAdminDecoratorCache 写 SYS_LANG_LIST_PUBLIC。
-  //    不依赖「admin 启动时恰好请求过」——显式读一次，把前置条件钉死在本用例内。
-  const langList = await root.root<unknown[]>('GET', SystemEndpointRoutes.LANG_LIST_PUBLIC)
-  expect(Array.isArray(langList), 'lang/list/public 应返回数组').toBe(true)
-  expect(langList.length, 'seed 至少应有一种语言').toBeGreaterThan(0)
+    // 1. 预热 CONTROLLER 类型缓存：public 语言列表由 @WalnutAdminDecoratorCache 写 SYS_LANG_LIST_PUBLIC。
+    //    不依赖「admin 启动时恰好请求过」——显式读一次，把前置条件钉死在本用例内。
+    const langList = await root.root<unknown[]>('GET', SystemEndpointRoutes.LANG_LIST_PUBLIC)
+    expect(Array.isArray(langList), 'lang/list/public 应返回数组').toBe(true)
+    expect(langList.length, 'seed 至少应有一种语言').toBeGreaterThan(0)
 
-  const warmed = await cacheRowsForKey(root, PUBLIC_LANG_CACHE_KEY)
-  expect(warmed.length, `${PUBLIC_LANG_CACHE_KEY} 没有被写入控制器缓存（@WalnutAdminDecoratorCache 失效？）`).toBe(1)
-  expect(warmed[0]!.type).toBe('controller')
+    const warmed = await cacheRowsForKey(root, PUBLIC_LANG_CACHE_KEY)
+    expect(
+      warmed.length,
+      `${PUBLIC_LANG_CACHE_KEY} 没有被写入控制器缓存（@WalnutAdminDecoratorCache 失效？）`,
+    ).toBe(1)
+    expect(warmed[0]!.type).toBe('controller')
 
-  // 2. 清空全部（admin 监控页「清空全部」按钮调用的同一端点）
-  await expect(
-    root.root<boolean>('DELETE', `${AppRoutes.MONITOR_CACHE}/clear`),
-    'cache/clear 应返回 true（有键被删）',
-  ).resolves.toBe(true)
+    // 2. 清空全部（admin 监控页「清空全部」按钮调用的同一端点）
+    await expect(
+      root.root<boolean>('DELETE', `${AppRoutes.MONITOR_CACHE}/clear`),
+      'cache/clear 应返回 true（有键被删）',
+    ).resolves.toBe(true)
 
-  // 3. 被清掉的控制器缓存消失；BUILT_IN 的 APP:SETTING 必须保留
-  expect(await cacheRowsForKey(root, PUBLIC_LANG_CACHE_KEY), 'clear 后控制器缓存不应还在').toHaveLength(0)
-  expect(
-    await cacheRowsForKey(root, APP_SETTING_CACHE_KEY),
-    'APP:SETTING 是 BUILT_IN，clear 不应删除（否则清缓存会把全局设置一起抹掉）',
-  ).toHaveLength(1)
+    // 3. 被清掉的控制器缓存消失；BUILT_IN 的 APP:SETTING 必须保留
+    expect(
+      await cacheRowsForKey(root, PUBLIC_LANG_CACHE_KEY),
+      'clear 后控制器缓存不应还在',
+    ).toHaveLength(0)
+    expect(
+      await cacheRowsForKey(root, APP_SETTING_CACHE_KEY),
+      'APP:SETTING 是 BUILT_IN，clear 不应删除（否则清缓存会把全局设置一起抹掉）',
+    ).toHaveLength(1)
 
-  // 4. 关键读腿仍可用：root() 对非 20000 直接抛错，这里再断言真实形状
-  const permissions = await root.root<PermissionsSnapshot>('GET', AuthRoutes.PERMISSIONS)
-  expect(Array.isArray(permissions.permissionMenuTree), 'clear 后 permissions 缺 permissionMenuTree').toBe(true)
-  expect(permissions.permissionMenuTree.length, 'clear 后 permissions 的菜单树为空').toBeGreaterThan(0)
-  expect(Array.isArray(permissions.permissionRouteTree), 'clear 后 permissions 缺 permissionRouteTree').toBe(true)
-  expect(permissions.permissionStrings.length, 'clear 后权限串为空').toBeGreaterThan(0)
+    // 4. 关键读腿仍可用：root() 对非 20000 直接抛错，这里再断言真实形状
+    const permissions = await root.root<PermissionsSnapshot>('GET', AuthRoutes.PERMISSIONS)
+    expect(
+      Array.isArray(permissions.permissionMenuTree),
+      'clear 后 permissions 缺 permissionMenuTree',
+    ).toBe(true)
+    expect(
+      permissions.permissionMenuTree.length,
+      'clear 后 permissions 的菜单树为空',
+    ).toBeGreaterThan(0)
+    expect(
+      Array.isArray(permissions.permissionRouteTree),
+      'clear 后 permissions 缺 permissionRouteTree',
+    ).toBe(true)
+    expect(permissions.permissionStrings.length, 'clear 后权限串为空').toBeGreaterThan(0)
 
-  const profile = await root.root<ProfileSnapshot>('GET', SystemEndpointRoutes.USER_ME_PROFILE)
-  expect(typeof profile.id, 'clear 后 profile 读不到 id').toBe('string')
-  expect(typeof profile.userName).toBe('string')
+    const profile = await root.root<ProfileSnapshot>('GET', SystemEndpointRoutes.USER_ME_PROFILE)
+    expect(typeof profile.id, 'clear 后 profile 读不到 id').toBe('string')
+    expect(typeof profile.userName).toBe('string')
 
-  const menuTree = await root.root<MenuTreeSnapshot>('GET', SystemEndpointRoutes.MENU_TREE)
-  expect(Array.isArray(menuTree.fullTree), 'clear 后 menu/tree 缺 fullTree').toBe(true)
-  expect(menuTree.fullTree.length, 'clear 后菜单树为空').toBeGreaterThan(0)
+    const menuTree = await root.root<MenuTreeSnapshot>('GET', SystemEndpointRoutes.MENU_TREE)
+    expect(Array.isArray(menuTree.fullTree), 'clear 后 menu/tree 缺 fullTree').toBe(true)
+    expect(menuTree.fullTree.length, 'clear 后菜单树为空').toBeGreaterThan(0)
 
-  // 5. 被清掉的控制器缓存按需重建：再读一次 public 语言列表，监控列表里应重新出现该键
-  const langListAfter = await root.root<unknown[]>('GET', SystemEndpointRoutes.LANG_LIST_PUBLIC)
-  expect(langListAfter.length, 'clear 后再次读取语言列表应仍有数据').toBeGreaterThan(0)
-  expect(
-    await cacheRowsForKey(root, PUBLIC_LANG_CACHE_KEY),
-    '清空后再次读取应重建控制器缓存（下一次请求不应一直穿透到数据源）',
-  ).toHaveLength(1)
-})
+    // 5. 被清掉的控制器缓存按需重建：再读一次 public 语言列表，监控列表里应重新出现该键
+    const langListAfter = await root.root<unknown[]>('GET', SystemEndpointRoutes.LANG_LIST_PUBLIC)
+    expect(langListAfter.length, 'clear 后再次读取语言列表应仍有数据').toBeGreaterThan(0)
+    expect(
+      await cacheRowsForKey(root, PUBLIC_LANG_CACHE_KEY),
+      '清空后再次读取应重建控制器缓存（下一次请求不应一直穿透到数据源）',
+    ).toHaveLength(1)
+  },
+)

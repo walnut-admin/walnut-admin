@@ -1,11 +1,5 @@
 import type { WalnutLockService } from '@walnut-server/lock'
-import {
-  CanActivate,
-  ExecutionContext,
-  Inject,
-  Injectable,
-  Logger,
-} from '@nestjs/common'
+import { CanActivate, ExecutionContext, Inject, Injectable, Logger } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { AppTechCacheCapService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
@@ -54,7 +48,7 @@ export class WalnutAdminGuardCap implements CanActivate {
     @Inject(WALNUT_ADMIN_LOCK) private readonly lockService: WalnutLockService,
     private readonly cacheCapService: AppTechCacheCapService,
     private readonly challengeStateService: SecurityRiskChallengeStateService,
-  ) { }
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const ctx = context.switchToHttp()
@@ -70,10 +64,10 @@ export class WalnutAdminGuardCap implements CanActivate {
       return true
     }
 
-    const capFree = this.reflector.getAllAndOverride<boolean>(
-      WalnutAdminConstDecoratorCapFreeKey,
-      [context.getHandler(), context.getClass()],
-    )
+    const capFree = this.reflector.getAllAndOverride<boolean>(WalnutAdminConstDecoratorCapFreeKey, [
+      context.getHandler(),
+      context.getClass(),
+    ])
 
     if (capFree) {
       this.logger.debug('Skipping CAP for endpoint')
@@ -111,10 +105,7 @@ export class WalnutAdminGuardCap implements CanActivate {
     // review CAP-4：`cookie-parser` 对「带 s: 前缀但签名错」的值返回 **false**（不是 undefined），
     // 所以「存在性」必须按**可用字符串**判，不能只判 isNil —— 否则 false 会一路走到
     // `createHash().update(false)` 抛 ERR_INVALID_ARG_TYPE，变成 HTTP 200 + body.code 50000。
-    const capToken = getWalnutAdminCookieString(
-      request,
-      WalnutAdminConstCookieKeys.CAPJS_TOKEN,
-    )
+    const capToken = getWalnutAdminCookieString(request, WalnutAdminConstCookieKeys.CAPJS_TOKEN)
 
     // --- Token 缺失（含签名错 / 空串的畸形 cookie）---
     if (isNil(capToken)) {
@@ -133,18 +124,13 @@ export class WalnutAdminGuardCap implements CanActivate {
 
     // deviceId 沿用旧读取器（返回 false 时只会退化成缓存键里的 "false"，不参与哈希）；
     // 判空退化登记为 P3 / CAP-9，本轮 P1 不改
-    const deviceId = getWalnutAdminCookie(
-      request,
-      WalnutAdminConstCookieKeys.DEVICE_ID,
-    )
+    const deviceId = getWalnutAdminCookie(request, WalnutAdminConstCookieKeys.DEVICE_ID)
 
     // --- Token 存在，校验有效性 ---
     const isValid = await this.validateCapToken(capToken, deviceId)
 
     if (!isValid) {
-      this.logger.warn(
-        `Invalid CAP token, shouldChallenge=${recommendation.shouldChallenge}`,
-      )
+      this.logger.warn(`Invalid CAP token, shouldChallenge=${recommendation.shouldChallenge}`)
 
       if (recommendation.shouldChallenge) {
         throw new WalnutAdminExceptionCapInteractionRequired() // 40116
@@ -211,8 +197,7 @@ export class WalnutAdminGuardCap implements CanActivate {
           return this.performCapVerification(capToken, deviceId)
         },
       )
-    }
-    catch (error: any) {
+    } catch (error: any) {
       this.logger.error(`CAP verification error: ${error}`)
       throw error
     }
@@ -249,9 +234,8 @@ export class WalnutAdminGuardCap implements CanActivate {
     let success: boolean
 
     try {
-      ({ success } = await AppCapJS.validateToken(capToken))
-    }
-    catch (error: any) {
+      ;({ success } = await AppCapJS.validateToken(capToken))
+    } catch (error: any) {
       this.logger.error(`CAP API call failed: ${error}`)
       return false
     }
@@ -295,7 +279,7 @@ export class WalnutAdminGuardCap implements CanActivate {
     // ============ 批量标记所有 critical factors ============
 
     // 使用新的通用 API，会自动判断因子类型
-    const promises = criticalFactors.map(async factor =>
+    const promises = criticalFactors.map(async (factor) =>
       this.challengeStateService.markChallengeHandled(
         factor,
         { deviceId, userId, ip: request.realIp }, // Pre Auth 时为 undefined，Post Auth 时有值
@@ -305,9 +289,9 @@ export class WalnutAdminGuardCap implements CanActivate {
     await Promise.all(promises)
 
     this.logger.log(
-      `Marked ${criticalFactors.length} critical factors as handled after CAP verification - `
-      + `Device: ${deviceId}, User: ${userId || 'N/A'}, `
-      + `Factors: [${criticalFactors.join(', ')}]`,
+      `Marked ${criticalFactors.length} critical factors as handled after CAP verification - ` +
+        `Device: ${deviceId}, User: ${userId || 'N/A'}, ` +
+        `Factors: [${criticalFactors.join(', ')}]`,
     )
   }
 }

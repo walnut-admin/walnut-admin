@@ -8,14 +8,18 @@ defineOptions({
   inheritAttrs: false,
 })
 
-const { transitionName = 'fade', mode = 'out-in', group = false, appear = false, duration = 300 } = defineProps<ICompExtraTransitionProps>()
+const {
+  transitionName = 'fade',
+  mode = 'out-in',
+  group = false,
+  appear = false,
+  duration = 300,
+} = defineProps<ICompExtraTransitionProps>()
 
 function getActiveClass(m: 'In' | 'Out') {
   const isDash = transitionName?.includes('-')
   if (isDash) {
-    return (
-      `animate__animated animate__${transitionName?.split('-')[0] + m + upperFirst(transitionName.split('-')[1])}`
-    )
+    return `animate__animated animate__${transitionName?.split('-')[0] + m + upperFirst(transitionName.split('-')[1])}`
   }
   return `animate__animated animate__${transitionName}${m}`
 }

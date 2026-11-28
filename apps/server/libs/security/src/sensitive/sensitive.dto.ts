@@ -1,5 +1,17 @@
-import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldNumber, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
-import { IWalnutAdminConstSecurityLevel, IWalnutAdminConstSecuritySensitiveType, IWalnutAdminConstVerifyMethod, WalnutAdminConstSecurityLevel, WalnutAdminConstSecuritySensitiveType, WalnutAdminConstVerifyMethod } from './sensitive.const'
+import {
+  WalnutAdminDecoratorFieldBoolean,
+  WalnutAdminDecoratorFieldEnum,
+  WalnutAdminDecoratorFieldNumber,
+  WalnutAdminDecoratorFieldString,
+} from '@walnut-server/decorators/field'
+import {
+  IWalnutAdminConstSecurityLevel,
+  IWalnutAdminConstSecuritySensitiveType,
+  IWalnutAdminConstVerifyMethod,
+  WalnutAdminConstSecurityLevel,
+  WalnutAdminConstSecuritySensitiveType,
+  WalnutAdminConstVerifyMethod,
+} from './sensitive.const'
 
 /**
  * 敏感操作检查的 wire 响应面。

@@ -24,7 +24,9 @@ const ENCRYPT_KEY_NAME = 'TEST_AES_KEY'
 const RAW_KEY = randomBytes(32)
 const KEY_B64 = RAW_KEY.toString('base64')
 
-function createService(overrides: Record<string, string | null | undefined> = {}): AppTechCryptoService {
+function createService(
+  overrides: Record<string, string | null | undefined> = {},
+): AppTechCryptoService {
   const values: Record<string, string | null | undefined> = {
     [ENCRYPT_KEY_NAME]: KEY_B64,
     ...overrides,
@@ -88,7 +90,7 @@ describe('appTechCryptoService', () => {
       const encrypted = service.encrypt('tamper me', ENCRYPT_KEY_NAME)
       const bytes = Buffer.from(encrypted, 'base64')
       // 改密文体里的一个字节（跳过 12 字节 IV）
-      bytes[12] ^= 0xFF
+      bytes[12] ^= 0xff
       const tampered = bytes.toString('base64')
 
       expect(() => service.decrypt(tampered, ENCRYPT_KEY_NAME)).toThrow()
@@ -97,9 +99,9 @@ describe('appTechCryptoService', () => {
     it('长度不足 iv + authTag 的输入直接抛错', () => {
       const service = createService()
 
-      expect(() => service.decrypt(Buffer.from('short').toString('base64'), ENCRYPT_KEY_NAME)).toThrow(
-        /too short/,
-      )
+      expect(() =>
+        service.decrypt(Buffer.from('short').toString('base64'), ENCRYPT_KEY_NAME),
+      ).toThrow(/too short/)
     })
   })
 

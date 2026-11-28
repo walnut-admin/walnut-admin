@@ -20,8 +20,8 @@ describe('parseRunArgs —— 选择与顺序', () => {
 
   it('selectCommands 永远按表里的顺序返回（命令行给的先后不作数）', () => {
     const picked = selectCommands(COMMANDS, ['lint:doc-ts', 'lint:adr'])
-    const ids = picked.map(command => command.id)
-    const at = (id: string): number => COMMANDS.findIndex(command => command.id === id)
+    const ids = picked.map((command) => command.id)
+    const at = (id: string): number => COMMANDS.findIndex((command) => command.id === id)
     expect(ids).toEqual(['lint:adr', 'lint:doc-ts'])
     expect(at('lint:adr')).toBeLessThan(at('lint:doc-ts'))
   })
@@ -106,8 +106,14 @@ describe('parseRunArgs —— 透传', () => {
     expect(seed.passthrough).toEqual(['--dry-run'])
 
     // 同理 --help / --list：命令后面的是命令的
-    expect(parseRunArgs(['scaffold:lib', '--help'], COMMANDS)).toMatchObject({ mode: 'run', passthrough: ['--help'] })
-    expect(parseRunArgs(['lint:adr', '--list'], COMMANDS)).toMatchObject({ mode: 'run', passthrough: ['--list'] })
+    expect(parseRunArgs(['scaffold:lib', '--help'], COMMANDS)).toMatchObject({
+      mode: 'run',
+      passthrough: ['--help'],
+    })
+    expect(parseRunArgs(['lint:adr', '--list'], COMMANDS)).toMatchObject({
+      mode: 'run',
+      passthrough: ['--list'],
+    })
 
     // 入口自己的仍然要写在命令之前
     expect(parseRunArgs(['--dry-run', 'lint:adr'], COMMANDS).dryRun).toBe(true)
@@ -115,9 +121,15 @@ describe('parseRunArgs —— 透传', () => {
   })
 
   it('多条命令 + 透传 ⇒ 前置条件错误（参数该给哪条是歧义）', () => {
-    expect(() => parseRunArgs(['lint:adr', 'lint:doc-ts', '--', 'x'], COMMANDS)).toThrow(PreconditionError)
-    expect(() => parseRunArgs(['lint:adr', 'lint:doc-ts', '--', 'x'], COMMANDS)).toThrow(/只允许选中一条命令/)
-    expect(() => parseRunArgs(['lint:adr', 'lint:doc-ts', '--cache-dir=x'], COMMANDS)).toThrow(/已经选中多条命令时不能再带参数/)
+    expect(() => parseRunArgs(['lint:adr', 'lint:doc-ts', '--', 'x'], COMMANDS)).toThrow(
+      PreconditionError,
+    )
+    expect(() => parseRunArgs(['lint:adr', 'lint:doc-ts', '--', 'x'], COMMANDS)).toThrow(
+      /只允许选中一条命令/,
+    )
+    expect(() => parseRunArgs(['lint:adr', 'lint:doc-ts', '--cache-dir=x'], COMMANDS)).toThrow(
+      /已经选中多条命令时不能再带参数/,
+    )
   })
 })
 

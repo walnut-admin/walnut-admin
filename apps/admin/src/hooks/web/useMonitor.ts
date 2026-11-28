@@ -30,11 +30,12 @@ const appStoreFingerprint = useAppStoreFingerprint()
  * 失败一律静默（仅 dev 下一条 `console.debug`）：心跳是旁观性上报，不能打断路由切换 /
  * 页面卸载，也不该给用户弹提示。
  */
-export function sendUserMonitorBeacon(data: Omit<Partial<AppMonitorUser>, 'userId'> & { userId?: string | null }) {
+export function sendUserMonitorBeacon(
+  data: Omit<Partial<AppMonitorUser>, 'userId'> & { userId?: string | null },
+) {
   const { httpUrl } = useAppEnvProxy()
 
-  if (data.currentRouter === layoutConst.root.path)
-    return
+  if (data.currentRouter === layoutConst.root.path) return
 
   // 只读：AT 就在 pinia state 里（启动时从持久化载入过一次），卸载期同步读取不触发 I/O，
   // 因此 beforeunload 里也一定读得到（未登录 / 已登出时为 null ⇒ 匿名心跳，服务端照常更新 focus/left）
@@ -42,8 +43,7 @@ export function sendUserMonitorBeacon(data: Omit<Partial<AppMonitorUser>, 'userI
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
 
-  if (token)
-    headers.Authorization = `Bearer ${token}`
+  if (token) headers.Authorization = `Bearer ${token}`
 
   void fetch(`${httpUrl}/app/monitor/user/state`, {
     method: 'POST',
@@ -57,8 +57,7 @@ export function sendUserMonitorBeacon(data: Omit<Partial<AppMonitorUser>, 'userI
       visitorId: appStoreFingerprint.getFingerprint,
     }),
   }).catch((error: unknown) => {
-    if (isDev())
-      console.debug('[monitor] user state beacon failed', error)
+    if (isDev()) console.debug('[monitor] user state beacon failed', error)
   })
 }
 

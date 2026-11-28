@@ -25,11 +25,10 @@ const localSearchInst = shallowRef()
 const geoCoderInst = shallowRef()
 
 const modalVisible = ref(false)
-const searchOptions = ref<{ label: string, value: string }[]>([])
+const searchOptions = ref<{ label: string; value: string }[]>([])
 
 async function initMap(lng: number, lat: number) {
-  if (mapInst.value)
-    return
+  if (mapInst.value) return
 
   const BMapGL = window.BMapGL
 
@@ -55,8 +54,7 @@ async function initMap(lng: number, lat: number) {
 
 function loadBMapGL(ak: string) {
   return new Promise((resolve, reject) => {
-    if (window.BMapGL?.Map)
-      return resolve(window.BMapGL)
+    if (window.BMapGL?.Map) return resolve(window.BMapGL)
 
     window.__onBMapLoaded = () => {
       delete window.__onBMapLoaded
@@ -71,14 +69,14 @@ function loadBMapGL(ak: string) {
   })
 }
 
-function doZoomAfterChoose(point: { lng: number, lat: number }) {
+function doZoomAfterChoose(point: { lng: number; lat: number }) {
   mapInst.value.centerAndZoom(point, 18)
 }
 
 function createMapClick(BMapGL: any) {
   geoCoderInst.value = new BMapGL.Geocoder()
 
-  function onMapClick(e: { type: string, latlng: { lng: number, lat: number } }) {
+  function onMapClick(e: { type: string; latlng: { lng: number; lat: number } }) {
     const pt = e.latlng
 
     mapInst.value.clearOverlays()
@@ -101,22 +99,24 @@ function createSearch(BMapGL: any) {
     renderOptions: { map: mapInst.value!, autoViewport: false, panel: null },
     onSearchComplete: (results: any) => {
       searchOptions.value = results.getPoi(0)
-        ? Array.from({ length: results.getNumPois() })
-          .map((_, i) => {
-            const poi = results.getPoi(i)
-            return poi
-              ? { label: `${poi.title} · ${poi.address}`, value: [poi.point.lng, poi.point.lat].join(',') }
-              : null
-          })
-          .filter(Boolean) as { label: string, value: string }[]
+        ? (Array.from({ length: results.getNumPois() })
+            .map((_, i) => {
+              const poi = results.getPoi(i)
+              return poi
+                ? {
+                    label: `${poi.title} · ${poi.address}`,
+                    value: [poi.point.lng, poi.point.lat].join(','),
+                  }
+                : null
+            })
+            .filter(Boolean) as { label: string; value: string }[])
         : []
     },
   })
 }
 
 function onSelect(lngLat: string) {
-  if (!lngLat)
-    return
+  if (!lngLat) return
 
   const pt = new window.BMapGL.Point(...lngLat.split(','))
   mapInst.value.clearOverlays()
@@ -124,7 +124,7 @@ function onSelect(lngLat: string) {
   mapInst.value.panTo(pt)
 
   modelValue.value = lngLat
-  addressValue.value = searchOptions.value.find(i => i.value === lngLat)?.label
+  addressValue.value = searchOptions.value.find((i) => i.value === lngLat)?.label
 
   doZoomAfterChoose(pt)
 }
@@ -169,7 +169,13 @@ tryOnScopeDispose(() => {
   <div>
     <n-input readonly :value="addressValue" @click="onOpen" />
 
-    <WModal v-model:show="modalVisible" :title="$t('comp.location.title')" width="80%" height="80%" display-directive="show">
+    <WModal
+      v-model:show="modalVisible"
+      :title="$t('comp.location.title')"
+      width="80%"
+      height="80%"
+      display-directive="show"
+    >
       <WSelect
         v-model:value="modelValue"
         :options="searchOptions"
@@ -188,6 +194,4 @@ tryOnScopeDispose(() => {
   </div>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>

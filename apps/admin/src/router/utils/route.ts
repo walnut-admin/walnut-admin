@@ -1,6 +1,10 @@
 import type { TreeNodeItem } from 'easy-fns-ts'
 
-import type { RouteRecordMultipleViewsWithChildren, RouteRecordNameGeneric, RouteRecordRaw } from 'vue-router'
+import type {
+  RouteRecordMultipleViewsWithChildren,
+  RouteRecordNameGeneric,
+  RouteRecordRaw,
+} from 'vue-router'
 import { findPath, formatTree } from 'easy-fns-ts'
 import { AppConstMenuTernal, AppConstMenuType } from '@/const/menu'
 import ParentComponent from '@/layout/default/TheContent'
@@ -41,14 +45,13 @@ const allViewModules = import.meta.glob('../../views/**/*.vue')
  * @description Util Function 4 - Resolve `views` dynamically base on `node.component` which equal to `path`
  */
 function resolveViewModules(component: string) {
-  if (!component)
-    return
+  if (!component) return
 
   const keys = Object.keys(allViewModules)
 
   // find the file location same index
   const index = keys.findIndex(
-    i => i.replace('../../views/', '').replace('.vue', '') === component,
+    (i) => i.replace('../../views/', '').replace('.vue', '') === component,
   )
 
   return allViewModules[keys[index]]
@@ -120,16 +123,15 @@ export function buildRoutes(payload: RouteRecordRaw[]) {
  * @description flat tree route into two level route
  * @link https://github.com/vuejs/vue-router-next/issues/626
  */
-function transformToTwoLevelRouteTree(routes: TreeNodeItem<RouteRecordMultipleViewsWithChildren>[]) {
+function transformToTwoLevelRouteTree(
+  routes: TreeNodeItem<RouteRecordMultipleViewsWithChildren>[],
+) {
   const transformedRouteTree: RouteRecordRaw[] = []
 
   // TODO mapTree
   formatTree(routes, (node) => {
     // findPath, it's an array
-    const paths = findPath(
-      routes,
-      n => n.name === node.name,
-    ) as RouteRecordRaw[]
+    const paths = findPath(routes, (n) => n.name === node.name) as RouteRecordRaw[]
 
     // only handle menu
     if (node.meta?.type === AppConstMenuType.MENU) {
@@ -143,12 +145,11 @@ function transformToTwoLevelRouteTree(routes: TreeNodeItem<RouteRecordMultipleVi
                 : `/${prev.path}/${next.path}`,
               meta: next.meta,
               component: next.component,
-            } as RouteRecordRaw),
+            }) as RouteRecordRaw,
         )
 
         transformedRouteTree.push(newNode)
-      }
-      else if (!node.children) {
+      } else if (!node.children) {
         // add `/` prefix when no children
         transformedRouteTree.push({ ...node, path: `/${node.path}` })
       }

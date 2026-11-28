@@ -47,14 +47,12 @@ export function checkGitHooks(repoRoot: string = REPO_ROOT): HookCheckResult {
     let content = ''
     try {
       content = fs.readFileSync(file, 'utf8')
-    }
-    catch {
+    } catch {
       missing.push(hook)
       continue
     }
     // 内容里必须出现 lefthook 的标记；simple-git-hooks 写的钩子含 'SIMPLE_GIT_HOOKS' 而不含 LEFTHOOK
-    if (!content.toUpperCase().includes(LEFTHOOK_MARKER))
-      unmanaged.push(hook)
+    if (!content.toUpperCase().includes(LEFTHOOK_MARKER)) unmanaged.push(hook)
   }
 
   if (missing.length === 0 && unmanaged.length === 0) {
@@ -65,7 +63,9 @@ export function checkGitHooks(repoRoot: string = REPO_ROOT): HookCheckResult {
   if (missing.length > 0)
     lines.push(`❌ 缺失的钩子文件：${missing.join(' / ')}（路径 ${hooksDir}）`)
   if (unmanaged.length > 0)
-    lines.push(`❌ 不是 lefthook 托管的钩子（内容里没有 ${LEFTHOOK_MARKER} 标记）：${unmanaged.join(' / ')}`)
+    lines.push(
+      `❌ 不是 lefthook 托管的钩子（内容里没有 ${LEFTHOOK_MARKER} 标记）：${unmanaged.join(' / ')}`,
+    )
   lines.push('')
   lines.push('  为什么这会静默丢掉门禁：lefthook 的 postinstall 就是 `lefthook install`，而')
   lines.push('  pnpm 12 默认不跑依赖的构建脚本；本仓 strictDepBuilds: false 只会告警、不阻断安装。')
@@ -76,9 +76,7 @@ export function checkGitHooks(repoRoot: string = REPO_ROOT): HookCheckResult {
 
 export function main(): void {
   const result = checkGitHooks()
-  for (const line of result.lines)
-    out(line)
+  for (const line of result.lines) out(line)
   // 明细（哪些钩子没托管、为什么、怎么修）由 `checkGitHooks()` 组织好；**结论这一句**统一由 `runCli` 打
-  if (!result.ok)
-    throw new ViolationError('git 钩子不是 lefthook 托管的（明细见上）')
+  if (!result.ok) throw new ViolationError('git 钩子不是 lefthook 托管的（明细见上）')
 }

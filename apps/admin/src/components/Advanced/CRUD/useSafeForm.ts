@@ -17,8 +17,7 @@ export function useSafeForm<T extends { id: string }>(
   const getTempStorage = computed(() => toRaw(tempStorageMap.value.get(getStorageKey.value)))
 
   const getIsFormModified = computed(() => {
-    if (!props.value.safeForm)
-      return false
+    if (!props.value.safeForm) return false
     const newData = getTempStorage.value
     const initData = toRaw(freezeInitStorageMap.value.get(getStorageKey.value))
     return !isEqual(newData, initData)
@@ -42,8 +41,7 @@ export function useSafeForm<T extends { id: string }>(
   watch(
     () => getWantedFormData.value,
     async (newV) => {
-      if (!newV)
-        return
+      if (!newV) return
 
       if (Object.keys(newV).length) {
         tempStorageMap.value.set(getStorageKey.value, newV)

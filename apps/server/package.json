@@ -3,22 +3,19 @@
   "version": "0.1.24",
   "private": true,
   "description": "An admin template, using `vue3`,`ts`,`vite`,`naive-ui`. Continuously updating...",
+  "homepage": "https://github.com/walnut-admin",
+  "bugs": {
+    "url": "https://github.com/walnut-admin/walnut-admin-server/issues"
+  },
+  "license": "MIT",
   "author": {
     "name": "zhaocl97",
     "email": "zhaocl97@foxmail.com",
     "url": "https://github.com/Zhaocl1997"
   },
-  "config": {
-    "domain": "walnut-admin.com"
-  },
-  "license": "MIT",
-  "homepage": "https://github.com/walnut-admin",
   "repository": {
     "type": "git",
     "url": "https://github.com/walnut-admin/walnut-admin.git"
-  },
-  "bugs": {
-    "url": "https://github.com/walnut-admin/walnut-admin-server/issues"
   },
   "scripts": {
     "build": "cross-env NODE_ENV=production nest build api -c infra/nest/prod.json && node infra/scripts/verify-build-assets.ts dist",
@@ -41,12 +38,12 @@
     "openapi:check:export": "pnpm openapi:export && git diff --exit-code -- openapi.json",
     "openapi:check:schema": "pnpm openapi:generate && git diff --exit-code -- ../../packages/generated/api-types/src/schema.d.ts",
     "openapi:check": "pnpm openapi:check:export && pnpm openapi:check:schema",
-    "types:check": "tsc --noEmit --pretty",
+    "types:check": "tsrs --noEmit --pretty",
     "typecheck:watch": "tsc --noEmit --watch",
     "test": "vitest run --config ./apps/api/vitest.config.ts",
     "test:watch": "vitest --config ./apps/api/vitest.config.ts",
     "test:cov": "vitest run --config ./apps/api/vitest.config.ts --coverage",
-    "test:debug": "vitest --inspect-brk --inspect --logHeapUsage --threads=false --config ./apps/api/vitest.config.ts",
+    "test:debug": "vitest --inspect-brk --inspect --logHeapUsage --no-file-parallelism --config ./apps/api/vitest.config.ts",
     "test:e2e": "vitest run --config ./apps/api/vitest.config.e2e.ts",
     "test:integration": "vitest run --config ./apps/api/vitest.config.integration.ts",
     "gen:doc": "compodoc -p tsconfig.json -d .tmp/compodoc --hideGenerator",
@@ -118,7 +115,6 @@
     "passport-oauth2": "catalog:",
     "pg": "catalog:",
     "qrcode": "catalog:",
-    "raw-body": "catalog:",
     "redis": "catalog:",
     "reflect-metadata": "catalog:",
     "response-time": "catalog:",
@@ -126,7 +122,6 @@
     "serve-favicon": "catalog:",
     "socket.io": "catalog:",
     "systeminformation": "catalog:",
-    "tencentcloud-sdk-nodejs": "catalog:",
     "tinyglobby": "catalog:",
     "typeorm": "catalog:",
     "ua-parser-js": "catalog:",
@@ -163,10 +158,14 @@
     "eslint": "catalog:",
     "madge": "catalog:",
     "supertest": "catalog:",
+    "tsrs": "catalog:",
     "typescript": "catalog:",
     "unplugin-swc": "catalog:",
     "vite-tsconfig-paths": "catalog:",
     "vitest": "catalog:"
+  },
+  "config": {
+    "domain": "walnut-admin.com"
   },
   "engines": {
     "node": ">=24.15.0",

@@ -18,15 +18,12 @@ const keyField = 'filePath'
 
 const { t } = useAppI18n()
 
-const [
-  register,
-  { onApiList, onReadAndOpenUpdateForm, onGetFormData },
-] = useCRUD<AppLogger>({
+const [register, { onApiList, onReadAndOpenUpdateForm, onGetFormData }] = useCRUD<AppLogger>({
   baseAPI: appLoggerAPI,
 
   tableProps: {
     localeUniqueKey: localeKey,
-    rowKey: row => row[keyField]!,
+    rowKey: (row) => row[keyField]!,
     striped: true,
     bordered: true,
     singleLine: false,
@@ -89,7 +86,7 @@ const [
         },
         filter: true,
         filterMultiple: false,
-        filterOptions: ['application', 'error'].map(i => ({
+        filterOptions: ['application', 'error'].map((i) => ({
           value: i,
           label: i,
         })),
@@ -141,13 +138,7 @@ const [
         },
         componentProp: {
           render({ formData }) {
-            return (
-              <AppLoggerLog
-                keyField={keyField}
-                formData={formData}
-              >
-              </AppLoggerLog>
-            )
+            return <AppLoggerLog keyField={keyField} formData={formData}></AppLoggerLog>
           },
         },
       },

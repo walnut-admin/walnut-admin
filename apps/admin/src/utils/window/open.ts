@@ -11,8 +11,7 @@ export function openExternalLink(url: string, safe = false, target: '_blank' | '
       target,
       'noopener=yes, noreferrer=yes',
     )
-  }
-  else {
+  } else {
     window.open(url, target, 'noopener=yes, noreferrer=yes')
   }
 }

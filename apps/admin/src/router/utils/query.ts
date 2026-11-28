@@ -8,8 +8,7 @@ export function stringifyQuery(obj?: LocationQueryRaw) {
 export function parseQuery(query: string) {
   try {
     return qs.parse(query) as LocationQuery
-  }
-  catch (error) {
+  } catch (error) {
     console.warn('Query parse failed, fallback to empty', error)
     return {} as LocationQuery
   }

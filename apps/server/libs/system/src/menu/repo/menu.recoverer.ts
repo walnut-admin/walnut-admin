@@ -1,8 +1,14 @@
-import type { IWalnutAdminRecoverableRecoverer, WalnutAdminRecoverableRegistry } from '@walnut-server/repository'
+import type {
+  IWalnutAdminRecoverableRecoverer,
+  WalnutAdminRecoverableRegistry,
+} from '@walnut-server/repository'
 import type { EntityManager } from 'typeorm'
 import { WalnutModelName } from '@walnut-server/db'
 import { createWalnutAdminRecoverableRegistrar } from '@walnut-server/repository'
-import { readStringField, replayLocaleSnapshotsByKey } from '../../deleted/repo/cascade-snapshot.replayer'
+import {
+  readStringField,
+  replayLocaleSnapshotsByKey,
+} from '../../deleted/repo/cascade-snapshot.replayer'
 import { SysMenuEntity } from '../entity/menu.entity'
 
 /**
@@ -32,4 +38,6 @@ export function registerSysMenuRecoverable(registry: WalnutAdminRecoverableRegis
   })
 }
 
-export const sysMenuRecoverableProvider = createWalnutAdminRecoverableRegistrar(registerSysMenuRecoverable)
+export const sysMenuRecoverableProvider = createWalnutAdminRecoverableRegistrar(
+  registerSysMenuRecoverable,
+)

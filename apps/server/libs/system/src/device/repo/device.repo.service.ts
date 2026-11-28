@@ -27,7 +27,7 @@ export class SysDeviceRepositoryService {
 
     private readonly cacheDeviceService: AppTechCacheDeviceService,
     private readonly sharedIpService: SharedIpService,
-  ) { }
+  ) {}
 
   private getRepository(em?: EntityManager) {
     return (em ?? this.dataSource.manager).getRepository(SysDeviceEntity)
@@ -126,7 +126,7 @@ export class SysDeviceRepositoryService {
     // 缺陷）。这里按两种形状归一，不赌驱动版本。
     const rows = (Array.isArray(raw[0]) ? raw[0] : raw) as Array<{ device_id: string }>
 
-    return rows.map(row => row.device_id)
+    return rows.map((row) => row.device_id)
   }
 
   /**
@@ -148,7 +148,11 @@ export class SysDeviceRepositoryService {
    * @description find device by device id and update
    * （Mongo 版 findOneAndUpdate + returnDocument: 'after' → 找到即赋值保存，返回更新后行）
    */
-  async findDeviceByDeviceIdAndUpdate(deviceId: string, update: Partial<SysDeviceEntity>, em?: EntityManager) {
+  async findDeviceByDeviceIdAndUpdate(
+    deviceId: string,
+    update: Partial<SysDeviceEntity>,
+    em?: EntityManager,
+  ) {
     const repository = this.getRepository(em)
 
     const target = await repository.findOne({ where: { deviceId } })
@@ -197,11 +201,7 @@ export class SysDeviceRepositoryService {
    * @param deviceId - Device ID
    * @param ip - 新的 IP address
    */
-  async updateIpAndLocation(
-    deviceId: string,
-    ip: string,
-    em?: EntityManager,
-  ) {
+  async updateIpAndLocation(deviceId: string, ip: string, em?: EntityManager) {
     const repository = this.getRepository(em)
 
     const device = await repository.findOne({ where: { deviceId } })
@@ -227,8 +227,7 @@ export class SysDeviceRepositoryService {
         location: location as unknown as Record<string, unknown>,
         timestamp: AppDayjs().valueOf(),
       }
-    }
-    else {
+    } else {
       // 新 IP，添加到历史记录
       device.ipHistory.push(ip)
       device.locationHistory.push({

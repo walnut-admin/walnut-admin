@@ -10,7 +10,7 @@ defineOptions({
 
 const props = withDefaults(defineProps<ICompUIInputProps>(), {})
 
-const emits = defineEmits<{ click: [e: MouseEvent], keyupEnter: [e: KeyboardEvent] }>()
+const emits = defineEmits<{ click: [e: MouseEvent]; keyupEnter: [e: KeyboardEvent] }>()
 
 const inputRef = useTemplateRef<InputInst>('inputRef')
 
@@ -43,7 +43,12 @@ defineExpose({
 </script>
 
 <template>
-  <n-input v-model:value="inputValue" @update:value="onInputValue" @click="onClick" @keyup.enter="onKeyupEnter">
+  <n-input
+    v-model:value="inputValue"
+    @update:value="onInputValue"
+    @click="onClick"
+    @keyup.enter="onKeyupEnter"
+  >
     <template #prefix>
       <div v-if="prefix" :class="prefixClass">
         {{ prefix }}
@@ -57,7 +62,11 @@ defineExpose({
         {{ suffix }}
       </div>
       <WIcon v-else-if="suffixIcon" :icon="suffixIcon" />
-      <div v-else-if="copiable" class="flex flex-row flex-nowrap items-center justify-center" @click.prevent.stop>
+      <div
+        v-else-if="copiable"
+        class="flex flex-row flex-nowrap items-center justify-center"
+        @click.prevent.stop
+      >
         <WCopy icon :source="inputValue" />
       </div>
       <WMessage v-else-if="helpMessage" :msg="helpMessage" />

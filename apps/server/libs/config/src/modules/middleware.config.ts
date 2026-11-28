@@ -29,8 +29,8 @@ const pkg = getPackageJsonData()
 const DEV_ALLOW_ORIGIN_HOSTS = ['127.0.0.1', 'localhost'] as const
 const DEV_ALLOW_ORIGIN_PORTS = [3100, 3000, 8886, 4173] as const
 
-const DEV_ALLOW_ORIGINS: string[] = DEV_ALLOW_ORIGIN_HOSTS.flatMap(host =>
-  DEV_ALLOW_ORIGIN_PORTS.flatMap(port => [`http://${host}:${port}`, `https://${host}:${port}`]),
+const DEV_ALLOW_ORIGINS: string[] = DEV_ALLOW_ORIGIN_HOSTS.flatMap((host) =>
+  DEV_ALLOW_ORIGIN_PORTS.flatMap((port) => [`http://${host}:${port}`, `https://${host}:${port}`]),
 )
 
 /**
@@ -40,11 +40,22 @@ const DEV_ALLOW_ORIGINS: string[] = DEV_ALLOW_ORIGIN_HOSTS.flatMap(host =>
 function readAllowOriginOverride() {
   return (process.env.APP_CORS_ALLOW_ORIGINS ?? '')
     .split(',')
-    .map(origin => origin.trim())
-    .filter(origin => origin.length > 0)
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0)
 }
 
-function resolveAllowOrigin() {
+/**
+ * 本配置依赖的运行环境判定。
+ *
+ * 为什么不直接读模块求值常量：`isProd` 在 import 时就定死，vitest `isolate: false` 下
+ * 模块图跨文件共享，`vi.mock` 换不掉已被求值的模块。把环境作为工厂参数注入后，单测按用例
+ * 声明环境，生产调用方走默认值（= 真实 isProd，行为零变化）。
+ */
+export interface IWalnutAdminMiddlewareConfigEnv {
+  isProd: boolean
+}
+
+function resolveAllowOrigin(isProd: boolean) {
   const override = readAllowOriginOverride()
 
   if (override.length > 0) {
@@ -52,43 +63,50 @@ function resolveAllowOrigin() {
   }
 
   // 生产：单源（www 域），与改造前一致；dev / stage：本地白名单
-  return isProd
-    ? `https://www.${(pkg.config as Recordable).domain as string}`
-    : DEV_ALLOW_ORIGINS
+  return isProd ? `https://www.${(pkg.config as Recordable).domain as string}` : DEV_ALLOW_ORIGINS
 }
 
-export default registerAs('middleware', () => ({
-  cors: {
-    allowMethod: [
-      WalnutAdminConstAppHTTPMethods.GET,
-      WalnutAdminConstAppHTTPMethods.POST,
-      WalnutAdminConstAppHTTPMethods.DELETE,
-      WalnutAdminConstAppHTTPMethods.PUT,
-      WalnutAdminConstAppHTTPMethods.PATCH,
-    ],
+/**
+ * 配置体构建器（导出供单测注入环境；`registerAs` 只是它的生产调用方）。
+ */
+export function buildMiddlewareConfig(
+  env: IWalnutAdminMiddlewareConfigEnv = { isProd },
+): Recordable {
+  return {
+    cors: {
+      allowMethod: [
+        WalnutAdminConstAppHTTPMethods.GET,
+        WalnutAdminConstAppHTTPMethods.POST,
+        WalnutAdminConstAppHTTPMethods.DELETE,
+        WalnutAdminConstAppHTTPMethods.PUT,
+        WalnutAdminConstAppHTTPMethods.PATCH,
+      ],
 
-    allowOrigin: resolveAllowOrigin(),
+      allowOrigin: resolveAllowOrigin(env.isProd),
 
-    allowHeader: [
-      'Accept',
-      'Accept-Language',
-      'Content-Language',
-      'Content-Type',
-      'Origin',
-      'Authorization',
-      'Access-Control-Request-Method',
-      'Access-Control-Request-Headers',
-      'Access-Control-Allow-Headers',
-      'Access-Control-Allow-Origin',
-      'Access-Control-Allow-Methods',
-      'Access-Control-Allow-Credentials',
-      'Access-Control-Expose-Headers',
-      'Access-Control-Max-Age',
-      'Referer',
-      'Host',
-      'X-Requested-With',
-      'X-Content-Type-Options',
-      ...Object.values(RequestHeaders),
-    ],
-  },
-}))
+      allowHeader: [
+        'Accept',
+        'Accept-Language',
+        'Content-Language',
+        'Content-Type',
+        'Origin',
+        'Authorization',
+        'Access-Control-Request-Method',
+        'Access-Control-Request-Headers',
+        'Access-Control-Allow-Headers',
+        'Access-Control-Allow-Origin',
+        'Access-Control-Allow-Methods',
+        'Access-Control-Allow-Credentials',
+        'Access-Control-Expose-Headers',
+        'Access-Control-Max-Age',
+        'Referer',
+        'Host',
+        'X-Requested-With',
+        'X-Content-Type-Options',
+        ...Object.values(RequestHeaders),
+      ],
+    },
+  }
+}
+
+export default registerAs('middleware', () => buildMiddlewareConfig())

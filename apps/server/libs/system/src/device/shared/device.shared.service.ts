@@ -14,7 +14,7 @@ export class SysDeviceSharedService {
   constructor(
     private readonly sysDeviceRepoService: SysDeviceRepositoryService,
     private readonly cacheDeviceService: AppTechCacheDeviceService,
-  ) { }
+  ) {}
 
   /**
    * @description update device active status
@@ -41,9 +41,7 @@ export class SysDeviceSharedService {
   /**
    * 获取设备的 IP 位置历史
    */
-  async getIpLocationHistory(
-    deviceId: string,
-  ): Promise<IDeviceLocationHistoryItem[]> {
+  async getIpLocationHistory(deviceId: string): Promise<IDeviceLocationHistoryItem[]> {
     return this.sysDeviceRepoService.getDeviceLocationHistory(deviceId)
   }
 
@@ -79,8 +77,8 @@ export class SysDeviceSharedService {
     const latest = history.at(-1) as IDeviceLocationHistoryItem
     const previous = history[history.length - 2]
 
-    const latestLocation = (latest.location ?? {})
-    const previousLocation = (previous.location ?? {})
+    const latestLocation = latest.location ?? {}
+    const previousLocation = previous.location ?? {}
 
     let hasJump = false
 
@@ -89,15 +87,15 @@ export class SysDeviceSharedService {
         hasJump = latestLocation.country !== previousLocation.country
         break
       case 'region':
-        hasJump
-          = latestLocation.country !== previousLocation.country
-            || latestLocation.region !== previousLocation.region
+        hasJump =
+          latestLocation.country !== previousLocation.country ||
+          latestLocation.region !== previousLocation.region
         break
       case 'city':
-        hasJump
-          = latestLocation.country !== previousLocation.country
-            || latestLocation.region !== previousLocation.region
-            || latestLocation.city !== previousLocation.city
+        hasJump =
+          latestLocation.country !== previousLocation.country ||
+          latestLocation.region !== previousLocation.region ||
+          latestLocation.city !== previousLocation.city
         break
     }
 

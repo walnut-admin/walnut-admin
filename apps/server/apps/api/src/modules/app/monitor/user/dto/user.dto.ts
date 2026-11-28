@@ -25,7 +25,11 @@ import { SysUserDTOSafe } from '@/modules/system/user/dto/user.dto'
 
 // Virutal
 
-export class AppMonitorUserDTO extends IntersectionType(AppMonitorUserDTOBase, WalnutAdminVirtualUserDTO, WalnutAdminVirtualDeviceDTO) {
+export class AppMonitorUserDTO extends IntersectionType(
+  AppMonitorUserDTOBase,
+  WalnutAdminVirtualUserDTO,
+  WalnutAdminVirtualDeviceDTO,
+) {
   constructor(partial: Partial<AppMonitorUserDTO>) {
     super()
     Object.assign(this, partial)
@@ -106,9 +110,15 @@ class AppMonitorUserDTOVisitorIdRequestPayload {
 // 批次 8 / B6 起它的语义收窄为**校验字段**：与「本设备那一行已存的 visitorId」不一致
 // ⇒ 40099 拒绝（见 AppMonitorUserService.updateState）。
 export class AppMonitorUserDTOUpdateState extends IntersectionType(
-  RealPickType(RealPartialType(AppMonitorUserDTO), ['userId', 'auth', 'focus', 'left', 'currentRouter'] as const),
+  RealPickType(RealPartialType(AppMonitorUserDTO), [
+    'userId',
+    'auth',
+    'focus',
+    'left',
+    'currentRouter',
+  ] as const),
   AppMonitorUserDTOVisitorIdRequestPayload,
-) { }
+) {}
 
 class AppMonitorUserDTORequest extends IntersectionType(
   RealPartialType(AppMonitorUserDTO),
@@ -139,11 +149,14 @@ class AppMonitorUserDTORequest extends IntersectionType(
 // 才是创建/更新列），排除基座同名假列；firstVisitAt 有 api-spec 断言（monitor-user
 // api-spec firstVisitAt ascend），lastActiveAt 是 admin 列表默认排序
 // （views/app/monitor/user defaultSortOrder descend；无索引 → 见报告建议补索引）
-export class AppMonitorUserDTOListRequest extends CreateWalnutAdminRequestListDTO(AppMonitorUserDTORequest, { sortOnlyIn: ['firstVisitAt', 'lastActiveAt'] }) { }
+export class AppMonitorUserDTOListRequest extends CreateWalnutAdminRequestListDTO(
+  AppMonitorUserDTORequest,
+  { sortOnlyIn: ['firstVisitAt', 'lastActiveAt'] },
+) {}
 
 export class AppMonitorUserDTOListResponse extends CreateWalnutAdminResponseListDTO(
   RealPartialType(AppMonitorUserDTO),
-) { }
+) {}
 
 // read
 export class AppMonitorUserDTOReadResponse extends AppMonitorUserDTO {}

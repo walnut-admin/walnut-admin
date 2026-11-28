@@ -40,8 +40,7 @@ export async function decryptRouterUrl(value: string) {
     }
 
     return plaintext
-  }
-  catch (error) {
+  } catch (error) {
     console.warn('Url decryption failed, fallback to empty', error)
     await useAppRouterPush({ name: layoutConst.notFound.name })
     return null

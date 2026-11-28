@@ -1,4 +1,4 @@
-"@walnut/admin@0.1.0":
+'@walnut/admin@0.1.0':
   dir: apps/admin
   intents:
     - afraid-grapes-love
@@ -50,15 +50,15 @@
     - wide-bears-wait
     - wide-pigs-agree
     - young-seals-visit
-"@walnut/admin@0.1.24":
+'@walnut/admin@0.1.24':
   dir: apps/admin
   intents:
     - slow-wolves-whisper
-"@walnut/admin@0.1.5":
+'@walnut/admin@0.1.5':
   dir: apps/admin
   intents:
     - great-trains-retire
-"@walnut/client@0.1.0":
+'@walnut/client@0.1.0':
   dir: packages/platform-web/client
   intents:
     - afraid-trains-marry
@@ -67,7 +67,7 @@
     - shaggy-pens-attack
     - shaggy-rabbits-repair
     - slow-lamps-fry
-"@walnut/commitlint-config@0.1.0":
+'@walnut/commitlint-config@0.1.0':
   dir: packages/tooling/commitlint-config
   intents:
     - fluffy-peaches-clean
@@ -76,7 +76,7 @@
     - neat-bears-roll
     - shaggy-pens-attack
     - shaggy-rabbits-repair
-"@walnut/contract@0.1.0":
+'@walnut/contract@0.1.0':
   dir: packages/platform-any/contract
   intents:
     - big-dogs-care
@@ -86,7 +86,7 @@
     - real-snakes-carry
     - shaggy-pens-attack
     - slow-lamps-fry
-"@walnut/docs@0.1.0":
+'@walnut/docs@0.1.0':
   dir: apps/docs
   intents:
     - afraid-grapes-love
@@ -132,16 +132,16 @@
     - young-olives-occur
     - young-seals-visit
     - young-trees-rest
-"@walnut/docs@0.1.1":
+'@walnut/docs@0.1.1':
   dir: apps/docs
   intents:
     - big-cats-cry
     - sharp-jobs-try
-"@walnut/docs@0.1.7":
+'@walnut/docs@0.1.7':
   dir: apps/docs
   intents:
     - mean-grapes-ring
-"@walnut/eslint-config@0.1.0":
+'@walnut/eslint-config@0.1.0':
   dir: packages/tooling/eslint-config
   intents:
     - rare-worms-decide
@@ -150,13 +150,13 @@
     - strong-cups-join
     - wet-cats-know
     - wicked-olives-remember
-"@walnut/http@0.1.0":
+'@walnut/http@0.1.0':
   dir: packages/platform-web/http
   intents:
     - clean-roses-cough
     - famous-frogs-juggle
     - shaggy-pens-attack
-"@walnut/release@0.1.0":
+'@walnut/release@0.1.0':
   dir: packages/tooling/release
   intents:
     - brave-bats-care
@@ -182,18 +182,18 @@
     - thick-swans-joke
     - tough-mugs-judge
     - wet-cats-know
-"@walnut/release@0.1.1":
+'@walnut/release@0.1.1':
   dir: packages/tooling/release
   intents:
     - big-cats-cry
     - sharp-jobs-try
     - silly-books-wonder
-"@walnut/release@0.1.7":
+'@walnut/release@0.1.7':
   dir: packages/tooling/release
   intents:
     - mean-grapes-ring
     - strong-kids-whisper
-"@walnut/scripts@0.1.0":
+'@walnut/scripts@0.1.0':
   dir: packages/tooling/scripts
   intents:
     - afraid-grapes-love
@@ -229,90 +229,90 @@
     - thin-waves-pump
     - tough-mugs-judge
     - wet-cats-know
-"@walnut/scripts@0.1.1":
+'@walnut/scripts@0.1.1':
   dir: packages/tooling/scripts
   intents:
     - neat-ducks-change
-"@walnut/scripts@0.1.10":
+'@walnut/scripts@0.1.10':
   dir: packages/tooling/scripts
   intents:
     - dry-insects-help
-"@walnut/scripts@0.1.11":
+'@walnut/scripts@0.1.11':
   dir: packages/tooling/scripts
   intents:
     - sweet-spiders-watch
-"@walnut/scripts@0.1.12":
+'@walnut/scripts@0.1.12':
   dir: packages/tooling/scripts
   intents:
     - afraid-bats-guess
-"@walnut/scripts@0.1.13":
+'@walnut/scripts@0.1.13':
   dir: packages/tooling/scripts
   intents:
     - fast-cows-decide
-"@walnut/scripts@0.1.14":
+'@walnut/scripts@0.1.14':
   dir: packages/tooling/scripts
   intents:
     - mean-horses-fry
-"@walnut/scripts@0.1.15":
+'@walnut/scripts@0.1.15':
   dir: packages/tooling/scripts
   intents:
     - real-bats-hide
-"@walnut/scripts@0.1.16":
+'@walnut/scripts@0.1.16':
   dir: packages/tooling/scripts
   intents:
     - dry-cats-hope
-"@walnut/scripts@0.1.17":
+'@walnut/scripts@0.1.17':
   dir: packages/tooling/scripts
   intents:
     - quick-knives-lie
-"@walnut/scripts@0.1.18":
+'@walnut/scripts@0.1.18':
   dir: packages/tooling/scripts
   intents:
     - loud-deers-grin
-"@walnut/scripts@0.1.19":
+'@walnut/scripts@0.1.19':
   dir: packages/tooling/scripts
   intents:
     - soft-poets-press
-"@walnut/scripts@0.1.2":
+'@walnut/scripts@0.1.2':
   dir: packages/tooling/scripts
   intents:
     - good-deers-judge
-"@walnut/scripts@0.1.20":
+'@walnut/scripts@0.1.20':
   dir: packages/tooling/scripts
   intents:
     - new-rabbits-play
-"@walnut/scripts@0.1.21":
+'@walnut/scripts@0.1.21':
   dir: packages/tooling/scripts
   intents:
     - tame-beans-grow
-"@walnut/scripts@0.1.22":
+'@walnut/scripts@0.1.22':
   dir: packages/tooling/scripts
   intents:
     - empty-clouds-start
-"@walnut/scripts@0.1.23":
+'@walnut/scripts@0.1.23':
   dir: packages/tooling/scripts
   intents:
     - khaki-kids-dig
-"@walnut/scripts@0.1.24":
+'@walnut/scripts@0.1.24':
   dir: packages/tooling/scripts
   intents:
     - lucky-wolves-beg
-"@walnut/scripts@0.1.3":
+'@walnut/scripts@0.1.3':
   dir: packages/tooling/scripts
   intents:
     - breezy-seals-fly
     - early-eels-punch
     - quick-elephants-give
-"@walnut/scripts@0.1.4":
+'@walnut/scripts@0.1.4':
   dir: packages/tooling/scripts
   intents:
     - afraid-squids-repair
     - polite-houses-sip
-"@walnut/scripts@0.1.6":
+'@walnut/scripts@0.1.6':
   dir: packages/tooling/scripts
   intents:
     - young-tables-sell
-"@walnut/scripts@0.1.7":
+'@walnut/scripts@0.1.7':
   dir: packages/tooling/scripts
   intents:
     - clever-mice-own
@@ -321,15 +321,15 @@
     - mean-grapes-ring
     - real-beans-tap
     - soft-ravens-cheat
-"@walnut/scripts@0.1.8":
+'@walnut/scripts@0.1.8':
   dir: packages/tooling/scripts
   intents:
     - new-swans-hammer
-"@walnut/scripts@0.1.9":
+'@walnut/scripts@0.1.9':
   dir: packages/tooling/scripts
   intents:
     - bright-crabs-switch
-"@walnut/server@0.1.0":
+'@walnut/server@0.1.0':
   dir: apps/server
   intents:
     - afraid-grapes-love
@@ -375,21 +375,21 @@
     - wet-cats-know
     - wide-pigs-agree
     - young-seals-visit
-"@walnut/tsconfig@0.1.0":
+'@walnut/tsconfig@0.1.0':
   dir: packages/tooling/tsconfig
   intents:
     - famous-frogs-juggle
     - shaggy-pens-attack
     - slow-lamps-fry
     - thick-swans-joke
-"@walnut/types@0.1.0":
+'@walnut/types@0.1.0':
   dir: packages/platform-any/types
   intents:
     - famous-frogs-juggle
     - quick-bats-bow
     - shaggy-pens-attack
     - shaggy-rabbits-repair
-"@walnut/ui@0.1.0":
+'@walnut/ui@0.1.0':
   dir: packages/platform-web/ui
   intents:
     - clean-roses-cough
@@ -397,7 +397,7 @@
     - loud-socks-lie
     - shaggy-pens-attack
     - tiny-waves-smash
-"@walnut/utils@0.1.0":
+'@walnut/utils@0.1.0':
   dir: packages/platform-any/utils-core
   intents:
     - big-dogs-care
@@ -405,7 +405,7 @@
     - real-snakes-carry
     - shaggy-pens-attack
     - slow-lamps-fry
-"@walnut/vitest-config@0.1.0":
+'@walnut/vitest-config@0.1.0':
   dir: packages/tooling/vitest-config
   intents:
     - famous-frogs-juggle

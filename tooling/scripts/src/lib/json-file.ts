@@ -22,14 +22,12 @@ export function readJson<T = unknown>(path: string): T | null {
   let text: string
   try {
     text = readFileSync(path, 'utf8')
-  }
-  catch {
+  } catch {
     return null
   }
   try {
     return JSON.parse(stripBom(text)) as T
-  }
-  catch {
+  } catch {
     return null
   }
 }

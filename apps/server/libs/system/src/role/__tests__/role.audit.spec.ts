@@ -14,7 +14,11 @@ const roleRow = { dataScope: WalnutAdminConstDataScope.ALL, status: true }
 
 describe('批 7 / L7：role 授权敏感面审计快照组装', () => {
   it('无变更：dto 未给数组 → after 与 before 完全一致', () => {
-    const before = buildRoleAuthorizationAuditSnapshot(roleRow, ['dept-b', 'dept-a'], ['menu-b', 'menu-a'])
+    const before = buildRoleAuthorizationAuditSnapshot(
+      roleRow,
+      ['dept-b', 'dept-a'],
+      ['menu-b', 'menu-a'],
+    )
 
     expect(before).toEqual({
       dataScope: WalnutAdminConstDataScope.ALL,

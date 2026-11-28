@@ -37,16 +37,32 @@ describe('device id 形态判据（DEVICE_ID_PATTERN）', () => {
 describe('parseDeviceKey', () => {
   const cases: Array<[name: string, key: string, family: string]> = [
     ['设备缓存', `WALNUT_CACHE_SYSTEM:DEVICE:${did(1)}`, 'cache:system:device'],
-    ['设备续期时间闸', `WALNUT_CACHE_SYSTEM:DEVICE:COOKIE_RENEW:${did(1)}`, 'cache:system:device-cookie-renew'],
+    [
+      '设备续期时间闸',
+      `WALNUT_CACHE_SYSTEM:DEVICE:COOKIE_RENEW:${did(1)}`,
+      'cache:system:device-cookie-renew',
+    ],
     ['登录会话', `WALNUT_CACHE_AUTH:SESSIONS:${USER}:${did(1)}:sid-1`, 'cache:auth:sessions'],
     ['权限', `WALNUT_CACHE_AUTH:PERMISSIONS:${USER}:${did(1)}`, 'cache:auth:permissions'],
     ['MFA verified', `WALNUT_CACHE_AUTH:MFA:VERIFIED:${USER}:${did(1)}`, 'cache:auth:mfa:verified'],
     ['MFA totp', `WALNUT_CACHE_AUTH:MFA:TOTP:${USER}:${did(1)}`, 'cache:auth:mfa:totp'],
-    ['MFA webauthn', `WALNUT_CACHE_AUTH:MFA:WEBAUTN:${USER}:${did(1)}:registration`, 'cache:auth:mfa:webauthn'],
-    ['OPAQUE 状态', `WALNUT_CACHE_AUTH:OPAQUE_STATE:admin:${did(1)}:SERVER_STATE`, 'cache:auth:opaque-state'],
+    [
+      'MFA webauthn',
+      `WALNUT_CACHE_AUTH:MFA:WEBAUTN:${USER}:${did(1)}:registration`,
+      'cache:auth:mfa:webauthn',
+    ],
+    [
+      'OPAQUE 状态',
+      `WALNUT_CACHE_AUTH:OPAQUE_STATE:admin:${did(1)}:SERVER_STATE`,
+      'cache:auth:opaque-state',
+    ],
     ['签名 ticket', `WALNUT_CACHE_SECURITY:SIGN:TICKET:${did(1)}`, 'cache:security:sign-ticket'],
     ['签名 AES key', `WALNUT_CACHE_SECURITY:SIGN:AES_KEY:${did(1)}`, 'cache:security:sign-aes-key'],
-    ['CAP token', `WALNUT_CACHE_SECURITY:CAP_TOKEN:${did(1)}:fingerprint`, 'cache:security:cap-token'],
+    [
+      'CAP token',
+      `WALNUT_CACHE_SECURITY:CAP_TOKEN:${did(1)}:fingerprint`,
+      'cache:security:cap-token',
+    ],
     ['RSA 公钥', `WALNUT_CACHE_SECURITY:RSA:PUB_KEY:${did(1)}`, 'cache:security:rsa-pub-key'],
     ['用户-设备锁', `WALNUT_CACHE_SECURITY:LOCK:${USER}:${did(1)}`, 'cache:security:lock'],
     ['风控设备缓存', `risk:device:${did(1)}`, 'risk:device'],
@@ -54,14 +70,26 @@ describe('parseDeviceKey', () => {
     ['失败登录', `risk:failed_login:admin@example.com:${did(1)}`, 'risk:failed-login'],
     ['rate 计数（device）', `risk:rate:device:${did(1)}:202611252015`, 'risk:rate:device'],
     ['challenge（device）', `risk:challenge:device:${did(1)}:DEVICE_NEW`, 'risk:challenge:device'],
-    ['challenge（user-device）', `risk:challenge:user-device:${USER}:${did(1)}:USER_DEVICE_UNTRUSTED`, 'risk:challenge:user-device'],
+    [
+      'challenge（user-device）',
+      `risk:challenge:user-device:${USER}:${did(1)}:USER_DEVICE_UNTRUSTED`,
+      'risk:challenge:user-device',
+    ],
     ['murlock CAP', `APP:MURLOCK:CAP:${did(1)}`, 'murlock:cap'],
     ['murlock IP 变更', `APP:MURLOCK:DEVICE:IP_CHANGE:${did(1)}`, 'murlock:device-ip-change'],
     ['murlock 锁守卫', `APP:MURLOCK:LOCK_GUARD:${USER}:${did(1)}`, 'murlock:lock-guard'],
     ['murlock 签名', `APP:MURLOCK:SIGN:${did(1)}`, 'murlock:sign'],
-    ['murlock 失败登录', `APP:MURLOCK:RISK:FAILED_LOGIN:${did(1)}:admin@example.com`, 'murlock:risk-failed-login'],
+    [
+      'murlock 失败登录',
+      `APP:MURLOCK:RISK:FAILED_LOGIN:${did(1)}:admin@example.com`,
+      'murlock:risk-failed-login',
+    ],
     ['murlock 风控设备锁', `APP:MURLOCK:RISK:DEVICE:${did(1)}`, 'murlock:risk-device'],
-    ['murlock 风控用户-设备锁', `APP:MURLOCK:RISK:USER_DEVICE:${USER}:${did(1)}`, 'murlock:risk-user-device'],
+    [
+      'murlock 风控用户-设备锁',
+      `APP:MURLOCK:RISK:USER_DEVICE:${USER}:${did(1)}`,
+      'murlock:risk-user-device',
+    ],
   ]
 
   for (const [name, key, family] of cases) {
@@ -71,8 +99,9 @@ describe('parseDeviceKey', () => {
   }
 
   it('长前缀优先：COOKIE_RENEW 不会被 SYSTEM:DEVICE 抢走', () => {
-    expect(parseDeviceKey(`WALNUT_CACHE_SYSTEM:DEVICE:COOKIE_RENEW:${did(2)}`)?.family)
-      .toBe('cache:system:device-cookie-renew')
+    expect(parseDeviceKey(`WALNUT_CACHE_SYSTEM:DEVICE:COOKIE_RENEW:${did(2)}`)?.family).toBe(
+      'cache:system:device-cookie-renew',
+    )
   })
 
   it('非设备键不属于任何键族（不进入删除面）', () => {
@@ -99,7 +128,9 @@ describe('parseDeviceKey', () => {
 
   it('每个键族前缀都被至少一个 SCAN 模式覆盖（漏一条就漏清一类键）', () => {
     for (const rule of DEVICE_KEY_FAMILIES) {
-      const covered = DEVICE_KEY_SCAN_PATTERNS.some(pattern => rule.prefix.startsWith(pattern.slice(0, -1)))
+      const covered = DEVICE_KEY_SCAN_PATTERNS.some((pattern) =>
+        rule.prefix.startsWith(pattern.slice(0, -1)),
+      )
       expect(covered, `${rule.family} 的前缀 ${rule.prefix} 没有被 SCAN 模式覆盖`).toBe(true)
     }
   })
@@ -124,16 +155,20 @@ describe('planRedisGc', () => {
 
     const plan = planRedisGc(keys, existing)
 
-    expect(plan.orphans.map(item => item.key)).toEqual([
+    expect(plan.orphans.map((item) => item.key)).toEqual([
       `risk:device:${did(2)}`,
       `risk:challenge:device:${did(2)}:DEVICE_NEW`,
       `WALNUT_CACHE_SECURITY:RSA:PUB_KEY:${did(3)}`,
       `WALNUT_CACHE_SECURITY:LOCK:${USER}:${did(3)}`,
       `WALNUT_CACHE_AUTH:SESSIONS:${USER}:${did(4)}:sid`,
     ])
-    expect(new Set(plan.orphans.map(item => item.deviceId))).toEqual(new Set([did(2), did(3), did(4)]))
-    expect(plan.kept.map(item => item.key)).toEqual([`WALNUT_CACHE_SYSTEM:DEVICE:${did(1)}`])
-    expect(plan.skipped.map(item => item.key)).toEqual([`WALNUT_CACHE_SECURITY:LOCK:${USER}:global`])
+    expect(new Set(plan.orphans.map((item) => item.deviceId))).toEqual(
+      new Set([did(2), did(3), did(4)]),
+    )
+    expect(plan.kept.map((item) => item.key)).toEqual([`WALNUT_CACHE_SYSTEM:DEVICE:${did(1)}`])
+    expect(plan.skipped.map((item) => item.key)).toEqual([
+      `WALNUT_CACHE_SECURITY:LOCK:${USER}:global`,
+    ])
     expect(plan.ignored).toEqual(['WALNUT_CACHE_APP:SETTING'])
     expect(plan.deviceKeys).toHaveLength(6)
   })
@@ -146,7 +181,13 @@ describe('planRedisGc', () => {
   })
 
   it('空输入 → 空计划', () => {
-    expect(planRedisGc([], new Set())).toEqual({ deviceKeys: [], kept: [], orphans: [], skipped: [], ignored: [] })
+    expect(planRedisGc([], new Set())).toEqual({
+      deviceKeys: [],
+      kept: [],
+      orphans: [],
+      skipped: [],
+      ignored: [],
+    })
   })
 })
 

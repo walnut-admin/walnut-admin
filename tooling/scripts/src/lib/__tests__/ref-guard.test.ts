@@ -63,8 +63,7 @@ describe('assertSafeRef —— 逐条拒绝并给出人话理由', () => {
     try {
       assertSafeRef('a..b', 'ref')
       throw new Error('应当抛错')
-    }
-    catch (error) {
+    } catch (error) {
       expect(error).toBeInstanceOf(PreconditionError)
       expect((error as PreconditionError).name).toBe('PreconditionError')
     }

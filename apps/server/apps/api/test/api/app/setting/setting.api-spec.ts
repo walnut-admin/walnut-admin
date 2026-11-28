@@ -55,7 +55,9 @@ describe('B 段：app/setting public/private + CRUD + cache/refresh（真实 HTT
   }
 
   async function deleteCreatedRows() {
-    await api.pgDataSource.query('DELETE FROM app_setting WHERE setting_key LIKE $1', [`${keyPrefix}%`])
+    await api.pgDataSource.query('DELETE FROM app_setting WHERE setting_key LIKE $1', [
+      `${keyPrefix}%`,
+    ])
   }
 
   beforeAll(async () => {
@@ -117,14 +119,17 @@ describe('B 段：app/setting public/private + CRUD + cache/refresh（真实 HTT
     const res = await api.root('GET', api.apiPath('/app/setting/private'))
     expectOk(res, 'setting private')
 
-    const data = bodyOf<Record<string, { status?: unknown, mode?: unknown, value?: unknown }>>(res).data
+    const data =
+      bodyOf<Record<string, { status?: unknown; mode?: unknown; value?: unknown }>>(res).data
     for (const key of ['maskUrl', 'hijackRefresh', 'watermark', 'transition']) {
       expect(data[key]).toBeTypeOf('object')
       expect('status' in data[key]).toBe(true)
     }
 
     const anonRes = await api.anon('GET', api.apiPath('/app/setting/private'))
-    expect(bodyOf(anonRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+    expect(bodyOf(anonRes).code).toBe(
+      WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
+    )
   })
 
   it('CRUD 全闭环：create → read → update → list 过滤', async () => {

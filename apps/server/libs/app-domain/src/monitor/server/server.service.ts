@@ -66,7 +66,7 @@ export class AppMonitorServerService {
 
     const res = await systemInfo.diskLayout()
 
-    return res.map(disk => ({
+    return res.map((disk) => ({
       name: disk.name,
       size: disk.size,
       device: disk.device,
@@ -101,9 +101,7 @@ export class AppMonitorServerService {
     const res = await systemInfo.networkInterfaces()
 
     const formatted = omit(
-      res
-        .map(i => ({ ...i, netSpeed: i.speed }))
-        .find(i => i.default),
+      res.map((i) => ({ ...i, netSpeed: i.speed })).find((i) => i.default),
       ['speed', 'default'],
     )
 

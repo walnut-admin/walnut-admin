@@ -1,11 +1,25 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { AppTechCacheDeviceService, AppTechCacheMfaService } from '@walnut-server/cache'
-import { IWalnutAdminConstRevokeRTType, WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
+import {
+  IWalnutAdminConstRevokeRTType,
+  WalnutAdminConstRevokeRTType,
+} from '@walnut-server/const/app/setting'
 import { AppTechCryptoService } from '@walnut-server/crypto'
-import { WalnutAdminExceptionDeviceBanned, WalnutAdminExceptionDeviceLocked, WalnutAdminExceptionDeviceNotAcceptable } from '@walnut-server/exceptions/base/406'
-import { WalnutAdminExceptionDuplicateSignIn, WalnutAdminExceptionRefreshTokenExpired } from '@walnut-server/exceptions/business/auth'
-import { SysUserDeviceSharedService, SysUserRepositoryService, SysUserSharedService } from '@walnut-server/identity'
+import {
+  WalnutAdminExceptionDeviceBanned,
+  WalnutAdminExceptionDeviceLocked,
+  WalnutAdminExceptionDeviceNotAcceptable,
+} from '@walnut-server/exceptions/base/406'
+import {
+  WalnutAdminExceptionDuplicateSignIn,
+  WalnutAdminExceptionRefreshTokenExpired,
+} from '@walnut-server/exceptions/business/auth'
+import {
+  SysUserDeviceSharedService,
+  SysUserRepositoryService,
+  SysUserSharedService,
+} from '@walnut-server/identity'
 import { SysDeviceRepositoryService } from '@walnut-server/system'
 import { AppTokenService } from '@walnut-server/token'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
@@ -32,7 +46,7 @@ function isActiveRefreshTokenUniqueViolation(error: unknown): boolean {
     return false
   }
 
-  const driverError = error.driverError as { code?: string, constraint?: string } | undefined
+  const driverError = error.driverError as { code?: string; constraint?: string } | undefined
 
   return driverError?.code === '23505' && driverError?.constraint === ACTIVE_RT_UNIQUE_INDEX
 }
@@ -72,10 +86,7 @@ export class AuthRefreshSharedService {
    * 判撤销、reason 为 null —— 与单行时代的「查无行 → revoked」语义一致）。
    */
   async getTokenRevokedByDeviceIdAndUserId(deviceId: string, userId: string) {
-    const active = await this.authRefreshRepo.findActiveByDeviceIdAndUserId(
-      deviceId,
-      userId,
-    )
+    const active = await this.authRefreshRepo.findActiveByDeviceIdAndUserId(deviceId, userId)
     if (active) {
       return {
         revoked: false,
@@ -118,7 +129,7 @@ export class AuthRefreshSharedService {
    * 为什么不复用 `getTokenByJti`：那个返回的是解密后的**令牌串**（守卫验签用），
    * 归属信息在行上；两件事分开，避免为了拿 userId 把令牌也解出来。
    */
-  async getRefreshSessionOwner(jti: string): Promise<{ userId: string, deviceId: string }> {
+  async getRefreshSessionOwner(jti: string): Promise<{ userId: string; deviceId: string }> {
     const row = await this.authRefreshRepo.findByJti(jti)
     if (!row || row.revoked) {
       throw new WalnutAdminExceptionRefreshTokenExpired()
@@ -129,7 +140,12 @@ export class AuthRefreshSharedService {
   /**
    * @description revoke refresh token for user device
    */
-  async revokeRTForUserDevice(userId: string, deviceId: string, em?: EntityManager, revokeReason?: IWalnutAdminConstRevokeRTType) {
+  async revokeRTForUserDevice(
+    userId: string,
+    deviceId: string,
+    em?: EntityManager,
+    revokeReason?: IWalnutAdminConstRevokeRTType,
+  ) {
     return this.authRefreshRepo.updateRevokedAndReason(userId, deviceId, true, em, revokeReason)
   }
 
@@ -141,7 +157,11 @@ export class AuthRefreshSharedService {
    *
    * @returns 受影响的 userId 列表（供调用方清会话 / 权限 / MFA 缓存键）
    */
-  async revokeRTForDevice(deviceId: string, em?: EntityManager, revokeReason?: IWalnutAdminConstRevokeRTType) {
+  async revokeRTForDevice(
+    deviceId: string,
+    em?: EntityManager,
+    revokeReason?: IWalnutAdminConstRevokeRTType,
+  ) {
     return this.authRefreshRepo.updateRevokedByDeviceId(
       deviceId,
       revokeReason ?? WalnutAdminConstRevokeRTType.deviceBanned,
@@ -155,9 +175,13 @@ export class AuthRefreshSharedService {
    * revoke-and-insert 后同设备多行 —— 按设备去重后逐设备全量撤销（撤销本身按
    * (user, device) 整维度生效，见 updateRevokedAndReason），避免每行重复 update。
    */
-  async revokeRTForUser(userId: string, em?: EntityManager, revokeReason?: IWalnutAdminConstRevokeRTType) {
+  async revokeRTForUser(
+    userId: string,
+    em?: EntityManager,
+    revokeReason?: IWalnutAdminConstRevokeRTType,
+  ) {
     const allAuthRefreshRecords = await this.authRefreshRepo.findAllRTForUser(userId, em)
-    const deviceIds = [...new Set(allAuthRefreshRecords.map(record => record.deviceId))]
+    const deviceIds = [...new Set(allAuthRefreshRecords.map((record) => record.deviceId))]
     for (const deviceId of deviceIds) {
       await this.authRefreshRepo.updateRevokedAndReason(userId, deviceId, true, em, revokeReason)
     }
@@ -181,7 +205,7 @@ export class AuthRefreshSharedService {
       }),
     )
 
-    const revoked = res.filter(i => i.status === 'fulfilled').map(i => i.value)
+    const revoked = res.filter((i) => i.status === 'fulfilled').map((i) => i.value)
     const failed = res.filter((i): i is PromiseRejectedResult => i.status === 'rejected')
 
     if (failed.length > 0) {
@@ -211,17 +235,10 @@ export class AuthRefreshSharedService {
    * 该维度还没有任何行时锁不到行（PG 无间隙锁），由部分唯一索引
    * uq_rt_active_device_user 兜底（见 generateRefreshToken 的 23505 翻译）。
    */
-  async isCurrentUserInThisDeviceHasSignIn(
-    userId: string,
-    deviceId: string,
-    em?: EntityManager,
-  ) {
-    const active = await this.authRefreshRepo.findActiveByDeviceIdAndUserId(
-      deviceId,
-      userId,
-      em,
-      { lock: true },
-    )
+  async isCurrentUserInThisDeviceHasSignIn(userId: string, deviceId: string, em?: EntityManager) {
+    const active = await this.authRefreshRepo.findActiveByDeviceIdAndUserId(deviceId, userId, em, {
+      lock: true,
+    })
     return active !== null
   }
 
@@ -332,11 +349,7 @@ export class AuthRefreshSharedService {
       throw new WalnutAdminExceptionDuplicateSignIn()
     }
 
-    const oldDocument = await this.authRefreshRepo.findByDeviceIdAndUserId(
-      deviceId,
-      userId,
-      em,
-    )
+    const oldDocument = await this.authRefreshRepo.findByDeviceIdAndUserId(deviceId, userId, em)
 
     const expiredAt = AppDayjs()
       .add(this.tokenService.getRefreshTokenExpireSeconds(), 'seconds')
@@ -361,8 +374,7 @@ export class AuthRefreshSharedService {
         )
 
         return oldDocument.jti
-      }
-      else {
+      } else {
         const jti = await this.tokenService.generateJTI()
         const refreshToken = await this.tokenService.generateJwtRefreshToken(jti, sessionId)
         const encryptedToken = this.cryptoService.encrypt(refreshToken, this.RT_ENCRYPTION_KEY)
@@ -380,8 +392,7 @@ export class AuthRefreshSharedService {
 
         return jti
       }
-    }
-    catch (error) {
+    } catch (error) {
       if (isActiveRefreshTokenUniqueViolation(error)) {
         throw new WalnutAdminExceptionDuplicateSignIn()
       }
@@ -411,7 +422,7 @@ export class AuthRefreshSharedService {
     deviceId: string,
     sessionId: string,
     em?: EntityManager,
-  ): Promise<{ accessToken: string, jti: string }> {
+  ): Promise<{ accessToken: string; jti: string }> {
     // Step 1 - get refresh token record（事务内轮换读腿，持悲观写锁串行化「读校验+
     // 撤销+插入」整组写腿；重放拦截靠行级撤销 —— 等锁者读到的旧行必已 revoked）
     const record = await this.authRefreshRepo.findByJti(jti, em, { lock: true })
@@ -434,11 +445,7 @@ export class AuthRefreshSharedService {
     // refresh token expired
     // manually revoke it
     if (AppDayjs(record.expiredAt).isBefore(AppDayjs())) {
-      await this.revokeRTForUserDevice(
-        record.userId,
-        record.deviceId,
-        em,
-      )
+      await this.revokeRTForUserDevice(record.userId, record.deviceId, em)
       throw new WalnutAdminExceptionRefreshTokenExpired()
     }
 
@@ -467,25 +474,23 @@ export class AuthRefreshSharedService {
     )
 
     // Step 4 - construct access token payload
-    const tokenPayload = await this.tokenService.getJwtAccessTokenPayload(populatedUser, { isTrusted })
+    const tokenPayload = await this.tokenService.getJwtAccessTokenPayload(populatedUser, {
+      isTrusted,
+    })
 
     // Step 5 - rotate refresh token（旧行撤销 + 新行插入，同事务；拿新 jti 回种 cookie）
     const newJti = await this.updateRefreshToken(record, sessionId, em)
 
     // Step 6 - touch auth session ttl
-    await this.authSessionService.touchAuthSessionTTL(
-      record.userId,
-      record.deviceId,
-      sessionId,
-    )
+    await this.authSessionService.touchAuthSessionTTL(record.userId, record.deviceId, sessionId)
 
     // Step 7 - touch MFA verified cache TTL
-    await this.cacheMfaService.touchVerifiedCache(
-      record.userId,
-      record.deviceId,
-    )
+    await this.cacheMfaService.touchVerifiedCache(record.userId, record.deviceId)
 
-    const accessToken = await this.tokenService.generateJwtAccessToken({ ...tokenPayload, sid: sessionId })
+    const accessToken = await this.tokenService.generateJwtAccessToken({
+      ...tokenPayload,
+      sid: sessionId,
+    })
 
     // return access token + new jti（调用方据此回种 RT_JTI cookie）
     return { accessToken, jti: newJti }

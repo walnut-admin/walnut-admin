@@ -9,11 +9,13 @@ import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.e
  * 的值返回 **`false`**（cookie-parser@1.4.7 index.js:150），所以这里的类型断言是假的。
  * 需要「拿不到就当没有」语义的调用方请用 {@link getWalnutAdminCookieString}。
  */
-export function getWalnutAdminCookie(req: IWalnutAdminExpressRequest, key: IWalnutAdminConstCookieKeys) {
+export function getWalnutAdminCookie(
+  req: IWalnutAdminExpressRequest,
+  key: IWalnutAdminConstCookieKeys,
+) {
   try {
     return req.signedCookies[key as keyof typeof req.signedCookies] as string
-  }
-  catch {
+  } catch {
     throw new WalnutAdminExceptionBadRequest()
   }
 }

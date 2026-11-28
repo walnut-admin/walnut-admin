@@ -3,9 +3,23 @@ import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { Locale, LocaleType } from '@walnut/contract'
 
-import { SysUserPreferenceDTOAccessibilityRequest, SysUserPreferenceDTOBasicRequest, SysUserPreferenceDTOLayoutRequest, SysUserPreferenceDTOThemeRequest, SysUserPreferenceResponseDTO } from '../dto/user_preference.dto'
+import {
+  SysUserPreferenceDTOAccessibilityRequest,
+  SysUserPreferenceDTOBasicRequest,
+  SysUserPreferenceDTOLayoutRequest,
+  SysUserPreferenceDTOThemeRequest,
+  SysUserPreferenceResponseDTO,
+} from '../dto/user_preference.dto'
 import { SysUserPreferenceEntity } from '../entity/user-preference.entity'
-import { colorModeConst, CVDConst, fontSizeConst, IColorModeConst, ICVDConst, ILayoutModeConst, layoutModeConst } from '../preference.const'
+import {
+  colorModeConst,
+  CVDConst,
+  fontSizeConst,
+  IColorModeConst,
+  ICVDConst,
+  ILayoutModeConst,
+  layoutModeConst,
+} from '../preference.const'
 import { SysUserPreferenceBasicRepository } from '../user_preference.basic.repository'
 
 /**
@@ -24,9 +38,7 @@ import { SysUserPreferenceBasicRepository } from '../user_preference.basic.repos
  */
 @Injectable()
 export class SysUserPreferenceService {
-  constructor(
-    private readonly prefBasicRepo: SysUserPreferenceBasicRepository,
-  ) {}
+  constructor(private readonly prefBasicRepo: SysUserPreferenceBasicRepository) {}
 
   /**
    * @description bind preference for user, used for system
@@ -42,7 +54,10 @@ export class SysUserPreferenceService {
   /**
    * @description get user preference
    */
-  async getPreferenceForUser(userId: string, em?: EntityManager): Promise<SysUserPreferenceResponseDTO> {
+  async getPreferenceForUser(
+    userId: string,
+    em?: EntityManager,
+  ): Promise<SysUserPreferenceResponseDTO> {
     if (!userId) {
       return this.getDefaultPreference()
     }
@@ -80,7 +95,11 @@ export class SysUserPreferenceService {
     return true
   }
 
-  async updateAccessibility(userId: string, payload: SysUserPreferenceDTOAccessibilityRequest, em?: EntityManager) {
+  async updateAccessibility(
+    userId: string,
+    payload: SysUserPreferenceDTOAccessibilityRequest,
+    em?: EntityManager,
+  ) {
     await this.prefBasicRepo.upsertByUserId(userId, payload, em)
     return true
   }
@@ -90,10 +109,18 @@ export class SysUserPreferenceService {
     return true
   }
 
-  async updateLayout(userId: string, payload: SysUserPreferenceDTOLayoutRequest, em?: EntityManager) {
+  async updateLayout(
+    userId: string,
+    payload: SysUserPreferenceDTOLayoutRequest,
+    em?: EntityManager,
+  ) {
     // schema 侧 layout 是自由对象（object），实体侧收成 jsonb 的 Record<string, unknown>
     // —— cast 收口，运行时由驱动参数化
-    await this.prefBasicRepo.upsertByUserId(userId, payload as unknown as Partial<SysUserPreferenceEntity>, em)
+    await this.prefBasicRepo.upsertByUserId(
+      userId,
+      payload as unknown as Partial<SysUserPreferenceEntity>,
+      em,
+    )
     return true
   }
 

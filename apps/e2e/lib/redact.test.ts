@@ -18,7 +18,11 @@ const DEVICE_ID = `d1_${'a'.repeat(32)}`
  * （它扫源码，含 `*.test.ts`）—— 门禁拦的是「仓库里出现 JWT 形态的串」，测试夹具也不例外。
  * 拼装后的运行时值仍是完整三段式，脱敏规则照常被验证。
  */
-const JWT = ['eyJhbGciOiJIUzI1NiJ9', 'eyJzdWIiOiJhZG1pbiIsImp0aSI6IngifQ', 'c2lnbmF0dXJlLWhleA'].join('.')
+const JWT = [
+  'eyJhbGciOiJIUzI1NiJ9',
+  'eyJzdWIiOiJhZG1pbiIsImp0aSI6IngifQ',
+  'c2lnbmF0dXJlLWhleA',
+].join('.')
 
 describe('redactText —— header 形态', () => {
   it('http header 行：Authorization / Cookie / x-sign 的值整段杀掉，名字保留', () => {
@@ -74,7 +78,9 @@ describe('redactText —— cookie 串与字段形态', () => {
   })
 
   it('裸 JWT / Bearer / s: 签名 cookie 形态兜底', () => {
-    const out = redactText(`token=${JWT} authorization=Bearer ${JWT} cookie=s:${'A'.repeat(24)}.${'B'.repeat(16)}`)
+    const out = redactText(
+      `token=${JWT} authorization=Bearer ${JWT} cookie=s:${'A'.repeat(24)}.${'B'.repeat(16)}`,
+    )
     expect(out).not.toContain(JWT)
     expect(out).not.toContain('A'.repeat(24))
     expect(out).not.toContain('Bearer eyJ')
@@ -116,7 +122,8 @@ describe('redactText —— 不误杀排障信息', () => {
   })
 
   it('非敏感的退避 / 计数元数据不被误杀（retryAfterSec / lockMode / operationType）', () => {
-    const input = 'meta={ failCount: 5, retryAfterSec: 30 } lockMode=security operationType=email_change'
+    const input =
+      'meta={ failCount: 5, retryAfterSec: 30 } lockMode=security operationType=email_change'
     expect(redactText(input)).toBe(input)
   })
 

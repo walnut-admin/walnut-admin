@@ -13,16 +13,14 @@ export class SharedMaskService {
   }
 
   maskHeaders(headers: IncomingHttpHeaders): Recordable {
-    if (isNil(headers))
-      return {}
+    if (isNil(headers)) return {}
 
     const filteredHeaders: Recordable = {}
 
     for (const [key, value] of Object.entries(headers)) {
       if (this.sensitiveHeaders.includes(key.toLowerCase())) {
         filteredHeaders[key] = '[FILTERED]'
-      }
-      else {
+      } else {
         filteredHeaders[key] = value as string
       }
     }

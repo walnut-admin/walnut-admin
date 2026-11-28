@@ -4,7 +4,10 @@ import { isNil } from 'lodash'
 
 @Injectable()
 export class WalnutAdminPipeParamEnum implements PipeTransform<Record<string, string>, string> {
-  constructor(private vals: Record<string, string | number>, private options: { required: boolean } = { required: true }) {}
+  constructor(
+    private vals: Record<string, string | number>,
+    private options: { required: boolean } = { required: true },
+  ) {}
 
   transform(value: unknown, metadata: ArgumentMetadata) {
     const { required = true } = this.options

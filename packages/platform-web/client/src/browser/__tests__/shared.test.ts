@@ -1,4 +1,7 @@
-import { objectToPaths as objectToPathsFromUtils, pathsToObject as pathsToObjectFromUtils } from '@walnut/utils/object-paths'
+import {
+  objectToPaths as objectToPathsFromUtils,
+  pathsToObject as pathsToObjectFromUtils,
+} from '@walnut/utils/object-paths'
 import { describe, expect, it } from 'vitest'
 
 import { getMemoryGB, objectToPaths, pathsToObject } from '../shared'
@@ -14,13 +17,18 @@ describe('objectToPaths / pathsToObject re-export（browser/shared.ts）', () =>
   })
 
   it('历史 string[] 位置参数仍生效（忽略 key 不下钻）', () => {
-    expect(objectToPaths({
-      meta: { watermark: { status: true }, title: 't' },
-      watermark: 1,
-    }, ['watermark'])).toEqual({
+    expect(
+      objectToPaths(
+        {
+          meta: { watermark: { status: true }, title: 't' },
+          watermark: 1,
+        },
+        ['watermark'],
+      ),
+    ).toEqual({
       'meta.watermark': { status: true },
       'meta.title': 't',
-      'watermark': 1,
+      watermark: 1,
     })
   })
 
@@ -42,8 +50,7 @@ describe('getMemoryGB', () => {
 
     try {
       expect(getMemoryGB()).toBe(8)
-    }
-    finally {
+    } finally {
       Reflect.deleteProperty(navigator, 'deviceMemory')
     }
   })
@@ -53,8 +60,7 @@ describe('getMemoryGB', () => {
 
     try {
       expect(getMemoryGB()).toBe(0)
-    }
-    finally {
+    } finally {
       Reflect.deleteProperty(navigator, 'deviceMemory')
     }
   })

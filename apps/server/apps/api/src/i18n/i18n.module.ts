@@ -29,10 +29,7 @@ import {
       }),
 
       resolvers: [
-        new HeaderResolver([
-          RequestHeaders.LANGUAGE,
-          RequestHeaders.LANGUAGE.toLowerCase(),
-        ]),
+        new HeaderResolver([RequestHeaders.LANGUAGE, RequestHeaders.LANGUAGE.toLowerCase()]),
         new QueryResolver(['xl']),
         new AcceptLanguageResolver(),
       ],

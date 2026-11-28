@@ -38,7 +38,7 @@ export class AppErrorService implements IWalnutAdminErrorReporter {
     @InjectQueue(WalnutAdminConstAppQueue.ERROR) private readonly errorQueue: Queue,
 
     private readonly maskService: SharedMaskService,
-  ) { }
+  ) {}
 
   private readonly logger = new Logger(AppErrorService.name)
 
@@ -52,7 +52,12 @@ export class AppErrorService implements IWalnutAdminErrorReporter {
 
   private readonly whiteListPath = ['/', 'app/error']
 
-  async addErrorQueue(req: IWalnutAdminExpressRequest, resData: IWalnutAdminResponseBase, statusCode: number, error: Error) {
+  async addErrorQueue(
+    req: IWalnutAdminExpressRequest,
+    resData: IWalnutAdminResponseBase,
+    statusCode: number,
+    error: Error,
+  ) {
     // filter white list response code
     if (!this.whiteListResponseCode.includes(resData.code!)) {
       this.logger.log(`WhiteListCode recived: ${resData.code}`)
@@ -84,11 +89,12 @@ export class AppErrorService implements IWalnutAdminErrorReporter {
       env: resolveErrorEnv(),
     }
 
-    await this.errorQueue.add(
-      WalnutAdminConstAppProcess.APP_ERROR,
-      payload,
-      { removeOnComplete: true, removeOnFail: true, attempts: 3, priority: 10 },
-    )
+    await this.errorQueue.add(WalnutAdminConstAppProcess.APP_ERROR, payload, {
+      removeOnComplete: true,
+      removeOnFail: true,
+      attempts: 3,
+      priority: 10,
+    })
 
     return true
   }

@@ -36,7 +36,9 @@ function deleteMessageWithConfirm(msg: IAIMessage) {
 
 <template>
   <div class="mt-1 flex items-center gap-1">
-    <span class="message-time text-text-placeholder px-1 text-10px">{{ formatTime(msg.timestamp) }}</span>
+    <span class="message-time text-text-placeholder px-1 text-10px">{{
+      formatTime(msg.timestamp)
+    }}</span>
     <Transition name="fade">
       <div
         v-if="hovered && !!msg.content && !(isLoading && isLatest && msg.role === 'assistant')"
@@ -51,7 +53,11 @@ function deleteMessageWithConfirm(msg: IAIMessage) {
           <WIcon v-if="copied" icon="carbon:checkmark" width="14" />
           <WIcon v-else icon="carbon:copy" width="14" />
         </button>
-        <button class="flex-center bg-bg hover:border-danger hover:text-danger cursor-pointer rounded text-info transition-all duration-150" title="删除" @click="deleteMessageWithConfirm(msg)">
+        <button
+          class="flex-center bg-bg hover:border-danger hover:text-danger cursor-pointer rounded text-info transition-all duration-150"
+          title="删除"
+          @click="deleteMessageWithConfirm(msg)"
+        >
           <WIcon icon="carbon:trash-can" width="14" />
         </button>
       </div>

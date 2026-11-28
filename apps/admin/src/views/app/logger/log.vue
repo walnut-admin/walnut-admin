@@ -25,8 +25,7 @@ async function handleReachBottom() {
   const key = props.keyField
   const formData = props.formData
 
-  if (!formData[key] || loading.value || !hasMore.value)
-    return
+  if (!formData[key] || loading.value || !hasMore.value) return
 
   page.value += 1
   loading.value = true
@@ -35,15 +34,13 @@ async function handleReachBottom() {
     const newContent = await readAppLoggerMoreAPI(formData[key], page.value)
     if (newContent.fileContent?.length) {
       formData.fileContent.push(...newContent.fileContent)
-    }
-    else if (
-      newContent.fileContent?.length === 0
-      || (newContent.fileContent?.length as number) < props.pageSize
+    } else if (
+      newContent.fileContent?.length === 0 ||
+      (newContent.fileContent?.length as number) < props.pageSize
     ) {
       hasMore.value = false
     }
-  }
-  finally {
+  } finally {
     loading.value = false
   }
 }

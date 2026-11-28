@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { IWalnutAdminCookieEnv } from '../cookie.service'
+import { describe, expect, it } from 'vitest'
 import { defaultCookieOptions } from '../cookie.service'
 
 /**
@@ -10,37 +11,22 @@ import { defaultCookieOptions } from '../cookie.service'
  * 这里钉住三个环境的**完整**默认值（不只 secure），因为 cookie 的 httpOnly / sameSite /
  * domain 同样是安全属性，改动时不该有任何一项悄悄漂移。
  *
- * 环境判定（isDev / isProd）是模块求值期常量，为按环境取值这里用 vi.mock 把
- * `@walnut-server/config/utils/env` 换成可按用例改写的 getter（libs 内禁止动态 import，
- * 所以不用 resetModules + await import 的写法）。
+ * 环境判定是显式注入的第二个参数（2026-11）：原先用 `vi.mock('@walnut-server/config/utils/env')`
+ * 改写模块级 getter，但 vitest `isolate: false` 下模块图跨文件共享 —— 该 mock 既可能被前一个
+ * 文件的真实求值顶掉（本文件的断言读到真实 env），也可能反过来泄漏给后续文件。改成参数注入后，
+ * 每条用例声明自己要的环境，不再依赖 worker 里的求值顺序。
  */
 
-const envMock = vi.hoisted(() => ({ isDev: false, isProd: false }))
-
-vi.mock('@walnut-server/config/utils/env', () => ({
-  get isDev() {
-    return envMock.isDev
-  },
-  get isProd() {
-    return envMock.isProd
-  },
-  isStage: false,
-  WalnutAdminEnv: 'test',
-}))
-
-type EnvName = 'development' | 'stage' | 'production'
-
-function loadCookieOptions(env: EnvName, signed = true) {
-  envMock.isDev = env === 'development'
-  envMock.isProd = env === 'production'
-
-  return defaultCookieOptions(signed)
+function envOf(name: 'development' | 'stage' | 'production'): IWalnutAdminCookieEnv {
+  return {
+    isDev: name === 'development',
+    isProd: name === 'production',
+  }
 }
 
-afterEach(() => {
-  envMock.isDev = false
-  envMock.isProd = false
-})
+function loadCookieOptions(env: 'development' | 'stage' | 'production', signed = true) {
+  return defaultCookieOptions(signed, envOf(env))
+}
 
 describe('defaultCookieOptions：三环境默认值（F-43 stage secure）', () => {
   it('development → httpOnly + secure + sameSite=lax，无 domain', () => {

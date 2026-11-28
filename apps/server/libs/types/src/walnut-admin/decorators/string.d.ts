@@ -38,20 +38,18 @@ declare global {
 
   type IWADTStrResOpt = IWalnutAdminDecoratorTransformerStringResponseOptions
 
-  interface IWalnutAdminDecoratorTransformStringOptions
-    extends IWalnutAdminDecoratorTransformOptions<
-      IWalnutAdminDecoratorTransformerStringRequestOptions,
-      IWalnutAdminDecoratorTransformerStringResponseOptions
-    > {}
+  interface IWalnutAdminDecoratorTransformStringOptions extends IWalnutAdminDecoratorTransformOptions<
+    IWalnutAdminDecoratorTransformerStringRequestOptions,
+    IWalnutAdminDecoratorTransformerStringResponseOptions
+  > {}
 
   type IWADTStrOpt = IWalnutAdminDecoratorTransformStringOptions
 
   // field option
-  interface IWalnutAdminDecoratorFieldStringOptions
-    extends IWalnutAdminDecoratorBasicOptions<
-      IWalnutAdminDecoratorValidatorStringOptions,
-      IWalnutAdminDecoratorTransformStringOptions
-    > {}
+  interface IWalnutAdminDecoratorFieldStringOptions extends IWalnutAdminDecoratorBasicOptions<
+    IWalnutAdminDecoratorValidatorStringOptions,
+    IWalnutAdminDecoratorTransformStringOptions
+  > {}
 
   type IWADStrOpt = IWalnutAdminDecoratorFieldStringOptions
 }

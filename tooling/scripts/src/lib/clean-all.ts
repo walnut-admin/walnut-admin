@@ -38,14 +38,13 @@ function subDirs(root: string, rel: string): string[] {
   let entries: fs.Dirent[]
   try {
     entries = fs.readdirSync(abs, { withFileTypes: true })
-  }
-  catch {
+  } catch {
     return []
   }
   // 只认真目录：符号链接 / junction 不是包目录（pnpm 在 Windows 上用 junction 链依赖）
   return entries
-    .filter(entry => entry.isDirectory() && !entry.name.startsWith('.'))
-    .map(entry => `${rel}/${entry.name}`)
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
+    .map((entry) => `${rel}/${entry.name}`)
     .sort()
 }
 
@@ -56,7 +55,7 @@ function subDirs(root: string, rel: string): string[] {
 function workspaceDirs(root: string): string[] {
   return [
     ...subDirs(root, 'apps'),
-    ...subDirs(root, 'packages').flatMap(group => subDirs(root, group)),
+    ...subDirs(root, 'packages').flatMap((group) => subDirs(root, group)),
     ...subDirs(root, 'tooling'),
   ]
 }
@@ -66,14 +65,14 @@ function workspaceDirs(root: string): string[] {
  * 根的 `node_modules` 是其余一切依赖的来源，放在最后删，中途失败时留下的现场更好判断。
  */
 export function listCleanAllTargets(root: string = REPO_ROOT): string[] {
-  return [...workspaceDirs(root).map(dir => `${dir}/node_modules`), ...FIXED_TARGETS]
+  return [...workspaceDirs(root).map((dir) => `${dir}/node_modules`), ...FIXED_TARGETS]
 }
 
 export interface CleanAllResult {
   /** 实际存在的目标里，删掉的（仓库相对路径） */
   removed: string[]
   /** 删不掉的：路径与原因。非空 = 没清干净 */
-  failed: { dir: string, error: string }[]
+  failed: { dir: string; error: string }[]
 }
 
 /** 缺省的删除动作。抽成参数只为让用例能造出「删不掉」的分支 —— 生产路径一律用它 */
@@ -96,14 +95,15 @@ export function cleanAll(
   const result: CleanAllResult = { removed: [], failed: [] }
   for (const rel of targets) {
     const abs = path.join(root, rel)
-    if (!fs.existsSync(abs))
-      continue
+    if (!fs.existsSync(abs)) continue
     try {
       remove(abs)
       result.removed.push(rel)
-    }
-    catch (error) {
-      result.failed.push({ dir: rel, error: error instanceof Error ? error.message : String(error) })
+    } catch (error) {
+      result.failed.push({
+        dir: rel,
+        error: error instanceof Error ? error.message : String(error),
+      })
     }
   }
   return result

@@ -13,4 +13,7 @@ declare global {
   type IWalnutAdminSocketRoom = `user:${string}:${string}`
 }
 
-export type { IWalnutAdminSocketEventDataMap, IWalnutAdminSocketEvents } from '@walnut/contract/socket'
+export type {
+  IWalnutAdminSocketEventDataMap,
+  IWalnutAdminSocketEvents,
+} from '@walnut/contract/socket'

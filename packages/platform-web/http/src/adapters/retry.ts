@@ -9,8 +9,7 @@ function parseResponseCode(data: any): number | null {
   try {
     const parsed = typeof data === 'string' ? JSON.parse(data) : data
     return parsed?.code ?? null
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -29,19 +28,16 @@ export function retryAdapter(adapter: AxiosAdapter): AxiosAdapter {
 
           if (parseResponseCode(response.data) !== WalnutAdminConstAppResponseCode.SUCCESS) {
             timeUp = _retryTimes === count
-            if (timeUp)
-              return response
+            if (timeUp) return response
 
             count++
             return request()
           }
 
           return response
-        }
-        catch (e) {
+        } catch (e) {
           timeUp = _retryTimes === count
-          if (timeUp)
-            throw e
+          if (timeUp) throw e
 
           count++
           return request()

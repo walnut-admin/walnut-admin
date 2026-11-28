@@ -30,11 +30,32 @@
  * `catalogs.default.<包名>` 里 pnpm 自己记了 `specifier`（= 声明值）与 `version`（= 解析值）
  * —— 拿它跟 `pnpm-workspace.yaml` 一比就是答案，不必啃 1 MB 的 `importers`。实测 16ms。
  *
+ * ## 被同名 `overrides` 覆盖的 catalog 条目
+ *
+ * pnpm 12 对「catalog 里有、顶层 `overrides:` 里也有同名条目」的依赖**不写锁文件的 `catalogs:` 段**
+ * （覆盖值只记在 `overrides:` 段）。2026-11-28 的 `typescript`（TNB 转正，fc786d47）就是这个形态：
+ * catalog 声明 243 条，锁文件 `catalogs:` 只有 242 条，旧判据因此误报「锁文件里没有」。
+ * 修法（方案 a）：声明条目若在锁文件 `overrides:` 段有同名条目，视为**已锁定**，拿 `overrides:`
+ * 的值参与比对 —— 覆盖值同样是「锁文件对这条依赖的解析结果」，catalog 改了而锁文件没跟上时照样红。
+ * 判据的其余部分（未锁定、版本不一致、多余锁定）原样保留，**不弱化门禁**。
+ *
+ * ## `overrides:` 本身也要两侧对称
+ *
+ * 只读锁文件的 `overrides:` 有一个漏报面：**workspace 侧改了 override、锁文件没跟上**时，
+ * catalog 段可能完全没变化（被覆盖的条目本来就不进 `catalogs:`），上面的逐条比对会一条都不报。
+ * 所以 workspace yaml 的顶层 `overrides:` 与锁文件的 `overrides:` 也做对称比对：
+ * 多值 / 少值 / 值不同都报（`overrides-lockstep`）。这与「catalog 声明改了、锁文件没跟上」是同一类
+ * 失败：工作区看着对，CI 的 `--frozen-lockfile` 红。
+ *
  * ## 判据刻意宽松的地方（宁可漏报不可误报）
  *
  * `version` 那条只对**看起来是精确版本**的声明生效：声明里带 `^` `~` `>` `<` `*` `|` 或 `x`
  * 时跳过版本比对（那种情况解析值与声明值本来就不该相等，比了必误报）。本仓 `saveExact: true`，
  * 243 条全是精确版本，所以这条宽松目前是纯保险。
+ * **同名 override 的覆盖值比对同口径**：catalog 声明是范围时跳过值比对（override 常常是
+ * `npm:` 别名或解析后的精确版，范围声明下两者本来就不该相等）。
+ * **inline 嵌套对象值（`b: {x: 1}`）两侧都跳过**：它不是「版本值」，做字符串比对必误报；
+ * 本仓没有这种形态，遇到时按「不比」处理（不静默当成覆盖成立，也不是红）。
  */
 import { execFileSync } from 'node:child_process'
 
@@ -47,17 +68,15 @@ export interface Finding {
   detail: string
 }
 
-export interface CatalogLockstep {
-  declared: Map<string, string>
-  locked: Map<string, { specifier?: string, version?: string }>
-}
-
 /** 取一个顶层键的正文行（到下一个顶层键为止），返回 `[起始行号(1-based), 行数组]` */
-export function topLevelSection(text: string, key: string, which: 'first' | 'last' = 'first'): { startLine: number, lines: string[] } | null {
+export function topLevelSection(
+  text: string,
+  key: string,
+  which: 'first' | 'last' = 'first',
+): { startLine: number; lines: string[] } | null {
   const lines = text.split('\n')
-  const hits = lines.map((l, i) => (l.startsWith(`${key}:`) ? i : -1)).filter(i => i >= 0)
-  if (hits.length === 0)
-    return null
+  const hits = lines.map((l, i) => (l.startsWith(`${key}:`) ? i : -1)).filter((i) => i >= 0)
+  if (hits.length === 0) return null
   const start = which === 'last' ? hits[hits.length - 1]! : hits[0]!
   let end = lines.length
   for (let i = start + 1; i < lines.length; i++) {
@@ -78,20 +97,16 @@ const unquote = (s: string) => s.replace(/^['"]|['"]$/g, '')
  * `regexp/no-super-linear-backtracking` 判为可多项式回溯（本仓已有先例）。
  * 返回 `null` 表示这一行不是「两个空格缩进的键值对」。
  */
-function splitIndentedKV(line: string, indent: number): { key: string, value: string } | null {
-  if (line.length <= indent)
-    return null
+function splitIndentedKV(line: string, indent: number): { key: string; value: string } | null {
+  if (line.length <= indent) return null
   const pad = ' '.repeat(indent)
-  if (!line.startsWith(pad))
-    return null
+  if (!line.startsWith(pad)) return null
   const body = line.slice(indent)
   const head = body[0]!
-  if (head === ' ' || head === '#' || head === '-')
-    return null
+  if (head === ' ' || head === '#' || head === '-') return null
   // 键到第一个冒号为止（值里也可能有冒号，所以只切第一个）
   const colon = body.indexOf(':')
-  if (colon <= 0)
-    return null
+  if (colon <= 0) return null
   return { key: body.slice(0, colon), value: body.slice(colon + 1).trim() }
 }
 
@@ -99,25 +114,24 @@ function splitIndentedKV(line: string, indent: number): { key: string, value: st
 export function parseDeclaredCatalog(workspaceYaml: string): Map<string, string> {
   const sec = topLevelSection(workspaceYaml, 'catalog')
   const out = new Map<string, string>()
-  if (!sec)
-    return out
+  if (!sec) return out
   for (const l of sec.lines) {
     const kv = splitIndentedKV(l, 2)
     // 名字必须**剥引号**：catalog 里 `'@scope/name': 1.0.0` 是常见写法。
     // 不剥会与锁文件那侧（已剥）对不上 —— 实测 243 条里会误报 97 条。
-    if (kv && kv.value !== '')
-      out.set(unquote(kv.key), kv.value)
+    if (kv && kv.value !== '') out.set(unquote(kv.key), kv.value)
   }
   return out
 }
 
 /** 锁文件**第二段**的 `catalogs.default.<包名>.{specifier,version}` */
-export function parseLockedCatalog(lockfile: string): Map<string, { specifier?: string, version?: string }> {
+export function parseLockedCatalog(
+  lockfile: string,
+): Map<string, { specifier?: string; version?: string }> {
   // 取**最后**一次出现的 `catalogs:` —— 两段式锁文件里只有第二段是真的
   const sec = topLevelSection(lockfile, 'catalogs', 'last')
-  const out = new Map<string, { specifier?: string, version?: string }>()
-  if (!sec)
-    return out
+  const out = new Map<string, { specifier?: string; version?: string }>()
+  if (!sec) return out
   let cur: string | null = null
   for (const l of sec.lines) {
     // `  default:`（本仓只有默认 catalog；named catalog 出现时这里会重置，属可接受的漏报）
@@ -138,6 +152,53 @@ export function parseLockedCatalog(lockfile: string): Map<string, { specifier?: 
   return out
 }
 
+/**
+ * inline 嵌套对象值（`b: {x: 1}`）不是可比的版本值：跳过比对（见文件头「判据刻意宽松」）。
+ * 只认单行 `{...}`：多行嵌套对象在 splitIndentedKV 那层就落不到「键值对」分支。
+ */
+function isInlineObjectValue(value: string): boolean {
+  return value.startsWith('{') && value.endsWith('}')
+}
+
+/**
+ * 锁文件顶层的 `overrides:` → 包名到覆盖值。
+ *
+ * 被同名覆盖的 catalog 条目**不会**出现在 `catalogs:` 段里（见文件头），所以它必须单独读。
+ * 只取单行 `  包名: 值` 形态；inline 嵌套对象值（`b: {x: 1}`）跳过比对。多行嵌套对象
+ * （`pkg:` 下再缩进）本来就不会命中这个解析器；遇到时按「没覆盖」处理 —— 会回到旧判据
+ * 报「锁文件里没有」，宁可误报也不静默放过。
+ */
+export function parseLockedOverrides(lockfile: string): Map<string, string> {
+  // 两段式锁文件里 `overrides:` 只在根桩那一段出现；取 `last` 与 catalogs 的取法保持一致
+  const sec = topLevelSection(lockfile, 'overrides', 'last')
+  const out = new Map<string, string>()
+  if (!sec) return out
+  for (const l of sec.lines) {
+    const kv = splitIndentedKV(l, 2)
+    if (kv && kv.value !== '' && !isInlineObjectValue(kv.value))
+      out.set(unquote(kv.key), unquote(kv.value))
+  }
+  return out
+}
+
+/**
+ * `pnpm-workspace.yaml` 的顶层 `overrides:` → 包名到覆盖值。
+ *
+ * 与 `parseLockedOverrides` 同形，供「两侧对称比对」使用（见文件头）：workspace 侧改了
+ * override 而没跑 install 时，锁文件不会变，必须由这次比对报出来。
+ */
+export function parseDeclaredOverrides(workspaceYaml: string): Map<string, string> {
+  const sec = topLevelSection(workspaceYaml, 'overrides')
+  const out = new Map<string, string>()
+  if (!sec) return out
+  for (const l of sec.lines) {
+    const kv = splitIndentedKV(l, 2)
+    if (kv && kv.value !== '' && !isInlineObjectValue(kv.value))
+      out.set(unquote(kv.key), unquote(kv.value))
+  }
+  return out
+}
+
 /** 声明值是精确版本吗（带范围符的跳过版本比对，见文件头「判据刻意宽松」） */
 export function isExactVersion(v: string): boolean {
   return !/[\^~><*|]|\bx\b/i.test(v)
@@ -147,28 +208,90 @@ export function isExactVersion(v: string): boolean {
 export function compareCatalogs(workspaceYaml: string, lockfile: string): Finding[] {
   const declared = parseDeclaredCatalog(workspaceYaml)
   const locked = parseLockedCatalog(lockfile)
+  // 被同名 override 覆盖的 catalog 条目不会写进 catalogs: 段，改由 overrides: 段作证
+  const overrides = parseLockedOverrides(lockfile)
+  // override 自身也要两侧对称：workspace 改了没跑 install 时锁文件不会变
+  const declaredOverrides = parseDeclaredOverrides(workspaceYaml)
 
   // 前置条件：解析不出来说明格式变了，**不能当成「都对」**（那正是假绿的形态）
   if (declared.size === 0)
-    return [{ rule: 'precondition', detail: 'pnpm-workspace.yaml 里解析不出任何 catalog 条目（格式变了？）' }]
+    return [
+      {
+        rule: 'precondition',
+        detail: 'pnpm-workspace.yaml 里解析不出任何 catalog 条目（格式变了？）',
+      },
+    ]
   if (locked.size === 0)
-    return [{ rule: 'precondition', detail: 'pnpm-lock.yaml 的第二段里解析不出 catalogs 条目（锁文件格式变了？）' }]
+    return [
+      {
+        rule: 'precondition',
+        detail: 'pnpm-lock.yaml 的第二段里解析不出 catalogs 条目（锁文件格式变了？）',
+      },
+    ]
 
   const findings: Finding[] = []
   for (const [name, v] of declared) {
     const lk = locked.get(name)
     if (!lk) {
-      findings.push({ rule: 'catalog-lockstep', detail: `catalog 声明了 \`${name}\`（${v}）但锁文件里没有` })
+      const ov = overrides.get(name)
+      if (ov === undefined) {
+        findings.push({
+          rule: 'catalog-lockstep',
+          detail: `catalog 声明了 \`${name}\`（${v}）但锁文件里没有`,
+        })
+        continue
+      }
+      // 同名 override 就是锁文件对这条依赖的解析结果：值一致才算锁步。
+      // 这条只比一个值（没有 catalogs: 那侧的 specifier/version 两重校验），
+      // 但覆盖值本身就是一个完整 specifier，直接比是唯一可比的判据。
+      // 与 catalogs 分支同口径：声明是范围时跳过值比对（override 常是 npm: 别名 /
+      // 解析后的精确版，范围声明下本来就不该相等；比了必误报）。
+      if (isExactVersion(v) && ov !== v)
+        findings.push({
+          rule: 'catalog-lockstep',
+          detail: `\`${name}\`：catalog 声明 ${v}，锁文件同名 override 记为 ${ov}`,
+        })
       continue
     }
     if (lk.specifier !== v)
-      findings.push({ rule: 'catalog-lockstep', detail: `\`${name}\`：catalog 声明 ${v}，锁文件记的 specifier 是 ${lk.specifier}` })
+      findings.push({
+        rule: 'catalog-lockstep',
+        detail: `\`${name}\`：catalog 声明 ${v}，锁文件记的 specifier 是 ${lk.specifier}`,
+      })
     if (isExactVersion(v) && lk.version !== v)
-      findings.push({ rule: 'catalog-lockstep', detail: `\`${name}\`：catalog 声明 ${v}，锁文件解析出 ${lk.version}` })
+      findings.push({
+        rule: 'catalog-lockstep',
+        detail: `\`${name}\`：catalog 声明 ${v}，锁文件解析出 ${lk.version}`,
+      })
   }
   for (const name of locked.keys()) {
     if (!declared.has(name))
       findings.push({ rule: 'catalog-lockstep', detail: `锁文件里有 \`${name}\` 但 catalog 已删` })
+  }
+
+  // workspace `overrides:` ↔ 锁文件 `overrides:`：多值 / 少值 / 值不同都报。
+  // 这一面 catalog 循环看不见（被覆盖条目不进 catalogs:），漏了它就是「改了 override 没跑 install」的假绿。
+  for (const [name, v] of declaredOverrides) {
+    const ov = overrides.get(name)
+    if (ov === undefined) {
+      findings.push({
+        rule: 'overrides-lockstep',
+        detail: `workspace overrides 声明了 \`${name}\`（${v}）但锁文件 overrides 里没有`,
+      })
+      continue
+    }
+    if (ov !== v)
+      findings.push({
+        rule: 'overrides-lockstep',
+        detail: `\`${name}\`：workspace overrides 记为 ${v}，锁文件 overrides 记为 ${ov}`,
+      })
+  }
+  for (const name of overrides.keys()) {
+    if (!declaredOverrides.has(name))
+      findings.push({
+        rule: 'overrides-lockstep',
+        detail: `锁文件 overrides 里有 \`${name}\` 但 workspace overrides 已删`,
+      })
   }
   return findings
 }
@@ -176,9 +299,12 @@ export function compareCatalogs(workspaceYaml: string, lockfile: string): Findin
 /** 读 `HEAD` 里的一个文件（即将被 CI 检出的那一份） */
 export function readHeadBlob(relPath: string, cwd = REPO_ROOT): string | null {
   try {
-    return execFileSync('git', ['show', `HEAD:${relPath}`], { cwd, maxBuffer: 1 << 28, encoding: 'utf8' })
-  }
-  catch {
+    return execFileSync('git', ['show', `HEAD:${relPath}`], {
+      cwd,
+      maxBuffer: 1 << 28,
+      encoding: 'utf8',
+    })
+  } catch {
     return null
   }
 }
@@ -192,28 +318,32 @@ export function collectFindings(cwd = REPO_ROOT): Finding[] {
   const lock = readHeadBlob('pnpm-lock.yaml', cwd)
 
   if (ws === null || lock === null) {
-    return [{
-      rule: 'precondition',
-      detail: `读不到 HEAD 里的 ${ws === null ? 'pnpm-workspace.yaml' : 'pnpm-lock.yaml'} —— 需要一个至少有一次提交的 git 仓库（这是「检出即 CI 会炸」的判据来源）`,
-    }]
+    return [
+      {
+        rule: 'precondition',
+        detail: `读不到 HEAD 里的 ${ws === null ? 'pnpm-workspace.yaml' : 'pnpm-lock.yaml'} —— 需要一个至少有一次提交的 git 仓库（这是「检出即 CI 会炸」的判据来源）`,
+      },
+    ]
   }
   return compareCatalogs(ws, lock)
 }
 
 export function main(): void {
   const findings = collectFindings()
-  const precondition = findings.filter(f => f.rule === 'precondition')
+  const precondition = findings.filter((f) => f.rule === 'precondition')
 
   if (precondition.length > 0) {
-    throw new PreconditionError(`${precondition.map(f => `  ${f.detail}`).join('\n')}`)
+    throw new PreconditionError(`${precondition.map((f) => `  ${f.detail}`).join('\n')}`)
   }
   if (findings.length === 0) {
     line('ok', 'catalog ↔ 锁文件（HEAD 里那一对）：全部锁步')
     return
   }
-  lineErr('violation', `HEAD 里的 catalog 与锁文件有 ${findings.length} 处不一致 —— CI 会在 \`pnpm install --frozen-lockfile\` 阶段失败（它的报错不会说清是哪一条）：\n`)
-  for (const f of findings)
-    err(`  [${f.rule}] ${f.detail}`)
+  lineErr(
+    'violation',
+    `HEAD 里的 catalog 与锁文件有 ${findings.length} 处不一致 —— CI 会在 \`pnpm install --frozen-lockfile\` 阶段失败（它的报错不会说清是哪一条）：\n`,
+  )
+  for (const f of findings) err(`  [${f.rule}] ${f.detail}`)
   err('\n修法：在工作区跑一次 `pnpm install`，把 `pnpm-lock.yaml` 一起提交。')
   throw new ViolationError(`catalog 与锁文件有 ${findings.length} 处不一致（明细见上）`)
 }

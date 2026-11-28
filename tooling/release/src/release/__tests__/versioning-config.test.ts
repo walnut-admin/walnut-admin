@@ -18,7 +18,9 @@ describe('readVersioningConfig —— pnpm-workspace.yaml 的 versioning 段', (
 
   it('组成员数 == 有 version 的 workspace 包数，且两个集合逐名相等', () => {
     const members = [...(readVersioningConfig().fixed[0] ?? [])].sort()
-    const versioned = versionedPackages().map(pkg => pkg.name).sort()
+    const versioned = versionedPackages()
+      .map((pkg) => pkg.name)
+      .sort()
 
     expect(versioned.length).toBeGreaterThan(0)
     expect(members).toHaveLength(versioned.length)

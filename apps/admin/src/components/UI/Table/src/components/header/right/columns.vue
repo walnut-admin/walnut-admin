@@ -1,4 +1,4 @@
-<script lang="ts" setup  generic="T">
+<script lang="ts" setup generic="T">
 import type { StringOrNumber } from 'easy-fns-ts'
 import type { WTable } from '../../../types'
 import { useSortable } from '@vueuse/integrations/useSortable'
@@ -39,11 +39,8 @@ watch(
   async (v) => {
     await nextTick()
 
-    if (v)
-      start()
-
-    else
-      stop()
+    if (v) start()
+    else stop()
   },
 )
 
@@ -51,14 +48,12 @@ const blackList: StringOrNumber[] = ['selection', 'index', 'action']
 
 const isInBlackList = (key: StringOrNumber) => blackList.includes(key)
 
-const getChecked = computed(() =>
-  tableColumns.value.every(i => i._internalShow),
-)
+const getChecked = computed(() => tableColumns.value.every((i) => i._internalShow))
 
 const getIndeterminate = computed(
   () =>
-    tableColumns.value.some(i => !i._internalShow)
-    && tableColumns.value.some(i => i._internalShow),
+    tableColumns.value.some((i) => !i._internalShow) &&
+    tableColumns.value.some((i) => i._internalShow),
 )
 
 // open column setting popover
@@ -73,17 +68,13 @@ function onUpdateItemChecked(item: WTable.Column<T>) {
 
 // check all
 function onUpdateCheckAllChecked() {
-  tableColumns.value
-    .filter(i => !isInBlackList(i.key))
-    .map(item => onUpdateItemChecked(item))
+  tableColumns.value.filter((i) => !isInBlackList(i.key)).map((item) => onUpdateItemChecked(item))
 }
 
 // set column fix state
 function onSetFix(item: WTable.Column<T>, position: 'left' | 'right') {
-  if (!item.fixed)
-    item.fixed = position
-  else
-    item.fixed = undefined
+  if (!item.fixed) item.fixed = position
+  else item.fixed = undefined
 }
 
 function getTitle(item: WTable.Column<T>) {
@@ -95,15 +86,27 @@ function getTitle(item: WTable.Column<T>) {
   <n-tooltip trigger="hover">
     {{ $t('table.base.settings') }}
     <template #trigger>
-      <n-popover v-model:show="popoverShow" placement="bottom" trigger="manual" @clickoutside="popoverShow = false">
+      <n-popover
+        v-model:show="popoverShow"
+        placement="bottom"
+        trigger="manual"
+        @clickoutside="popoverShow = false"
+      >
         <template #trigger>
           <div class="flex items-center justify-center">
-            <WIconButton :icon-props="{ icon: 'ant-design:setting-outlined' }" :button-props="{ text: true, onClick: onOpenPopover }" />
+            <WIconButton
+              :icon-props="{ icon: 'ant-design:setting-outlined' }"
+              :button-props="{ text: true, onClick: onOpenPopover }"
+            />
           </div>
         </template>
 
         <template #header>
-          <n-checkbox :checked="getChecked" :indeterminate="getIndeterminate" @update-checked="onUpdateCheckAllChecked">
+          <n-checkbox
+            :checked="getChecked"
+            :indeterminate="getIndeterminate"
+            @update-checked="onUpdateCheckAllChecked"
+          >
             {{ $t('app.base.checkAll') }}
           </n-checkbox>
         </template>
@@ -114,9 +117,7 @@ function getTitle(item: WTable.Column<T>) {
               v-for="item in tableColumns"
               :key="item.key"
               class="mx-1 my-2 hstack justify-between"
-              :class="[
-                { 'table-column-draggable': !isInBlackList(item.key) },
-              ]"
+              :class="[{ 'table-column-draggable': !isInBlackList(item.key) }]"
             >
               <div class="mr-8 hstack items-center">
                 <n-tooltip :trigger="isInBlackList(item.key) ? 'manual' : 'hover'" placement="left">
@@ -126,9 +127,7 @@ function getTitle(item: WTable.Column<T>) {
                         icon="ant-design:drag-outlined"
                         height="20"
                         class="mr-2 cursor-move"
-                        :class="[
-                          { 'cursor-not-allowed': isInBlackList(item.key) },
-                        ]"
+                        :class="[{ 'cursor-not-allowed': isInBlackList(item.key) }]"
                       />
                     </n-button>
                   </template>
@@ -167,7 +166,11 @@ function getTitle(item: WTable.Column<T>) {
                   </template>
 
                   <span class="p-0">
-                    {{ item.fixed === 'left' ? $t('table.base.settings.column.unfix') : $t('table.base.settings.column.fixLeft') }}
+                    {{
+                      item.fixed === 'left'
+                        ? $t('table.base.settings.column.unfix')
+                        : $t('table.base.settings.column.fixLeft')
+                    }}
                   </span>
                 </n-tooltip>
 
@@ -192,7 +195,11 @@ function getTitle(item: WTable.Column<T>) {
                   </template>
 
                   <span class="p-0">
-                    {{ item.fixed === 'right' ? $t('table.base.settings.column.unfix') : $t('table.base.settings.column.fixRight') }}
+                    {{
+                      item.fixed === 'right'
+                        ? $t('table.base.settings.column.unfix')
+                        : $t('table.base.settings.column.fixRight')
+                    }}
                   </span>
                 </n-tooltip>
               </div>
@@ -204,6 +211,4 @@ function getTitle(item: WTable.Column<T>) {
   </n-tooltip>
 </template>
 
-<style lang="scss" scoped>
-
-</style>
+<style lang="scss" scoped></style>

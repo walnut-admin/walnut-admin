@@ -27,7 +27,9 @@ test('stack：后端就绪 + admin 真实绑定 TOTP + root 权限可用', async
 
   // 幂等清理：上一轮可能已经绑过 TOTP（不重建库的重跑）
   await withPg(async (pg) => {
-    const user = await pg.query<{ id: string }>('SELECT id FROM sys_user WHERE user_name = $1', [credentials.userName])
+    const user = await pg.query<{ id: string }>('SELECT id FROM sys_user WHERE user_name = $1', [
+      credentials.userName,
+    ])
     const userId = user.rows[0]?.id
     expect(typeof userId, `库里没有账号 ${credentials.userName}`).toBe('string')
     await pg.query('DELETE FROM sys_user_mfa WHERE user_id = $1', [userId])
@@ -61,16 +63,27 @@ test('stack：后端就绪 + admin 真实绑定 TOTP + root 权限可用', async
   // 关键端点字段断言（P1-4）：TOTP 验证后才有完整权限，取 permissions 校验**生成类型的真实形状**。
   // 字段改名 / 容器形态变化时，这里先红；菜单树与路由树是 admin 侧导航的真源。
   const permissions = await client.root('GET', AuthRoutes.PERMISSIONS)
-  expect(Array.isArray(permissions.permissionMenuTree), 'permissions 缺 permissionMenuTree 数组').toBe(true)
+  expect(
+    Array.isArray(permissions.permissionMenuTree),
+    'permissions 缺 permissionMenuTree 数组',
+  ).toBe(true)
   expect(permissions.permissionMenuTree.length, 'root 的权限菜单树为空').toBeGreaterThan(0)
-  expect(Array.isArray(permissions.permissionRouteTree), 'permissions 缺 permissionRouteTree 数组').toBe(true)
+  expect(
+    Array.isArray(permissions.permissionRouteTree),
+    'permissions 缺 permissionRouteTree 数组',
+  ).toBe(true)
   expect(permissions.permissionRouteTree.length, 'root 的权限路由树为空').toBeGreaterThan(0)
-  expect(Array.isArray(permissions.permissionStrings), 'permissions 缺 permissionStrings 数组').toBe(true)
+  expect(
+    Array.isArray(permissions.permissionStrings),
+    'permissions 缺 permissionStrings 数组',
+  ).toBe(true)
   expect(permissions.permissionStrings.length, 'root 的权限字符串为空').toBeGreaterThan(0)
   expect(typeof permissions.indexMenuName, 'permissions 缺 indexMenuName').toBe('string')
   const firstRoute = permissions.permissionRouteTree[0]
   if (firstRoute === undefined) {
-    throw new Error('[e2e/stack-setup] permissions.permissionRouteTree 第一项为空 —— 生成类型与运行时不一致')
+    throw new Error(
+      '[e2e/stack-setup] permissions.permissionRouteTree 第一项为空 —— 生成类型与运行时不一致',
+    )
   }
   expect(typeof firstRoute.path).toBe('string')
   expect(typeof firstRoute.name).toBe('string')
@@ -80,7 +93,9 @@ test('stack：后端就绪 + admin 真实绑定 TOTP + root 权限可用', async
   // `/list` 后缀不在 contract 的命名端点里（e2e 侧组合，别为它改契约）。
   // P2-6 修复后生成物的路径级响应就是真实 wire（data 是单个分页壳对象），SystemUserListPage
   // 直接从路径推导（见 lib/protocol/api-types.ts）；下面的断言仍对着真实形状。
-  const list = await client.root<SystemUserListPage>('POST', `${SystemRoutes.USER}/list`, { page: { page: 1, pageSize: 10 } })
+  const list = await client.root<SystemUserListPage>('POST', `${SystemRoutes.USER}/list`, {
+    page: { page: 1, pageSize: 10 },
+  })
   expect(typeof list.total).toBe('number')
   expect(Array.isArray(list.data), 'user/list 缺 data 数组').toBe(true)
   expect(list.data.length, 'user/list 返回空列表（seed 至少应有 admin）').toBeGreaterThan(0)
@@ -102,7 +117,10 @@ test('stack：后端就绪 + admin 真实绑定 TOTP + root 权限可用', async
 
   // mfa_setup 已落库（后续新设备的 mfa.guard 会要求验证，而不是 40114）
   await withPg(async (pg) => {
-    const user = await pg.query<{ mfa_setup: boolean }>('SELECT mfa_setup FROM sys_user WHERE user_name = $1', [credentials.userName])
+    const user = await pg.query<{ mfa_setup: boolean }>(
+      'SELECT mfa_setup FROM sys_user WHERE user_name = $1',
+      [credentials.userName],
+    )
     expect(user.rows[0]?.mfa_setup).toBe(true)
   })
 

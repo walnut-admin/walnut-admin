@@ -48,8 +48,7 @@ export async function runCli(main: CliMain): Promise<void> {
     const returned = await main()
     // 兼容「main 返回 0」的老写法；返回非 0 的写法已被淘汰（失败要抛）
     process.exitCode = typeof returned === 'number' ? returned : 0
-  }
-  catch (error) {
+  } catch (error) {
     if (error instanceof PreconditionError) {
       lineErr('violation', `前置条件未满足：${error.message}`)
       process.exitCode = 2

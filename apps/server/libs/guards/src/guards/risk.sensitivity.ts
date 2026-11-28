@@ -1,7 +1,4 @@
-import {
-  AuthRoutes,
-  SecurityRoutes,
-} from '@walnut/contract'
+import { AuthRoutes, SecurityRoutes } from '@walnut/contract'
 
 /**
  * 风控降级分级（批次 8 / B2）—— **端点敏感度清单的唯一真源**。
@@ -45,10 +42,10 @@ import {
 export type WalnutAdminRiskSensitivity = 'fail-close' | 'fail-open'
 
 /** 降级原因（写进 `request.riskDegraded` → 响应壳 `meta.riskDegraded`） */
-export type WalnutAdminRiskDegradedReason
-  = | 'no-device-id'
-    | 'risk-evaluation-failed'
-    | 'risk-recommendation-missing'
+export type WalnutAdminRiskDegradedReason =
+  | 'no-device-id'
+  | 'risk-evaluation-failed'
+  | 'risk-recommendation-missing'
 
 export interface IWalnutAdminRiskRouteSensitivity {
   /** HTTP 谓词（大写）。Nest 的 `@Sse` 是 GET 语义的长连接，按 GET 登记 */
@@ -64,13 +61,11 @@ export interface IWalnutAdminRiskRouteSensitivity {
  * 必须显式归类的路由家族（前缀）。清单外的前缀默认 fail-open，不需要登记。
  * 判据：这里收的是「凭据生态」的全部入口 —— 登录链 / 凭据签发 / 握手 / 加密材料。
  */
-export const WALNUT_ADMIN_RISK_SENSITIVITY_FAMILIES = [
-  AuthRoutes.BASE,
-  '/security',
-] as const
+export const WALNUT_ADMIN_RISK_SENSITIVITY_FAMILIES = [AuthRoutes.BASE, '/security'] as const
 
 /** fail-close 条目的通用理由前缀（表里逐条写更细的原因） */
-export const WALNUT_ADMIN_RISK_CREDENTIAL_FACE = '凭据面：风控不可用时拒绝执行，避免机器人防护整体缺席'
+export const WALNUT_ADMIN_RISK_CREDENTIAL_FACE =
+  '凭据面：风控不可用时拒绝执行，避免机器人防护整体缺席'
 
 export const WALNUT_ADMIN_RISK_ROUTE_SENSITIVITY: readonly IWalnutAdminRiskRouteSensitivity[] = [
   // ─── /auth ────────────────────────────────────────────────────────────────
@@ -231,7 +226,8 @@ export const WALNUT_ADMIN_RISK_ROUTE_SENSITIVITY: readonly IWalnutAdminRiskRoute
     method: 'POST',
     path: AuthRoutes.OTP_SEND,
     sensitivity: 'fail-open',
-    reason: '发码不是「校验」，且有独立 throttle 兜底 —— 建议改 fail-close，见报告「需要 Lead 拍板」',
+    reason:
+      '发码不是「校验」，且有独立 throttle 兜底 —— 建议改 fail-close，见报告「需要 Lead 拍板」',
   },
 
   // ─── /security ────────────────────────────────────────────────────────────
@@ -275,7 +271,8 @@ export const WALNUT_ADMIN_RISK_ROUTE_SENSITIVITY: readonly IWalnutAdminRiskRoute
     method: 'POST',
     path: `${SecurityRoutes.SENSITIVE}/verify`,
     sensitivity: 'fail-open',
-    reason: '敏感操作第二因子增强（已认证用户），不在 Lead 明示的凭据链里 —— 候选改 fail-close，见报告',
+    reason:
+      '敏感操作第二因子增强（已认证用户），不在 Lead 明示的凭据链里 —— 候选改 fail-close，见报告',
   },
 ]
 
@@ -336,8 +333,8 @@ export function resolveWalnutAdminRiskSensitivity(
   const normalizedMethod = method.toUpperCase()
   const normalizedPath = stripWalnutAdminApiVersionPrefix(path)
 
-  return WALNUT_ADMIN_RISK_ROUTE_SENSITIVITY.find(entry =>
-    entry.method === normalizedMethod && matchesRoutePattern(normalizedPath, entry.path),
+  return WALNUT_ADMIN_RISK_ROUTE_SENSITIVITY.find(
+    (entry) => entry.method === normalizedMethod && matchesRoutePattern(normalizedPath, entry.path),
   )
 }
 

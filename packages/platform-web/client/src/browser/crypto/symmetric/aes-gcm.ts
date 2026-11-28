@@ -1,7 +1,12 @@
 import type { AesGcmRawInput, AesGcmRawResult } from '../const'
 import { AES_GCM } from '../const'
 import { aesGcmDecryptCore, aesGcmEncryptCore } from '../shared'
-import { base64ToUint8Array, uint8ArrayToBase64, uint8ArrayToUtf8, utf8ToUint8Array } from '../transformer'
+import {
+  base64ToUint8Array,
+  uint8ArrayToBase64,
+  uint8ArrayToUtf8,
+  utf8ToUint8Array,
+} from '../transformer'
 
 /**
  * Unified AES-256-GCM Encryption Interface
@@ -15,21 +20,13 @@ import { base64ToUint8Array, uint8ArrayToBase64, uint8ArrayToUtf8, utf8ToUint8Ar
  * @param raw        Whether to return split object, default is false
  * @returns Defaults to string; returns { iv, ciphertext, tag } when raw=true
  */
-export async function aesGcmEncrypt(
-  key: CryptoKey,
-  plaintext: string,
-  raw?: false,
-): Promise<string>
+export async function aesGcmEncrypt(key: CryptoKey, plaintext: string, raw?: false): Promise<string>
 export async function aesGcmEncrypt(
   key: CryptoKey,
   plaintext: string,
   raw: true,
 ): Promise<AesGcmRawResult>
-export async function aesGcmEncrypt(
-  key: CryptoKey,
-  plaintext: string,
-  raw = false,
-) {
+export async function aesGcmEncrypt(key: CryptoKey, plaintext: string, raw = false) {
   /* ---------- Pre-check ---------- */
   if (key.algorithm.name !== AES_GCM.NAME) {
     throw new TypeError('Key must be AES-GCM')
@@ -37,11 +34,7 @@ export async function aesGcmEncrypt(
 
   /* ---------- Encryption ---------- */
   const iv = crypto.getRandomValues(new Uint8Array(AES_GCM.IV_LENGTH))
-  const cipherBuffer = await aesGcmEncryptCore(
-    key,
-    utf8ToUint8Array(plaintext),
-    iv,
-  )
+  const cipherBuffer = await aesGcmEncryptCore(key, utf8ToUint8Array(plaintext), iv)
 
   const cipherBytes = new Uint8Array(cipherBuffer)
   const ciphertext = cipherBytes.slice(0, cipherBytes.length - AES_GCM.TAG_LENGTH)
@@ -68,14 +61,8 @@ export async function aesGcmEncrypt(
  * Returns null uniformly on decryption failure, no exceptions thrown.
  * ------------------------------------------------------------------
  */
-export async function aesGcmDecrypt(
-  key: CryptoKey,
-  encoded: string,
-): Promise<string | null>
-export async function aesGcmDecrypt(
-  key: CryptoKey,
-  parts: AesGcmRawInput,
-): Promise<string | null>
+export async function aesGcmDecrypt(key: CryptoKey, encoded: string): Promise<string | null>
+export async function aesGcmDecrypt(key: CryptoKey, parts: AesGcmRawInput): Promise<string | null>
 export async function aesGcmDecrypt(
   key: CryptoKey,
   input: string | AesGcmRawInput,
@@ -97,7 +84,9 @@ export async function aesGcmDecrypt(
       // Need at least: IV (12) + TAG (16) + at least 1 byte ciphertext = 29
       // But we can be lenient and allow empty ciphertext for edge cases
       if (data.length < AES_GCM.MIN_PAYLOAD_LENGTH) {
-        console.warn(`Invalid payload length: ${data.length}, expected at least ${AES_GCM.MIN_PAYLOAD_LENGTH}`)
+        console.warn(
+          `Invalid payload length: ${data.length}, expected at least ${AES_GCM.MIN_PAYLOAD_LENGTH}`,
+        )
         return null
       }
       iv = data.slice(0, AES_GCM.IV_LENGTH)
@@ -112,14 +101,9 @@ export async function aesGcmDecrypt(
       cipherWithTag.set(tag, ct.length)
     }
 
-    const plainBuffer = await aesGcmDecryptCore(
-      key,
-      cipherWithTag.buffer,
-      iv,
-    )
+    const plainBuffer = await aesGcmDecryptCore(key, cipherWithTag.buffer, iv)
     return uint8ArrayToUtf8(new Uint8Array(plainBuffer))
-  }
-  catch (e) {
+  } catch (e) {
     console.warn('AES-GCM decryption failed', e)
     return null
   }

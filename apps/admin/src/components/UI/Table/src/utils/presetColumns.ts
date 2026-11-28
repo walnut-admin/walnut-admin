@@ -5,7 +5,10 @@ export const WTablePresetOrderColumn: Pick<WTable.Column<any>, 'key' | 'width'> 
   width: 100,
 }
 
-export const WTablePresetStatusColumn: Pick<WTable.ExtendType.Dictionary<any>, 'key' | 'width' | 'extendType' | 'dictType' | 'filter' | 'filterMultiple'> = {
+export const WTablePresetStatusColumn: Pick<
+  WTable.ExtendType.Dictionary<any>,
+  'key' | 'width' | 'extendType' | 'dictType' | 'filter' | 'filterMultiple'
+> = {
   key: 'status',
   width: 120,
   extendType: 'dict',

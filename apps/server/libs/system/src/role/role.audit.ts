@@ -25,7 +25,7 @@ export interface IRoleAuthorizationAuditSnapshot {
 
 /** PG uuid 列统一小写；客户端大写变体归一后再比较/入快照 */
 function normalizeUuidList(ids: readonly string[]): string[] {
-  return [...ids].map(id => id.toLowerCase()).sort()
+  return [...ids].map((id) => id.toLowerCase()).sort()
 }
 
 export function buildRoleAuthorizationAuditSnapshot(
@@ -48,7 +48,7 @@ export function buildRoleAuthorizationAuditSnapshot(
 export function buildRoleAuthorizationAuditAfter(
   role: Pick<SysRoleEntity, 'dataScope' | 'status'>,
   before: IRoleAuthorizationAuditSnapshot,
-  dto: { deptIds?: string[], menus?: string[] },
+  dto: { deptIds?: string[]; menus?: string[] },
 ): IRoleAuthorizationAuditSnapshot {
   return buildRoleAuthorizationAuditSnapshot(
     role,

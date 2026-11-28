@@ -31,7 +31,9 @@ export class AppSmsProcessor extends WalnutAdminCommonBasicProcessor {
 
   // send verify code text message via Aliyun
   @Process(WalnutAdminConstAppProcess.PHONE_VERIFY)
-  async JobSendVerifyCodeTextMessage(job: Job<{ phoneNumber: string, verifyCode: string, expireSeconds: number }>) {
+  async JobSendVerifyCodeTextMessage(
+    job: Job<{ phoneNumber: string; verifyCode: string; expireSeconds: number }>,
+  ) {
     const { phoneNumber, expireSeconds } = job.data
 
     try {
@@ -54,12 +56,10 @@ export class AppSmsProcessor extends WalnutAdminCommonBasicProcessor {
         }
 
         return true
-      }
-      else {
+      } else {
         throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.auth.sendVerifyCodeError' })
       }
-    }
-    catch (error: unknown) {
+    } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error))
       this.logger.error(`SMS send failed: ${err.message}`, err.stack)
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.auth.sendVerifyCodeError' })

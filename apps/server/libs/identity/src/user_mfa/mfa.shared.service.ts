@@ -20,11 +20,7 @@ export class SysUserMfaHelperService {
    * @param length 每段长度
    * @param segments 分段数量
    */
-  generateBackupCodes(
-    count = 10,
-    length = 4,
-    segments = 3,
-  ): string[] {
+  generateBackupCodes(count = 10, length = 4, segments = 3): string[] {
     const codes: string[] = []
     // 排除易混淆字符：0/O, 1/I/L
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -95,9 +91,6 @@ export class SysUserMfaHelperService {
       return false
     }
 
-    return crypto.timingSafeEqual(
-      Buffer.from(computed, 'utf8'),
-      Buffer.from(storedHash, 'utf8'),
-    )
+    return crypto.timingSafeEqual(Buffer.from(computed, 'utf8'), Buffer.from(storedHash, 'utf8'))
   }
 }

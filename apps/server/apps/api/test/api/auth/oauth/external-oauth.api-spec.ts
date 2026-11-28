@@ -72,8 +72,16 @@ describe('D 段：外部 OAuth 错误路径专项 google/gitee/github（真实 H
       }
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
-      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [[api.deviceId, anonClient.deviceId, otherClient.deviceId]])
-      await api.cleanupWalnutCacheKeys(seed8, api.deviceId, anonClient.deviceId, otherClient.deviceId, fixture.userId)
+      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [
+        [api.deviceId, anonClient.deviceId, otherClient.deviceId],
+      ])
+      await api.cleanupWalnutCacheKeys(
+        seed8,
+        api.deviceId,
+        anonClient.deviceId,
+        otherClient.deviceId,
+        fixture.userId,
+      )
     }
     await app.close()
   })
@@ -81,7 +89,9 @@ describe('D 段：外部 OAuth 错误路径专项 google/gitee/github（真实 H
   it('P1-17 零配置默认关闭：APP:SETTING 无 app.auth.google → POST /auth/google 50301（functional guard defaultClosed）', async () => {
     // 不写任何 settings：通用 functional 口径是缺省放行，Google 控制器用 defaultClosed
     // 显式要求 authEnable=1 —— 缺失即 EndPointUnavailable，先于 passport/JWKS 校验。
-    const res = await anonClient.anon('POST', anonClient.apiPath('/auth/google'), { credential: 'garbage' })
+    const res = await anonClient.anon('POST', anonClient.apiPath('/auth/google'), {
+      credential: 'garbage',
+    })
     expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.SERVICE_UNAVAILABLE_ENDPOINT_DOWN)
   })
 
@@ -92,14 +102,22 @@ describe('D 段：外部 OAuth 错误路径专项 google/gitee/github（真实 H
       'app.auth.github': JSON.stringify({ authEnable: 0, newUserSignup: 0 }),
     })
 
-    const googleRes = await anonClient.anon('POST', anonClient.apiPath('/auth/google'), { credential: 'garbage' })
-    expect(bodyOf(googleRes).code).toBe(WalnutAdminConstAppResponseCode.SERVICE_UNAVAILABLE_ENDPOINT_DOWN)
+    const googleRes = await anonClient.anon('POST', anonClient.apiPath('/auth/google'), {
+      credential: 'garbage',
+    })
+    expect(bodyOf(googleRes).code).toBe(
+      WalnutAdminConstAppResponseCode.SERVICE_UNAVAILABLE_ENDPOINT_DOWN,
+    )
 
     const giteeUrlRes = await anonClient.anon('GET', anonClient.apiPath('/auth/oauth/gitee/url'))
-    expect(bodyOf(giteeUrlRes).code).toBe(WalnutAdminConstAppResponseCode.SERVICE_UNAVAILABLE_ENDPOINT_DOWN)
+    expect(bodyOf(giteeUrlRes).code).toBe(
+      WalnutAdminConstAppResponseCode.SERVICE_UNAVAILABLE_ENDPOINT_DOWN,
+    )
 
     const githubUrlRes = await anonClient.anon('GET', anonClient.apiPath('/auth/oauth/github/url'))
-    expect(bodyOf(githubUrlRes).code).toBe(WalnutAdminConstAppResponseCode.SERVICE_UNAVAILABLE_ENDPOINT_DOWN)
+    expect(bodyOf(githubUrlRes).code).toBe(
+      WalnutAdminConstAppResponseCode.SERVICE_UNAVAILABLE_ENDPOINT_DOWN,
+    )
   })
 
   it('开启态 gitee /url → 构造跳转 URL（authorize + client_id + redirect_uri + scope + state JSON）', async () => {
@@ -128,7 +146,10 @@ describe('D 段：外部 OAuth 错误路径专项 google/gitee/github（真实 H
     const [encodedPayload, signature] = stateRaw.split('.')
     expect(encodedPayload).toBeTruthy()
     expect(signature).toBeTruthy()
-    const state = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as { lang?: string, nonce?: string }
+    const state = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as {
+      lang?: string
+      nonce?: string
+    }
     expect(Object.keys(state).sort()).toEqual(['lang', 'nonce'])
     expect(typeof state.lang).toBe('string')
     // nonce 一次性凭据：32 位 hex
@@ -157,7 +178,10 @@ describe('D 段：外部 OAuth 错误路径专项 google/gitee/github（真实 H
     const [encodedPayload, signature] = stateRaw.split('.')
     expect(encodedPayload).toBeTruthy()
     expect(signature).toBeTruthy()
-    const state = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as { lang?: string, nonce?: string }
+    const state = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as {
+      lang?: string
+      nonce?: string
+    }
     expect(Object.keys(state).sort()).toEqual(['lang', 'nonce'])
     expect(state.nonce).toMatch(/^[0-9a-f]{32}$/)
     expect(stateRaw).not.toContain(anonClient.deviceId)

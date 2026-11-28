@@ -25,7 +25,7 @@ const useAppStoreCachedViewsInside = defineStore(StoreKeys.APP_CACHED_VIEWS, {
     },
 
     removeFromCached(name: RouteRecordNameGeneric) {
-      const index = this.cachedViewNameList.findIndex(i => i === name)
+      const index = this.cachedViewNameList.findIndex((i) => i === name)
 
       if (index) {
         this.cachedViewNameList.splice(index, 1)
@@ -37,7 +37,6 @@ const useAppStoreCachedViewsInside = defineStore(StoreKeys.APP_CACHED_VIEWS, {
 const useAppStoreCachedViewsOutside = () => useAppStoreCachedViewsInside(store)
 
 export function useAppStoreCachedViews() {
-  if (getCurrentInstance())
-    return useAppStoreCachedViewsInside()
+  if (getCurrentInstance()) return useAppStoreCachedViewsInside()
   return useAppStoreCachedViewsOutside()
 }

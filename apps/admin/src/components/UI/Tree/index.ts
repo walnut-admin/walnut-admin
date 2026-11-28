@@ -55,7 +55,11 @@ export interface ICompUITreeProps<T> {
   /**
    * @description extra dropdown options
    */
-  extraDropdownOptions?: (Omit<DropdownMixedOption, 'icon' | 'disabled'> & { icon?: string, disabled?: (item: T) => boolean, onClick?: (item: T) => void })[]
+  extraDropdownOptions?: (Omit<DropdownMixedOption, 'icon' | 'disabled'> & {
+    icon?: string
+    disabled?: (item: T) => boolean
+    onClick?: (item: T) => void
+  })[]
 
   /**
    * @description auth buttono
@@ -67,6 +71,8 @@ export interface ICompUITreeProps<T> {
   }
 }
 
-export type ICompUITreeInst<T> = Partial<TreeInst & {
-  setProps: (p: IDeepMaybeRef<ICompUITreeProps<T>> | ICompUITreeProps<T>) => void
-}>
+export type ICompUITreeInst<T> = Partial<
+  TreeInst & {
+    setProps: (p: IDeepMaybeRef<ICompUITreeProps<T>> | ICompUITreeProps<T>) => void
+  }
+>

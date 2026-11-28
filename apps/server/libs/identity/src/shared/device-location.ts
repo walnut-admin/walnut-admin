@@ -29,9 +29,5 @@ export function getDeviceLocationString(device: IIdentityDeviceLocationLike): st
     return `${country} ${region}`
   }
 
-  return [
-    country,
-    region,
-    city,
-  ].filter(Boolean).join(' ')
+  return [country, region, city].filter(Boolean).join(' ')
 }

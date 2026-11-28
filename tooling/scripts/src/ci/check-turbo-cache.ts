@@ -12,7 +12,12 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import { parseConfigFileTextToJson, parseJsonConfigFileContent, readConfigFile, sys } from 'typescript'
+import {
+  parseConfigFileTextToJson,
+  parseJsonConfigFileContent,
+  readConfigFile,
+  sys,
+} from 'typescript'
 
 import { COMMANDS, resolveCommandArgv } from '../lib/commands.ts'
 import { PreconditionError, ViolationError } from '../lib/errors.ts'
@@ -21,7 +26,15 @@ import { getPnpmBin } from '../lib/pnpm-launcher.ts'
 import { REPO_ROOT } from '../lib/repo-root.ts'
 
 /** 需要 dry-run 解析的任务名（都是会被缓存、且缓存边界出过问题的那些） */
-const PROBE_TASKS = ['build', 'build:stage', 'transit', 'types:check', 'lint', 'lint:root', 'test'] as const
+const PROBE_TASKS = [
+  'build',
+  'build:stage',
+  'transit',
+  'types:check',
+  'lint',
+  'lint:root',
+  'test',
+] as const
 
 export interface Finding {
   /** 不变量编号，报错时好定位 */
@@ -89,8 +102,7 @@ export function loadTurboDry(cwd = REPO_ROOT): TurboDry {
 export function packageDirs(dry: TurboDry, cwd = REPO_ROOT): string[] {
   const dirs = new Set<string>()
   for (const t of dry.tasks) {
-    if (t.taskId.startsWith('//#'))
-      continue
+    if (t.taskId.startsWith('//#')) continue
     dirs.add(norm(t.directory, cwd))
   }
   return [...dirs].sort()
@@ -108,29 +120,25 @@ function norm(p: string, cwd: string): string {
  */
 export function readTurboJson(file: string): Record<string, unknown> {
   const { config, error } = parseConfigFileTextToJson(file, readFileSync(file, 'utf8'))
-  if (error)
-    throw new Error(`${file} 解析失败：${error.messageText}`)
+  if (error) throw new Error(`${file} 解析失败：${error.messageText}`)
   return config as Record<string, unknown>
 }
 
 /** glob → 是否至少命中一个真实文件（只支持本仓实际用到的形态：`*` 段与 `**` 段） */
 export function globMatchesSomething(glob: string, cwd = REPO_ROOT): boolean {
   const abs = path.join(cwd, glob)
-  if (existsSync(abs))
-    return true
+  if (existsSync(abs)) return true
   // `a/*/b` / `a/**` 形态：逐段向下走
   const segs = glob.split('/')
   let frontier = [cwd]
   for (const seg of segs) {
     const next: string[] = []
     for (const dir of frontier) {
-      if (!existsSync(dir))
-        continue
+      if (!existsSync(dir)) continue
       let entries: string[]
       try {
         entries = readdirSync(dir)
-      }
-      catch {
+      } catch {
         continue
       }
       if (seg === '**') {
@@ -138,28 +146,26 @@ export function globMatchesSomething(glob: string, cwd = REPO_ROOT): boolean {
         for (const e of entries) {
           const p = path.join(dir, e)
           try {
-            if (readdirSync(p))
-              next.push(p)
+            if (readdirSync(p)) next.push(p)
+          } catch {
+            /* 不是目录 */
           }
-          catch { /* 不是目录 */ }
         }
-      }
-      else if (seg.includes('*')) {
-        const re = new RegExp(`^${seg.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*')}$`)
+      } else if (seg.includes('*')) {
+        const re = new RegExp(
+          `^${seg.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*')}$`,
+        )
         for (const e of entries) {
-          if (re.test(e))
-            next.push(path.join(dir, e))
+          if (re.test(e)) next.push(path.join(dir, e))
         }
-      }
-      else {
+      } else {
         next.push(path.join(dir, seg))
       }
     }
     frontier = next
-    if (frontier.length === 0)
-      return false
+    if (frontier.length === 0) return false
   }
-  return frontier.some(p => existsSync(p))
+  return frontier.some((p) => existsSync(p))
 }
 
 /**
@@ -169,22 +175,21 @@ export function globMatchesSomething(glob: string, cwd = REPO_ROOT): boolean {
  * 属「前置条件未满足」，不算失败。
  */
 export function declaredOutDirs(envFile: string): string[] {
-  if (!existsSync(envFile))
-    return []
+  if (!existsSync(envFile)) return []
   const txt = readFileSync(envFile, 'utf8')
   const out: string[] = []
   for (const raw of txt.split('\n')) {
     // 手写解析而不是一条正则打到底：`\s*…\s*` 那种写法会被
     // `regexp/no-super-linear-backtracking` 判为可多项式回溯（同仓已有先例）。
     const line = raw.trim()
-    if (!line.startsWith('VITE_BUILD_OUT_DIR'))
-      continue
+    if (!line.startsWith('VITE_BUILD_OUT_DIR')) continue
     const eq = line.indexOf('=')
-    if (eq < 0)
-      continue
-    const value = line.slice(eq + 1).trim().replace(/^"|"$/g, '')
-    if (value !== '')
-      out.push(value)
+    if (eq < 0) continue
+    const value = line
+      .slice(eq + 1)
+      .trim()
+      .replace(/^"|"$/g, '')
+    if (value !== '') out.push(value)
   }
   return out
 }
@@ -209,30 +214,26 @@ function outGlob(dir: string): string {
  */
 export function nestOutDir(appDir: string, env: 'prod' | 'stage' | 'dev'): string | null {
   const nestJson = path.join(appDir, 'infra/nest', `${env}.json`)
-  if (!existsSync(nestJson))
-    return null
+  if (!existsSync(nestJson)) return null
   const cfg = readTurboJson(nestJson) as {
-    compilerOptions?: { outDir?: string, tsConfigPath?: string }
-    projects?: Record<string, { compilerOptions?: { outDir?: string, tsConfigPath?: string } }>
+    compilerOptions?: { outDir?: string; tsConfigPath?: string }
+    projects?: Record<string, { compilerOptions?: { outDir?: string; tsConfigPath?: string } }>
   }
   // nest-cli 自己的 outDir 若写了就尊重它（将来 Nest 支持了就自动跟上），否则看 tsconfig
   const nestCliOut = cfg.projects?.api?.compilerOptions?.outDir ?? cfg.compilerOptions?.outDir
-  if (nestCliOut)
-    return nestCliOut
+  if (nestCliOut) return nestCliOut
 
-  const tsConfigPath = cfg.projects?.api?.compilerOptions?.tsConfigPath ?? cfg.compilerOptions?.tsConfigPath
-  if (!tsConfigPath)
-    return null
+  const tsConfigPath =
+    cfg.projects?.api?.compilerOptions?.tsConfigPath ?? cfg.compilerOptions?.tsConfigPath
+  if (!tsConfigPath) return null
   const abs = path.resolve(appDir, tsConfigPath)
   // 读文件的回调必须**显式 utf8**：直接传 `readFileSync` 会拿到 Buffer，
   // TypeScript 解析不出配置（实测：那样两个环境都解析成 null）。
-  const { config, error } = readConfigFile(abs, p => readFileSync(p, 'utf8'))
-  if (error || !config)
-    return null
+  const { config, error } = readConfigFile(abs, (p) => readFileSync(p, 'utf8'))
+  if (error || !config) return null
   const parsed = parseJsonConfigFileContent(config, sys, path.dirname(abs))
   const outDir = parsed.options.outDir
-  if (!outDir)
-    return null
+  if (!outDir) return null
   // 返回**包内相对**路径（`dist` / `dist-stage`）——`turbo.json` 的 `outputs` 就是包内相对的，
   // 两边必须同一口径才能比。
   return path.relative(appDir, outDir).replace(/\\/g, '/')
@@ -257,34 +258,29 @@ export function nestOutDir(appDir: string, env: 'prod' | 'stage' | 'dev'): strin
 export function ciStepsWritingBuildProducts(
   ciYaml: string,
   scripts: Record<string, string>,
-): Array<{ step: string, command: string, kind: 'missing' | 'passthrough' }> {
+): Array<{ step: string; command: string; kind: 'missing' | 'passthrough' }> {
   const lines = ciYaml.split(/\r?\n/)
-  const cacheAt = lines.findIndex(l => /^\s*uses:\s*actions\/cache@/.test(l))
-  if (cacheAt === -1)
-    return []
+  const cacheAt = lines.findIndex((l) => /^\s*uses:\s*actions\/cache@/.test(l))
+  if (cacheAt === -1) return []
 
-  const out: Array<{ step: string, command: string, kind: 'missing' | 'passthrough' }> = []
+  const out: Array<{ step: string; command: string; kind: 'missing' | 'passthrough' }> = []
   let step = '(未命名步骤)'
   for (let i = cacheAt + 1; i < lines.length; i++) {
     const l = lines[i] ?? ''
     // 下一个 job 开始 ⇒ 缓存步骤管不到那里
-    if (/^ {2}[a-z][\w-]*:\s*$/i.test(l))
-      break
+    if (/^ {2}[a-z][\w-]*:\s*$/i.test(l)) break
     const name = /^\s*-\s*name:\s*(\S.*)$/.exec(l)
     if (name?.[1] !== undefined) {
       step = name[1].trim()
       continue
     }
     const run = /^\s*run:\s*(\S.*)$/.exec(l)
-    if (run?.[1] === undefined)
-      continue
+    if (run?.[1] === undefined) continue
     const command = run[1].trim()
-    if (!runsBuildProductTask(command, scripts))
-      continue
+    if (!runsBuildProductTask(command, scripts)) continue
     const flagAt = command.indexOf('--cache-dir=')
     const sepAt = command.indexOf(' -- ')
-    if (flagAt !== -1 && (sepAt === -1 || flagAt < sepAt))
-      continue
+    if (flagAt !== -1 && (sepAt === -1 || flagAt < sepAt)) continue
     out.push({ step, command, kind: flagAt === -1 ? 'missing' : 'passthrough' })
   }
   return out
@@ -299,24 +295,20 @@ export function ciStepsWritingBuildProducts(
  */
 function runsBuildProductTask(command: string, scripts: Record<string, string>): boolean {
   const tokens = command.split(/\s+/)
-  if (tokens[0] !== 'pnpm')
-    return false
+  if (tokens[0] !== 'pnpm') return false
   // `pnpm walnut <id> …`：id 必须是命令表里真实存在的项，解析后按 turbo 任务形态判定。
   // 保留的根脚本（如 build）解析后仍是它自己 —— 那种情况继续走下面「按值判定」那条路。
   if (tokens[1] === 'walnut') {
     const id = tokens[2]
-    if (id === undefined || !COMMANDS.some(item => item.id === id))
-      return false
+    if (id === undefined || !COMMANDS.some((item) => item.id === id)) return false
     const resolved = resolveCommandArgv([id])
-    if (isTurboBuildArgv(resolved))
-      return true
+    if (isTurboBuildArgv(resolved)) return true
     const value = resolved.length === 1 ? scripts[resolved[0]!] : undefined
     return value !== undefined && /turbo\s+(?:run\s+)?build(?:\s|$)/.test(value)
   }
   const i = tokens[1] === 'run' || tokens[1] === 'exec' ? 2 : 1
   const target = tokens[i]
-  if (target === undefined)
-    return false
+  if (target === undefined) return false
   if (target === 'turbo') {
     const task = tokens[i + 1] === 'run' ? tokens[i + 2] : tokens[i + 1]
     return /^build(?::|$)/.test(task ?? '')
@@ -328,15 +320,14 @@ function runsBuildProductTask(command: string, scripts: Record<string, string>):
 /** 一段 argv 里 turbo 后面的任务名是不是 `build*`（`exec` / `cross-env` 之类的前缀跳过） */
 function isTurboBuildArgv(argv: readonly string[]): boolean {
   const at = argv.indexOf('turbo')
-  if (at === -1)
-    return false
+  if (at === -1) return false
   const task = argv[at + 1] === 'run' ? argv[at + 2] : argv[at + 1]
   return /^build(?::|$)/.test(task ?? '')
 }
 
 export function collectFindings(dry: TurboDry, cwd = REPO_ROOT): Finding[] {
   const findings: Finding[] = []
-  const taskOf = (id: string) => dry.tasks.find(t => t.taskId === id)
+  const taskOf = (id: string) => dry.tasks.find((t) => t.taskId === id)
 
   // ① 每个 workspace 包都必须有可解析的 `turbo.json`（extends + tags）。
   //    漏一个 = 那个包**完全不受 boundaries 约束**，且是静默的。
@@ -354,79 +345,124 @@ export function collectFindings(dry: TurboDry, cwd = REPO_ROOT): Finding[] {
   for (const dir of packageDirs(dry, cwd)) {
     const f = path.join(cwd, dir, 'turbo.json')
     if (!existsSync(f)) {
-      findings.push({ rule: 'package-turbo-json', detail: `${dir}/turbo.json 不存在 —— 该包不受 tags 边界约束` })
+      findings.push({
+        rule: 'package-turbo-json',
+        detail: `${dir}/turbo.json 不存在 —— 该包不受 tags 边界约束`,
+      })
       continue
     }
-    let cfg: { extends?: string[], tags?: string[] }
+    let cfg: { extends?: string[]; tags?: string[] }
     try {
-      cfg = readTurboJson(f) as { extends?: string[], tags?: string[] }
-    }
-    catch (e) {
-      findings.push({ rule: 'package-turbo-json', detail: `${dir}/turbo.json 解析失败：${(e as Error).message}` })
+      cfg = readTurboJson(f) as { extends?: string[]; tags?: string[] }
+    } catch (e) {
+      findings.push({
+        rule: 'package-turbo-json',
+        detail: `${dir}/turbo.json 解析失败：${(e as Error).message}`,
+      })
       continue
     }
     if (JSON.stringify(cfg.extends) !== '["//"]')
-      findings.push({ rule: 'package-turbo-json', detail: `${dir}/turbo.json 的 extends 必须是 ["//"]，实际 ${JSON.stringify(cfg.extends)}` })
+      findings.push({
+        rule: 'package-turbo-json',
+        detail: `${dir}/turbo.json 的 extends 必须是 ["//"]，实际 ${JSON.stringify(cfg.extends)}`,
+      })
     if (!Array.isArray(cfg.tags) || cfg.tags.length === 0) {
-      findings.push({ rule: 'package-turbo-json', detail: `${dir}/turbo.json 没有 tags —— 该包在 boundaries 眼里没有角色` })
+      findings.push({
+        rule: 'package-turbo-json',
+        detail: `${dir}/turbo.json 没有 tags —— 该包在 boundaries 眼里没有角色`,
+      })
       continue
     }
     declaredTags.set(dir, cfg.tags)
     for (const tag of cfg.tags) {
       if (typeof tag !== 'string' || !/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/.test(tag))
-        findings.push({ rule: 'tag-shape', detail: `${dir}/turbo.json 的 tag \`${String(tag)}\` 不是小写 kebab-case —— 这种 tag 匹配不上 boundaries 里任何一条规则` })
+        findings.push({
+          rule: 'tag-shape',
+          detail: `${dir}/turbo.json 的 tag \`${String(tag)}\` 不是小写 kebab-case —— 这种 tag 匹配不上 boundaries 里任何一条规则`,
+        })
     }
     if (new Set(cfg.tags).size !== cfg.tags.length)
-      findings.push({ rule: 'tag-shape', detail: `${dir}/turbo.json 的 tags 有重复：${JSON.stringify(cfg.tags)}` })
+      findings.push({
+        rule: 'tag-shape',
+        detail: `${dir}/turbo.json 的 tags 有重复：${JSON.stringify(cfg.tags)}`,
+      })
   }
 
   // 平台 tag 与目录组一致（只查两个 `packages/platform-*` 组：那里**目录名就是 tag 的语义**，
   // 是布局给的判据，不是我们发明的约定。apps/* 的目录名与平台 tag 没有这种对应关系，故不查）。
   const PLATFORM_GROUPS = [
-    { prefix: 'packages/platform-any/', tag: 'platform-any', forbidden: ['platform-web', 'platform-node'] },
-    { prefix: 'packages/platform-web/', tag: 'platform-web', forbidden: ['platform-any', 'platform-node'] },
+    {
+      prefix: 'packages/platform-any/',
+      tag: 'platform-any',
+      forbidden: ['platform-web', 'platform-node'],
+    },
+    {
+      prefix: 'packages/platform-web/',
+      tag: 'platform-web',
+      forbidden: ['platform-any', 'platform-node'],
+    },
   ] as const
   for (const [dir, tags] of declaredTags) {
     for (const group of PLATFORM_GROUPS) {
-      if (!dir.startsWith(group.prefix))
-        continue
+      if (!dir.startsWith(group.prefix)) continue
       if (!tags.includes(group.tag))
-        findings.push({ rule: 'platform-tag-matches-dir', detail: `${dir} 在 ${group.prefix} 下，但 tags ${JSON.stringify(tags)} 里没有 \`${group.tag}\`` })
+        findings.push({
+          rule: 'platform-tag-matches-dir',
+          detail: `${dir} 在 ${group.prefix} 下，但 tags ${JSON.stringify(tags)} 里没有 \`${group.tag}\``,
+        })
       for (const bad of group.forbidden) {
         if (tags.includes(bad))
-          findings.push({ rule: 'platform-tag-matches-dir', detail: `${dir} 在 ${group.prefix} 下，却声明了 \`${bad}\` —— 那条 boundaries 规则会套到错的一侧` })
+          findings.push({
+            rule: 'platform-tag-matches-dir',
+            detail: `${dir} 在 ${group.prefix} 下，却声明了 \`${bad}\` —— 那条 boundaries 规则会套到错的一侧`,
+          })
       }
     }
   }
 
   // ①c 反向断言：root `boundaries.tags` 的每个 key 都得有包在声明。
   {
-    const boundaries = (readTurboJson(path.join(cwd, 'turbo.json')) as { boundaries?: { tags?: Record<string, unknown> } }).boundaries
+    const boundaries = (
+      readTurboJson(path.join(cwd, 'turbo.json')) as {
+        boundaries?: { tags?: Record<string, unknown> }
+      }
+    ).boundaries
     const allDeclared = new Set([...declaredTags.values()].flat())
     for (const tag of Object.keys(boundaries?.tags ?? {})) {
       if (!allDeclared.has(tag))
-        findings.push({ rule: 'boundary-rule-has-subject', detail: `根 turbo.json 的 boundaries.tags.\`${tag}\` 没有任何包声明这个 tag —— 这条规则永远不会生效（恒关的规则 = 没有规则）` })
+        findings.push({
+          rule: 'boundary-rule-has-subject',
+          detail: `根 turbo.json 的 boundaries.tags.\`${tag}\` 没有任何包声明这个 tag —— 这条规则永远不会生效（恒关的规则 = 没有规则）`,
+        })
     }
   }
 
   // ② `globalDependencies` 的每一条都必须命中真实文件。
   //    写错一个字符（改名、挪目录）不会报错，只会**少一个全局失效源**。
-  const rootPkg = readTurboJson(path.join(cwd, 'turbo.json')) as { globalDependencies?: string[], tasks?: Record<string, { dependsOn?: string[] }> }
+  const rootPkg = readTurboJson(path.join(cwd, 'turbo.json')) as {
+    globalDependencies?: string[]
+    tasks?: Record<string, { dependsOn?: string[] }>
+  }
   for (const g of rootPkg.globalDependencies ?? []) {
     if (!globMatchesSomething(g, cwd))
-      findings.push({ rule: 'global-dependency-exists', detail: `globalDependencies 里的 \`${g}\` 匹配不到任何文件` })
+      findings.push({
+        rule: 'global-dependency-exists',
+        detail: `globalDependencies 里的 \`${g}\` 匹配不到任何文件`,
+      })
   }
 
   // ③ 解过密的 app：`env-local/**` 必须进 build 的 inputs。
   //    它被 gitignore，`$TURBO_DEFAULT$` 看不见 —— 漏了就等于「改 .env 不重建」。
-  for (const appDir of packageDirs(dry, cwd).filter(d => d.startsWith('apps/'))) {
-    if (!existsSync(path.join(cwd, appDir, 'env-local')))
-      continue
+  for (const appDir of packageDirs(dry, cwd).filter((d) => d.startsWith('apps/'))) {
+    if (!existsSync(path.join(cwd, appDir, 'env-local'))) continue
     for (const taskName of ['build', 'build:stage']) {
-      const t = dry.tasks.find(x => x.task === taskName && norm(x.directory, cwd) === appDir)
+      const t = dry.tasks.find((x) => x.task === taskName && norm(x.directory, cwd) === appDir)
       const inputs = t?.resolvedTaskDefinition.inputs ?? []
       if (!inputs.includes('env-local/**'))
-        findings.push({ rule: 'env-local-in-inputs', detail: `${appDir} 有 env-local/ 但 ${taskName}.inputs 里没有 "env-local/**"` })
+        findings.push({
+          rule: 'env-local-in-inputs',
+          detail: `${appDir} 有 env-local/ 但 ${taskName}.inputs 里没有 "env-local/**"`,
+        })
     }
   }
 
@@ -438,14 +474,16 @@ export function collectFindings(dry: TurboDry, cwd = REPO_ROOT): Finding[] {
   ]
   for (const c of outDirCases) {
     const dirs = declaredOutDirs(path.join(cwd, c.env))
-    if (dirs.length === 0)
-      continue
-    const t = dry.tasks.find(x => x.task === c.task && norm(x.directory, cwd) === c.app)
+    if (dirs.length === 0) continue
+    const t = dry.tasks.find((x) => x.task === c.task && norm(x.directory, cwd) === c.app)
     const outputs = t?.resolvedTaskDefinition.outputs ?? []
     for (const d of dirs) {
       const want = outGlob(d)
       if (!outputs.includes(want))
-        findings.push({ rule: 'outputs-cover-artifacts', detail: `${c.app} 的 ${c.task} 实际产物目录是 ${d}（${c.env}），但 outputs ${JSON.stringify(outputs)} 里没有 "${want}" —— 缓存命中时不会回放产物` })
+        findings.push({
+          rule: 'outputs-cover-artifacts',
+          detail: `${c.app} 的 ${c.task} 实际产物目录是 ${d}（${c.env}），但 outputs ${JSON.stringify(outputs)} 里没有 "${want}" —— 缓存命中时不会回放产物`,
+        })
     }
   }
 
@@ -453,38 +491,51 @@ export function collectFindings(dry: TurboDry, cwd = REPO_ROOT): Finding[] {
   //     turbo 缓存命中时按 `outputs` 把产物**重放**回盘上 ⇒ 两边声明同一个目录时，
   //     后跑的那次（含缓存重放）决定盘上留的是哪一版，而且**不报错**。
   //     判据取自 nest 配置里的真实 outDir（server 侧），不是手抄的目录名。
-  for (const appDir of packageDirs(dry, cwd).filter(d => d.startsWith('apps/'))) {
+  for (const appDir of packageDirs(dry, cwd).filter((d) => d.startsWith('apps/'))) {
     const appAbs = path.join(cwd, appDir)
     const hasNest = existsSync(path.join(appAbs, 'infra/nest/prod.json'))
-    if (!hasNest)
-      continue
+    if (!hasNest) continue
     const prod = nestOutDir(appAbs, 'prod')
     const stage = nestOutDir(appAbs, 'stage')
     // 解析不出来**不能当成「不适用」跳过** —— 2026-09-23 自己踩过：`appDir` 少取了一级
     // 目录，两个都解析成 null，于是这条检查静默跳过、门禁照样全绿。
     if (prod === null || stage === null) {
-      findings.push({ rule: 'stage-outdir-separate', detail: `${appDir} 有 infra/nest/prod.json，但解析不出 ${prod === null ? 'prod' : 'stage'} 的产物目录（看 infra/nest/*.json 的 tsConfigPath → tsconfig 的 outDir）` })
+      findings.push({
+        rule: 'stage-outdir-separate',
+        detail: `${appDir} 有 infra/nest/prod.json，但解析不出 ${prod === null ? 'prod' : 'stage'} 的产物目录（看 infra/nest/*.json 的 tsConfigPath → tsconfig 的 outDir）`,
+      })
       continue
     }
     if (prod === stage) {
-      findings.push({ rule: 'stage-outdir-separate', detail: `${appDir} 的 prod 与 stage 构建都写 ${prod}/（infra/nest/{prod,stage}.json）—— 缓存重放会让两条流程互相覆盖产物` })
+      findings.push({
+        rule: 'stage-outdir-separate',
+        detail: `${appDir} 的 prod 与 stage 构建都写 ${prod}/（infra/nest/{prod,stage}.json）—— 缓存重放会让两条流程互相覆盖产物`,
+      })
       continue
     }
-    const t = dry.tasks.find(x => x.task === 'build:stage' && norm(x.directory, cwd) === appDir)
+    const t = dry.tasks.find((x) => x.task === 'build:stage' && norm(x.directory, cwd) === appDir)
     const outputs = t?.resolvedTaskDefinition.outputs ?? []
     if (!outputs.includes(outGlob(stage)))
-      findings.push({ rule: 'outputs-cover-artifacts', detail: `${appDir} 的 build:stage 产物目录是 ${stage}（infra/nest/stage.json），但 outputs ${JSON.stringify(outputs)} 里没有 "${outGlob(stage)}"` })
+      findings.push({
+        rule: 'outputs-cover-artifacts',
+        detail: `${appDir} 的 build:stage 产物目录是 ${stage}（infra/nest/stage.json），但 outputs ${JSON.stringify(outputs)} 里没有 "${outGlob(stage)}"`,
+      })
   }
 
   // ⑤ `types:check` 必须经 `transit` 拿到上游**源码**的哈希。
   //    本仓共享包的 exports 指 ./src/**，下游类型是从源码读的；断了这条边就是回放假绿。
-  const tc = (rootPkg.tasks ?? {})
+  const tc = rootPkg.tasks ?? {}
   if (!tc.transit) {
-    findings.push({ rule: 'transit-exists', detail: '根 turbo.json 里没有 `transit` 任务 —— types:check 会看不到依赖包的源码变更' })
-  }
-  else {
+    findings.push({
+      rule: 'transit-exists',
+      detail: '根 turbo.json 里没有 `transit` 任务 —— types:check 会看不到依赖包的源码变更',
+    })
+  } else {
     if (!(tc.transit.dependsOn ?? []).includes('^transit'))
-      findings.push({ rule: 'transit-chains', detail: 'transit.dependsOn 里必须含 "^transit"，否则不会沿依赖图逐级上溯' })
+      findings.push({
+        rule: 'transit-chains',
+        detail: 'transit.dependsOn 里必须含 "^transit"，否则不会沿依赖图逐级上溯',
+      })
     if (!(tc['types:check']?.dependsOn ?? []).includes('transit'))
       findings.push({ rule: 'transit-chains', detail: 'types:check.dependsOn 里必须含 "transit"' })
   }
@@ -493,9 +544,12 @@ export function collectFindings(dry: TurboDry, cwd = REPO_ROOT): Finding[] {
   //    根 build 任务排除了 `!**/*.md`，docs 靠包级覆写补回来；覆写丢了 = 改文档不重建、静默跳过死链校验。
   const docsBuild = taskOf('@walnut/docs#build')
   if (docsBuild) {
-    const mdCount = Object.keys(docsBuild.inputs ?? {}).filter(k => k.endsWith('.md')).length
+    const mdCount = Object.keys(docsBuild.inputs ?? {}).filter((k) => k.endsWith('.md')).length
     if (mdCount === 0)
-      findings.push({ rule: 'docs-build-sees-markdown', detail: '@walnut/docs#build 的输入里一个 .md 都没有 —— 改文档不会重建，死链校验被跳过' })
+      findings.push({
+        rule: 'docs-build-sees-markdown',
+        detail: '@walnut/docs#build 的输入里一个 .md 都没有 —— 改文档不会重建，死链校验被跳过',
+      })
   }
 
   // ⑧ `//#lint:root` 的 `inputs` 必须与**命令表**里 `lint:root` 的那几个 glob **双向一致**。
@@ -508,32 +562,40 @@ export function collectFindings(dry: TurboDry, cwd = REPO_ROOT): Finding[] {
   //    `lint:root` 在表里是 **run 形态**（根 `turbo.json` 的根任务要跑根上同名脚本），
   //    所以解析结果可能仍是那个名字本身 —— 那时再按根 `package.json` 里的值取 glob。
   {
-    const command = COMMANDS.find(item => item.id === 'lint:root')
+    const command = COMMANDS.find((item) => item.id === 'lint:root')
     const task = (rootPkg.tasks ?? {})['//#lint:root'] as { inputs?: string[] } | undefined
     if (command === undefined || !('argv' in command) || task === undefined) {
-      findings.push({ rule: 'lint-root-inputs', detail: `命令表的 \`lint:root\` 项或 \`//#lint:root\` 任务缺失（命令项：${command === undefined ? '无' : '有'}，任务：${task === undefined ? '无' : '有'}）` })
-    }
-    else {
+      findings.push({
+        rule: 'lint-root-inputs',
+        detail: `命令表的 \`lint:root\` 项或 \`//#lint:root\` 任务缺失（命令项：${command === undefined ? '无' : '有'}，任务：${task === undefined ? '无' : '有'}）`,
+      })
+    } else {
       const resolved = resolveCommandArgv(['lint:root'])
       // run 形态解析后只剩脚本名：glob 在根 package.json 的值里（缺了它就是空集合 ⇒ 下面两个方向都会报）
-      const rootScripts = (readTurboJson(path.join(cwd, 'package.json')) as { scripts?: Record<string, string> }).scripts ?? {}
-      const tokens = resolved.length === 1
-        ? (rootScripts[resolved[0]!] ?? '').split(/\s+/)
-        : resolved
+      const rootScripts =
+        (readTurboJson(path.join(cwd, 'package.json')) as { scripts?: Record<string, string> })
+          .scripts ?? {}
+      const tokens =
+        resolved.length === 1 ? (rootScripts[resolved[0]!] ?? '').split(/\s+/) : resolved
       // 从 tokens 里挑出「看起来是 glob 的位置参数」：含 `*` 且不以 `-` 开头
-      const globs = tokens.filter(t => t.includes('*') && !t.startsWith('-'))
+      const globs = tokens.filter((t) => t.includes('*') && !t.startsWith('-'))
       const inputs = new Set(task.inputs ?? [])
       for (const g of globs) {
         const want = `$TURBO_ROOT$/${g}`
         if (!inputs.has(want))
-          findings.push({ rule: 'lint-root-inputs', detail: `lint:root 里的 \`${g}\` 不在 //#lint:root 的 inputs 里（缺 \`${want}\`）—— 改这类文件不会重新 lint` })
+          findings.push({
+            rule: 'lint-root-inputs',
+            detail: `lint:root 里的 \`${g}\` 不在 //#lint:root 的 inputs 里（缺 \`${want}\`）—— 改这类文件不会重新 lint`,
+          })
       }
       for (const i of inputs) {
-        if (!i.startsWith('$TURBO_ROOT$/'))
-          continue
+        if (!i.startsWith('$TURBO_ROOT$/')) continue
         const g = i.slice('$TURBO_ROOT$/'.length)
         if (!globs.includes(g))
-          findings.push({ rule: 'lint-root-inputs', detail: `//#lint:root 的 inputs 里有 \`${i}\`，但 lint:root 并不检查它 —— 白担了「随运行变化 ⇒ 缓存永不命中」的风险` })
+          findings.push({
+            rule: 'lint-root-inputs',
+            detail: `//#lint:root 的 inputs 里有 \`${i}\`，但 lint:root 并不检查它 —— 白担了「随运行变化 ⇒ 缓存永不命中」的风险`,
+          })
       }
     }
   }
@@ -544,12 +606,22 @@ export function collectFindings(dry: TurboDry, cwd = REPO_ROOT): Finding[] {
   //    判据见 `ciStepsWritingBuildProducts`（含「`--cache-dir` 写在 `--` 之后到不了 turbo」那条）。
   {
     const ciPath = path.join(cwd, '.github/workflows/ci.yml')
-    const scripts = (readTurboJson(path.join(cwd, 'package.json')) as { scripts?: Record<string, string> }).scripts ?? {}
+    const scripts =
+      (readTurboJson(path.join(cwd, 'package.json')) as { scripts?: Record<string, string> })
+        .scripts ?? {}
     if (existsSync(ciPath)) {
       for (const s of ciStepsWritingBuildProducts(readFileSync(ciPath, 'utf8'), scripts)) {
-        findings.push(s.kind === 'passthrough'
-          ? { rule: 'ci-cache-flag-reaches-turbo', detail: `ci.yml 的步骤「${s.step}」把 \`--cache-dir\` 写在 \`--\` 之后 ⇒ 它被 turbo 当成**透传给任务本身**的参数（实测：VitePress 收到它，缓存照旧写默认目录）。去掉那个 \`--\`：\`${s.command}\`` }
-          : { rule: 'ci-cache-holds-only-metadata', detail: `ci.yml 的步骤「${s.step}」跑的是**有产物**的构建任务（\`${s.command}\`），却又落在跨 run 缓存的路径上 —— 产物会随整份 \`.turbo/cache\` 一起上传（实测把归档从几十 KB 顶到 4.7 MB）。给它自己的 \`--cache-dir\`，或把这一步挪到恢复缓存之前。` })
+        findings.push(
+          s.kind === 'passthrough'
+            ? {
+                rule: 'ci-cache-flag-reaches-turbo',
+                detail: `ci.yml 的步骤「${s.step}」把 \`--cache-dir\` 写在 \`--\` 之后 ⇒ 它被 turbo 当成**透传给任务本身**的参数（实测：VitePress 收到它，缓存照旧写默认目录）。去掉那个 \`--\`：\`${s.command}\``,
+              }
+            : {
+                rule: 'ci-cache-holds-only-metadata',
+                detail: `ci.yml 的步骤「${s.step}」跑的是**有产物**的构建任务（\`${s.command}\`），却又落在跨 run 缓存的路径上 —— 产物会随整份 \`.turbo/cache\` 一起上传（实测把归档从几十 KB 顶到 4.7 MB）。给它自己的 \`--cache-dir\`，或把这一步挪到恢复缓存之前。`,
+              },
+        )
       }
     }
   }
@@ -561,10 +633,11 @@ export function main(): void {
   let dry: TurboDry
   try {
     dry = loadTurboDry()
-  }
-  catch (e) {
+  } catch (e) {
     // 措辞刻意不写「配置有问题」：这里失败也可能是**根本起不来 turbo**（找不到 pnpm、cwd 不对）
-    throw new PreconditionError(`拿不到 turbo 的解析结果（\`pnpm exec turbo run … --dry=json\` 没跑成）：${(e as Error).message}`)
+    throw new PreconditionError(
+      `拿不到 turbo 的解析结果（\`pnpm exec turbo run … --dry=json\` 没跑成）：${(e as Error).message}`,
+    )
   }
   const findings = collectFindings(dry)
   const tasks = dry.tasks.length

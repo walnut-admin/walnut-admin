@@ -14,11 +14,7 @@ const ACCESS_SECRET = 'token-service-spec-access-secret'
 function createService() {
   const configService = {
     get: (key: string) =>
-      key === 'jwt.access.secret'
-        ? ACCESS_SECRET
-        : key === 'jwt.access.expire'
-          ? 3600
-          : undefined,
+      key === 'jwt.access.secret' ? ACCESS_SECRET : key === 'jwt.access.expire' ? 3600 : undefined,
   }
 
   return new AppTokenService(new JwtService({ secret: ACCESS_SECRET }), configService as never)
@@ -43,7 +39,9 @@ describe('appTokenService.verifyAccessToken（F-02 验签）', () => {
   it('正确 secret 签发的有效 token → 返回 payload', async () => {
     const service = createService()
 
-    const payload = await service.verifyAccessToken(await service.generateJwtAccessToken(makePayload()))
+    const payload = await service.verifyAccessToken(
+      await service.generateJwtAccessToken(makePayload()),
+    )
 
     expect(payload?.userId).toBe('spec-user')
     expect(payload?.sid).toBe('spec-sid')
@@ -68,7 +66,9 @@ describe('appTokenService.verifyAccessToken（F-02 验签）', () => {
 
   it('过期真 token（正确 secret、exp 在过去）→ null', async () => {
     const service = createService()
-    const expired = await new JwtService({ secret: ACCESS_SECRET }).signAsync(makePayload(), { expiresIn: '-10s' })
+    const expired = await new JwtService({ secret: ACCESS_SECRET }).signAsync(makePayload(), {
+      expiresIn: '-10s',
+    })
 
     await expect(service.verifyAccessToken(expired)).resolves.toBeNull()
   })

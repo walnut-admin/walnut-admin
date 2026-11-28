@@ -33,13 +33,13 @@ describe('fencedBlocks —— 抽围栏块', () => {
 
   it('多种语言都抽出来（过滤交给 tsBlocksOf）', () => {
     const md = ['```bash', 'ls', '```', '', '```jsonc', '{ "a": 1 }', '```'].join('\n')
-    expect(fencedBlocks('x.md', md).map(b => b.lang)).toEqual(['bash', 'jsonc'])
+    expect(fencedBlocks('x.md', md).map((b) => b.lang)).toEqual(['bash', 'jsonc'])
   })
 
   it('带 meta 的围栏（```ts{1,3}）会被抽出来，但语言标注是 `ts{1,3}` ⇒ 由 tsBlocksOf 过滤掉', () => {
     const md = ['```ts{1,3}', 'const a = 1', '```'].join('\n')
     const blocks = fencedBlocks('x.md', md)
-    expect(blocks.map(b => b.lang)).toEqual(['ts{1,3}'])
+    expect(blocks.map((b) => b.lang)).toEqual(['ts{1,3}'])
     // 关键：**不检查**它。宁可漏报，也不去猜 meta 的语法。
     expect(tsBlocksOf(blocks)).toEqual([])
   })
@@ -65,7 +65,7 @@ describe('tsBlocksOf —— 只留 ts / tsx，并剔掉伪代码标记', () => {
       block('const e = 1', ''),
       block('# 标题', 'md'),
     ]
-    expect(tsBlocksOf(blocks).map(b => b.lang)).toEqual(['ts', 'tsx', 'typescript'])
+    expect(tsBlocksOf(blocks).map((b) => b.lang)).toEqual(['ts', 'tsx', 'typescript'])
   })
 
   it(`第一行是 \`${PSEUDO_MARKER}\` 的块被豁免（有意的伪代码）`, () => {
@@ -83,9 +83,9 @@ describe('tsBlocksOf —— 只留 ts / tsx，并剔掉伪代码标记', () => {
 describe('findingsOfBlock —— 绿路径不许误报', () => {
   const fine = [
     ['合法语句', 'const a: number = 1'],
-    ['import', 'import type { Fn } from \'@walnut/types\''],
+    ['import', "import type { Fn } from '@walnut/types'"],
     ['接口', 'export interface IProps { a: string }'],
-    ['片段：顶层 await 之外的表达式', 'defineStore(\'x\', { /* … */ })'],
+    ['片段：顶层 await 之外的表达式', "defineStore('x', { /* … */ })"],
     ['对象字面量作为实参', 'defineStore(StoreKeys.X, { /* … */ })'],
     ['泛型声明', 'type Box<T> = { value: T }'],
     ['装饰器', '@Injectable()\nclass A {}'],
@@ -148,9 +148,11 @@ describe('collectFindings —— 汇总', () => {
   it('把给定文件里的所有 ts 块汇总成 findings', () => {
     const files = ['apps/docs/src/a.md']
     const texts: Record<string, string> = {
-      'apps/docs/src/a.md': ['```ts', 'const ok = 1', '```', '', '```ts', '{ "a": 1 }', '```'].join('\n'),
+      'apps/docs/src/a.md': ['```ts', 'const ok = 1', '```', '', '```ts', '{ "a": 1 }', '```'].join(
+        '\n',
+      ),
     }
-    const got = collectFindings(files, f => texts[f] ?? '')
+    const got = collectFindings(files, (f) => texts[f] ?? '')
     expect(got).toHaveLength(1)
     expect(got[0]?.file).toBe('apps/docs/src/a.md')
     expect(got[0]?.kind).toBe('json-in-ts')
@@ -162,7 +164,7 @@ describe('collectFindings —— 汇总', () => {
     const texts: Record<string, string> = {
       'AGENTS.md': ['```ts', 'const broken = (', '```'].join('\n'),
     }
-    expect(collectFindings(['AGENTS.md'], f => texts[f] ?? '')).toHaveLength(1)
+    expect(collectFindings(['AGENTS.md'], (f) => texts[f] ?? '')).toHaveLength(1)
     expect(collectFindings([], () => '')).toEqual([])
   })
 })
@@ -175,7 +177,7 @@ describe('json 块：标了 `json` 就必须是合法 JSON（2026-09-29 加）',
       block('{ a: 1 }', 'json5'),
       block('const a = 1', 'ts'),
     ]
-    expect(jsonBlocksOf(blocks).map(b => b.lang)).toEqual(['json'])
+    expect(jsonBlocksOf(blocks).map((b) => b.lang)).toEqual(['json'])
   })
 
   it(`第一行是 \`${PSEUDO_MARKER}\` 的 json 块同样豁免`, () => {
@@ -183,7 +185,13 @@ describe('json 块：标了 `json` 就必须是合法 JSON（2026-09-29 加）',
   })
 
   it('合法 JSON 不报（含对象、数组、数字、字符串、null）', () => {
-    for (const code of ['{ "a": 1 }', '[1, 2, 3]', '"x"', 'null', '{\n  "a": [\n    { "b": true }\n  ]\n}'])
+    for (const code of [
+      '{ "a": 1 }',
+      '[1, 2, 3]',
+      '"x"',
+      'null',
+      '{\n  "a": [\n    { "b": true }\n  ]\n}',
+    ])
       expect(jsonFindingsOfBlock(block(code, 'json'))).toEqual([])
   })
 
@@ -209,7 +217,7 @@ describe('json 块：标了 `json` 就必须是合法 JSON（2026-09-29 加）',
     const texts: Record<string, string> = {
       'apps/docs/src/a.md': ['```jsonc', '{ // c', '  "a": 1', '}', '```'].join('\n'),
     }
-    expect(collectFindings(['apps/docs/src/a.md'], f => texts[f] ?? '')).toEqual([])
+    expect(collectFindings(['apps/docs/src/a.md'], (f) => texts[f] ?? '')).toEqual([])
     expect(jsonBlocksOf([block('{ // c\n "a": 1 }', 'jsonc')])).toEqual([])
   })
 
@@ -217,7 +225,7 @@ describe('json 块：标了 `json` 就必须是合法 JSON（2026-09-29 加）',
     const texts: Record<string, string> = {
       'apps/docs/src/a.md': ['```json', '{ // c', '  "a": 1', '}', '```'].join('\n'),
     }
-    const got = collectFindings(['apps/docs/src/a.md'], f => texts[f] ?? '')
+    const got = collectFindings(['apps/docs/src/a.md'], (f) => texts[f] ?? '')
     expect(got).toHaveLength(1)
     expect(got[0]?.kind).toBe('json-syntax')
   })

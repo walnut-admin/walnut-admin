@@ -7,15 +7,17 @@ declare global {
   // （ISysMenuAssembled —— 拍平列 + meta 对象，主键 id）；字段形态一致，仅 id/pid/可空性
   // 随列型放开。meta 形状从 @walnut/contract 的纯 interface 取（批 4 起 schema/ 并入
   // dto/，带装饰器的基座类不再跨模块裸引，wire 契约统一走 contract）
-  type IMenuTreeItem = TreeNodeItem<
-    Partial<ISysMenuAssembled>
-  >
+  type IMenuTreeItem = TreeNodeItem<Partial<ISysMenuAssembled>>
 
   type IVueRouteItem = TreeNodeItem<
-    Pick<Partial<ISysMenuAssembled>, 'name' | 'path' | 'component'> & { meta: Partial<IWalnutAdminMenuMeta> }
+    Pick<Partial<ISysMenuAssembled>, 'name' | 'path' | 'component'> & {
+      meta: Partial<IWalnutAdminMenuMeta>
+    }
   >
 
-  type ILayoutTabsItem = Pick<Partial<ISysMenuAssembled>, 'name' | 'path'> & { meta: Partial<ISysMenuAssembled> }
+  type ILayoutTabsItem = Pick<Partial<ISysMenuAssembled>, 'name' | 'path'> & {
+    meta: Partial<ISysMenuAssembled>
+  }
 
   type IIframeListItem = TreeNodeItem<
     Pick<Partial<ISysMenuAssembled>, 'name'> & Pick<IWalnutAdminMenuMeta, 'url' | 'cache'>

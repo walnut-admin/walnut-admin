@@ -11,11 +11,20 @@
  * 它们是协议，不是「我们自己定的规则」—— 照抄服务端才是唯一正确做法。
  */
 import { Buffer } from 'node:buffer'
-import { constants, createDecipheriv, createHash, createHmac, generateKeyPairSync, hkdfSync, privateDecrypt, randomBytes } from 'node:crypto'
+import {
+  constants,
+  createDecipheriv,
+  createHash,
+  createHmac,
+  generateKeyPairSync,
+  hkdfSync,
+  privateDecrypt,
+  randomBytes,
+} from 'node:crypto'
 
 /** 与安全 guard 白名单兼容的真实 Chrome UA（必须与请求头 `user-agent` 逐字一致） */
-export const SIGN_USER_AGENT
-  = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36'
+export const SIGN_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36'
 
 export interface ClientRsaKeyPair {
   publicKeyPem: string
@@ -45,17 +54,23 @@ export function computeSingleFactorSign(raw: string, aesKey: string): string {
  * 双因子签名密钥派生（对照 session.service 的 deriveApiSignKey）：
  * HKDF-SHA256(ikm = SHA256(sessionKey 原始字节), salt = aesKey, info = hkdfInfo, 32)
  */
-export function deriveApiSignKey(sessionKeyBase64: string, aesKey: string, hkdfInfo: string): Buffer {
+export function deriveApiSignKey(
+  sessionKeyBase64: string,
+  aesKey: string,
+  hkdfInfo: string,
+): Buffer {
   const authSessionKey = Buffer.from(sessionKeyBase64, 'base64')
   const authSessionKeyHash = createHash('sha256').update(authSessionKey).digest()
 
-  return Buffer.from(hkdfSync(
-    'sha256',
-    authSessionKeyHash,
-    Buffer.from(aesKey, 'utf8'),
-    Buffer.from(hkdfInfo, 'utf8'),
-    32,
-  ))
+  return Buffer.from(
+    hkdfSync(
+      'sha256',
+      authSessionKeyHash,
+      Buffer.from(aesKey, 'utf8'),
+      Buffer.from(hkdfInfo, 'utf8'),
+      32,
+    ),
+  )
 }
 
 /** 双因子签名（已登录）：HMAC-SHA256(raw, derivedKey) */
@@ -92,7 +107,10 @@ export function decryptAesKeyEnvelope(privateKeyPem: string, envelopeBase64: str
   const decipher = createDecipheriv('aes-256-gcm', aesKeyBytes, iv)
   decipher.setAuthTag(tag)
 
-  return Buffer.concat([decipher.update(Buffer.from(payload.cipher, 'base64')), decipher.final()]).toString('utf8')
+  return Buffer.concat([
+    decipher.update(Buffer.from(payload.cipher, 'base64')),
+    decipher.final(),
+  ]).toString('utf8')
 }
 
 /** cap.js prng 复刻：fnv1a 种子 + xorshift32，hex 拼接后截断 */
@@ -142,12 +160,20 @@ function maxAttemptsPerQuestion(difficulty: number): number {
 }
 
 /** 求解前的形态校验：配置被改坏时立刻失败，而不是在死循环里等墙钟 */
-function assertCapChallenge(challenge: { c: number, s: number, d: number }): void {
+function assertCapChallenge(challenge: { c: number; s: number; d: number }): void {
   if (!Number.isInteger(challenge.c) || challenge.c < 1 || challenge.c > MAX_CAP_QUESTIONS) {
-    throw new Error(`[e2e/cap] challenge.c=${challenge.c} 不合法（期望 1..${MAX_CAP_QUESTIONS} 的整数）——CAP 配置异常`)
+    throw new Error(
+      `[e2e/cap] challenge.c=${challenge.c} 不合法（期望 1..${MAX_CAP_QUESTIONS} 的整数）——CAP 配置异常`,
+    )
   }
-  if (!Number.isInteger(challenge.d) || challenge.d < MIN_CAP_DIFFICULTY || challenge.d > MAX_CAP_DIFFICULTY) {
-    throw new Error(`[e2e/cap] challenge.d=${challenge.d} 不合法（期望 ${MIN_CAP_DIFFICULTY}..${MAX_CAP_DIFFICULTY} 的整数）——CAP 配置异常`)
+  if (
+    !Number.isInteger(challenge.d) ||
+    challenge.d < MIN_CAP_DIFFICULTY ||
+    challenge.d > MAX_CAP_DIFFICULTY
+  ) {
+    throw new Error(
+      `[e2e/cap] challenge.d=${challenge.d} 不合法（期望 ${MIN_CAP_DIFFICULTY}..${MAX_CAP_DIFFICULTY} 的整数）——CAP 配置异常`,
+    )
   }
 }
 
@@ -163,7 +189,7 @@ function assertCapChallenge(challenge: { c: number, s: number, d: number }): voi
  * 卡在哪一问 —— 这里主动熔断并报告 index / c / s / d / attempts，让失败可读。
  */
 export function solveCapChallenge(
-  challenge: { c: number, s: number, d: number },
+  challenge: { c: number; s: number; d: number },
   token: string,
 ): number[] {
   assertCapChallenge(challenge)
@@ -178,7 +204,9 @@ export function solveCapChallenge(
 
     let n = 0
     for (;;) {
-      const hash = createHash('sha256').update(salt + String(n)).digest('hex')
+      const hash = createHash('sha256')
+        .update(salt + String(n))
+        .digest('hex')
       if (hash.startsWith(target)) {
         solutions.push(n)
         break
@@ -186,14 +214,14 @@ export function solveCapChallenge(
       n++
       if (n > attemptLimit) {
         throw new Error(
-          `[e2e/cap] 第 ${i} 问超过尝试上界（index=${i} c=${challenge.c} s=${challenge.s} d=${challenge.d} attempts=${n}）`
-          + ` —— 每问上界 ${attemptLimit}，通常意味着 CAP 配置异常，不是正常求解路径`,
+          `[e2e/cap] 第 ${i} 问超过尝试上界（index=${i} c=${challenge.c} s=${challenge.s} d=${challenge.d} attempts=${n}）` +
+            ` —— 每问上界 ${attemptLimit}，通常意味着 CAP 配置异常，不是正常求解路径`,
         )
       }
       if (Date.now() - startedAt > CAP_SOLVE_WALL_CLOCK_MS) {
         throw new Error(
-          `[e2e/cap] 求解超过墙钟上界（index=${i} c=${challenge.c} s=${challenge.s} d=${challenge.d} attempts=${n}`
-          + ` elapsedMs=${Date.now() - startedAt}）—— 上界 ${CAP_SOLVE_WALL_CLOCK_MS}ms，通常意味着 CAP 配置异常`,
+          `[e2e/cap] 求解超过墙钟上界（index=${i} c=${challenge.c} s=${challenge.s} d=${challenge.d} attempts=${n}` +
+            ` elapsedMs=${Date.now() - startedAt}）—— 上界 ${CAP_SOLVE_WALL_CLOCK_MS}ms，通常意味着 CAP 配置异常`,
         )
       }
     }

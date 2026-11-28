@@ -53,22 +53,20 @@ export const SENSITIVE_KEY_PATTERNS: readonly RegExp[] = [
 
 /** 这个键名是不是敏感字段 */
 export function isSensitiveKey(key: string): boolean {
-  return SENSITIVE_KEY_PATTERNS.some(re => re.test(key))
+  return SENSITIVE_KEY_PATTERNS.some((re) => re.test(key))
 }
 
 /** 邮箱：保留首字母与域名 */
 export function maskEmail(value: string): string {
   const at = value.lastIndexOf('@')
-  if (at <= 0)
-    return `<${REDACTED}:${value.length}>`
+  if (at <= 0) return `<${REDACTED}:${value.length}>`
   return `${value[0]}***${value.slice(at)}`
 }
 
 /** 手机号：保留前 3 后 4（不足 7 位的整体掩掉） */
 export function maskPhone(value: string): string {
   const digits = value.replace(/\D/g, '')
-  if (digits.length < 7)
-    return `<${REDACTED}:${value.length}>`
+  if (digits.length < 7) return `<${REDACTED}:${value.length}>`
   return `${digits.slice(0, 3)}****${digits.slice(-4)}`
 }
 
@@ -80,8 +78,7 @@ export function maskIp(value: string): string {
     return `${head}:${Array.from({ length: 6 }).fill('*').join(':')}`
   }
   const parts = value.split('.')
-  if (parts.length !== 4)
-    return `<${REDACTED}:${value.length}>`
+  if (parts.length !== 4) return `<${REDACTED}:${value.length}>`
   return `${parts[0]}.${parts[1]}.*.*`
 }
 
@@ -93,29 +90,19 @@ export function maskIp(value: string): string {
  * `<redacted>`（实测抓到的误伤，对照组当场红了）。
  */
 export function maskValue(value: unknown): unknown {
-  if (value === null || value === undefined)
-    return value
-  if (typeof value === 'number' || typeof value === 'boolean')
-    return value
-  if (Array.isArray(value))
-    return value.map(maskValue)
-  if (typeof value === 'object')
-    return maskValueObject(value as Record<string, unknown>)
-  if (typeof value !== 'string')
-    return value
+  if (value === null || value === undefined) return value
+  if (typeof value === 'number' || typeof value === 'boolean') return value
+  if (Array.isArray(value)) return value.map(maskValue)
+  if (typeof value === 'object') return maskValueObject(value as Record<string, unknown>)
+  if (typeof value !== 'string') return value
 
   const text = value
-  if (text === '')
-    return text
-  if (looksLikeEmail(text))
-    return maskEmail(text)
-  if (looksLikePhone(text))
-    return maskPhone(text)
-  if (looksLikeIp(text))
-    return maskIp(text)
+  if (text === '') return text
+  if (looksLikeEmail(text)) return maskEmail(text)
+  if (looksLikePhone(text)) return maskPhone(text)
+  if (looksLikeIp(text)) return maskIp(text)
   // 其余"看起来像标识符/密文"的串：长度才是调试需要的形状信息
-  if (text.length >= 8)
-    return `<${REDACTED}:${text.length}>`
+  if (text.length >= 8) return `<${REDACTED}:${text.length}>`
   return `<${REDACTED}>`
 }
 
@@ -144,8 +131,7 @@ function maskValueObject(doc: Record<string, unknown>): Record<string, unknown> 
 
 /** 只按**键名**递归：非敏感键上的普通值保持原样，但会往里找敏感键 */
 function maskNode(value: unknown): unknown {
-  if (Array.isArray(value))
-    return value.map(maskNode)
+  if (Array.isArray(value)) return value.map(maskNode)
   if (value !== null && typeof value === 'object')
     return maskDocument(value as Record<string, unknown>)
   return value
@@ -160,8 +146,7 @@ export function looksLikeEmail(text: string): boolean {
  * 只认两种形态：带 `+` 国家码的，或中国手机号（`1[3-9]` 开头 11 位）。
  */
 export function looksLikePhone(text: string): boolean {
-  if (/^\+\d{1,3}[\s-]?\d{6,14}$/.test(text))
-    return true
+  if (/^\+\d{1,3}[\s-]?\d{6,14}$/.test(text)) return true
   return /^1[3-9]\d{9}$/.test(text.replace(/[\s-]/g, ''))
 }
 
@@ -190,7 +175,10 @@ export function maskDocument(doc: Record<string, unknown>): Record<string, unkno
       out[key] = maskValue(value)
       continue
     }
-    if (typeof value === 'string' && (looksLikeEmail(value) || looksLikePhone(value) || looksLikeIp(value))) {
+    if (
+      typeof value === 'string' &&
+      (looksLikeEmail(value) || looksLikePhone(value) || looksLikeIp(value))
+    ) {
       out[key] = maskValue(value)
       continue
     }
@@ -220,18 +208,15 @@ export function findUnmaskedPersonal(doc: Record<string, unknown>, prefix = ''):
           if (v !== null && typeof v === 'object')
             hits.push(...findUnmaskedPersonal(v as Record<string, unknown>, `${path}[${i}]`))
         })
-      }
-      else {
+      } else {
         hits.push(...findUnmaskedPersonal(value as Record<string, unknown>, path))
       }
       continue
     }
-    if (typeof value !== 'string' || !isSensitiveKey(key))
-      continue
+    if (typeof value !== 'string' || !isSensitiveKey(key)) continue
     // 允许的形态：空串、带 `*` 的掩码（邮箱/手机/IP）、`<redacted…>` 占位
     const masked = value === '' || value.includes('*') || value.startsWith(`<${REDACTED}`)
-    if (!masked)
-      hits.push(`${path}=${value.length > 24 ? `${value.slice(0, 24)}…` : value}`)
+    if (!masked) hits.push(`${path}=${value.length > 24 ? `${value.slice(0, 24)}…` : value}`)
   }
   return hits
 }

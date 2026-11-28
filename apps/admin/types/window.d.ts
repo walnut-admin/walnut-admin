@@ -7,12 +7,7 @@ import type { LoadingBarApiInjection } from 'naive-ui/lib/loading-bar/src/Loadin
 import type { MessageApiInjection } from 'naive-ui/lib/message/src/MessageProvider'
 import type { NotificationApiInjection } from 'naive-ui/lib/notification/src/NotificationProvider'
 import type { App } from 'vue'
-import type {
-  CLSMetric,
-  INPMetric,
-  LCPMetric,
-  TTFBMetric,
-} from 'web-vitals'
+import type { CLSMetric, INPMetric, LCPMetric, TTFBMetric } from 'web-vitals'
 
 interface WebVitalsAPI {
   onCLS: (handler: (metric: CLSMetric) => void) => void

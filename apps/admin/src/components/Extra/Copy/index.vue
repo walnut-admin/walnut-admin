@@ -16,8 +16,7 @@ const { copy, copied } = useClipboard({
 })
 
 async function onClick(e?: MouseEvent) {
-  if (!source)
-    return
+  if (!source) return
   await copy(source)
   emits('click', e)
 }

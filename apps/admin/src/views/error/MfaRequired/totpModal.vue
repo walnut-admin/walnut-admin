@@ -23,7 +23,9 @@ const appStoreFingerprint = useAppStoreFingerprint()
  * E2E 稳定选择器要落在**真实 `<input>`** 上（`input-props` 才是它的落点），
  * 与 `MfaVerified/index.vue` 的 `mfa-code-input` 同一写法和原因。
  */
-const totpCodeInputProps = { 'data-testid': 'mfa-required-totp-code-input' } as unknown as InputHTMLAttributes
+const totpCodeInputProps = {
+  'data-testid': 'mfa-required-totp-code-input',
+} as unknown as InputHTMLAttributes
 
 const nInputRef = useTemplateRef<InputInst>('nInputRef')
 
@@ -47,20 +49,17 @@ async function onBind() {
     totpData.value = res
     currentStep.value = 1
     show.value = true
-  }
-  catch {
+  } catch {
     // 拦截器是唯一的 toast 责任方（已提示 + 已做路由级处理）；这里吞掉 rejection，
     // 否则冒到 `unhandledrejection` 会触发全屏「无法恢复的错误」遮罩（2026-11-27 实测）。
-  }
-  finally {
+  } finally {
     loading.value = false
   }
 }
 
 // verify and bind totp
 async function bindTotp() {
-  if (!canVerify.value || !totpData.value)
-    return
+  if (!canVerify.value || !totpData.value) return
 
   try {
     loading.value = true
@@ -74,12 +73,10 @@ async function bindTotp() {
     currentStep.value = 3
 
     emits('success')
-  }
-  catch {
+  } catch {
     // 同 onBind：错误提示由拦截器完成（如 40000 参数错误 / 验证码错误文案），
     // 弹窗保持打开让用户改码重试，不往上逃逸。
-  }
-  finally {
+  } finally {
     loading.value = false
   }
 }
@@ -94,11 +91,9 @@ async function onUnbind() {
       loading.value = true
       await authMfaTotpUnbindAPI()
       emits('success')
-    }
-    catch {
+    } catch {
       // 同 onBind。
-    }
-    finally {
+    } finally {
       loading.value = false
     }
   }
@@ -159,11 +154,12 @@ defineExpose({
 
       <!-- qrcode -->
       <div class="mb-4 inline-block rounded-lg bg-white p-4 shadow-sm">
-        <img :src="totpData.qrCode" alt="TOTP QR Code" class="h-64 w-64">
+        <img :src="totpData.qrCode" alt="TOTP QR Code" class="h-64 w-64" />
       </div>
 
       <p class="mb-4 text-sm">
-        {{ $t('app.base.account') }}: <span class="font-medium font-mono">{{ totpData.account }}</span>
+        {{ $t('app.base.account') }}:
+        <span class="font-medium font-mono">{{ totpData.account }}</span>
       </p>
 
       <!-- manual input option -->
@@ -178,9 +174,7 @@ defineExpose({
             </p>
             <div class="flex items-center justify-between rounded px-3 py-2 font-mono">
               <span class="break-all">{{ totpData.secret }}</span>
-              <WCopy
-                :source="totpData.secret"
-              />
+              <WCopy :source="totpData.secret" />
             </div>
           </div>
         </NAlert>

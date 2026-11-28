@@ -25,24 +25,26 @@ function getDefaultChildTab(activeTabValue: string): string {
   return defaults[activeTabValue]
 }
 
-watch(() => activeTab.value, (newTab, oldTab) => {
-  if (oldTab && child_tab.value) {
-    childTabMemory.set(oldTab, child_tab.value)
-  }
-
-  if (newTab) {
-    const saved = childTabMemory.get(newTab)
-
-    if (saved) {
-      child_tab.value = saved
+watch(
+  () => activeTab.value,
+  (newTab, oldTab) => {
+    if (oldTab && child_tab.value) {
+      childTabMemory.set(oldTab, child_tab.value)
     }
-    else {
-      const defaultValue = getDefaultChildTab(newTab)
-      child_tab.value = defaultValue
-      childTabMemory.set(newTab, defaultValue)
+
+    if (newTab) {
+      const saved = childTabMemory.get(newTab)
+
+      if (saved) {
+        child_tab.value = saved
+      } else {
+        const defaultValue = getDefaultChildTab(newTab)
+        child_tab.value = defaultValue
+        childTabMemory.set(newTab, defaultValue)
+      }
     }
-  }
-})
+  },
+)
 </script>
 
 <template>
@@ -52,7 +54,11 @@ watch(() => activeTab.value, (newTab, oldTab) => {
         <AccountSettingTabBasic />
       </n-tab-pane>
 
-      <n-tab-pane name="security" display-directive="show:lazy" :tab="$t('app.user.center.security')">
+      <n-tab-pane
+        name="security"
+        display-directive="show:lazy"
+        :tab="$t('app.user.center.security')"
+      >
         <AccountSettingTabSecurity v-model:value="child_tab" />
       </n-tab-pane>
 
@@ -60,7 +66,11 @@ watch(() => activeTab.value, (newTab, oldTab) => {
         <AccountSettingTabAccount />
       </n-tab-pane>
 
-      <n-tab-pane name="prefer" display-directive="show:lazy" :tab="$t('app.user.center.preference')">
+      <n-tab-pane
+        name="prefer"
+        display-directive="show:lazy"
+        :tab="$t('app.user.center.preference')"
+      >
         <AccountSettingTabPreference v-model:value="child_tab" />
       </n-tab-pane>
     </n-tabs>

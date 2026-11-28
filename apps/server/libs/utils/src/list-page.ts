@@ -50,7 +50,7 @@ export interface IWalnutNormalizedListPage {
  * 非数字/越界一律回落默认值，**永不**抛 —— 调用方据此可记日志。
  */
 export function normalizeListPage(page: unknown): IWalnutNormalizedListPage {
-  const source = (isNil(page) ? {} : page) as { page?: unknown, pageSize?: unknown }
+  const source = (isNil(page) ? {} : page) as { page?: unknown; pageSize?: unknown }
 
   const hasPage = !isNil(source.page)
   const hasPageSize = !isNil(source.pageSize)
@@ -58,13 +58,13 @@ export function normalizeListPage(page: unknown): IWalnutNormalizedListPage {
   const rawPage = Number(source.page)
   const rawPageSize = Number(source.pageSize)
 
-  const pageNumber = Number.isFinite(rawPage) && rawPage >= 1
-    ? Math.trunc(rawPage)
-    : WALNUT_LIST_PAGE_DEFAULT
+  const pageNumber =
+    Number.isFinite(rawPage) && rawPage >= 1 ? Math.trunc(rawPage) : WALNUT_LIST_PAGE_DEFAULT
 
-  const pageSize = Number.isFinite(rawPageSize) && rawPageSize >= 1
-    ? Math.min(Math.trunc(rawPageSize), WALNUT_LIST_PAGE_SIZE_MAX)
-    : WALNUT_LIST_PAGE_SIZE_DEFAULT
+  const pageSize =
+    Number.isFinite(rawPageSize) && rawPageSize >= 1
+      ? Math.min(Math.trunc(rawPageSize), WALNUT_LIST_PAGE_SIZE_MAX)
+      : WALNUT_LIST_PAGE_SIZE_DEFAULT
 
   const adjusted = (hasPage && rawPage !== pageNumber) || (hasPageSize && rawPageSize !== pageSize)
 

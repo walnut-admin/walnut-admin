@@ -11,8 +11,7 @@ const { currentRoute } = useAppRouter()
 function onClick() {
   const url = currentRoute.value.query.url as string
 
-  if (!url)
-    return
+  if (!url) return
 
   openExternalLink(url, false, '_self')
 }
@@ -43,12 +42,8 @@ function onClick() {
           {{ $t('app.route.externalLink.title2') }}
         </n-h2>
 
-        <div
-          class="mt-2 hstack items-center gap-2 border-1 border-gray-400 rounded-lg p-3"
-        >
-          <div
-            class="h-10 w-10 hstack items-center justify-center rounded-lg bg-gray-200"
-          >
+        <div class="mt-2 hstack items-center gap-2 border-1 border-gray-400 rounded-lg p-3">
+          <div class="h-10 w-10 hstack items-center justify-center rounded-lg bg-gray-200">
             <WIcon icon="ant-design:link-outlined" height="24" />
           </div>
           <div class="text-info tracking-wide">

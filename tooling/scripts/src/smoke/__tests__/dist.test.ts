@@ -12,12 +12,17 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { createStaticServer, DEFAULT_DIST, findChrome, MOUNT_TIMEOUT_MS, SPLASH_SELECTOR } from '../dist.ts'
+import {
+  createStaticServer,
+  DEFAULT_DIST,
+  findChrome,
+  MOUNT_TIMEOUT_MS,
+  SPLASH_SELECTOR,
+} from '../dist.ts'
 
 const roots: string[] = []
 afterEach(() => {
-  for (const root of roots.splice(0))
-    rmSync(root, { recursive: true, force: true })
+  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
 function makeDist(files: Record<string, string>): string {
@@ -54,7 +59,9 @@ describe('findChrome', () => {
   it('按平台找常见位置（linux / win32 / darwin 各一条）', () => {
     const onlyChromium = (p: string): boolean => p === '/usr/bin/chromium'
     expect(findChrome({}, 'linux', onlyChromium)).toBe('/usr/bin/chromium')
-    expect(findChrome({ LOCALAPPDATA: 'C:/Users/x/AppData/Local' }, 'win32', everything)).toContain('chrome.exe')
+    expect(findChrome({ LOCALAPPDATA: 'C:/Users/x/AppData/Local' }, 'win32', everything)).toContain(
+      'chrome.exe',
+    )
     expect(findChrome({}, 'darwin', everything)).toContain('Google Chrome.app')
   })
 
@@ -80,8 +87,7 @@ describe('静态服务器', () => {
       expect(spa.status).toBe(200)
       expect(await spa.text()).toContain('id="app"')
       expect(server.missing).toEqual([])
-    }
-    finally {
+    } finally {
       await server.close()
     }
   })
@@ -94,8 +100,7 @@ describe('静态服务器', () => {
       expect(res.status).toBe(404)
       // 记的是**请求路径原文**（正斜杠），上层靠它区分"产物缺文件"与"后端资源"
       expect(server.missing).toEqual(['/static/js/missing.js'])
-    }
-    finally {
+    } finally {
       await server.close()
     }
   })

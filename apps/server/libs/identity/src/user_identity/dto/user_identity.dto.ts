@@ -12,7 +12,12 @@ import { WalnutAdminDecoratorValidatorObject } from '@walnut-server/decorators/v
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
 import { WalnutAdminCommonBasicModel } from '../../shared/base.model'
-import { IWalnutAdminConstSysUserIdentityPurpose, IWalnutAdminConstSysUserIdentityType, WalnutAdminConstSysUserIdentityPurpose, WalnutAdminConstSysUserIdentityType } from '../identity.const'
+import {
+  IWalnutAdminConstSysUserIdentityPurpose,
+  IWalnutAdminConstSysUserIdentityType,
+  WalnutAdminConstSysUserIdentityPurpose,
+  WalnutAdminConstSysUserIdentityType,
+} from '../identity.const'
 import { IdentitySendDTO, IdentityVerifyDTO } from './identity.dto'
 
 // 批 4 结构重构：schema/ 并入 dto/（原 schema/user_identity.schema.ts 的
@@ -153,7 +158,11 @@ export class SysUserIdentityListDTO {
 }
 
 // DTO for identity status item
-class SysUserIdentityStatusOTPItemDTO extends RealPickType(SysUserIdentityDTO, ['maskedValue', 'verified', 'status'] as const) {
+class SysUserIdentityStatusOTPItemDTO extends RealPickType(SysUserIdentityDTO, [
+  'maskedValue',
+  'verified',
+  'status',
+] as const) {
   @WalnutAdminDecoratorFieldBoolean({
     swaggerOptions: {
       description: 'Whether the identity is bound',
@@ -232,7 +241,11 @@ export class SysUserIdentityBindRequestDTO extends IdentityVerifyDTO {
   setAsSecurity: boolean
 }
 
-export class SysUserIdentityVerifyRequestDTO extends RealPickType(IdentityVerifyDTO, ['verifyCode'] as const) {}
+export class SysUserIdentityVerifyRequestDTO extends RealPickType(IdentityVerifyDTO, [
+  'verifyCode',
+] as const) {}
 
 // DTO for updating status (enable/disable)
-export class SysUserIdentityStatusRequestDTO extends RealPickType(SysUserIdentityDTO, ['status'] as const) {}
+export class SysUserIdentityStatusRequestDTO extends RealPickType(SysUserIdentityDTO, [
+  'status',
+] as const) {}

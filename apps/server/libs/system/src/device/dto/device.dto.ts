@@ -7,7 +7,16 @@ import {
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
 import { WalnutAdminCommonBasicModel } from '@walnut-server/identity'
-import { CreateWalnutAdminRequestListDTO, CreateWalnutAdminResponseListDTO, SharedGeoPointDTO, SharedHardwareDTO, SharedHeightWidthDTO, SharedIpLocationHistoryDTO, SharedLocationDTO, SharedUserAgentDTO } from '@walnut-server/list'
+import {
+  CreateWalnutAdminRequestListDTO,
+  CreateWalnutAdminResponseListDTO,
+  SharedGeoPointDTO,
+  SharedHardwareDTO,
+  SharedHeightWidthDTO,
+  SharedIpLocationHistoryDTO,
+  SharedLocationDTO,
+  SharedUserAgentDTO,
+} from '@walnut-server/list'
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
 import { IsOptional } from 'class-validator'
@@ -74,14 +83,14 @@ export class SysDeviceDTOBase extends WalnutAdminCommonBasicModel {
       title: 'screen resolution',
     },
   })
-  sr: { height: number, width: number }
+  sr: { height: number; width: number }
 
   @WalnutAdminDecoratorFieldObject(SharedHeightWidthDTO, {
     swaggerOptions: {
       title: 'view port',
     },
   })
-  vp: { height: number, width: number }
+  vp: { height: number; width: number }
 
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
@@ -189,15 +198,18 @@ export class SysDeviceDTOSafe extends SysDeviceDTO {
 export function assembleSysDevice(entity: SysDeviceEntity) {
   return {
     ...entity,
-    sr: entity.srHeight === null && entity.srWidth === null
-      ? undefined
-      : { height: entity.srHeight, width: entity.srWidth },
-    vp: entity.vpHeight === null && entity.vpWidth === null
-      ? undefined
-      : { height: entity.vpHeight, width: entity.vpWidth },
-    geoLocation: entity.geoLongitude === null && entity.geoLatitude === null
-      ? undefined
-      : { type: 'Point', coordinates: [entity.geoLongitude, entity.geoLatitude] },
+    sr:
+      entity.srHeight === null && entity.srWidth === null
+        ? undefined
+        : { height: entity.srHeight, width: entity.srWidth },
+    vp:
+      entity.vpHeight === null && entity.vpWidth === null
+        ? undefined
+        : { height: entity.vpHeight, width: entity.vpWidth },
+    geoLocation:
+      entity.geoLongitude === null && entity.geoLatitude === null
+        ? undefined
+        : { type: 'Point', coordinates: [entity.geoLongitude, entity.geoLatitude] },
   }
 }
 
@@ -208,7 +220,13 @@ export function assembleSysDevice(entity: SysDeviceEntity) {
 // 「可传但无效」的字段等于让契约撒谎；摘除后全局 ValidationPipe（whitelist +
 // forbidNonWhitelisted）会把仍带该字段的请求判成 40099，客户端必须真的改。
 // 名字的唯一性由签发方保证（uq_device_name 全局唯一），入参永远不能决定它。
-export class SysDeviceDTOInitialRequest extends RealPickType(SysDeviceDTOSafe, ['sr', 'vp', 'hardwareInfo', 'deviceInfo', 'private'] as const) {
+export class SysDeviceDTOInitialRequest extends RealPickType(SysDeviceDTOSafe, [
+  'sr',
+  'vp',
+  'hardwareInfo',
+  'deviceInfo',
+  'private',
+] as const) {
   constructor(partial?: Partial<SysDeviceDTOInitialRequest>) {
     super()
     Object.assign(this, partial)
@@ -266,11 +284,23 @@ export class SysDeviceDTOInitialResponse {
 export class SysDeviceDTOListRequest extends CreateWalnutAdminRequestListDTO(
   RealPartialType(SysDeviceDTOSafe),
   { sortOnlyIn: ['active', 'locked', 'banned', 'createdAt', 'updatedAt'] },
-) { }
+) {}
 
 export class SysDeviceDTOListResponse extends CreateWalnutAdminResponseListDTO(
-  RealPickType(RealPartialType(SysDeviceDTOSafe), ['id', 'active', 'banned', 'locked', 'deviceId', 'riskScore', 'deviceName', 'sr', 'hardwareInfo', 'deviceInfo', 'locationInfo'] as const),
-) { }
+  RealPickType(RealPartialType(SysDeviceDTOSafe), [
+    'id',
+    'active',
+    'banned',
+    'locked',
+    'deviceId',
+    'riskScore',
+    'deviceName',
+    'sr',
+    'hardwareInfo',
+    'deviceInfo',
+    'locationInfo',
+  ] as const),
+) {}
 
 // read
-export class SysDeviceDTOReadResponse extends SysDeviceDTOSafe { }
+export class SysDeviceDTOReadResponse extends SysDeviceDTOSafe {}

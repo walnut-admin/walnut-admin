@@ -60,18 +60,14 @@ const getToolBarOptions = computed((): DropdownOption[] => [
       {
         key: 'expand',
         label: t('app.base.expand'),
-        icon: () => (
-          <WIcon height="20" icon="mdi:arrow-expand-vertical"></WIcon>
-        ),
+        icon: () => <WIcon height="20" icon="mdi:arrow-expand-vertical"></WIcon>,
         disabled: expandAll.value,
       },
 
       {
         key: 'collapse',
         label: t('app.base.collapse'),
-        icon: () => (
-          <WIcon height="20" icon="mdi:arrow-collapse-vertical"></WIcon>
-        ),
+        icon: () => <WIcon height="20" icon="mdi:arrow-collapse-vertical"></WIcon>,
         disabled: !expandAll.value,
       },
     ],
@@ -107,27 +103,23 @@ const getToolBarOptions = computed((): DropdownOption[] => [
       {
         key: 'cascade',
         label: t('app.base.cascade'),
-        icon: () => (
-          <WIcon height="20" icon="carbon:checkbox-indeterminate"></WIcon>
-        ),
-        disabled:
-          !getProps.value.multiple || cascade.value,
+        icon: () => <WIcon height="20" icon="carbon:checkbox-indeterminate"></WIcon>,
+        disabled: !getProps.value.multiple || cascade.value,
       },
       {
         key: 'independent',
         label: t('app.base.independent'),
-        icon: () => (
-          <WIcon height="20" icon="carbon:checkbox-checked"></WIcon>
-        ),
-        disabled:
-          !getProps.value.multiple || !cascade.value,
+        icon: () => <WIcon height="20" icon="carbon:checkbox-checked"></WIcon>,
+        disabled: !getProps.value.multiple || !cascade.value,
       },
     ],
   },
 ])
 
 const getKeyField = computed((): string => getProps.value.treeProps?.keyField as string)
-const getTreeData = computed((): TreeNodeItem<T>[] => getProps.value.treeProps?.data as TreeNodeItem<T>[])
+const getTreeData = computed(
+  (): TreeNodeItem<T>[] => getProps.value.treeProps?.data as TreeNodeItem<T>[],
+)
 
 const contextMenuOptions = computed<DropdownMixedOption[]>(() => [
   {
@@ -142,9 +134,9 @@ const contextMenuOptions = computed<DropdownMixedOption[]>(() => [
     disabled: !copyTarget.value[getKeyField.value],
     icon: () => <WIcon height="20" icon="mdi:content-paste"></WIcon>,
   },
-  ...(getProps.value.extraDropdownOptions?.map(i => ({
+  ...(getProps.value.extraDropdownOptions?.map((i) => ({
     ...i,
-    icon: () => i.icon ? <WIcon height="20" icon={i.icon}></WIcon> : undefined,
+    icon: () => (i.icon ? <WIcon height="20" icon={i.icon}></WIcon> : undefined),
     disabled: i.disabled?.(toRaw(currentTarget.value) as T),
   })) || []),
 ])
@@ -168,14 +160,10 @@ const [registerDropdown, { openDropdown, closeDropdown }] = useDropdown({
     options: contextMenuOptions as unknown as any[],
     disabled: getProps.value.treeProps?.disabled,
     onSelect: (key) => {
-      if (key === 'copy')
-        copyTarget.value = cloneDeep(toRaw(currentTarget.value))
+      if (key === 'copy') copyTarget.value = cloneDeep(toRaw(currentTarget.value))
 
       if (key === 'paste') {
-        getProps.value.onPaste!(
-          toRaw(copyTarget.value),
-          toRaw(currentTarget.value),
-        )
+        getProps.value.onPaste!(toRaw(copyTarget.value), toRaw(currentTarget.value))
 
         nextTick(() => {
           copyTarget.value = {}
@@ -183,7 +171,7 @@ const [registerDropdown, { openDropdown, closeDropdown }] = useDropdown({
       }
 
       // extra dropdown options
-      const extraOption = getProps.value.extraDropdownOptions?.find(i => i.key === key)
+      const extraOption = getProps.value.extraDropdownOptions?.find((i) => i.key === key)
       if (extraOption) {
         extraOption?.onClick?.(toRaw(currentTarget.value) as T)
       }
@@ -195,27 +183,22 @@ const [registerDropdown, { openDropdown, closeDropdown }] = useDropdown({
 
 function onSelectedKeys(keys: TreeKey[]) {
   selectedKeys.value = keys
-  if (!getProps.value.multiple)
-    value.value = keys[0]
+  if (!getProps.value.multiple) value.value = keys[0]
 }
 
 function onCheckedKeys(keys: TreeKey[]) {
   checkedKeys.value = keys
-  if (getProps.value.multiple)
-    value.value = getCombinedKeys.value as TreeKey[]
+  if (getProps.value.multiple) value.value = getCombinedKeys.value as TreeKey[]
 }
 
 function onUpdateIndeterminateKeys(keys: TreeKey[]) {
   indeterminateKeys.value = keys
-  if (getProps.value.multiple)
-    value.value = getCombinedKeys.value as TreeKey[]
+  if (getProps.value.multiple) value.value = getCombinedKeys.value as TreeKey[]
 }
 
 function onToolbarSelect(key: string) {
   if (key === 'expand') {
-    expandedKeys.value = treeToArr(
-      getTreeData.value,
-    ).map(i => i[getKeyField.value]) as string[]
+    expandedKeys.value = treeToArr(getTreeData.value).map((i) => i[getKeyField.value]) as string[]
 
     expandAll.value = true
   }
@@ -227,9 +210,7 @@ function onToolbarSelect(key: string) {
   }
 
   if (key === 'check') {
-    checkedKeys.value = treeToArr(
-      getTreeData.value,
-    ).map(i => i[getKeyField.value]) as string[]
+    checkedKeys.value = treeToArr(getTreeData.value).map((i) => i[getKeyField.value]) as string[]
 
     checkAll.value = true
 
@@ -285,69 +266,58 @@ function nodeProps({ option }: { option: TreeOption }): ReturnType<TreeNodeProps
 }
 
 function onRenderPrefix({ option }: TreeRenderProps) {
-  return getProps.value.presetPrefixIcon && option.icon
-    ? (
-        <WIcon icon={option.icon as string} height="18"></WIcon>
-      )
-    : undefined
+  return getProps.value.presetPrefixIcon && option.icon ? (
+    <WIcon icon={option.icon as string} height="18"></WIcon>
+  ) : undefined
 }
 
 function onRenderSuffix({ option }: TreeRenderProps) {
-  if (selectedKeys.value[0] !== option[getKeyField.value])
-    return undefined
+  if (selectedKeys.value[0] !== option[getKeyField.value]) return undefined
 
-  return (getProps.value.treeProps?.draggable || getProps.value.deletable)
-    ? (
-        <WTransition transition-name="fade-right">
-          <div
-            class="flex flex-row flex-nowrap items-center justify-center gap-x-1"
-            onClick={(e) => {
-              e.stopPropagation()
-            }}
-          >
-            {getProps.value.treeProps!.draggable
-              && userStorePermission.hasPermission(getProps.value.auths?.update as string) && (
-              <WIcon
-                height="18"
-                class="cursor-move"
-                icon="ant-design:drag-outlined"
-              >
-              </WIcon>
-            )}
+  return getProps.value.treeProps?.draggable || getProps.value.deletable ? (
+    <WTransition transition-name="fade-right">
+      <div
+        class="flex flex-row flex-nowrap items-center justify-center gap-x-1"
+        onClick={(e) => {
+          e.stopPropagation()
+        }}
+      >
+        {getProps.value.treeProps!.draggable &&
+          userStorePermission.hasPermission(getProps.value.auths?.update as string) && (
+            <WIcon height="18" class="cursor-move" icon="ant-design:drag-outlined"></WIcon>
+          )}
 
-            {getProps.value.deletable
-              && userStorePermission.hasPermission(getProps.value.auths?.delete as string) && (
-              <WIconButton
-                icon-props={{
-                  icon: 'ant-design:delete-outlined',
-                }}
-                button-props={{
-                  type: 'error',
-                  disabled: getProps.value.treeProps?.disabled,
-                }}
-                tooltip
-                tooltipMsg={t('app.base.delete')}
-                confirm
-                onConfirm={() => {
-                  getProps.value.onTreeNodeItemDelete!(toRaw(option) as T)
-                  if (getProps.value.multiple) {
-                    selectedKeys.value = []
-                  }
-                }}
-              >
-              </WIconButton>
-            )}
-          </div>
-        </WTransition>
-      )
-    : undefined
+        {getProps.value.deletable &&
+          userStorePermission.hasPermission(getProps.value.auths?.delete as string) && (
+            <WIconButton
+              icon-props={{
+                icon: 'ant-design:delete-outlined',
+              }}
+              button-props={{
+                type: 'error',
+                disabled: getProps.value.treeProps?.disabled,
+              }}
+              tooltip
+              tooltipMsg={t('app.base.delete')}
+              confirm
+              onConfirm={() => {
+                getProps.value.onTreeNodeItemDelete!(toRaw(option) as T)
+                if (getProps.value.multiple) {
+                  selectedKeys.value = []
+                }
+              }}
+            ></WIconButton>
+          )}
+      </div>
+    </WTransition>
+  ) : undefined
 }
 
 async function onFeedback() {
   if (getProps.value.multiple && Array.isArray(value.value)) {
     if (cascade.value) {
-      checkedKeys.value = (value.value)?.filter(i => getBottomChildKeys.value.includes(i))
-      indeterminateKeys.value = (value.value)?.filter(i => !getBottomChildKeys.value.includes(i))
+      checkedKeys.value = value.value?.filter((i) => getBottomChildKeys.value.includes(i))
+      indeterminateKeys.value = value.value?.filter((i) => !getBottomChildKeys.value.includes(i))
 
       await nextTick()
 
@@ -355,26 +325,34 @@ async function onFeedback() {
         checkedKeys.value = nTreeRef.value.getCheckedData().keys!
         indeterminateKeys.value = nTreeRef.value.getIndeterminateData().keys!
       }
+    } else {
+      checkedKeys.value = value.value
     }
-    else { checkedKeys.value = value.value }
 
     if (getTreeData.value) {
       // expanded keys
       const data = nTreeRef.value?.getCheckedData()
       // get no children node
-      const leafNodeKeyList = data?.options.filter(i => !i!.children || i!.children.length === 0).map(i => i![getKeyField.value])
+      const leafNodeKeyList = data?.options
+        .filter((i) => !i!.children || i!.children.length === 0)
+        .map((i) => i![getKeyField.value])
       const intersection = Array.from(new Set(leafNodeKeyList).intersection(new Set(value.value)))
-      const allNodes = new Set<TreeKey>([...intersection.map(i => findPath(getTreeData.value!, n => n[getKeyField.value] === i) ?? []).flat().map(i => i[getKeyField.value] as TreeKey)])
+      const allNodes = new Set<TreeKey>([
+        ...intersection
+          .map((i) => findPath(getTreeData.value!, (n) => n[getKeyField.value] === i) ?? [])
+          .flat()
+          .map((i) => i[getKeyField.value] as TreeKey),
+      ])
       expandedKeys.value = Array.from(allNodes)
     }
-  }
-  else {
+  } else {
     selectedKeys.value = [value.value] as TreeKey[]
 
     if (getTreeData.value) {
       // expanded keys
-      const targetNodeSingleTree = findPath(getTreeData.value, n => n[getKeyField.value] === value.value) as [] ?? []
-      expandedKeys.value = targetNodeSingleTree.map(i => i[getKeyField.value])
+      const targetNodeSingleTree =
+        (findPath(getTreeData.value, (n) => n[getKeyField.value] === value.value) as []) ?? []
+      expandedKeys.value = targetNodeSingleTree.map((i) => i[getKeyField.value])
 
       await nextTick()
 
@@ -403,20 +381,14 @@ defineExpose({
 
 <template>
   <div class="w-full">
-    <div
-      v-if="getProps.toolbar"
-      class="mb-2 px-2"
-    >
-      <n-input
-        v-model:value="pattern"
-        clearable
-        :disabled="getProps.treeProps?.disabled"
-      >
+    <div v-if="getProps.toolbar" class="mb-2 px-2">
+      <n-input v-model:value="pattern" clearable :disabled="getProps.treeProps?.disabled">
         <template #suffix>
           <n-dropdown
             trigger="click"
             :options="getToolBarOptions"
-            show-arrow size="small"
+            show-arrow
+            size="small"
             :disabled="getProps.treeProps?.disabled"
             @select="onToolbarSelect"
           >

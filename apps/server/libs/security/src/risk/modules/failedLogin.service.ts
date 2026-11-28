@@ -1,5 +1,8 @@
 import type { WalnutLockService } from '@walnut-server/lock'
-import type { ISystemFailedLoginRiskPayload, IWalnutAdminSystemFailedLoginRiskCollector } from '@walnut-server/system'
+import type {
+  ISystemFailedLoginRiskPayload,
+  IWalnutAdminSystemFailedLoginRiskCollector,
+} from '@walnut-server/system'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { AppTechRedisService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
@@ -8,7 +11,12 @@ import { SharedIpService } from '@walnut-server/ip'
 import { WALNUT_ADMIN_LOCK } from '@walnut-server/lock'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { isNil } from 'lodash'
-import { calcScoreAndLevel, SecurityRiskConfigService, WalnutAdminConstRiskFactor, WalnutAdminConstRiskType } from '../risk.config.service'
+import {
+  calcScoreAndLevel,
+  SecurityRiskConfigService,
+  WalnutAdminConstRiskFactor,
+  WalnutAdminConstRiskType,
+} from '../risk.config.service'
 
 /**
  * Failed login risk assessment service.
@@ -44,44 +52,40 @@ export class SecurityRiskFailedLoginService implements IWalnutAdminSystemFailedL
 
     const lockKey = `${WalnutAdminConstAppCacheKeys.APP_MURLOCK}:RISK:FAILED_LOGIN:${deviceId}:${identifier ?? 'unknown'}`
 
-    return this.lockService.runWithLock<number>(
-      lockKey,
-      200,
-      async () => {
-        const infoKey = this.getInfoKey(deviceId, identifier)
+    return this.lockService.runWithLock<number>(lockKey, 200, async () => {
+      const infoKey = this.getInfoKey(deviceId, identifier)
 
-        const count = await this.redis.hIncrBy(infoKey, 'count', 1)
+      const count = await this.redis.hIncrBy(infoKey, 'count', 1)
 
-        await this.redis.hSet(infoKey, {
-          identifier: identifier ?? '',
-          loginType: loginType ?? '',
-          deviceId,
+      await this.redis.hSet(infoKey, {
+        identifier: identifier ?? '',
+        loginType: loginType ?? '',
+        deviceId,
+        ip,
+        reason,
+        lastFailedAt: AppDayjs().valueOf(),
+      })
+      await this.redis.expire(infoKey, this.configService.ttl.failedLogin)
+
+      this.logger.warn(
+        `Failed login attempt [${count}/${this.configService.thresholds.failedLogin.threshold}] - ` +
+          `${loginType}: ${identifier}, Device: ${deviceId}, IP: ${ip}, Reason: ${reason}`,
+      )
+
+      if (count >= this.configService.thresholds.failedLogin.threshold) {
+        await this.sharedIpService.addToTemporaryBlacklist(
           ip,
-          reason,
-          lastFailedAt: AppDayjs().valueOf(),
-        })
-        await this.redis.expire(infoKey, this.configService.ttl.failedLogin)
-
-        this.logger.warn(
-          `Failed login attempt [${count}/${this.configService.thresholds.failedLogin.threshold}] - `
-          + `${loginType}: ${identifier}, Device: ${deviceId}, IP: ${ip}, Reason: ${reason}`,
+          `Too many failed login attempts (${count} times)`,
         )
 
-        if (count >= this.configService.thresholds.failedLogin.threshold) {
-          await this.sharedIpService.addToTemporaryBlacklist(
-            ip,
-            `Too many failed login attempts (${count} times)`,
-          )
+        this.logger.error(
+          `?IP ${ip} has been temporarily banned for ${this.configService.ttl.ipTempBan}s ` +
+            `due to ${count} failed login attempts`,
+        )
+      }
 
-          this.logger.error(
-            `?IP ${ip} has been temporarily banned for ${this.configService.ttl.ipTempBan}s `
-            + `due to ${count} failed login attempts`,
-          )
-        }
-
-        return count
-      },
-    )
+      return count
+    })
   }
 
   async evaluateFailedLogin(
@@ -94,7 +98,9 @@ export class SecurityRiskFailedLoginService implements IWalnutAdminSystemFailedL
     const factors: string[] = []
 
     if (failedLoginInfo && failedLoginInfo.count > 0) {
-      score += failedLoginInfo.count * this.configService.getWeight(WalnutAdminConstRiskFactor.FAILED_LOGINS)
+      score +=
+        failedLoginInfo.count *
+        this.configService.getWeight(WalnutAdminConstRiskFactor.FAILED_LOGINS)
       factors.push(WalnutAdminConstRiskFactor.FAILED_LOGINS)
     }
 
@@ -123,7 +129,7 @@ export class SecurityRiskFailedLoginService implements IWalnutAdminSystemFailedL
 
     return {
       identifier: info.identifier || undefined,
-      loginType: info.loginType as IWalnutAdminConstDecoratorLogAuthType || undefined,
+      loginType: (info.loginType as IWalnutAdminConstDecoratorLogAuthType) || undefined,
       deviceId: info.deviceId,
       ip: info.ip,
       count: Number.parseInt(info.count, 10) || 0,
@@ -132,19 +138,13 @@ export class SecurityRiskFailedLoginService implements IWalnutAdminSystemFailedL
     }
   }
 
-  async getFailedLoginAttempts(
-    deviceId: string,
-    identifier?: string,
-  ): Promise<number> {
+  async getFailedLoginAttempts(deviceId: string, identifier?: string): Promise<number> {
     const infoKey = this.getInfoKey(deviceId, identifier)
-    const count = await this.redis.hGet(infoKey, 'count') as string
+    const count = (await this.redis.hGet(infoKey, 'count')) as string
     return count ? Number.parseInt(count, 10) : 0
   }
 
-  async clearFailedLoginAttempts(
-    deviceId: string,
-    identifier?: string,
-  ): Promise<void> {
+  async clearFailedLoginAttempts(deviceId: string, identifier?: string): Promise<void> {
     const infoKey = this.getInfoKey(deviceId, identifier)
     await this.redis.del(infoKey)
 

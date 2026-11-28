@@ -34,22 +34,22 @@ export class SecurityRiskUserService {
     return `${key}:${userId}`
   }
 
-  async evaluateUser(userId: string): Promise<IWalnutAdminRiskEvaluationResult<IWalnutAdminUserRiskInfo>> {
+  async evaluateUser(
+    userId: string,
+  ): Promise<IWalnutAdminRiskEvaluationResult<IWalnutAdminUserRiskInfo>> {
     const infoKey = this.getInfoKey(userId)
-    const cached = await this.redis.get(infoKey) as string
+    const cached = (await this.redis.get(infoKey)) as string
 
     let userInfo: IWalnutAdminUserRiskInfo | null
 
     if (cached) {
       try {
         userInfo = JSON.parse(cached) as IWalnutAdminUserRiskInfo
-      }
-      catch {
+      } catch {
         this.logger.warn(`Failed to parse cached user info for ${userId}`)
         userInfo = await this.evaluateUserWithLock(userId)
       }
-    }
-    else {
+    } else {
       userInfo = await this.evaluateUserWithLock(userId)
     }
 
@@ -77,23 +77,18 @@ export class SecurityRiskUserService {
   private async evaluateUserWithLock(userId: string) {
     const lockKey = `${WalnutAdminConstAppCacheKeys.APP_MURLOCK}:RISK:USER:${userId}`
 
-    return this.lockService.runWithLock(
-      lockKey,
-      200,
-      async () => {
-        const infoKey = this.getInfoKey(userId)
-        const doubleCheck = await this.redis.get(infoKey) as string
+    return this.lockService.runWithLock(lockKey, 200, async () => {
+      const infoKey = this.getInfoKey(userId)
+      const doubleCheck = (await this.redis.get(infoKey)) as string
 
-        if (doubleCheck) {
-          try {
-            return JSON.parse(doubleCheck) as IWalnutAdminUserRiskInfo
-          }
-          catch {}
-        }
+      if (doubleCheck) {
+        try {
+          return JSON.parse(doubleCheck) as IWalnutAdminUserRiskInfo
+        } catch {}
+      }
 
-        return this.performUserEvaluation(userId)
-      },
-    )
+      return this.performUserEvaluation(userId)
+    })
   }
 
   private async performUserEvaluation(userId: string) {
@@ -142,15 +137,11 @@ export class SecurityRiskUserService {
     }
 
     const infoKey = this.getInfoKey(userId)
-    await this.redis.setEx(
-      infoKey,
-      this.configService.ttl.userInfo,
-      JSON.stringify(result),
-    )
+    await this.redis.setEx(infoKey, this.configService.ttl.userInfo, JSON.stringify(result))
 
     this.logger.debug(
-      `User evaluated - ID: ${userId}, Score: ${finalScore.toFixed(3)}, `
-      + `Level: ${level}, Factors: [${factors.join(', ')}]`,
+      `User evaluated - ID: ${userId}, Score: ${finalScore.toFixed(3)}, ` +
+        `Level: ${level}, Factors: [${factors.join(', ')}]`,
     )
 
     return result

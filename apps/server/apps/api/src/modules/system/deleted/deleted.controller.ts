@@ -1,24 +1,36 @@
-import {
-  Body,
-  Controller,
-  HttpCode,
-  HttpStatus,
-  Post,
-} from '@nestjs/common'
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
+import {
+  WalnutAdminConstDecoratorLogOperateAction,
+  WalnutAdminConstDecoratorLogOperateTitle,
+  WalnutAdminConstDecoratorLogOperateType,
+} from '@walnut-server/const/decorator/logOperate'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
 import { WalnutCrudDecorators } from '@walnut-server/crud'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
-import { WalnutAdminDecoratorParamUuid, WalnutAdminDecoratorParamUuids } from '@walnut-server/decorators/params'
+import {
+  WalnutAdminDecoratorParamUuid,
+  WalnutAdminDecoratorParamUuids,
+} from '@walnut-server/decorators/params'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorHasRole, WalnutAdminDecoratorUser } from '@walnut-server/guards'
+import {
+  WalnutAdminDecoratorHasPermission,
+  WalnutAdminDecoratorHasRole,
+  WalnutAdminDecoratorUser,
+} from '@walnut-server/guards'
 
 import { SysDeletedService } from '@walnut-server/system'
 import { Role, SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 import { WalnutAdminDecoratorOperateLog } from '@/decorators/walnut/log.operate.decorator'
-import { SysDeletedDTORecoverRequest, SysDeletedDTOSafe, SystemDeletedDTODeleteResponse, SystemDeletedDTOListRequest, SystemDeletedDTOListResponse, SystemDeletedDTOReadResponse } from './dto/deleted.dto'
+import {
+  SysDeletedDTORecoverRequest,
+  SysDeletedDTOSafe,
+  SystemDeletedDTODeleteResponse,
+  SystemDeletedDTOListRequest,
+  SystemDeletedDTOListResponse,
+  SystemDeletedDTOReadResponse,
+} from './dto/deleted.dto'
 
 const Permissions = {
   READ: 'system:deleted:read',
@@ -28,25 +40,22 @@ const Permissions = {
   RECOVER_MINE: 'system:deleted:recover:mine',
 } as const
 
-const {
-  WalnutAdminDecoratorRead,
-  WalnutAdminDecoratorDeleteMany,
-  WalnutAdminDecoratorList,
-} = WalnutCrudDecorators({
-  title: WalnutAdminConstDecoratorLogOperateTitle.DELETED,
-  DTO: SysDeletedDTOSafe,
-  // list 行是 RealOmitType(RealPartialType(SysDeletedDTOSafe), ['content'])：
-  // content 是 jsonb 旁路，列表行不带（P2-6 收尾）。
-  listResponseDTO: SystemDeletedDTOListResponse,
-  extra: {
-    needOperateLog: false,
-  },
-})
+const { WalnutAdminDecoratorRead, WalnutAdminDecoratorDeleteMany, WalnutAdminDecoratorList } =
+  WalnutCrudDecorators({
+    title: WalnutAdminConstDecoratorLogOperateTitle.DELETED,
+    DTO: SysDeletedDTOSafe,
+    // list 行是 RealOmitType(RealPartialType(SysDeletedDTOSafe), ['content'])：
+    // content 是 jsonb 旁路，列表行不带（P2-6 收尾）。
+    listResponseDTO: SystemDeletedDTOListResponse,
+    extra: {
+      needOperateLog: false,
+    },
+  })
 
 @Controller(SystemRoutes.DELETED)
 @ApiTags('system/deleted')
 export class SysDeletedController {
-  constructor(private readonly deletedService: SysDeletedService) { }
+  constructor(private readonly deletedService: SysDeletedService) {}
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
   @WalnutAdminDecoratorRead()
@@ -55,11 +64,14 @@ export class SysDeletedController {
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE_MANY)
-  @WalnutAdminDecoratorHasRole([Role.ROOT, Role.DEVELOPER, Role.ADMIN], WalnutAdminConstDecoratorRoleMode.OR)
+  @WalnutAdminDecoratorHasRole(
+    [Role.ROOT, Role.DEVELOPER, Role.ADMIN],
+    WalnutAdminConstDecoratorRoleMode.OR,
+  )
   @WalnutAdminDecoratorDeleteMany()
   async deleteMany(@WalnutAdminDecoratorParamUuids() ids: string[]) {
     const deleted = await this.deletedService.deleteRealMany(ids)
-    return deleted.map(i => plainToInstance(SystemDeletedDTODeleteResponse, i))
+    return deleted.map((i) => plainToInstance(SystemDeletedDTODeleteResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
@@ -92,7 +104,10 @@ export class SysDeletedController {
   @Post('recover')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.RECOVER)
-  @WalnutAdminDecoratorHasRole([Role.ROOT, Role.DEVELOPER, Role.ADMIN], WalnutAdminConstDecoratorRoleMode.OR)
+  @WalnutAdminDecoratorHasRole(
+    [Role.ROOT, Role.DEVELOPER, Role.ADMIN],
+    WalnutAdminConstDecoratorRoleMode.OR,
+  )
   @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'recover a deleted row (management side; root / developer / admin only)',

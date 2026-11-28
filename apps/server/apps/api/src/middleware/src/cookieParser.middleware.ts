@@ -7,9 +7,7 @@ import cookieParser from 'cookie-parser'
 export class CookieParserMiddleware implements NestMiddleware {
   private middleware: RequestHandler
 
-  constructor(
-    private readonly configService: ConfigService,
-  ) {
+  constructor(private readonly configService: ConfigService) {
     const secret = this.configService.get<string>('app.cookie.secret')
     this.middleware = cookieParser(secret)
   }

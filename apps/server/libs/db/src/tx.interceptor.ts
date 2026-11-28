@@ -1,10 +1,4 @@
-import {
-  CallHandler,
-  ExecutionContext,
-  Injectable,
-  Logger,
-  NestInterceptor,
-} from '@nestjs/common'
+import { CallHandler, ExecutionContext, Injectable, Logger, NestInterceptor } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { catchError, concatMap, Observable } from 'rxjs'
 
@@ -44,7 +38,7 @@ export class WalnutTxInterceptor implements NestInterceptor {
   constructor(
     @InjectDataSource(WalnutPGConnectionName)
     private readonly pgDataSource: DataSource,
-  ) { }
+  ) {}
 
   async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
     const className = context.getClass().name
@@ -72,10 +66,13 @@ export class WalnutTxInterceptor implements NestInterceptor {
       // 显式写出来是为了让连接上的状态永远可预期。
       await applyWalnutDataScopeRlsSettings(
         queryRunner.manager,
-        request.dataScopeRls ?? { mode: WALNUT_DATA_SCOPE_RLS_MODE.SYSTEM, userId: '', deptIds: [] },
+        request.dataScopeRls ?? {
+          mode: WALNUT_DATA_SCOPE_RLS_MODE.SYSTEM,
+          userId: '',
+          deptIds: [],
+        },
       )
-    }
-    catch (e) {
+    } catch (e) {
       await tx.rollback()
       await tx.release()
       throw e
@@ -95,8 +92,7 @@ export class WalnutTxInterceptor implements NestInterceptor {
 
           try {
             await tx.commit()
-          }
-          finally {
+          } finally {
             await tx.release()
           }
 
@@ -110,8 +106,7 @@ export class WalnutTxInterceptor implements NestInterceptor {
               try {
                 await hook()
                 this.logger.log('[POST-COMMIT] after commit')
-              }
-              catch (e) {
+              } catch (e) {
                 this.logger.error(e)
               }
             }
@@ -127,6 +122,7 @@ export class WalnutTxInterceptor implements NestInterceptor {
 
           throw err
         }),
-      ))
+      ),
+    )
   }
 }

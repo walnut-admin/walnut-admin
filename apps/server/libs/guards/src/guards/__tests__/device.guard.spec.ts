@@ -1,9 +1,20 @@
 import type { ExecutionContext } from '@nestjs/common'
 import { AppTechCacheDeviceService, AppTechCacheService } from '@walnut-server/cache'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
-import { WalnutAdminConstCookieKeys, WalnutAdminConstDeviceCookieMaxAge, WalnutAdminConstDeviceCookieRenewInterval } from '@walnut-server/const/app/cookie'
+import {
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+} from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstCookieKeys,
+  WalnutAdminConstDeviceCookieMaxAge,
+  WalnutAdminConstDeviceCookieRenewInterval,
+} from '@walnut-server/const/app/cookie'
 import { AppTechCookieService } from '@walnut-server/cookie'
-import { WalnutAdminExceptionDeviceBanned, WalnutAdminExceptionDeviceLocked, WalnutAdminExceptionDeviceNotAcceptable } from '@walnut-server/exceptions/base/406'
+import {
+  WalnutAdminExceptionDeviceBanned,
+  WalnutAdminExceptionDeviceLocked,
+  WalnutAdminExceptionDeviceNotAcceptable,
+} from '@walnut-server/exceptions/base/406'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { WalnutAdminGuardDevice } from '../device.guard'
@@ -39,7 +50,10 @@ const CURRENT_IP = '203.0.113.10'
 const FROZEN_NOW = Date.UTC(2026, 0, 1, 0, 0, 0)
 
 /** 续期标记在 Redis 里的 TTL（秒）—— 与 `markDeviceCookieRenewed` 同源算法 */
-const RENEW_MARKER_TTL_SECONDS = Math.max(1, Math.ceil(WalnutAdminConstDeviceCookieRenewInterval / 1000))
+const RENEW_MARKER_TTL_SECONDS = Math.max(
+  1,
+  Math.ceil(WalnutAdminConstDeviceCookieRenewInterval / 1000),
+)
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
@@ -69,10 +83,10 @@ interface IRedisSetOptions {
  * - `get` / `del`：读与删。
  */
 function createFakeRedis(clock: () => number) {
-  const store = new Map<string, { raw: string, expiresAt: number | null }>()
+  const store = new Map<string, { raw: string; expiresAt: number | null }>()
   const log = {
-    set: [] as Array<{ key: string, options?: IRedisSetOptions }>,
-    setEx: [] as Array<{ key: string, ttl: number }>,
+    set: [] as Array<{ key: string; options?: IRedisSetOptions }>,
+    setEx: [] as Array<{ key: string; ttl: number }>,
     get: [] as string[],
     del: [] as string[],
   }
@@ -153,7 +167,7 @@ interface IGuardEnvOptions {
   /** 请求 cookie 里的 DEVICE_ID（`undefined` = 没种这个 cookie） */
   cookieDeviceId?: string
   /** 库里那一行（`null` = 库里没有这行，模拟 90 天 purge 之后） */
-  deviceRow?: { locked: boolean, banned: boolean, active: boolean, ip: string | null } | null
+  deviceRow?: { locked: boolean; banned: boolean; active: boolean; ip: string | null } | null
   /** 缓存里已有状态（`undefined` = 缓存 miss） */
   cached?: IDeviceState
   realIp?: string
@@ -177,27 +191,29 @@ interface IGuardEnv {
 
 async function createEnv(options: IGuardEnvOptions = {}): Promise<IGuardEnv> {
   const redis = createFakeRedis(() => Date.now())
-  const cacheService = new AppTechCacheService(
-    { getClient: () => redis.client } as never,
-  )
+  const cacheService = new AppTechCacheService({ getClient: () => redis.client } as never)
   const cacheDeviceService = new AppTechCacheDeviceService(cacheService)
 
-  const deviceRow = options.deviceRow === undefined
-    ? { locked: false, banned: false, active: true, ip: CURRENT_IP }
-    : options.deviceRow
+  const deviceRow =
+    options.deviceRow === undefined
+      ? { locked: false, banned: false, active: true, ip: CURRENT_IP }
+      : options.deviceRow
 
   const deviceRepo = {
-    findDeviceByDeviceId: vi.fn(async () => deviceRow === null
-      ? null
-      : { ...deviceRow, deviceId: options.cookieDeviceId ?? VALID_DEVICE_ID }),
+    findDeviceByDeviceId: vi.fn(async () =>
+      deviceRow === null
+        ? null
+        : { ...deviceRow, deviceId: options.cookieDeviceId ?? VALID_DEVICE_ID },
+    ),
     updateIpAndLocation: vi.fn(async () => true),
   }
 
   const cookie = vi.fn()
   const request: Record<string, unknown> = {
-    signedCookies: options.cookieDeviceId === undefined
-      ? {}
-      : { [WalnutAdminConstCookieKeys.DEVICE_ID]: options.cookieDeviceId },
+    signedCookies:
+      options.cookieDeviceId === undefined
+        ? {}
+        : { [WalnutAdminConstCookieKeys.DEVICE_ID]: options.cookieDeviceId },
     realIp: options.realIp ?? CURRENT_IP,
     isPostman: options.isPostman ?? false,
     res: { cookie },
@@ -215,7 +231,9 @@ async function createEnv(options: IGuardEnvOptions = {}): Promise<IGuardEnv> {
     { getAllAndOverride: () => options.deviceFree ?? false } as never,
     cacheDeviceService,
     deviceRepo as never,
-    { runWithLock: async (_key: string, _ttl: number, fn: () => Promise<unknown>) => fn() } as never,
+    {
+      runWithLock: async (_key: string, _ttl: number, fn: () => Promise<unknown>) => fn(),
+    } as never,
     new AppTechCookieService(),
   )
 
@@ -249,7 +267,10 @@ async function createEnv(options: IGuardEnvOptions = {}): Promise<IGuardEnv> {
 }
 
 async function caught(promise: Promise<unknown>): Promise<unknown> {
-  return promise.then(() => null, (error: unknown) => error)
+  return promise.then(
+    () => null,
+    (error: unknown) => error,
+  )
 }
 
 /** 响应壳里的业务码（40605 / 40606 / 40607）—— 拒绝路径的可观测值 */
@@ -288,7 +309,10 @@ describe('device guard：@WalnutAdminGuardDeviceFree 短路', () => {
 
 describe('device guard：isValidDeviceId 形态判据（B5 硬切，只在这一处判）', () => {
   it('d1_ + 32 位小写 hex ⇒ 通过', async () => {
-    const env = await createEnv({ cookieDeviceId: VALID_DEVICE_ID, cached: { locked: false, banned: false, active: true, currentIp: CURRENT_IP } })
+    const env = await createEnv({
+      cookieDeviceId: VALID_DEVICE_ID,
+      cached: { locked: false, banned: false, active: true, currentIp: CURRENT_IP },
+    })
 
     await expect(env.guard.canActivate(env.context)).resolves.toBe(true)
   })
@@ -310,8 +334,12 @@ describe('device guard：isValidDeviceId 形态判据（B5 硬切，只在这一
       const env = await createEnv({ cookieDeviceId })
       const error = await caught(env.guard.canActivate(env.context))
 
-      expect(error, `cookie=${JSON.stringify(cookieDeviceId)}`).toBeInstanceOf(WalnutAdminExceptionDeviceNotAcceptable)
-      expect(errCodeOf(error)).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED)
+      expect(error, `cookie=${JSON.stringify(cookieDeviceId)}`).toBeInstanceOf(
+        WalnutAdminExceptionDeviceNotAcceptable,
+      )
+      expect(errCodeOf(error)).toBe(
+        WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED,
+      )
       expect(env.redis.log.get).toHaveLength(0)
     }
   })
@@ -331,8 +359,12 @@ describe('device guard：isValidDeviceId 形态判据（B5 硬切，只在这一
       const env = await createEnv({ cookieDeviceId })
       const error = await caught(env.guard.canActivate(env.context))
 
-      expect(error, `应判非法: ${JSON.stringify(cookieDeviceId)}`).toBeInstanceOf(WalnutAdminExceptionDeviceNotAcceptable)
-      expect(errCodeOf(error)).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED)
+      expect(error, `应判非法: ${JSON.stringify(cookieDeviceId)}`).toBeInstanceOf(
+        WalnutAdminExceptionDeviceNotAcceptable,
+      )
+      expect(errCodeOf(error)).toBe(
+        WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED,
+      )
     }
   })
 })
@@ -349,8 +381,12 @@ describe('device guard：缓存 miss ⇒ 回源库 ⇒ 回填缓存（P2-2）', 
     expect(env.deviceRepo.findDeviceByDeviceId).toHaveBeenCalledWith(VALID_DEVICE_ID)
 
     // 回填的就是库里那一行的四个判定字段（`ip` → `currentIp` 的映射也是这里定的）
-    expect(await env.cacheDeviceService.getSysDeviceCache(VALID_DEVICE_ID))
-      .toEqual({ locked: false, banned: false, active: true, currentIp: CURRENT_IP })
+    expect(await env.cacheDeviceService.getSysDeviceCache(VALID_DEVICE_ID)).toEqual({
+      locked: false,
+      banned: false,
+      active: true,
+      currentIp: CURRENT_IP,
+    })
 
     await expect(env.guard.canActivate(env.context)).resolves.toBe(true)
     expect(env.deviceRepo.findDeviceByDeviceId).toHaveBeenCalledTimes(1)
@@ -391,7 +427,12 @@ describe('device guard：缓存 miss ⇒ 回源库 ⇒ 回填缓存（P2-2）', 
 })
 
 describe('device guard：DEVICE_ID cookie 滑动续期窗口（P0-1）', () => {
-  const cachedDevice: IDeviceState = { locked: false, banned: false, active: true, currentIp: CURRENT_IP }
+  const cachedDevice: IDeviceState = {
+    locked: false,
+    banned: false,
+    active: true,
+    currentIp: CURRENT_IP,
+  }
 
   it('窗口空（无续期标记）⇒ 重发 DEVICE_ID cookie（maxAge 拉满），并写续期标记（TTL = 续期间隔）', async () => {
     const env = await createEnv({ cookieDeviceId: VALID_DEVICE_ID, cached: cachedDevice })
@@ -412,7 +453,9 @@ describe('device guard：DEVICE_ID cookie 滑动续期窗口（P0-1）', () => {
         options: { NX: true, EX: RENEW_MARKER_TTL_SECONDS },
       }),
     ])
-    expect(env.redis.ttlMs(renewMarkerKey(VALID_DEVICE_ID))).toBe(WalnutAdminConstDeviceCookieRenewInterval)
+    expect(env.redis.ttlMs(renewMarkerKey(VALID_DEVICE_ID))).toBe(
+      WalnutAdminConstDeviceCookieRenewInterval,
+    )
   })
 
   it('窗口内（紧接着第二次请求）⇒ 不再重发：标记已占位，cookie 只下发过一次', async () => {
@@ -441,13 +484,21 @@ describe('device guard：DEVICE_ID cookie 滑动续期窗口（P0-1）', () => {
     env.advance(1)
     await expect(env.guard.canActivate(env.context)).resolves.toBe(true)
     expect(env.cookie).toHaveBeenCalledTimes(2)
-    expect(env.redis.ttlMs(renewMarkerKey(VALID_DEVICE_ID))).toBe(WalnutAdminConstDeviceCookieRenewInterval)
+    expect(env.redis.ttlMs(renewMarkerKey(VALID_DEVICE_ID))).toBe(
+      WalnutAdminConstDeviceCookieRenewInterval,
+    )
   })
 
   it('反例：封禁 / 锁定的设备窗口空也不发新 cookie（续期只在校验全通过之后）', async () => {
     for (const [cached, exception] of [
-      [{ locked: false, banned: true, active: true, currentIp: CURRENT_IP }, WalnutAdminExceptionDeviceBanned],
-      [{ locked: true, banned: false, active: true, currentIp: CURRENT_IP }, WalnutAdminExceptionDeviceLocked],
+      [
+        { locked: false, banned: true, active: true, currentIp: CURRENT_IP },
+        WalnutAdminExceptionDeviceBanned,
+      ],
+      [
+        { locked: true, banned: false, active: true, currentIp: CURRENT_IP },
+        WalnutAdminExceptionDeviceLocked,
+      ],
     ] as const) {
       const env = await createEnv({ cookieDeviceId: VALID_DEVICE_ID, cached })
 

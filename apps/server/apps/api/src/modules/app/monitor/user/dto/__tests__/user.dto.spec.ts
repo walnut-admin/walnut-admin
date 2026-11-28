@@ -41,9 +41,14 @@ const serializerOptions = { excludeExtraneousValues: true }
 
 describe('appMonitorUser DTO：指纹只进不出（P0-2）', () => {
   it('list 响应：data[] 里没有 visitorId', () => {
-    const instance = plainToInstance(AppMonitorUserDTOListResponse, { data: [monitorRow()], total: 1 })
+    const instance = plainToInstance(AppMonitorUserDTOListResponse, {
+      data: [monitorRow()],
+      total: 1,
+    })
 
-    const plain = instanceToPlain(instance, serializerOptions) as { data: Record<string, unknown>[] }
+    const plain = instanceToPlain(instance, serializerOptions) as {
+      data: Record<string, unknown>[]
+    }
 
     expect(plain.data).toHaveLength(1)
     expect(plain.data[0]).not.toHaveProperty('visitorId')

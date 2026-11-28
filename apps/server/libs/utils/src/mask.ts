@@ -30,8 +30,7 @@ const sensitiveRegexMap = {
  * 字符类，会占用保留位（如 `a+b@example.com` → `a+*@example.com`）。
  */
 export function maskEmail(email: string): string {
-  if (!email)
-    return ''
+  if (!email) return ''
 
   return email.replace(
     regexMap.emailOffSensitive,
@@ -40,13 +39,9 @@ export function maskEmail(email: string): string {
 }
 
 export function maskPhone(phone: string): string {
-  if (!phone)
-    return ''
+  if (!phone) return ''
 
-  return phone.replace(
-    regexMap.phoneNumberSensitive,
-    '$1****$2',
-  )
+  return phone.replace(regexMap.phoneNumberSensitive, '$1****$2')
 }
 
 /**
@@ -54,23 +49,32 @@ export function maskPhone(phone: string): string {
  * @param obj any object
  * @param extraKeys extra sensitive fields (optional)
  */
-export function maskSensitiveFields<T extends Record<string, any>>(obj: T, extraKeys: string[] = []) {
-  const sensitiveKeys = new Set([...DEFAULT_SENSITIVE_KEYS, ...extraKeys].map(k => k.toLowerCase()))
+export function maskSensitiveFields<T extends Record<string, any>>(
+  obj: T,
+  extraKeys: string[] = [],
+) {
+  const sensitiveKeys = new Set(
+    [...DEFAULT_SENSITIVE_KEYS, ...extraKeys].map((k) => k.toLowerCase()),
+  )
   const visited = new WeakSet<Recordable>()
 
   function walk(target: Recordable): Recordable {
-    if (isNil(target) || typeof target !== 'object')
-      return target
+    if (isNil(target) || typeof target !== 'object') return target
 
-    if (visited.has(target))
-      return target
+    if (visited.has(target)) return target
     visited.add(target)
 
     if (Array.isArray(target)) {
       return target.map(walk)
     }
 
-    if (target instanceof Date || target instanceof RegExp || target instanceof Map || target instanceof Set || typeof target === 'function') {
+    if (
+      target instanceof Date ||
+      target instanceof RegExp ||
+      target instanceof Map ||
+      target instanceof Set ||
+      typeof target === 'function'
+    ) {
       return target
     }
 
@@ -85,18 +89,14 @@ export function maskSensitiveFields<T extends Record<string, any>>(obj: T, extra
       if (sensitiveKeys.has(key.toLowerCase())) {
         if (sensitiveRegexMap.pass.test(key)) {
           result[key] = '[MASKED]'
-        }
-        else if (sensitiveRegexMap.email.test(key) && typeof value === 'string') {
+        } else if (sensitiveRegexMap.email.test(key) && typeof value === 'string') {
           result[key] = maskEmail(value)
-        }
-        else if (sensitiveRegexMap.phone.test(key) && typeof value === 'string') {
+        } else if (sensitiveRegexMap.phone.test(key) && typeof value === 'string') {
           result[key] = maskPhone(value)
-        }
-        else {
+        } else {
           result[key] = '[MASKED]'
         }
-      }
-      else {
+      } else {
         result[key] = walk(value)
       }
     }

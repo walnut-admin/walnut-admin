@@ -21,13 +21,11 @@ export function useAppTitle() {
       try {
         if (!visible.value) {
           title.value = t('app.title')
-        }
-        else {
+        } else {
           const translateTitle = t(currentRoute.value.meta.title as string)
           title.value = `${translateTitle} - ${envTitle}`
         }
-      }
-      catch {
+      } catch {
         title.value = `${envTitle}`
       }
     },

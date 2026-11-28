@@ -55,15 +55,30 @@ describe('B7b auth_refresh_token (on real PG)', () => {
 
   let userId = ''
 
-  async function insertToken(jti: string, deviceId: string, expiredAt: Date, encryptedToken = `enc-${jti}`) {
+  async function insertToken(
+    jti: string,
+    deviceId: string,
+    expiredAt: Date,
+    encryptedToken = `enc-${jti}`,
+  ) {
     await pgDataSource.query(
       'INSERT INTO auth_refresh_token (jti, user_id, device_id, encrypted_token, expired_at) VALUES ($1, $2, $3, $4, $5)',
       [jti, userId, deviceId, encryptedToken, expiredAt.toISOString()],
     )
   }
 
-  async function readToken(jti: string): Promise<{ revoked: boolean, revoke_reason: string | null, encrypted_token: string, expired_at: Date }> {
-    const rows: Array<{ revoked: boolean, revoke_reason: string | null, encrypted_token: string, expired_at: Date }> = await pgDataSource.query(
+  async function readToken(jti: string): Promise<{
+    revoked: boolean
+    revoke_reason: string | null
+    encrypted_token: string
+    expired_at: Date
+  }> {
+    const rows: Array<{
+      revoked: boolean
+      revoke_reason: string | null
+      encrypted_token: string
+      expired_at: Date
+    }> = await pgDataSource.query(
       'SELECT revoked, revoke_reason, encrypted_token, expired_at FROM auth_refresh_token WHERE jti = $1',
       [jti],
     )
@@ -111,16 +126,20 @@ describe('B7b auth_refresh_token (on real PG)', () => {
       'INSERT INTO sys_role (role_name) VALUES ($1) RETURNING id',
       [unique('b7-rt-role')],
     )
-    await pgDataSource.query(
-      'INSERT INTO sys_user_role (user_id, role_id) VALUES ($1, $2)',
-      [userId, roleRows[0].id],
-    )
+    await pgDataSource.query('INSERT INTO sys_user_role (user_id, role_id) VALUES ($1, $2)', [
+      userId,
+      roleRows[0].id,
+    ])
   })
 
   afterAll(async () => {
     // refresh 行随 user/device CASCADE 清场（含过期行，不污染 pg.purge.int-spec 的计数断言）
-    await pgDataSource.query('DELETE FROM sys_user WHERE user_name LIKE $1', [`${unique('b7-rt-user')}%`])
-    await pgDataSource.query('DELETE FROM sys_device WHERE device_name LIKE $1', [`${unique('b7-rt-device')}%`])
+    await pgDataSource.query('DELETE FROM sys_user WHERE user_name LIKE $1', [
+      `${unique('b7-rt-user')}%`,
+    ])
+    await pgDataSource.query('DELETE FROM sys_device WHERE device_name LIKE $1', [
+      `${unique('b7-rt-device')}%`,
+    ])
     await app.close()
   })
 
@@ -129,7 +148,7 @@ describe('B7b auth_refresh_token (on real PG)', () => {
       'SELECT indexname FROM pg_indexes WHERE tablename = $1',
       ['auth_refresh_token'],
     )
-    const names = rows.map(r => r.indexname)
+    const names = rows.map((r) => r.indexname)
 
     expect(names).toContain('uq_jti')
     expect(names).toContain('idx_rt_user')
@@ -146,8 +165,9 @@ describe('B7b auth_refresh_token (on real PG)', () => {
 
     // 生产路径在 @WalnutTx 内轮换——这里也用真实事务，
     // 让轮换读腿的悲观写锁（串行化「读校验+撤销+插入」）真正被走到
-    const { accessToken: newAT, jti: newJti } = await pgDataSource.transaction(async em =>
-      refreshShared.getNewAccessToken(jti, devId('b7-rt-device-live'), 'session-1', em))
+    const { accessToken: newAT, jti: newJti } = await pgDataSource.transaction(async (em) =>
+      refreshShared.getNewAccessToken(jti, devId('b7-rt-device-live'), 'session-1', em),
+    )
 
     // 新 jti 与旧行不同（行级撤销后 cookie 必须换新）
     expect(newJti).toBeTruthy()
@@ -165,11 +185,17 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     expect(oldRow.encrypted_token).toBe(`enc-${jti}`)
 
     // 新行：未撤销、密文是新签 RT 的密文、过期时间延长
-    const newRowRows: Array<{ jti: string, revoked: boolean, encrypted_token: string, expired_at: Date, user_id: string, device_id: string }>
-      = await pgDataSource.query(
-        'SELECT jti, revoked, encrypted_token, expired_at, user_id, device_id FROM auth_refresh_token WHERE jti = $1',
-        [newJti],
-      )
+    const newRowRows: Array<{
+      jti: string
+      revoked: boolean
+      encrypted_token: string
+      expired_at: Date
+      user_id: string
+      device_id: string
+    }> = await pgDataSource.query(
+      'SELECT jti, revoked, encrypted_token, expired_at, user_id, device_id FROM auth_refresh_token WHERE jti = $1',
+      [newJti],
+    )
     expect(newRowRows).toHaveLength(1)
     const newRow = newRowRows[0]
     expect(newRow.revoked).toBe(false)
@@ -187,18 +213,20 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     await insertToken(jti, devId('b7-rt-device-replay'), new Date(Date.now() + 3600_000))
 
     // 第一次轮换：旧行撤销 + 新行插入
-    const { jti: newJti } = await pgDataSource.transaction(async em =>
-      refreshShared.getNewAccessToken(jti, devId('b7-rt-device-replay'), 'session-replay', em))
+    const { jti: newJti } = await pgDataSource.transaction(async (em) =>
+      refreshShared.getNewAccessToken(jti, devId('b7-rt-device-replay'), 'session-replay', em),
+    )
     expect(newJti).not.toBe(jti)
 
     const oldRow = await readToken(jti)
     expect(oldRow.revoked).toBe(true)
 
     // 旧行 jti 再轮换（顺序重放）→ 锁内读到撤销行 → 受控 40102
-    await expect(pgDataSource.transaction(async em =>
-      refreshShared.getNewAccessToken(jti, devId('b7-rt-device-replay'), 'session-replay', em)))
-      .rejects
-      .toThrow(WalnutAdminExceptionRefreshTokenExpired)
+    await expect(
+      pgDataSource.transaction(async (em) =>
+        refreshShared.getNewAccessToken(jti, devId('b7-rt-device-replay'), 'session-replay', em),
+      ),
+    ).rejects.toThrow(WalnutAdminExceptionRefreshTokenExpired)
 
     // 重放无副作用：旧行保持撤销、新行未被波及（无第三次插入）
     const rows: Array<{ c: number }> = await pgDataSource.query(
@@ -208,8 +236,9 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     expect(rows[0].c).toBe(2)
 
     // 现役行（新 jti）合法续期不受影响：再轮换一次成功、产生第三个 jti
-    const second = await pgDataSource.transaction(async em =>
-      refreshShared.getNewAccessToken(newJti, devId('b7-rt-device-replay'), 'session-replay', em))
+    const second = await pgDataSource.transaction(async (em) =>
+      refreshShared.getNewAccessToken(newJti, devId('b7-rt-device-replay'), 'session-replay', em),
+    )
     expect(second.jti).not.toBe(newJti)
   })
 
@@ -222,16 +251,18 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     const jtiOther = unique('b7-rt-other')
     await insertToken(jtiOther, devId('b7-rt-device-rb2'), new Date(Date.now() + 3600_000))
 
-    await expect(pgDataSource.transaction(async (em) => {
-      await refreshShared.revokeRTForUserDevice(userId, devId('b7-rt-device-rb2'), em)
+    await expect(
+      pgDataSource.transaction(async (em) => {
+        await refreshShared.revokeRTForUserDevice(userId, devId('b7-rt-device-rb2'), em)
 
-      await expect(refreshShared.getNewAccessToken(jti, devId('b7-rt-device-rb'), 'session-2', em))
-        .rejects
-        .toThrow(WalnutAdminExceptionRefreshTokenExpired)
+        await expect(
+          refreshShared.getNewAccessToken(jti, devId('b7-rt-device-rb'), 'session-2', em),
+        ).rejects.toThrow(WalnutAdminExceptionRefreshTokenExpired)
 
-      // 到这里说明两腿都执行过 —— 主动抛出触发整体回滚
-      throw new Error('force-rollback')
-    })).rejects.toThrow('force-rollback')
+        // 到这里说明两腿都执行过 —— 主动抛出触发整体回滚
+        throw new Error('force-rollback')
+      }),
+    ).rejects.toThrow('force-rollback')
 
     // 过期行原样：未撤销、密文未轮换、无新行（轮换腿未执行）
     const expiredRow = await readToken(jti)
@@ -252,9 +283,14 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     const jti = unique('b7-rt-expired-commit')
     await insertToken(jti, devId('b7-rt-device-commit'), new Date(Date.now() - 60_000))
 
-    await expect(refreshShared.getNewAccessToken(jti, devId('b7-rt-device-commit'), 'session-3', pgDataSource.manager))
-      .rejects
-      .toThrow(WalnutAdminExceptionRefreshTokenExpired)
+    await expect(
+      refreshShared.getNewAccessToken(
+        jti,
+        devId('b7-rt-device-commit'),
+        'session-3',
+        pgDataSource.manager,
+      ),
+    ).rejects.toThrow(WalnutAdminExceptionRefreshTokenExpired)
 
     const row = await readToken(jti)
     expect(row.revoked).toBe(true)
@@ -264,21 +300,27 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     const deviceId = devId('b7-rt-device-key')
     const sessionId = 'session-gen'
 
-    const jti = await refreshShared.generateRefreshToken(userId, deviceId, sessionId, pgDataSource.manager)
+    const jti = await refreshShared.generateRefreshToken(
+      userId,
+      deviceId,
+      sessionId,
+      pgDataSource.manager,
+    )
     expect(jti).toBeTruthy()
 
-    const rows: Array<{ id: string, user_id: string, device_id: string, revoked: boolean }> = await pgDataSource.query(
-      'SELECT id, user_id, device_id, revoked FROM auth_refresh_token WHERE jti = $1',
-      [jti],
-    )
+    const rows: Array<{ id: string; user_id: string; device_id: string; revoked: boolean }> =
+      await pgDataSource.query(
+        'SELECT id, user_id, device_id, revoked FROM auth_refresh_token WHERE jti = $1',
+        [jti],
+      )
     expect(rows[0].id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
     expect(rows[0].user_id).toBe(userId)
     expect(rows[0].device_id).toBe(deviceId)
     expect(rows[0].revoked).toBe(false)
 
-    await expect(refreshShared.generateRefreshToken(userId, deviceId, sessionId, pgDataSource.manager))
-      .rejects
-      .toThrow()
+    await expect(
+      refreshShared.generateRefreshToken(userId, deviceId, sessionId, pgDataSource.manager),
+    ).rejects.toThrow()
   })
 
   it('F-26 部分唯一索引：同 (user, device) 第二条现役行 23505；撤销后可再插（多行历史不受影响）', async () => {
@@ -287,9 +329,9 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     await insertToken(unique('b7-rt-uniq-a'), deviceId, new Date(Date.now() + 3600_000))
 
     // 绕过应用层直接插第二条现役行 —— DB 是最后防线
-    await expect(insertToken(unique('b7-rt-uniq-b'), deviceId, new Date(Date.now() + 3600_000)))
-      .rejects
-      .toMatchObject({ code: '23505' })
+    await expect(
+      insertToken(unique('b7-rt-uniq-b'), deviceId, new Date(Date.now() + 3600_000)),
+    ).rejects.toMatchObject({ code: '23505' })
 
     // 撤销旧行后可以再插：部分索引只收 revoked = false，历轮 revoked 行不进索引
     await pgDataSource.query(
@@ -298,12 +340,12 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     )
     await insertToken(unique('b7-rt-uniq-c'), deviceId, new Date(Date.now() + 3600_000))
 
-    const rows: Array<{ jti: string, revoked: boolean }> = await pgDataSource.query(
+    const rows: Array<{ jti: string; revoked: boolean }> = await pgDataSource.query(
       'SELECT jti, revoked FROM auth_refresh_token WHERE device_id = $1 ORDER BY created_at ASC',
       [deviceId],
     )
     expect(rows).toHaveLength(2)
-    expect(rows.filter(row => !row.revoked)).toHaveLength(1)
+    expect(rows.filter((row) => !row.revoked)).toHaveLength(1)
   })
 
   it('purge job 判据：findExpiredTokens 只取 expired_at < now 的行（idx_rt_expired 通道）', async () => {
@@ -314,7 +356,7 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     await insertToken(liveJti, devId('b7-rt-device-find-live'), new Date(Date.now() + 3600_000))
 
     const expired = await refreshRepo.findExpiredTokens(new Date())
-    const jtis = expired.map(r => r.jti)
+    const jtis = expired.map((r) => r.jti)
 
     expect(jtis).toContain(expiredJti)
     expect(jtis).not.toContain(liveJti)
@@ -325,7 +367,9 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     await insertToken(jti, devId('b7-rt-device-cascade'), new Date(Date.now() + 3600_000))
     expect((await readToken(jti)).encrypted_token).toBeTruthy()
 
-    await pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [devId('b7-rt-device-cascade')])
+    await pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [
+      devId('b7-rt-device-cascade'),
+    ])
     expect(await refreshRepo.findByJti(jti)).toBeNull()
   })
 })

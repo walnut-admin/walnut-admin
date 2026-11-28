@@ -1,4 +1,7 @@
-import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
+import {
+  WalnutAdminDecoratorFieldBoolean,
+  WalnutAdminDecoratorFieldString,
+} from '@walnut-server/decorators/field'
 
 export class SecuritySignHandShakeRequestDTO {
   @WalnutAdminDecoratorFieldString({
@@ -29,7 +32,8 @@ export class SecuritySignSessionKeyResponseDTO {
 
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
-      description: 'encrypted aes key payload string (RSA envelope of the session AES key; decrypt with the client private key from the sign handshake)',
+      description:
+        'encrypted aes key payload string (RSA envelope of the session AES key; decrypt with the client private key from the sign handshake)',
     },
   })
   aesKey: string

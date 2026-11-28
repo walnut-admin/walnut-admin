@@ -23,7 +23,7 @@ import { createApiApp } from '../../helpers/create-api-app'
  */
 
 interface LoggerListData {
-  data: Array<{ fileName: string, filePath: string, logType: string, fileSize: string }>
+  data: Array<{ fileName: string; filePath: string; logType: string; fileSize: string }>
   total: number
 }
 
@@ -49,7 +49,11 @@ describe('B 段：app/logger list + 文件读取（真实 HTTP 全链 + 真实�
   async function seedLogFiles() {
     await fs.mkdir(path.join(logRoot, 'application'), { recursive: true })
     await fs.mkdir(path.join(logRoot, 'error'), { recursive: true })
-    await fs.writeFile(appLogPath, `[APISPEC] application line 1 (${seed8})\n[APISPEC] application line 2\n`, 'utf8')
+    await fs.writeFile(
+      appLogPath,
+      `[APISPEC] application line 1 (${seed8})\n[APISPEC] application line 2\n`,
+      'utf8',
+    )
     await fs.writeFile(errLogPath, `[APISPEC] error line 1 (${seed8})\n`, 'utf8')
   }
 
@@ -99,7 +103,7 @@ describe('B 段：app/logger list + 文件读取（真实 HTTP 全链 + 真实�
 
     const list = bodyOf<LoggerListData>(res).data
     expect(list.total).toBe(2)
-    const types = list.data.map(i => i.logType).sort()
+    const types = list.data.map((i) => i.logType).sort()
     expect(types).toEqual(['application', 'error'])
     // fileSize 走 @TransformSizeToKB —— 出参是 'x.xx KB' 字符串（钉现状）
     expect(Number.parseFloat(list.data[0].fileSize)).toBeGreaterThan(0)
@@ -109,7 +113,10 @@ describe('B 段：app/logger list + 文件读取（真实 HTTP 全链 + 真实�
     await seedLogFiles()
 
     const errOnly = await api.root('POST', api.apiPath('/app/logger/list'), {
-      filters: [{ field: 'fileName', op: 'like', value: seed8 }, { field: 'logType', op: 'eq', value: 'error' }],
+      filters: [
+        { field: 'fileName', op: 'like', value: seed8 },
+        { field: 'logType', op: 'eq', value: 'error' },
+      ],
       sort: [],
       page: { page: 1, pageSize: 10 },
     })
@@ -151,7 +158,10 @@ describe('B 段：app/logger list + 文件读取（真实 HTTP 全链 + 真实�
   })
 
   it('read → 不存在的文件 → 受控 50000（ENOENT 走兜底错误通道）', async () => {
-    const res = await api.root('GET', api.apiPath(`/app/logger/application/no-such-${seed8}.log?page=1`))
+    const res = await api.root(
+      'GET',
+      api.apiPath(`/app/logger/application/no-such-${seed8}.log?page=1`),
+    )
     expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.INTERNAL_SERVER_ERROR)
   })
 
@@ -161,7 +171,10 @@ describe('B 段：app/logger list + 文件读取（真实 HTTP 全链 + 真实�
   })
 
   it('read → fileName 路径穿越 payload（..%2F 打到 logs 目录外）→ 受控 40099（白名单管道第一道闸）', async () => {
-    const res = await api.root('GET', api.apiPath('/app/logger/application/..%2F..%2F..%2Fpackage.json?page=1'))
+    const res = await api.root(
+      'GET',
+      api.apiPath('/app/logger/application/..%2F..%2F..%2Fpackage.json?page=1'),
+    )
     expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
   })
 
@@ -169,8 +182,12 @@ describe('B 段：app/logger list + 文件读取（真实 HTTP 全链 + 真实�
     const service = app.get(AppLoggerService)
 
     // 管道被绕过（内部调用方）时第二道闸兜底：越出 logs 根即受控异常，而非读任意文件
-    await expect(service.read('../package.json', 1)).rejects.toThrowError(WalnutAdminExceptionBadRequest)
-    await expect(service.read('application/../../../../package.json', 1)).rejects.toThrowError(WalnutAdminExceptionBadRequest)
+    await expect(service.read('../package.json', 1)).rejects.toThrowError(
+      WalnutAdminExceptionBadRequest,
+    )
+    await expect(service.read('application/../../../../package.json', 1)).rejects.toThrowError(
+      WalnutAdminExceptionBadRequest,
+    )
     // 合法路径不受影响
     await seedLogFiles()
     const ok = await service.read(`application/${fileName}`, 1)

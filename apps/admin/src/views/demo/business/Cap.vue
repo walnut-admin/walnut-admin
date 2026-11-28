@@ -30,7 +30,7 @@ async function onInvisible() {
     <n-button class="mb-2" :loading="compStoreCapJS.loading" @click="onNormalMode">
       Cap Validate
     </n-button>
-    <br>
+    <br />
     <n-button :loading="compStoreCapJS.loading" @click="onInvisible">
       Cap Invisible Validate
     </n-button>

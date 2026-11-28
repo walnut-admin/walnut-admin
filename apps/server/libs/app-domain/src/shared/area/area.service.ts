@@ -1,7 +1,11 @@
 import type { WalnutLockService } from '@walnut-server/lock'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { AppTechCacheService } from '@walnut-server/cache'
-import { IWalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import {
+  IWalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+} from '@walnut-server/const/app/cache'
 import { WALNUT_ADMIN_LOCK } from '@walnut-server/lock'
 
 import { arrToTree, formatTree, TreeNodeItem } from 'easy-fns-ts'
@@ -67,24 +71,20 @@ export class SharedAreaService {
    * @returns Cloned array of same-level area models (avoids reference issues)
    */
   async getSameLevelByCodeWithCache(code: string) {
-    if (!code)
-      return []
+    if (!code) return []
 
     const CACHE_KEY = this.getCacheKeyByCode(code)
     const cachedData = await this.cacheService.get<SharedAreaEntity[]>(CACHE_KEY)
 
     // Return same-level data from cache if target code exists in cache
-    if (cachedData?.some(i => i.code === code)) {
-      return cloneDeep(
-        cachedData.filter(i => i.code.startsWith(code.slice(0, -2))),
-      )
+    if (cachedData?.some((i) => i.code === code)) {
+      return cloneDeep(cachedData.filter((i) => i.code.startsWith(code.slice(0, -2))))
     }
 
     // Query target area from DB to get its parent code (pcode)
     const target = await this.sharedAreaBasicRepo.findByCode(code)
 
-    if (!target)
-      return []
+    if (!target) return []
 
     // Get children of the target's parent (i.e., target's same-level areas)
     return this.getChildrenByPcodeWithCache(target.pcode)
@@ -100,42 +100,37 @@ export class SharedAreaService {
     const cachedData = await this.cacheService.get<SharedAreaEntity[]>(CACHE_KEY)
 
     // Fast path: cache has data for current pcode, return immediately without lock
-    if (cachedData?.some(i => i.pcode === pcode)) {
-      return cloneDeep(cachedData.filter(i => i.pcode === pcode))
+    if (cachedData?.some((i) => i.pcode === pcode)) {
+      return cloneDeep(cachedData.filter((i) => i.pcode === pcode))
     }
 
     // Slow path: cache miss or partial miss, acquire distributed lock to prevent race
     const lockKey = `${WalnutAdminConstAppCacheKeys.APP_MURLOCK}:AREA:CACHE:${CACHE_KEY}`
 
-    return this.lockService.runWithLock(
-      lockKey,
-      3000,
-      async () => {
-        // Double-check: re-read cache after acquiring lock
-        const doubleCheckData = await this.cacheService.get<SharedAreaEntity[]>(CACHE_KEY)
+    return this.lockService.runWithLock(lockKey, 3000, async () => {
+      // Double-check: re-read cache after acquiring lock
+      const doubleCheckData = await this.cacheService.get<SharedAreaEntity[]>(CACHE_KEY)
 
-        // Another request already populated the cache while we waited for the lock
-        if (doubleCheckData?.some(i => i.pcode === pcode)) {
-          return cloneDeep(doubleCheckData.filter(i => i.pcode === pcode))
-        }
+      // Another request already populated the cache while we waited for the lock
+      if (doubleCheckData?.some((i) => i.pcode === pcode)) {
+        return cloneDeep(doubleCheckData.filter((i) => i.pcode === pcode))
+      }
 
-        // Still a miss, query the database
-        const res = await this.sharedAreaBasicRepo.findChildrenByPcode(pcode)
+      // Still a miss, query the database
+      const res = await this.sharedAreaBasicRepo.findChildrenByPcode(pcode)
 
-        if (doubleCheckData === null) {
-          await this.cacheService.set(CACHE_KEY, res, {
-            t: WalnutAdminConstAppCacheType.SHARED,
-          })
-        }
-        else {
-          await this.cacheService.set(CACHE_KEY, doubleCheckData.concat(res), {
-            t: WalnutAdminConstAppCacheType.SHARED,
-          })
-        }
+      if (doubleCheckData === null) {
+        await this.cacheService.set(CACHE_KEY, res, {
+          t: WalnutAdminConstAppCacheType.SHARED,
+        })
+      } else {
+        await this.cacheService.set(CACHE_KEY, doubleCheckData.concat(res), {
+          t: WalnutAdminConstAppCacheType.SHARED,
+        })
+      }
 
-        return res
-      },
-    )
+      return res
+    })
   }
 
   /**
@@ -147,8 +142,7 @@ export class SharedAreaService {
    * @returns Formatted area tree with `depth` and `isLeaf` properties
    */
   private buildAreaResponseTree(data: SharedAreaEntity[]) {
-    if (data === null || data.length === 0)
-      return []
+    if (data === null || data.length === 0) return []
 
     // Mapping: Area code length to area level (0 = province, 1 = city, 2 = district, etc.)
     const depthMap: Record<number, number> = {
@@ -160,9 +154,7 @@ export class SharedAreaService {
     }
 
     // Calculate levels of all nodes in data, then get the maximum level (deepest level in returned data)
-    const nodeDepths = data
-      .map(d => depthMap[d.code.length])
-      .filter(d => typeof d === 'number')
+    const nodeDepths = data.map((d) => depthMap[d.code.length]).filter((d) => typeof d === 'number')
     const maxDepthPresent = nodeDepths.length ? Math.max(...nodeDepths) : 0
 
     /**
@@ -190,14 +182,13 @@ export class SharedAreaService {
    * @returns Formatted area tree branch (from target area up to top-level)
    */
   async feedback(code: string) {
-    if (!code)
-      return []
+    if (!code) return []
 
     // Special handling for province-level code (only provinces exist in returned data)
     if (code.length === 2) {
       const level1 = await this.getSameLevelByCodeWithCache(code)
       // Still return `isLeaf: true` here, since only provinces exist, maxDepth = 0
-      return level1.map(i => ({ ...i, depth: 0, isLeaf: true }))
+      return level1.map((i) => ({ ...i, depth: 0, isLeaf: true }))
     }
 
     const levelsCollected: SharedAreaEntity[][] = [] // Stores same-level areas for each level (from target upward)
@@ -206,15 +197,13 @@ export class SharedAreaService {
     // Traverse upward from target area to collect same-level areas for each parent level
     while (currentCode && currentCode.length >= 2) {
       const sameLevel = await this.getSameLevelByCodeWithCache(currentCode)
-      if (sameLevel === null || sameLevel.length === 0)
-        break
+      if (sameLevel === null || sameLevel.length === 0) break
 
       levelsCollected.push(sameLevel)
 
       // Get parent code of current level (all same-level areas share the same parent)
       const parentPcode = sameLevel[0]?.pcode
-      if (!parentPcode || parentPcode.length < 2)
-        break
+      if (!parentPcode || parentPcode.length < 2) break
 
       currentCode = parentPcode
     }
@@ -237,14 +226,12 @@ export class SharedAreaService {
      * @param nodes Current level nodes to process
      */
     const dfs = (nodes: TreeNodeItem<SharedAreaEntity>[]) => {
-      if (nodes === null || !nodes.length)
-        return
+      if (nodes === null || !nodes.length) return
       for (const node of nodes) {
         // Remove `children` field (will be reprocessed during final tree building)
         res.push(omit(node, 'children'))
         // Recursively process child nodes if they exist
-        if (node.children && node.children.length)
-          dfs(node.children)
+        if (node.children && node.children.length) dfs(node.children)
       }
     }
 
@@ -258,8 +245,7 @@ export class SharedAreaService {
    * @returns Merged, deduplicated formatted area tree
    */
   async feedbackMultiple(codes: string[]) {
-    if (!codes?.length)
-      return []
+    if (!codes?.length) return []
 
     const allNodes: SharedAreaEntity[] = []
 
@@ -275,8 +261,7 @@ export class SharedAreaService {
     for (const node of allNodes) {
       if (!uniqueMap.has(node.code)) {
         uniqueMap.set(node.code, node)
-      }
-      else {
+      } else {
         // Merge existing node with new node (new node fields override existing ones)
         uniqueMap.set(node.code, { ...uniqueMap.get(node.code)!, ...node })
       }

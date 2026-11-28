@@ -2,9 +2,23 @@ import type { SchemaObject } from '@nestjs/swagger'
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common'
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { WalnutAdminGuardJwtFree } from '@walnut-server/auth'
-import { ApiWalnutOkResponse, WalnutAdminSwaggerResponseSuccessSchemeData } from '@walnut-server/decorators/swagger'
-import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorEncryptResponse, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardLockFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
-import { SecuritySignHandShakeRequestDTO, SecuritySignService, SecuritySignSessionKeyResponseDTO } from '@walnut-server/security'
+import {
+  ApiWalnutOkResponse,
+  WalnutAdminSwaggerResponseSuccessSchemeData,
+} from '@walnut-server/decorators/swagger'
+import {
+  WalnutAdminDecoratorDeviceId,
+  WalnutAdminDecoratorEncryptResponse,
+  WalnutAdminGuardCapFree,
+  WalnutAdminGuardDeviceFree,
+  WalnutAdminGuardLockFree,
+  WalnutAdminGuardSignFree,
+} from '@walnut-server/guards'
+import {
+  SecuritySignHandShakeRequestDTO,
+  SecuritySignService,
+  SecuritySignSessionKeyResponseDTO,
+} from '@walnut-server/security'
 import { SecurityRoutes } from '@walnut/contract'
 
 /**
@@ -38,9 +52,7 @@ const SIGN_INITIAL_DATA_SCHEMA: SchemaObject = {
 // `device/initial`（同为 DeviceFree 的引导端点）一直没跳 IP 且工作正常 ⇒ 握手端点
 // 不需要这个豁免。回归钉子见 api-spec 的 G14。
 export class SecuritySignController {
-  constructor(
-    private readonly securitySignService: SecuritySignService,
-  ) { }
+  constructor(private readonly securitySignService: SecuritySignService) {}
 
   @Post('initial')
   @HttpCode(HttpStatus.OK)
@@ -66,9 +78,7 @@ export class SecuritySignController {
     DTO: SecuritySignSessionKeyResponseDTO,
   })
   @WalnutAdminDecoratorEncryptResponse<SecuritySignSessionKeyResponseDTO>('aesKey')
-  async getAesKey(
-    @WalnutAdminDecoratorDeviceId() deviceId: string,
-  ) {
+  async getAesKey(@WalnutAdminDecoratorDeviceId() deviceId: string) {
     const res = await this.securitySignService.getAesKey(deviceId)
     return new SecuritySignSessionKeyResponseDTO(res)
   }

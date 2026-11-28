@@ -10,10 +10,7 @@ import { arrayBufferToBase64 } from './transformer'
  * @returns Promise resolving to a PEM formatted string
  */
 export async function exportKeyToPEM(key: CryptoKey, type: PEMKeyType): Promise<string> {
-  const exported = await crypto.subtle.exportKey(
-    type === 'public' ? 'spki' : 'pkcs8',
-    key,
-  )
+  const exported = await crypto.subtle.exportKey(type === 'public' ? 'spki' : 'pkcs8', key)
   const base64Key = arrayBufferToBase64(exported)
   const pemHeader = type === 'public' ? PEM.PUBLIC_KEY.HEADER : PEM.PRIVATE_KEY.HEADER
   const pemBody = base64Key.match(/.{1,64}/g)?.join('\n') || ''
@@ -46,48 +43,31 @@ export async function importKeyFromPEM(
     throw new Error(`Invalid PEM: expected ${pemHeader} envelope`)
   }
 
-  const base64 = pem
-    .replace(`${pemPrefix}\n`, '')
-    .replace(`\n${pemSuffix}`, '')
-    .replace(/\s+/g, '')
+  const base64 = pem.replace(`${pemPrefix}\n`, '').replace(`\n${pemSuffix}`, '').replace(/\s+/g, '')
 
-  const binary = Uint8Array.from(atob(base64), c => c.charCodeAt(0))
+  const binary = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
 
   const format = type === 'public' ? 'spki' : 'pkcs8'
 
-  return crypto.subtle.importKey(
-    format,
-    binary,
-    algorithm,
-    extractable,
-    keyUsages,
-  )
+  return crypto.subtle.importKey(format, binary, algorithm, extractable, keyUsages)
 }
 
 /**
  * Imports RSA private key (PKCS#8 PEM format)
  */
 export async function importRsaPrivateKey(pem: string): Promise<CryptoKey> {
-  return importKeyFromPEM(
-    pem,
-    'private',
-    { name: RSA_OAEP.NAME, hash: RSA_OAEP.HASH },
-    false,
-    ['decrypt'],
-  )
+  return importKeyFromPEM(pem, 'private', { name: RSA_OAEP.NAME, hash: RSA_OAEP.HASH }, false, [
+    'decrypt',
+  ])
 }
 
 /**
  * Imports RSA public key (SPKI PEM format)
  */
 export async function importRsaPublicKey(pem: string): Promise<CryptoKey> {
-  return importKeyFromPEM(
-    pem,
-    'public',
-    { name: RSA_OAEP.NAME, hash: RSA_OAEP.HASH },
-    false,
-    ['encrypt'],
-  )
+  return importKeyFromPEM(pem, 'public', { name: RSA_OAEP.NAME, hash: RSA_OAEP.HASH }, false, [
+    'encrypt',
+  ])
 }
 
 /**
@@ -96,12 +76,11 @@ export async function importRsaPublicKey(pem: string): Promise<CryptoKey> {
  * @param data - Data to encrypt (ArrayBuffer)
  * @returns Encrypted data (ArrayBuffer)
  */
-export async function rsaOaepEncrypt(publicKey: CryptoKey, data: BufferSource): Promise<ArrayBuffer> {
-  return crypto.subtle.encrypt(
-    { name: RSA_OAEP.NAME },
-    publicKey,
-    data,
-  )
+export async function rsaOaepEncrypt(
+  publicKey: CryptoKey,
+  data: BufferSource,
+): Promise<ArrayBuffer> {
+  return crypto.subtle.encrypt({ name: RSA_OAEP.NAME }, publicKey, data)
 }
 
 /**
@@ -118,22 +97,17 @@ export async function rsaOaepDecrypt(
     throw new TypeError('Key must be RSA-OAEP')
   }
 
-  return crypto.subtle.decrypt(
-    { name: RSA_OAEP.NAME },
-    privateKey,
-    encryptedData,
-  )
+  return crypto.subtle.decrypt({ name: RSA_OAEP.NAME }, privateKey, encryptedData)
 }
 
 /**
  * Generates AES-256-GCM key
  */
 export async function generateAes256Key(): Promise<CryptoKey> {
-  return crypto.subtle.generateKey(
-    { name: AES_GCM.NAME, length: AES_GCM.KEY_LENGTH },
-    true,
-    ['encrypt', 'decrypt'],
-  )
+  return crypto.subtle.generateKey({ name: AES_GCM.NAME, length: AES_GCM.KEY_LENGTH }, true, [
+    'encrypt',
+    'decrypt',
+  ])
 }
 
 /**
@@ -189,11 +163,7 @@ export async function aesGcmEncryptCore(
   if (key.algorithm.name !== AES_GCM.NAME) {
     throw new TypeError('Key must be AES-GCM')
   }
-  return crypto.subtle.encrypt(
-    { name: AES_GCM.NAME, iv },
-    key,
-    plaintext,
-  )
+  return crypto.subtle.encrypt({ name: AES_GCM.NAME, iv }, key, plaintext)
 }
 
 /**
@@ -211,9 +181,5 @@ export async function aesGcmDecryptCore(
   if (key.algorithm.name !== AES_GCM.NAME) {
     throw new TypeError('Key must be AES-GCM')
   }
-  return crypto.subtle.decrypt(
-    { name: AES_GCM.NAME, iv },
-    key,
-    cipherWithTag,
-  )
+  return crypto.subtle.decrypt({ name: AES_GCM.NAME, iv }, key, cipherWithTag)
 }

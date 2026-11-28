@@ -11,8 +11,7 @@ const appStoreSettingDev = useAppStoreSettingDev()
 const appSettingScope = useAppStoreSettingScope()
 
 const getKeepAliveInclude = computed(() => {
-  if (!appStoreSettingDev.getKeepAlive)
-    return []
+  if (!appStoreSettingDev.getKeepAlive) return []
   return appStoreMenu.getKeepAliveRouteNames
 })
 
@@ -37,11 +36,13 @@ function getComponentKey(route: RouteLocationNormalizedLoadedGeneric) {
   <Suspense>
     <template #default>
       <router-view v-slot="{ Component, route }">
-        <WTransition v-if="appSettingScope.getTransitionStatus" :transition-name="appSettingScope.getTransitionName(route)" mode="out-in" appear>
-          <keep-alive
-            v-if="appStoreSettingDev.getKeepAlive"
-            :include="getKeepAliveInclude"
-          >
+        <WTransition
+          v-if="appSettingScope.getTransitionStatus"
+          :transition-name="appSettingScope.getTransitionName(route)"
+          mode="out-in"
+          appear
+        >
+          <keep-alive v-if="appStoreSettingDev.getKeepAlive" :include="getKeepAliveInclude">
             <component :is="Component" v-if="localRefreshFlag" :key="getComponentKey(route)" />
           </keep-alive>
 
@@ -49,10 +50,7 @@ function getComponentKey(route: RouteLocationNormalizedLoadedGeneric) {
         </WTransition>
 
         <template v-else>
-          <keep-alive
-            v-if="appStoreSettingDev.getKeepAlive"
-            :include="getKeepAliveInclude"
-          >
+          <keep-alive v-if="appStoreSettingDev.getKeepAlive" :include="getKeepAliveInclude">
             <component :is="Component" v-if="localRefreshFlag" :key="getComponentKey(route)" />
           </keep-alive>
 

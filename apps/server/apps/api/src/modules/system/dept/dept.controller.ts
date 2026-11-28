@@ -9,7 +9,19 @@ import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.
 import { WalnutAdminExceptionInvalidID } from '@walnut-server/exceptions/base/400'
 
 import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
-import { SysDeptDTOCreateRequest, SysDeptDTOCreateResponse, SysDeptDTODeleteResponse, SysDeptDTOListRequest, SysDeptDTOListResponse, SysDeptDTOReadResponse, SysDeptDTOSafe, SysDeptDTOTree, SysDeptDTOUpdateRequest, SysDeptDTOUpdateResponse, SysDeptService } from '@walnut-server/system'
+import {
+  SysDeptDTOCreateRequest,
+  SysDeptDTOCreateResponse,
+  SysDeptDTODeleteResponse,
+  SysDeptDTOListRequest,
+  SysDeptDTOListResponse,
+  SysDeptDTOReadResponse,
+  SysDeptDTOSafe,
+  SysDeptDTOTree,
+  SysDeptDTOUpdateRequest,
+  SysDeptDTOUpdateResponse,
+  SysDeptService,
+} from '@walnut-server/system'
 import { SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 
@@ -103,14 +115,8 @@ export class SysDeptController {
   @WalnutAdminDecoratorHasPermission(Permissions.CREATE)
   @WalnutAdminDecoratorCreate()
   @WalnutTx()
-  async create(
-    @WalnutTxSession() ctx: WalnutTxContext,
-    @Body() payload: SysDeptDTOCreateRequest,
-  ) {
-    return plainToInstance(
-      SysDeptDTOCreateResponse,
-      await this.deptService.create(payload, ctx.em),
-    )
+  async create(@WalnutTxSession() ctx: WalnutTxContext, @Body() payload: SysDeptDTOCreateRequest) {
+    return plainToInstance(SysDeptDTOCreateResponse, await this.deptService.create(payload, ctx.em))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)

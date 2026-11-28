@@ -49,9 +49,12 @@ function appendToLog(text: string): void {
     logDisabled = true
     try {
       mkdirSync(TEST_RESULTS_DIR, { recursive: true })
-      appendFileSync(BACKEND_LOG_FILE, `\n[e2e/backend] 日志超过 ${MAX_LOG_BYTES} 字节上限，后续输出只进控制台（避免占满磁盘）\n`, 'utf8')
-    }
-    catch {
+      appendFileSync(
+        BACKEND_LOG_FILE,
+        `\n[e2e/backend] 日志超过 ${MAX_LOG_BYTES} 字节上限，后续输出只进控制台（避免占满磁盘）\n`,
+        'utf8',
+      )
+    } catch {
       // 写不进去也没关系：控制台那份仍在
     }
     return
@@ -60,11 +63,12 @@ function appendToLog(text: string): void {
     mkdirSync(TEST_RESULTS_DIR, { recursive: true })
     appendFileSync(BACKEND_LOG_FILE, text, 'utf8')
     writtenBytes += text.length
-  }
-  catch (error) {
+  } catch (error) {
     if (!logWarned) {
       logWarned = true
-      console.error(`[e2e/backend] 写 ${BACKEND_LOG_FILE} 失败（后续不再重复）：${error instanceof Error ? error.message : String(error)}`)
+      console.error(
+        `[e2e/backend] 写 ${BACKEND_LOG_FILE} 失败（后续不再重复）：${error instanceof Error ? error.message : String(error)}`,
+      )
     }
   }
 }
@@ -75,8 +79,7 @@ function emit(text: string, target: NodeJS.WriteStream): void {
   appendToLog(redacted)
   try {
     target.write(redacted)
-  }
-  catch {
+  } catch {
     // Playwright 收掉管道后（本进程正在退出）写控制台可能 EPIPE —— 日志文件那份仍已写出
   }
 }
@@ -109,7 +112,9 @@ function main(): void {
   process.stderr.on('error', () => {})
 
   mkdirSync(TEST_RESULTS_DIR, { recursive: true })
-  appendToLog(`[e2e/backend] ${new Date().toISOString()} start: pnpm run start:stage（profile=${STACK_PROFILE.name}，库=${STACK_PROFILE.database}，cwd=${SERVER_ROOT}）\n`)
+  appendToLog(
+    `[e2e/backend] ${new Date().toISOString()} start: pnpm run start:stage（profile=${STACK_PROFILE.name}，库=${STACK_PROFILE.database}，cwd=${SERVER_ROOT}）\n`,
+  )
 
   const { command, prefixArgs, shell } = resolvePnpm()
   // `--silent` 只压 pnpm 自己的横幅（`> @walnut/server start:stage`）与收尾时的
@@ -150,8 +155,7 @@ function main(): void {
 
 try {
   main()
-}
-catch (error) {
+} catch (error) {
   console.error(`[e2e/backend] 失败：${error instanceof Error ? error.message : String(error)}`)
   process.exitCode = 1
 }

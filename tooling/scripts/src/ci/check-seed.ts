@@ -65,7 +65,9 @@ export const SEED_INPUT_PATTERNS = [
  * git 输出的路径永远是正斜杠（Windows 上也是），所以直接前缀比对就够，不必 `path.normalize`。
  */
 export function seedInputsTouched(changedPaths: readonly string[]): string[] {
-  return changedPaths.filter(changed => SEED_INPUT_PATTERNS.some(pattern => changed.startsWith(pattern)))
+  return changedPaths.filter((changed) =>
+    SEED_INPUT_PATTERNS.some((pattern) => changed.startsWith(pattern)),
+  )
 }
 
 /**
@@ -83,7 +85,10 @@ function changedPathsBestEffort(root: string): string[] | null {
   for (const args of attempts) {
     const result = runSync('git', args, { cwd: root })
     if (result.code === 0)
-      return result.stdout.split('\n').map(line => line.trim()).filter(Boolean)
+      return result.stdout
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
   }
   return null
 }
@@ -131,17 +136,19 @@ export const FORBIDDEN_COLLECTIONS = [
  * 值形态对照 cache.appSettings 的读取口径：`setting_value` 是 JSON 字符串，读腿
  * `JSON.parse` 后当 string[] 用 —— 因此这里也要求可解析为字符串数组。
  */
-export const REQUIRED_APP_SETTING_KEYS: ReadonlyArray<{ key: string, validate: (value: string) => string | null }> = [
+export const REQUIRED_APP_SETTING_KEYS: ReadonlyArray<{
+  key: string
+  validate: (value: string) => string | null
+}> = [
   {
     key: 'app.global.ipBlackList',
     validate: (value) => {
       try {
         const parsed = JSON.parse(value) as unknown
-        return Array.isArray(parsed) && parsed.every(item => typeof item === 'string')
+        return Array.isArray(parsed) && parsed.every((item) => typeof item === 'string')
           ? null
           : 'value 必须是 JSON 字符串数组（如 "[]"）'
-      }
-      catch {
+      } catch {
         return 'value 不是合法 JSON（读腿 JSON.parse 会兜底成 []，黑名单静默失效）'
       }
     },
@@ -183,8 +190,10 @@ export function collectFindings(repoRoot: string, seedDir = 'apps/server/db/seed
     findings.push({ file, detail })
   }
 
-  const files = readdirSync(dir).filter(f => f.endsWith('.json')).sort()
-  const names = files.map(f => f.replace(/\.json$/, ''))
+  const files = readdirSync(dir)
+    .filter((f) => f.endsWith('.json'))
+    .sort()
+  const names = files.map((f) => f.replace(/\.json$/, ''))
 
   for (const required of REQUIRED_COLLECTIONS) {
     if (!names.includes(required))
@@ -201,7 +210,10 @@ export function collectFindings(repoRoot: string, seedDir = 'apps/server/db/seed
   const known = new Set<string>([...SEED_TABLES, ...JUNCTION_TABLES])
   for (const name of names) {
     if (!known.has(name))
-      add(`${seedDir}/${name}.json`, `未登记的表文件（既不是业务集合也不是 junction）—— 先确认它该不该进仓`)
+      add(
+        `${seedDir}/${name}.json`,
+        `未登记的表文件（既不是业务集合也不是 junction）—— 先确认它该不该进仓`,
+      )
   }
 
   let total = 0
@@ -210,7 +222,10 @@ export function collectFindings(repoRoot: string, seedDir = 'apps/server/db/seed
     const size = statSync(join(dir, file)).size
     total += size
     if (size > FILE_BUDGET_BYTES)
-      add(rel, `单文件 ${(size / 1024).toFixed(0)}KB 超过预算 ${FILE_BUDGET_BYTES / 1024}KB —— 这种体量该考虑当发版资产发`)
+      add(
+        rel,
+        `单文件 ${(size / 1024).toFixed(0)}KB 超过预算 ${FILE_BUDGET_BYTES / 1024}KB —— 这种体量该考虑当发版资产发`,
+      )
 
     const text = readFileSync(join(dir, file), 'utf8')
 
@@ -222,14 +237,16 @@ export function collectFindings(repoRoot: string, seedDir = 'apps/server/db/seed
     // 真源形态：出现 Extended JSON 包装说明有人把历史导出原样塞回来了
     for (const marker of LEGACY_EJSON_MARKERS) {
       if (text.includes(marker))
-        add(rel, `出现 Extended JSON 包装 ${marker} —— 真源是 PG 行形态（\`{ id, created_at, … }\`），历史导出请先 reshape`)
+        add(
+          rel,
+          `出现 Extended JSON 包装 ${marker} —— 真源是 PG 行形态（\`{ id, created_at, … }\`），历史导出请先 reshape`,
+        )
     }
 
     let rows: Row[]
     try {
       rows = parseSeedFile(text)
-    }
-    catch (error) {
+    } catch (error) {
       add(rel, `解析失败：${error instanceof Error ? error.message : String(error)}`)
       continue
     }
@@ -238,7 +255,7 @@ export function collectFindings(repoRoot: string, seedDir = 'apps/server/db/seed
 
     // 未脱敏的个人数据：用**与 `db:export:pg --anonymize` 同一套规则**自检（`db/anonymize.ts`）——
     // 于是"有人把带真实个人数据的集合放进仓"与"字段改名绕过脱敏规则"都会在这里被点名到字段路径。
-    for (const hit of rows.flatMap(row => findUnmaskedPersonal(row)).slice(0, 5))
+    for (const hit of rows.flatMap((row) => findUnmaskedPersonal(row)).slice(0, 5))
       add(rel, `未脱敏的个人数据：${hit}（判据见 db/anonymize.ts；这类数据不该进仓）`)
 
     // 裁剪必须已经生效：拿策略再跑一遍，结果必须与文件内容一致（否则说明有人导了未裁剪的原始数据）
@@ -247,19 +264,24 @@ export function collectFindings(repoRoot: string, seedDir = 'apps/server/db/seed
     if (policy !== undefined) {
       const curated = applyPolicy(collection, rows)
       if (JSON.stringify(curated) !== JSON.stringify(rows))
-        add(rel, `内容未按 policy.ts 裁剪（例如 ${collection} 里混进了非演示账号或未置空的头像）—— 请重新生成 seed`)
+        add(
+          rel,
+          `内容未按 policy.ts 裁剪（例如 ${collection} 里混进了非演示账号或未置空的头像）—— 请重新生成 seed`,
+        )
     }
   }
 
   if (total > TOTAL_BUDGET_BYTES)
-    add(seedDir, `数据集合计 ${(total / 1024).toFixed(0)}KB 超过预算 ${TOTAL_BUDGET_BYTES / 1024}KB`)
+    add(
+      seedDir,
+      `数据集合计 ${(total / 1024).toFixed(0)}KB 超过预算 ${TOTAL_BUDGET_BYTES / 1024}KB`,
+    )
 
   const loaded = new Map<string, Row[] | undefined>()
   for (const file of files) {
     try {
       loaded.set(file.replace(/\.json$/, ''), parseSeedFile(readFileSync(join(dir, file), 'utf8')))
-    }
-    catch {
+    } catch {
       loaded.set(file.replace(/\.json$/, ''), undefined)
     }
   }
@@ -272,8 +294,7 @@ export function collectFindings(repoRoot: string, seedDir = 'apps/server/db/seed
 /** 解析一个 seed 文件：必须是**行数组**（纯 JSON，不认 Extended JSON 包装） */
 export function parseSeedFile(text: string): Row[] {
   const parsed = JSON.parse(text) as unknown
-  if (!Array.isArray(parsed))
-    throw new TypeError('seed 文件必须是行数组（JSON array）')
+  if (!Array.isArray(parsed)) throw new TypeError('seed 文件必须是行数组（JSON array）')
   return parsed as Row[]
 }
 
@@ -284,8 +305,7 @@ export function parseSeedFile(text: string): Row[] {
  * - 同一文件里所有行的列集一致（不一致说明有人手改了某一行，灌库时会错位/静默漏列）。
  */
 function findRowShape(file: string, rel: string, rows: Row[]): SeedFinding[] {
-  if (rows.length === 0)
-    return []
+  if (rows.length === 0) return []
   const collection = file.replace(/\.json$/, '')
   const isJunction = JUNCTION_TABLES.includes(collection)
   const first = rows[0]
@@ -295,24 +315,41 @@ function findRowShape(file: string, rel: string, rows: Row[]): SeedFinding[] {
   for (const [index, row] of rows.entries()) {
     const where = `${rel} 第 ${index} 行`
     const keys = Object.keys(row)
-    if (keys.length !== cols.length || keys.some(key => !cols.includes(key))) {
-      local.push({ file: rel, detail: `${where} 的列集与首行不一致（列集必须逐行一致：${cols.join(', ')}）` })
+    if (keys.length !== cols.length || keys.some((key) => !cols.includes(key))) {
+      local.push({
+        file: rel,
+        detail: `${where} 的列集与首行不一致（列集必须逐行一致：${cols.join(', ')}）`,
+      })
       break
     }
     if (isJunction) {
-      const bad = keys.filter(key => typeof row[key] !== 'string' || !UUID_RE.test(String(row[key])))
+      const bad = keys.filter(
+        (key) => typeof row[key] !== 'string' || !UUID_RE.test(String(row[key])),
+      )
       if (bad.length > 0)
-        local.push({ file: rel, detail: `${where} 的 ${bad.join(', ')} 必须是 uuid（junction 表是复合主键）` })
+        local.push({
+          file: rel,
+          detail: `${where} 的 ${bad.join(', ')} 必须是 uuid（junction 表是复合主键）`,
+        })
       if (keys.includes('id'))
-        local.push({ file: rel, detail: `${where} 不该有 id 列（${collection} 是 junction 表，主键是两列引用）` })
+        local.push({
+          file: rel,
+          detail: `${where} 不该有 id 列（${collection} 是 junction 表，主键是两列引用）`,
+        })
       continue
     }
     if (typeof row.id !== 'string' || !UUID_RE.test(row.id))
-      local.push({ file: rel, detail: `${where} 的 id 必须是 uuid（PG 主键本体），收到：${String(row.id)}` })
+      local.push({
+        file: rel,
+        detail: `${where} 的 id 必须是 uuid（PG 主键本体），收到：${String(row.id)}`,
+      })
     for (const column of ['created_at', 'updated_at']) {
       const value = row[column]
       if (typeof value !== 'string' || Number.isNaN(Date.parse(value)))
-        local.push({ file: rel, detail: `${where} 的 ${column} 必须是 ISO 时间字符串（PG timestamptz 直接吃它）` })
+        local.push({
+          file: rel,
+          detail: `${where} 的 ${column} 必须是 ISO 时间字符串（PG timestamptz 直接吃它）`,
+        })
     }
   }
 
@@ -327,12 +364,11 @@ function findRowShape(file: string, rel: string, rows: Row[]): SeedFinding[] {
  * 缺行 / 形态不对都点名到 setting_key，避免「seed 跑完看起来成功、黑名单写腿永远 no-op」。
  */
 function appSettingFindings(rows: Row[] | undefined, seedDir: string): SeedFinding[] {
-  if (rows === undefined)
-    return []
+  if (rows === undefined) return []
 
   const findings: SeedFinding[] = []
   for (const requirement of REQUIRED_APP_SETTING_KEYS) {
-    const row = rows.find(item => item.setting_key === requirement.key)
+    const row = rows.find((item) => item.setting_key === requirement.key)
     if (row === undefined) {
       findings.push({
         file: `${seedDir}/app_setting.json`,
@@ -343,13 +379,19 @@ function appSettingFindings(rows: Row[] | undefined, seedDir: string): SeedFindi
 
     const value = row.setting_value
     if (typeof value !== 'string') {
-      findings.push({ file: `${seedDir}/app_setting.json`, detail: `${requirement.key} 的 setting_value 必须是 JSON 字符串` })
+      findings.push({
+        file: `${seedDir}/app_setting.json`,
+        detail: `${requirement.key} 的 setting_value 必须是 JSON 字符串`,
+      })
       continue
     }
 
     const error = requirement.validate(value)
     if (error !== null)
-      findings.push({ file: `${seedDir}/app_setting.json`, detail: `${requirement.key} 形态不对：${error}` })
+      findings.push({
+        file: `${seedDir}/app_setting.json`,
+        detail: `${requirement.key} 形态不对：${error}`,
+      })
   }
 
   return findings
@@ -361,9 +403,13 @@ function appSettingFindings(rows: Row[] | undefined, seedDir: string): SeedFindi
  * 为什么要在**数据侧**再查一遍（PG 有 FK）：这些行是**分文件**的，删掉一个文件/改坏一个 id
  * 时 PG 会在灌库那一刻报错，而报错信息只在你真的去灌库时才看得到；这里是「提交就红」。
  */
-function referentialFindings(loaded: ReadonlyMap<string, Row[] | undefined>, seedDir: string): SeedFinding[] {
+function referentialFindings(
+  loaded: ReadonlyMap<string, Row[] | undefined>,
+  seedDir: string,
+): SeedFinding[] {
   const findings: SeedFinding[] = []
-  const ids = (name: string): Set<string> => new Set((loaded.get(name) ?? []).map(row => String(row.id)))
+  const ids = (name: string): Set<string> =>
+    new Set((loaded.get(name) ?? []).map((row) => String(row.id)))
 
   const roleIds = ids('sys_role')
   const menuIds = ids('sys_menu')
@@ -373,42 +419,72 @@ function referentialFindings(loaded: ReadonlyMap<string, Row[] | undefined>, see
 
   for (const row of loaded.get('sys_user_role') ?? []) {
     if (!userIds.has(String(row.user_id)))
-      findings.push({ file: `${seedDir}/sys_user_role.json`, detail: `授权行指向不存在的用户 ${String(row.user_id)}（这条授权会被静静丢掉）` })
+      findings.push({
+        file: `${seedDir}/sys_user_role.json`,
+        detail: `授权行指向不存在的用户 ${String(row.user_id)}（这条授权会被静静丢掉）`,
+      })
     if (!roleIds.has(String(row.role_id)))
-      findings.push({ file: `${seedDir}/sys_user_role.json`, detail: `授权行指向不存在的角色 ${String(row.role_id)}（登录后权限会空掉且不报错）` })
+      findings.push({
+        file: `${seedDir}/sys_user_role.json`,
+        detail: `授权行指向不存在的角色 ${String(row.role_id)}（登录后权限会空掉且不报错）`,
+      })
   }
 
   for (const row of loaded.get('sys_role_menu') ?? []) {
     if (!roleIds.has(String(row.role_id)))
-      findings.push({ file: `${seedDir}/sys_role_menu.json`, detail: `授权行指向不存在的角色 ${String(row.role_id)}` })
+      findings.push({
+        file: `${seedDir}/sys_role_menu.json`,
+        detail: `授权行指向不存在的角色 ${String(row.role_id)}`,
+      })
     if (!menuIds.has(String(row.menu_id)))
-      findings.push({ file: `${seedDir}/sys_role_menu.json`, detail: `角色 ${String(row.role_id)} 指向不存在的菜单 ${String(row.menu_id)}` })
+      findings.push({
+        file: `${seedDir}/sys_role_menu.json`,
+        detail: `角色 ${String(row.role_id)} 指向不存在的菜单 ${String(row.menu_id)}`,
+      })
   }
 
   for (const row of loaded.get('sys_user') ?? []) {
     const current = row.current_role_id
     if (current !== null && current !== undefined && !roleIds.has(String(current)))
-      findings.push({ file: `${seedDir}/sys_user.json`, detail: `${String(row.user_name)} 的 current_role_id 指向不存在的角色 ${String(current)}` })
+      findings.push({
+        file: `${seedDir}/sys_user.json`,
+        detail: `${String(row.user_name)} 的 current_role_id 指向不存在的角色 ${String(current)}`,
+      })
   }
 
-  const defaultRole = String((loaded.get('app_setting') ?? []).find(row => row.setting_key === 'app.default.role')?.setting_value ?? '')
+  const defaultRole = String(
+    (loaded.get('app_setting') ?? []).find((row) => row.setting_key === 'app.default.role')
+      ?.setting_value ?? '',
+  )
   if (defaultRole !== '' && !roleIds.has(defaultRole))
-    findings.push({ file: `${seedDir}/app_setting.json`, detail: `app.default.role 指向不存在的角色 ${defaultRole}（新用户注册会落到空角色）` })
+    findings.push({
+      file: `${seedDir}/app_setting.json`,
+      detail: `app.default.role 指向不存在的角色 ${defaultRole}（新用户注册会落到空角色）`,
+    })
 
   for (const row of loaded.get('sys_menu') ?? []) {
     const pid = row.pid
     if (pid !== null && pid !== undefined && !menuIds.has(String(pid)))
-      findings.push({ file: `${seedDir}/sys_menu.json`, detail: `菜单 ${String(row.title ?? row.id)} 的 pid 指向不存在的菜单 ${String(pid)}` })
+      findings.push({
+        file: `${seedDir}/sys_menu.json`,
+        detail: `菜单 ${String(row.title ?? row.id)} 的 pid 指向不存在的菜单 ${String(pid)}`,
+      })
   }
 
   for (const row of loaded.get('sys_locale') ?? []) {
     if (!langIds.has(String(row.lang_id)))
-      findings.push({ file: `${seedDir}/sys_locale.json`, detail: `语言包 ${String(row.key)} 的 lang_id 指向不存在的语言 ${String(row.lang_id)}` })
+      findings.push({
+        file: `${seedDir}/sys_locale.json`,
+        detail: `语言包 ${String(row.key)} 的 lang_id 指向不存在的语言 ${String(row.lang_id)}`,
+      })
   }
 
   for (const row of loaded.get('sys_dict_data') ?? []) {
     if (!dictTypeIds.has(String(row.type_id)))
-      findings.push({ file: `${seedDir}/sys_dict_data.json`, detail: `字典 ${String(row.label)} 的 type_id 指向不存在的字典类型 ${String(row.type_id)}` })
+      findings.push({
+        file: `${seedDir}/sys_dict_data.json`,
+        detail: `字典 ${String(row.label)} 的 type_id 指向不存在的字典类型 ${String(row.type_id)}`,
+      })
   }
 
   return findings
@@ -416,25 +492,36 @@ function referentialFindings(loaded: ReadonlyMap<string, Row[] | undefined>, see
 
 export function main(): void {
   const repoRoot = process.cwd()
-  const files = readdirSync(join(repoRoot, 'apps/server/db/seed')).filter(f => f.endsWith('.json'))
-  out(`初始化数据检查：${files.length} 个表文件（必需 ${REQUIRED_COLLECTIONS.length} + junction ${REQUIRED_JUNCTION_COLLECTIONS.length} / 禁入 ${FORBIDDEN_COLLECTIONS.length}）`)
+  const files = readdirSync(join(repoRoot, 'apps/server/db/seed')).filter((f) =>
+    f.endsWith('.json'),
+  )
+  out(
+    `初始化数据检查：${files.length} 个表文件（必需 ${REQUIRED_COLLECTIONS.length} + junction ${REQUIRED_JUNCTION_COLLECTIONS.length} / 禁入 ${FORBIDDEN_COLLECTIONS.length}）`,
+  )
 
   const findings = collectFindings(repoRoot)
   if (findings.length === 0) {
-    line('ok', '数据集形态正确：必需表齐全、无凭据形状、无 Extended JSON 残留、体积在预算内、引用完整、裁剪已生效')
+    line(
+      'ok',
+      '数据集形态正确：必需表齐全、无凭据形状、无 Extended JSON 残留、体积在预算内、引用完整、裁剪已生效',
+    )
     // best effort：只在「seed 输入面真的变了」时提醒一句（口径见文件头）。
     // 拿不到 diff、git 不在、路径形态变了 —— 一律安静跳过，**绝不判红**。
     const changed = changedPathsBestEffort(REPO_ROOT)
     const touched = changed === null ? [] : seedInputsTouched(changed)
     if (touched.length > 0) {
-      line('warning', `seed 的输入面变了（${touched.join(', ')}）：本门禁只查形态；`
-      + '「与 db:export:pg 往返一致」需要真实库，请手动跑一次 pnpm walnut db:seed:verify（它不进 prepush / CI）')
+      line(
+        'warning',
+        `seed 的输入面变了（${touched.join(', ')}）：本门禁只查形态；` +
+          '「与 db:export:pg 往返一致」需要真实库，请手动跑一次 pnpm walnut db:seed:verify（它不进 prepush / CI）',
+      )
     }
     return
   }
 
-  for (const f of findings)
-    lineErr('violation', `${f.file}\n    ${f.detail}`)
-  err(`\n共 ${findings.length} 处。这份数据会**随仓库发布并直接灌进库**，所以它的形态就是运行期行为。`)
+  for (const f of findings) lineErr('violation', `${f.file}\n    ${f.detail}`)
+  err(
+    `\n共 ${findings.length} 处。这份数据会**随仓库发布并直接灌进库**，所以它的形态就是运行期行为。`,
+  )
   throw new ViolationError(`初始化数据有 ${findings.length} 处问题（明细见上）`)
 }

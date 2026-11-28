@@ -3,7 +3,10 @@ import type { SecurityRiskRateService } from '@walnut-server/security/risk/modul
 import type { SecurityRiskService } from '@walnut-server/security/risk/risk.service'
 import { Logger } from '@nestjs/common'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
-import { WalnutAdminExceptionRiskTooHigh, WalnutAdminExceptionRiskUnavailable } from '@walnut-server/exceptions/base/406'
+import {
+  WalnutAdminExceptionRiskTooHigh,
+  WalnutAdminExceptionRiskUnavailable,
+} from '@walnut-server/exceptions/base/406'
 import { describe, expect, it, vi } from 'vitest'
 import { WalnutAdminGuardRisk } from '../risk.guard'
 
@@ -39,17 +42,17 @@ interface ISpecRequest {
   risk?: unknown
 }
 
-function createRequest(options: {
-  path?: string
-  method?: string
-  withDeviceId?: boolean
-} = {}): ISpecRequest {
+function createRequest(
+  options: {
+    path?: string
+    method?: string
+    withDeviceId?: boolean
+  } = {},
+): ISpecRequest {
   const { path = PUBLIC_PATH, method = 'GET', withDeviceId = true } = options
 
   return {
-    signedCookies: withDeviceId
-      ? { [WalnutAdminConstCookieKeys.DEVICE_ID]: 'p1-13-device' }
-      : {},
+    signedCookies: withDeviceId ? { [WalnutAdminConstCookieKeys.DEVICE_ID]: 'p1-13-device' } : {},
     realIp: '203.0.113.7',
     body: { userName: 'p1-13-user' },
     method,
@@ -85,8 +88,7 @@ async function silently<T>(fn: () => Promise<T>): Promise<T> {
   const warnSpy = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined)
   try {
     return await fn()
-  }
-  finally {
+  } finally {
     errorSpy.mockRestore()
     warnSpy.mockRestore()
   }
@@ -115,7 +117,9 @@ describe('risk guard：受控异常不被 catch 吞（P1-13）', () => {
       throw new WalnutAdminExceptionRiskTooHigh()
     })
 
-    await expect(guard.canActivate(createContext(createRequest()))).rejects.toBeInstanceOf(WalnutAdminExceptionRiskTooHigh)
+    await expect(guard.canActivate(createContext(createRequest()))).rejects.toBeInstanceOf(
+      WalnutAdminExceptionRiskTooHigh,
+    )
   })
 
   it('high risk evaluation → 放行并挂 request.risk（CAP guard 消费 shouldChallenge），本 guard 不抛 40666', async () => {
@@ -162,7 +166,12 @@ describe('risk guard：敏感端点 fail-close（批次 8 / B2）', () => {
     })
     const request = createRequest({ path: SENSITIVE_PATH, method: 'POST' })
 
-    const error = await silently(async () => guard.canActivate(createContext(request)).then(() => null, (e: unknown) => e))
+    const error = await silently(async () =>
+      guard.canActivate(createContext(request)).then(
+        () => null,
+        (e: unknown) => e,
+      ),
+    )
 
     expect(error).toBeInstanceOf(WalnutAdminExceptionRiskUnavailable)
     // 旧实现 return true ⇒ 这里是 null（负对照）
@@ -173,9 +182,11 @@ describe('risk guard：敏感端点 fail-close（批次 8 / B2）', () => {
     const guard = createGuard(async () => HIGH_RISK_RESULT)
     const request = createRequest({ path: SENSITIVE_PATH, method: 'POST', withDeviceId: false })
 
-    await silently(async () => expect(guard.canActivate(createContext(request)))
-      .rejects
-      .toBeInstanceOf(WalnutAdminExceptionRiskUnavailable))
+    await silently(async () =>
+      expect(guard.canActivate(createContext(request))).rejects.toBeInstanceOf(
+        WalnutAdminExceptionRiskUnavailable,
+      ),
+    )
   })
 
   it('前缀归一化：/w/v1/auth/refresh 与 /auth/refresh 都是 fail-close', async () => {
@@ -184,9 +195,11 @@ describe('risk guard：敏感端点 fail-close（批次 8 / B2）', () => {
         throw new Error('risk backend down')
       })
 
-      await silently(async () => expect(guard.canActivate(createContext(createRequest({ path, method: 'POST' }))))
-        .rejects
-        .toBeInstanceOf(WalnutAdminExceptionRiskUnavailable))
+      await silently(async () =>
+        expect(
+          guard.canActivate(createContext(createRequest({ path, method: 'POST' }))),
+        ).rejects.toBeInstanceOf(WalnutAdminExceptionRiskUnavailable),
+      )
     }
   })
 
@@ -196,7 +209,9 @@ describe('risk guard：敏感端点 fail-close（批次 8 / B2）', () => {
     })
     const request = createRequest({ path: '/w/v1/auth/refresh', method: 'GET' })
 
-    await silently(async () => expect(guard.canActivate(createContext(request))).resolves.toBe(true))
+    await silently(async () =>
+      expect(guard.canActivate(createContext(request))).resolves.toBe(true),
+    )
     expect(request.riskDegraded).toBe('risk-evaluation-failed')
   })
 })

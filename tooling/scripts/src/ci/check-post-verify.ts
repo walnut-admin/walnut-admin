@@ -57,9 +57,9 @@ export const RELEVANT_PATH_PREFIXES: readonly string[] = [
 ]
 
 /** 适用范围的两态 */
-export type Applicability
-  = | { kind: 'run', reason: string }
-    | { kind: 'not-applicable', upstream: string, changedCount: number }
+export type Applicability =
+  | { kind: 'run'; reason: string }
+  | { kind: 'not-applicable'; upstream: string; changedCount: number }
 
 /**
  * 这一段适不适用（纯函数，不碰 git）。
@@ -75,13 +75,13 @@ export function judgeApplicability(input: {
   upstream: string | null
   changed: readonly string[] | null
 }): Applicability {
-  if (input.isCi)
-    return { kind: 'run', reason: 'CI 上每次都真跑' }
+  if (input.isCi) return { kind: 'run', reason: 'CI 上每次都真跑' }
   if (input.upstream === null || input.changed === null)
     return { kind: 'run', reason: '判不出改动面（没有上游或 git 读不到）' }
-  const touched = input.changed.some(file => RELEVANT_PATH_PREFIXES.some(prefix => file.startsWith(prefix)))
-  if (touched)
-    return { kind: 'run', reason: '相对上游改了相关文件' }
+  const touched = input.changed.some((file) =>
+    RELEVANT_PATH_PREFIXES.some((prefix) => file.startsWith(prefix)),
+  )
+  if (touched) return { kind: 'run', reason: '相对上游改了相关文件' }
   return { kind: 'not-applicable', upstream: input.upstream, changedCount: input.changed.length }
 }
 
@@ -106,10 +106,10 @@ export interface PostVerifyRunResult {
 }
 
 /** 门禁结论（三态；通过 / 违规 / 前置条件未满足） */
-export type PostVerifyVerdict
-  = | { kind: 'passed', tally: PostVerifyTally | null }
-    | { kind: 'violation', tally: PostVerifyTally | null, tail: string }
-    | { kind: 'precondition', detail: string }
+export type PostVerifyVerdict =
+  | { kind: 'passed'; tally: PostVerifyTally | null }
+  | { kind: 'violation'; tally: PostVerifyTally | null; tail: string }
+  | { kind: 'precondition'; detail: string }
 
 /**
  * 解析脚本末尾的「通过 N，失败 M」。
@@ -120,8 +120,7 @@ export type PostVerifyVerdict
 export function parseTally(output: string): PostVerifyTally | null {
   const matches = [...output.matchAll(TALLY_RE)]
   const last = matches.at(-1)
-  if (last === undefined)
-    return null
+  if (last === undefined) return null
   return { passed: Number(last[1]), failed: Number(last[2]) }
 }
 
@@ -129,8 +128,8 @@ export function parseTally(output: string): PostVerifyTally | null {
 export function tailOf(output: string, maxLines: number = TAIL_LINES): string {
   const lines = output
     .split('\n')
-    .map(text => text.replace(/\r$/, ''))
-    .filter(text => text.trim() !== '')
+    .map((text) => text.replace(/\r$/, ''))
+    .filter((text) => text.trim() !== '')
   const tail = maxLines > 0 ? lines.slice(-maxLines) : lines
   return tail.join('\n')
 }
@@ -151,13 +150,15 @@ export function interpretRunResult(result: PostVerifyRunResult): PostVerifyVerdi
     }
   }
   const tally = parseTally(result.output)
-  if (result.code === 0)
-    return { kind: 'passed', tally }
+  if (result.code === 0) return { kind: 'passed', tally }
   return { kind: 'violation', tally, tail: tailOf(result.output) }
 }
 
 /** 违规结论行（计数行解析得到时带上通过 / 失败的条数） */
-function violationMessage(verdict: Extract<PostVerifyVerdict, { kind: 'violation' }>, code: number | null): string {
+function violationMessage(
+  verdict: Extract<PostVerifyVerdict, { kind: 'violation' }>,
+  code: number | null,
+): string {
   if (verdict.tally !== null)
     return `${POST_VERIFY_TEST_SCRIPT} 有 ${verdict.tally.failed} 条用例失败（通过 ${verdict.tally.passed}）`
   return `${POST_VERIFY_TEST_SCRIPT} 以退出码 ${code ?? '未知'} 结束（没解析出「通过 N，失败 M」计数行）`
@@ -172,9 +173,11 @@ export function main(): void {
     changed: changedFilesSinceUpstream(),
   })
   if (applicability.kind === 'not-applicable') {
-    out(`${POST_VERIFY_TEST_SCRIPT}：相对上游 ${applicability.upstream} 没有改动相关文件（`
-      + `共 ${applicability.changedCount} 个改动文件），本段不适用。改了 deploy/post-verify.sh、`
-      + '它的行为测试或入口 nginx 配置时才需要重跑；CI 上每次都真跑。')
+    out(
+      `${POST_VERIFY_TEST_SCRIPT}：相对上游 ${applicability.upstream} 没有改动相关文件（` +
+        `共 ${applicability.changedCount} 个改动文件），本段不适用。改了 deploy/post-verify.sh、` +
+        '它的行为测试或入口 nginx 配置时才需要重跑；CI 上每次都真跑。',
+    )
     return
   }
   out(`适用：${applicability.reason}`)
@@ -182,8 +185,8 @@ export function main(): void {
   const bash = findBash()
   if (bash === null) {
     throw new SkippedError(
-      `没找到 bash：${POST_VERIFY_TEST_SCRIPT} 本机**未验证**（跳过不等于通过）。`
-      + '设 BASH_PATH 指向 bash 即可启用；CI 的 ubuntu runner 自带 /bin/bash。',
+      `没找到 bash：${POST_VERIFY_TEST_SCRIPT} 本机**未验证**（跳过不等于通过）。` +
+        '设 BASH_PATH 指向 bash 即可启用；CI 的 ubuntu runner 自带 /bin/bash。',
     )
   }
 
@@ -192,8 +195,7 @@ export function main(): void {
   if (existsSync(script)) {
     const result = runSync(bash, [POST_VERIFY_TEST_SCRIPT], { cwd: REPO_ROOT })
     run = { code: result.code, output: `${result.stdout}${result.stderr}` }
-  }
-  else {
+  } else {
     // 只在这里表达「没跑起来」：runSync 把 spawn 失败压成退出码 1，分不出「脚本报错」与
     // 「脚本不存在」，而那两种的下一步动作不同（修代码 vs 修路径）。
     run = { code: null, output: `找不到测试脚本：${script}` }
@@ -201,8 +203,7 @@ export function main(): void {
 
   const verdict = interpretRunResult(run)
 
-  if (verdict.kind === 'precondition')
-    throw new PreconditionError(verdict.detail)
+  if (verdict.kind === 'precondition') throw new PreconditionError(verdict.detail)
 
   if (verdict.kind === 'violation') {
     err('输出尾部（完整输出请手工跑一遍）：')
@@ -210,8 +211,13 @@ export function main(): void {
     throw new ViolationError(violationMessage(verdict, run.code))
   }
 
-  line('ok', verdict.tally === null
-    ? `${POST_VERIFY_TEST_SCRIPT}：退出码 0，但没解析出「通过 N，失败 M」计数行（脚本输出格式变了？）`
-    : `${POST_VERIFY_TEST_SCRIPT}：通过 ${verdict.tally.passed}，失败 ${verdict.tally.failed}（部署后验证脚本的各条失败分支）`)
-  out('  提醒：这一段只证明 post-verify.sh 的判据还会红；「头真的发出去了」仍由它在每次部署后核实。')
+  line(
+    'ok',
+    verdict.tally === null
+      ? `${POST_VERIFY_TEST_SCRIPT}：退出码 0，但没解析出「通过 N，失败 M」计数行（脚本输出格式变了？）`
+      : `${POST_VERIFY_TEST_SCRIPT}：通过 ${verdict.tally.passed}，失败 ${verdict.tally.failed}（部署后验证脚本的各条失败分支）`,
+  )
+  out(
+    '  提醒：这一段只证明 post-verify.sh 的判据还会红；「头真的发出去了」仍由它在每次部署后核实。',
+  )
 }

@@ -24,15 +24,24 @@ const OTHER_DID = did(2)
 const USER = 'aefa0706-4102-5438-99f3-85e0683335b8'
 
 /** 每个键族一条**真实拼法**的样本（与 redis-gc.test.ts 的用例同形，故意重复以交叉校验两处表） */
-const FAMILY_SAMPLES: Array<{ family: DeviceKeyFamily, key: string }> = [
+const FAMILY_SAMPLES: Array<{ family: DeviceKeyFamily; key: string }> = [
   { family: 'cache:system:device', key: `WALNUT_CACHE_SYSTEM:DEVICE:${DID}` },
-  { family: 'cache:system:device-cookie-renew', key: `WALNUT_CACHE_SYSTEM:DEVICE:COOKIE_RENEW:${DID}` },
+  {
+    family: 'cache:system:device-cookie-renew',
+    key: `WALNUT_CACHE_SYSTEM:DEVICE:COOKIE_RENEW:${DID}`,
+  },
   { family: 'cache:auth:sessions', key: `WALNUT_CACHE_AUTH:SESSIONS:${USER}:${DID}:sid-1` },
   { family: 'cache:auth:permissions', key: `WALNUT_CACHE_AUTH:PERMISSIONS:${USER}:${DID}` },
   { family: 'cache:auth:mfa:verified', key: `WALNUT_CACHE_AUTH:MFA:VERIFIED:${USER}:${DID}` },
   { family: 'cache:auth:mfa:totp', key: `WALNUT_CACHE_AUTH:MFA:TOTP:${USER}:${DID}` },
-  { family: 'cache:auth:mfa:webauthn', key: `WALNUT_CACHE_AUTH:MFA:WEBAUTN:${USER}:${DID}:registration` },
-  { family: 'cache:auth:opaque-state', key: `WALNUT_CACHE_AUTH:OPAQUE_STATE:admin:${DID}:SERVER_STATE` },
+  {
+    family: 'cache:auth:mfa:webauthn',
+    key: `WALNUT_CACHE_AUTH:MFA:WEBAUTN:${USER}:${DID}:registration`,
+  },
+  {
+    family: 'cache:auth:opaque-state',
+    key: `WALNUT_CACHE_AUTH:OPAQUE_STATE:admin:${DID}:SERVER_STATE`,
+  },
   { family: 'cache:security:sign-ticket', key: `WALNUT_CACHE_SECURITY:SIGN:TICKET:${DID}` },
   { family: 'cache:security:sign-aes-key', key: `WALNUT_CACHE_SECURITY:SIGN:AES_KEY:${DID}` },
   { family: 'cache:security:cap-token', key: `WALNUT_CACHE_SECURITY:CAP_TOKEN:${DID}:fingerprint` },
@@ -44,12 +53,18 @@ const FAMILY_SAMPLES: Array<{ family: DeviceKeyFamily, key: string }> = [
   { family: 'risk:failed-login', key: `risk:failed_login:admin@example.com:${DID}` },
   { family: 'risk:rate:device', key: `risk:rate:device:${DID}:202611252015` },
   { family: 'risk:challenge:device', key: `risk:challenge:device:${DID}:DEVICE_NEW` },
-  { family: 'risk:challenge:user-device', key: `risk:challenge:user-device:${USER}:${DID}:USER_DEVICE_UNTRUSTED` },
+  {
+    family: 'risk:challenge:user-device',
+    key: `risk:challenge:user-device:${USER}:${DID}:USER_DEVICE_UNTRUSTED`,
+  },
   { family: 'murlock:cap', key: `APP:MURLOCK:CAP:${DID}` },
   { family: 'murlock:device-ip-change', key: `APP:MURLOCK:DEVICE:IP_CHANGE:${DID}` },
   { family: 'murlock:lock-guard', key: `APP:MURLOCK:LOCK_GUARD:${USER}:${DID}` },
   { family: 'murlock:sign', key: `APP:MURLOCK:SIGN:${DID}` },
-  { family: 'murlock:risk-failed-login', key: `APP:MURLOCK:RISK:FAILED_LOGIN:${DID}:admin@example.com` },
+  {
+    family: 'murlock:risk-failed-login',
+    key: `APP:MURLOCK:RISK:FAILED_LOGIN:${DID}:admin@example.com`,
+  },
   { family: 'murlock:risk-device', key: `APP:MURLOCK:RISK:DEVICE:${DID}` },
   { family: 'murlock:risk-user-device', key: `APP:MURLOCK:RISK:USER_DEVICE:${USER}:${DID}` },
 ]
@@ -66,8 +81,9 @@ function allPatterns(deviceId: string): string[] {
 
 describe('fixture 清理键模式表', () => {
   it('覆盖 redis-gc 的每个设备键族（少一条 = 一轮绿之后仍有残留）', () => {
-    expect(new Set(FAMILY_SAMPLES.map(sample => sample.family)))
-      .toEqual(new Set(DEVICE_KEY_FAMILIES.map(rule => rule.family)))
+    expect(new Set(FAMILY_SAMPLES.map((sample) => sample.family))).toEqual(
+      new Set(DEVICE_KEY_FAMILIES.map((rule) => rule.family)),
+    )
   })
 
   const patterns = allPatterns(DID)
@@ -78,7 +94,7 @@ describe('fixture 清理键模式表', () => {
       expect(parsed?.family, `样本键与 GC 键形表不一致：${key}`).toBe(family)
       expect(parsed?.deviceId, `样本键的设备槽位不是 ${DID}：${key}`).toBe(DID)
       expect(
-        patterns.filter(pattern => matchesPattern(key, pattern)),
+        patterns.filter((pattern) => matchesPattern(key, pattern)),
         `${key} 没有任何 fixture 清理模式命中`,
       ).not.toHaveLength(0)
     })
@@ -87,7 +103,10 @@ describe('fixture 清理键模式表', () => {
       const otherKey = key.replace(DID, OTHER_DID)
       expect(otherKey).not.toBe(key)
       for (const pattern of patterns) {
-        expect(matchesPattern(otherKey, pattern), `${otherKey} 被本设备的模式错误命中：${pattern}`).toBe(false)
+        expect(
+          matchesPattern(otherKey, pattern),
+          `${otherKey} 被本设备的模式错误命中：${pattern}`,
+        ).toBe(false)
       }
     })
   }
@@ -97,7 +116,9 @@ describe('fixture 清理键模式表', () => {
     expect(lockCacheKey(USER, DID)).toBe(`WALNUT_CACHE_SECURITY:LOCK:${USER}:${DID}`)
     // 设备形态必须被 fixture 的清理模式命中（global 键按 userId 精确清，见 deleteUserLockCache）
     expect(
-      deviceScopedKeyPatterns(DID).some(pattern => matchesPattern(lockCacheKey(USER, DID), pattern)),
+      deviceScopedKeyPatterns(DID).some((pattern) =>
+        matchesPattern(lockCacheKey(USER, DID), pattern),
+      ),
     ).toBe(true)
   })
 

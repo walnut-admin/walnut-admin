@@ -21,14 +21,18 @@ import { AppKeyService } from './key.service'
  */
 @Global()
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([AppKeyEntity], WalnutPGConnectionName),
-  ],
+  imports: [TypeOrmModule.forFeature([AppKeyEntity], WalnutPGConnectionName)],
   controllers: [AppKeyController],
-  providers: [AppKeyBasicRepository, AppKeyService, AppKeyCurrentGuard, {
-    provide: WALNUT_ADMIN_KEY_STORE,
-    useExisting: AppKeyService,
-  }, appKeyRecoverableProvider],
+  providers: [
+    AppKeyBasicRepository,
+    AppKeyService,
+    AppKeyCurrentGuard,
+    {
+      provide: WALNUT_ADMIN_KEY_STORE,
+      useExisting: AppKeyService,
+    },
+    appKeyRecoverableProvider,
+  ],
   exports: [AppKeyService, WALNUT_ADMIN_KEY_STORE],
 })
 export class AppKeyModule {}

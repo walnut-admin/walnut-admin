@@ -23,12 +23,13 @@ import {
 
 describe('extractPackageRefs —— 只认 @walnut/<段>', () => {
   it('抽出包名并去重', () => {
-    expect(extractPackageRefs('见 `@walnut/contract` 与 @walnut/utils，还有 @walnut/contract'))
-      .toEqual(['@walnut/contract', '@walnut/utils'])
+    expect(
+      extractPackageRefs('见 `@walnut/contract` 与 @walnut/utils，还有 @walnut/contract'),
+    ).toEqual(['@walnut/contract', '@walnut/utils'])
   })
 
   it('不把 @walnut-server/*（后端内部 lib 命名空间）当成包', () => {
-    expect(extractPackageRefs('import x from \'@walnut-server/const\'')).toEqual([])
+    expect(extractPackageRefs("import x from '@walnut-server/const'")).toEqual([])
   })
 
   it('不把裸 scope 或 scoped 目录写法当成包', () => {
@@ -38,7 +39,9 @@ describe('extractPackageRefs —— 只认 @walnut/<段>', () => {
 
 describe('extractPathRefs —— 只认 markdown 里以顶层目录开头的路径', () => {
   it('抽出带扩展名的与目录形态的', () => {
-    const got = extractPathRefs('见 `packages/platform-any/contract/src/index.ts` 与 `apps/server/env-local/`')
+    const got = extractPathRefs(
+      '见 `packages/platform-any/contract/src/index.ts` 与 `apps/server/env-local/`',
+    )
     expect(got).toContain('packages/platform-any/contract/src/index.ts')
     expect(got).toContain('apps/server/env-local/')
   })
@@ -50,12 +53,17 @@ describe('extractPathRefs —— 只认 markdown 里以顶层目录开头的路�
   })
 
   it('跳过通配 / 占位 / 省略号 / URL / 家目录', () => {
-    expect(extractPathRefs('`packages/*/*/node_modules` `apps/admin/.../AI/docs/` `https://x/packages/a.ts` `~/a/b.ts`'))
-      .toEqual([])
+    expect(
+      extractPathRefs(
+        '`packages/*/*/node_modules` `apps/admin/.../AI/docs/` `https://x/packages/a.ts` `~/a/b.ts`',
+      ),
+    ).toEqual([])
   })
 
   it('跳过不以顶层目录开头的半截片段（最容易误报的一类）', () => {
-    expect(extractPathRefs('`src/index.ts` `./relative/thing.md` `nested/deep/file.md`')).toEqual([])
+    expect(extractPathRefs('`src/index.ts` `./relative/thing.md` `nested/deep/file.md`')).toEqual(
+      [],
+    )
   })
 
   it('但 `scripts/build-barrel.ts` 这种**要**抽出来 —— 它与顶层目录同名，正是要抓的死引用', () => {
@@ -79,11 +87,19 @@ describe('pathResolves —— 语境解析（仓库根 / 文档所在目录 / ap
 
   it('相对文档自身目录命中', () => {
     // 文档在 apps/server/libs/config/ 下：上两级才到 apps/server/env-local
-    expect(pathResolves('../../env-local', 'apps/server/libs/config/README.md', onlyServerEnv)).toBe(true)
+    expect(
+      pathResolves('../../env-local', 'apps/server/libs/config/README.md', onlyServerEnv),
+    ).toBe(true)
   })
 
   it('相对 apps/server 命中（`env-local/` 这类写法的来源）', () => {
-    expect(pathResolves('env-local/', 'apps/docs/src/zh-CN/content/monorepo/env-management.md', (p: string) => p === 'apps/server/env-local/')).toBe(true)
+    expect(
+      pathResolves(
+        'env-local/',
+        'apps/docs/src/zh-CN/content/monorepo/env-management.md',
+        (p: string) => p === 'apps/server/env-local/',
+      ),
+    ).toBe(true)
   })
 
   it('三处都不命中才算不存在', () => {
@@ -98,8 +114,11 @@ describe('extractLinkTargets —— 只认显式相对（./ 与 ../）', () => {
   })
 
   it('跳过外链 / 纯锚点 / 站点绝对路径 —— 站点绝对路径是 VitePress 的语义', () => {
-    expect(extractLinkTargets('[a](https://x/y) [b](#sec) [c](/content/monorepo/index) [d](mailto:a@b.c)'))
-      .toEqual([])
+    expect(
+      extractLinkTargets(
+        '[a](https://x/y) [b](#sec) [c](/content/monorepo/index) [d](mailto:a@b.c)',
+      ),
+    ).toEqual([])
   })
 
   it('剥掉锚点与 title', () => {
@@ -144,17 +163,22 @@ describe('链接检查的覆盖边界（与 VitePress 零重叠）', () => {
 
   it('文档站里的 .md 链接交给 VitePress（本门禁不报，避免与它的白名单重复）', () => {
     const found = collectFindings(opts('apps/docs/src/zh-CN/content/x.md'))
-    expect(found.map(f => f.ref)).toEqual(['./gone.yaml'])
+    expect(found.map((f) => f.ref)).toEqual(['./gone.yaml'])
   })
 
   it('文档站里**非 .md** 的链接照查 —— VitePress 实测不查这类', () => {
     const found = collectFindings(opts('apps/docs/src/zh-CN/content/x.md'))
-    expect(found.some(f => f.kind === 'link' && f.ref === './gone.yaml')).toBe(true)
+    expect(found.some((f) => f.kind === 'link' && f.ref === './gone.yaml')).toBe(true)
   })
 
   it('文档站**之外**的 .md 链接照查 —— 没有任何其它工具管它', () => {
     const found = collectFindings(opts('apps/server/AGENTS.md'))
-    expect(found.filter(f => f.kind === 'link').map(f => f.ref).sort()).toEqual(['./gone.md', './gone.yaml'])
+    expect(
+      found
+        .filter((f) => f.kind === 'link')
+        .map((f) => f.ref)
+        .sort(),
+    ).toEqual(['./gone.md', './gone.yaml'])
   })
 })
 
@@ -166,9 +190,10 @@ describe('真实仓库上跑一遍（防豁免清单腐化）', () => {
     const found = collectFindings({
       docs: ['apps/docs/src/zh-CN/content/x.md'],
       realPackages: workspacePackageNames(),
-      readText: () => '产物在 `apps/admin/dist`、明文 env 在 `env-local/`、后端那份在 `apps/server/env-local/`。',
+      readText: () =>
+        '产物在 `apps/admin/dist`、明文 env 在 `env-local/`、后端那份在 `apps/server/env-local/`。',
     })
-    expect(found.filter(f => f.kind === 'path')).toEqual([])
+    expect(found.filter((f) => f.kind === 'path')).toEqual([])
   })
 
   it('真正不存在的普通路径照样报（收窄不能把门禁关掉）', () => {
@@ -177,7 +202,9 @@ describe('真实仓库上跑一遍（防豁免清单腐化）', () => {
       realPackages: workspacePackageNames(),
       readText: () => '见 `apps/docs/definitely-gone-9f8a/file.ts`。',
     })
-    expect(found.filter(f => f.kind === 'path').map(f => f.ref)).toEqual(['apps/docs/definitely-gone-9f8a/file.ts'])
+    expect(found.filter((f) => f.kind === 'path').map((f) => f.ref)).toEqual([
+      'apps/docs/definitely-gone-9f8a/file.ts',
+    ])
   })
 
   it('当前仓库没有任何未豁免的失效引用', () => {
@@ -190,8 +217,11 @@ describe('真实仓库上跑一遍（防豁免清单腐化）', () => {
     // 包名豁免：@walnut/i18n 与 @walnut/security 是规划中，其余是历史名 —— 都不该真实存在
     const real = workspacePackageNames()
     expect(real.size).toBeGreaterThan(0)
-    const stale = Object.keys(ALLOWED_MISSING_PACKAGES).filter(name => real.has(name))
-    expect(stale, `这些包已经存在了，请从 ALLOWED_MISSING_PACKAGES 删掉：${stale.join(', ')}`).toEqual([])
+    const stale = Object.keys(ALLOWED_MISSING_PACKAGES).filter((name) => real.has(name))
+    expect(
+      stale,
+      `这些包已经存在了，请从 ALLOWED_MISSING_PACKAGES 删掉：${stale.join(', ')}`,
+    ).toEqual([])
   })
 
   it('豁免路径的清单里都写了理由', () => {
@@ -202,12 +232,14 @@ describe('真实仓库上跑一遍（防豁免清单腐化）', () => {
 
 describe('extractAliasRefs —— 反引号里的 TS 别名', () => {
   it('抽出 `@/…` 与 `@walnut-server/…`', () => {
-    expect(extractAliasRefs('用 `@/decorators/field` 与 `@walnut-server/db`'))
-      .toEqual(['@/decorators/field', '@walnut-server/db'])
+    expect(extractAliasRefs('用 `@/decorators/field` 与 `@walnut-server/db`')).toEqual([
+      '@/decorators/field',
+      '@walnut-server/db',
+    ])
   })
 
   it('代码块里的不算（那是示例，不是引用）', () => {
-    expect(extractAliasRefs('```ts\nimport x from \'@/nope\'\n```')).toEqual([])
+    expect(extractAliasRefs("```ts\nimport x from '@/nope'\n```")).toEqual([])
   })
 
   it('通配符不算（`@/modules/*` 这种没法判存在）', () => {
@@ -219,28 +251,68 @@ describe('aliasResolves —— 只对「基址唯一可判」的文件生效', (
   const onlyOne = (p: string) => p === 'apps/server/libs/db/src'
 
   it('基址不唯一的文件一律返回 true（`@/` 随 app 而变，普通文档里无从判断）', () => {
-    expect(aliasResolves('@/whatever/does-not-exist', 'apps/server/AGENTS.md', () => false)).toBe(true)
+    expect(aliasResolves('@/whatever/does-not-exist', 'apps/server/AGENTS.md', () => false)).toBe(
+      true,
+    )
     expect(aliasResolves('@/whatever/does-not-exist', 'apps/docs/src/x.md', () => false)).toBe(true)
-    expect(aliasResolves('@/whatever/does-not-exist', '.claude/skills/other-thing/SKILL.md', () => false)).toBe(true)
+    expect(
+      aliasResolves(
+        '@/whatever/does-not-exist',
+        '.claude/skills/other-thing/SKILL.md',
+        () => false,
+      ),
+    ).toBe(true)
   })
 
   it('`be-*` → 后端基址（apps/api/src）', () => {
-    expect(aliasResolves('@/decorators/field', '.claude/skills/be-gen-module/SKILL.md', p => p === 'apps/server/apps/api/src/decorators/field')).toBe(true)
-    expect(aliasResolves('@/decorators/field', '.claude/skills/be-gen-module/SKILL.md', () => false)).toBe(false)
+    expect(
+      aliasResolves(
+        '@/decorators/field',
+        '.claude/skills/be-gen-module/SKILL.md',
+        (p) => p === 'apps/server/apps/api/src/decorators/field',
+      ),
+    ).toBe(true)
+    expect(
+      aliasResolves('@/decorators/field', '.claude/skills/be-gen-module/SKILL.md', () => false),
+    ).toBe(false)
   })
 
   it('`fe-*` → 前端基址（apps/admin/src）', () => {
-    expect(aliasResolves('@/hooks/core/useProps', '.claude/skills/fe-walnut-component/SKILL.md', p => p === 'apps/admin/src/hooks/core/useProps.ts')).toBe(true)
+    expect(
+      aliasResolves(
+        '@/hooks/core/useProps',
+        '.claude/skills/fe-walnut-component/SKILL.md',
+        (p) => p === 'apps/admin/src/hooks/core/useProps.ts',
+      ),
+    ).toBe(true)
   })
 
   it('`apps/server/libs/**` 的文档按后端基址查（它们只服务后端）', () => {
-    expect(aliasResolves('@/common/repository/base.repository', 'apps/server/libs/db/README.md', p => p === 'apps/server/apps/api/src/common/repository/base.repository.ts')).toBe(true)
-    expect(aliasResolves('@/common/repository/base.repository', 'apps/server/libs/db/README.md', () => false)).toBe(false)
+    expect(
+      aliasResolves(
+        '@/common/repository/base.repository',
+        'apps/server/libs/db/README.md',
+        (p) => p === 'apps/server/apps/api/src/common/repository/base.repository.ts',
+      ),
+    ).toBe(true)
+    expect(
+      aliasResolves(
+        '@/common/repository/base.repository',
+        'apps/server/libs/db/README.md',
+        () => false,
+      ),
+    ).toBe(false)
   })
 
   it('`@walnut-server/<lib>/<rest>` 按 tsconfig paths 映射到 libs/<lib>/src/<rest>', () => {
     expect(aliasResolves('@walnut-server/db', '.claude/skills/be-x/SKILL.md', onlyOne)).toBe(true)
-    expect(aliasResolves('@walnut-server/utils/dto', '.claude/skills/be-x/SKILL.md', p => p === 'apps/server/libs/utils/src/dto.ts')).toBe(true)
+    expect(
+      aliasResolves(
+        '@walnut-server/utils/dto',
+        '.claude/skills/be-x/SKILL.md',
+        (p) => p === 'apps/server/libs/utils/src/dto.ts',
+      ),
+    ).toBe(true)
   })
 })
 
@@ -252,7 +324,7 @@ describe('collectFindings —— 别名失效要报出来', () => {
       fsExists: () => false,
       readText: () => '字段装饰器来自 `@/decorators/field`',
     })
-    expect(got.some(f => f.kind === 'alias' && f.ref === '@/decorators/field')).toBe(true)
+    expect(got.some((f) => f.kind === 'alias' && f.ref === '@/decorators/field')).toBe(true)
   })
 
   it('非 skill 文档里的同名写法**不报**（避免误报）', () => {
@@ -262,6 +334,6 @@ describe('collectFindings —— 别名失效要报出来', () => {
       fsExists: () => false,
       readText: () => '字段装饰器来自 `@/decorators/field`',
     })
-    expect(got.filter(f => f.kind === 'alias')).toEqual([])
+    expect(got.filter((f) => f.kind === 'alias')).toEqual([])
   })
 })

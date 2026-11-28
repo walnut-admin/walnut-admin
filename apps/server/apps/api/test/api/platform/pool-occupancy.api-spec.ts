@@ -58,7 +58,9 @@ interface IWalnutPgPoolProbe {
   waitingCount: number
   options?: { max?: number }
   /** pg-pool 的回调式取连接（TypeORM 的 QueryRunner.connect 走这里） */
-  connect: (cb: (err: Error | undefined, client: unknown, release: (err?: Error) => void) => void) => void
+  connect: (
+    cb: (err: Error | undefined, client: unknown, release: (err?: Error) => void) => void,
+  ) => void
 }
 
 interface IWalnutPgPoolSample {
@@ -229,7 +231,9 @@ describe('L4：连接占用 spike（注册实体 CRUD 的隐式事务 × 池排�
 
     // 池上限必须能从运行期配置读到（读不到 = 测量口径不明，直接红，不猜缺省值）
     if (typeof poolMax !== 'number' || poolMax <= 0) {
-      throw new Error(`[pool-occupancy] pg Pool 的 options.max 不可用（${String(poolMax)}），无法确定并发度`)
+      throw new Error(
+        `[pool-occupancy] pg Pool 的 options.max 不可用（${String(poolMax)}），无法确定并发度`,
+      )
     }
 
     const concurrency = BURST_MULTIPLIER * poolMax
@@ -299,38 +303,41 @@ describe('L4：连接占用 spike（注册实体 CRUD 的隐式事务 × 池排�
               const res = await api.root('POST', api.apiPath('/app/demo/list'), listBody)
               burstLatencies.push(performance.now() - startedAt)
               return res
-            }
-            catch (e) {
+            } catch (e) {
               burstLatencies.push(performance.now() - startedAt)
               throw e
             }
           }),
         )
-      }
-      finally {
+      } finally {
         pool.connect = originalConnect
         clearInterval(sampler)
       }
 
-      const rejected = settled.filter(result => result.status === 'rejected')
+      const rejected = settled.filter((result) => result.status === 'rejected')
       const responses = settled
-        .filter((result): result is PromiseFulfilledResult<SuperTestResponse> => result.status === 'fulfilled')
-        .map(result => result.value)
+        .filter(
+          (result): result is PromiseFulfilledResult<SuperTestResponse> =>
+            result.status === 'fulfilled',
+        )
+        .map((result) => result.value)
 
       const burstP95Ms = round2(percentile(burstLatencies, 95))
       const burstMedianMs = round2(percentile(burstLatencies, 50))
       const waitingPeak = samples.reduce((max, sample) => Math.max(max, sample.waiting), 0)
       const totalPeak = samples.reduce((max, sample) => Math.max(max, sample.total), 0)
       const inUsePeak = samples.reduce((max, sample) => Math.max(max, sample.inUse), 0)
-      const idleMin = samples.length === 0
-        ? Number.NaN
-        : samples.reduce((min, sample) => Math.min(min, sample.idle), Number.POSITIVE_INFINITY)
-      const waitingSampleRatio = samples.length === 0
-        ? Number.NaN
-        : samples.filter(sample => sample.waiting > 0).length / samples.length
+      const idleMin =
+        samples.length === 0
+          ? Number.NaN
+          : samples.reduce((min, sample) => Math.min(min, sample.idle), Number.POSITIVE_INFINITY)
+      const waitingSampleRatio =
+        samples.length === 0
+          ? Number.NaN
+          : samples.filter((sample) => sample.waiting > 0).length / samples.length
       // diagnostic（不参与主判定）：2× 池并发下「延迟 > 2×基线」结构性 ≥50% ——
       // 10 条连接服务 20 个请求，后一半必然排到第一波结束；只作参考数字。
-      const queued = burstLatencies.filter(ms => ms > baselineMedianMs * 2).length
+      const queued = burstLatencies.filter((ms) => ms > baselineMedianMs * 2).length
       const queuedRatio = burstLatencies.length === 0 ? 0 : queued / burstLatencies.length
 
       // 取连接等待（直接形态）：>1ms 视为真的等过（池空闲时 checkout 在微秒级）
@@ -338,20 +345,21 @@ describe('L4：连接占用 spike（注册实体 CRUD 的隐式事务 × 池排�
       const acquireMedianMs = round2(percentile(acquireWaits, 50))
       const acquireP95Ms = round2(percentile(acquireWaits, 95))
       const acquireMaxMs = acquireCount === 0 ? 0 : round2(Math.max(...acquireWaits))
-      const acquireWaitedRatio = acquireCount === 0
-        ? 0
-        : acquireWaits.filter(ms => ms > 1).length / acquireCount
+      const acquireWaitedRatio =
+        acquireCount === 0 ? 0 : acquireWaits.filter((ms) => ms > 1).length / acquireCount
 
       // 主判定：只按「取连接等待」与计划 §4.2 的 50ms 阈值（p95 / max），
       // 不掺 e2e 指标 —— 后者包含测试客户端（supertest 每请求起临时 server）的固定开销。
-      const verdict = acquireP95Ms > P95_THRESHOLD_MS || acquireMaxMs > P95_THRESHOLD_MS
-        ? '触发预案候选（同请求多 repo 合流共享事务，独立批次立项；回填计划 §4.2 时人工确认）'
-        : '维持现状（每 CRUD 隐式事务）'
+      const verdict =
+        acquireP95Ms > P95_THRESHOLD_MS || acquireMaxMs > P95_THRESHOLD_MS
+          ? '触发预案候选（同请求多 repo 合流共享事务，独立批次立项；回填计划 §4.2 时人工确认）'
+          : '维持现状（每 CRUD 隐式事务）'
       // E2E 口径仅诊断：含测试客户端开销，不用于阈值判定
       const verdictE2E = `（含测试客户端开销，仅诊断，不用于阈值判定）${
         queuedRatio > QUEUED_RATIO_THRESHOLD || burstP95Ms > P95_THRESHOLD_MS
           ? '触发预案候选'
-          : '维持现状'}`
+          : '维持现状'
+      }`
 
       const metrics = {
         at: new Date().toISOString(),
@@ -389,7 +397,7 @@ describe('L4：连接占用 spike（注册实体 CRUD 的隐式事务 × 池排�
       console.info(`[pool-spike] ${JSON.stringify(metrics)}`)
 
       // ---- 3. 从宽断言：全部请求最终 2xx/业务 20000，无 5xx ----
-      expect(rejected.map(result => String((result).reason))).toEqual([])
+      expect(rejected.map((result) => String(result.reason))).toEqual([])
       expect(samples.length).toBeGreaterThan(0)
       expect(responses).toHaveLength(concurrency)
       // 宽上限：预期每请求恰 1 次取连接（本路径）；超过 2× 说明出现未预期的多次
@@ -397,11 +405,12 @@ describe('L4：连接占用 spike（注册实体 CRUD 的隐式事务 × 池排�
       expect(acquireCount).toBeLessThanOrEqual(concurrency * 2)
 
       const failures = responses
-        .map(res => ({ status: res.status, code: bodyOf(res).code }))
-        .filter(({ status, code }) => status !== 200 || code !== WalnutAdminConstAppResponseCode.SUCCESS)
+        .map((res) => ({ status: res.status, code: bodyOf(res).code }))
+        .filter(
+          ({ status, code }) => status !== 200 || code !== WalnutAdminConstAppResponseCode.SUCCESS,
+        )
       expect(failures).toEqual([])
-    }
-    finally {
+    } finally {
       await deleteDemoRows()
     }
   })

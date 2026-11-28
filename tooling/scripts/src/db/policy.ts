@@ -33,18 +33,20 @@ function userNameOf(doc: Record<string, unknown>): unknown {
 /** 按集合名取策略；没有条目的集合 = 原样 */
 export const SEED_POLICY: Record<string, SeedPolicy> = {
   sys_user: {
-    keep: doc => DEMO_USER_NAMES.includes(String(userNameOf(doc))),
+    keep: (doc) => DEMO_USER_NAMES.includes(String(userNameOf(doc))),
     // avatar 两形态同名，直接置空
-    normalize: doc => ({ ...doc, avatar: null }),
+    normalize: (doc) => ({ ...doc, avatar: null }),
   },
 }
 
 /** 对一批文档/行套用策略（导出与门禁共用；顺序保持稳定，排序由调用方负责） */
-export function applyPolicy(collection: string, docs: readonly Record<string, unknown>[]): Record<string, unknown>[] {
+export function applyPolicy(
+  collection: string,
+  docs: readonly Record<string, unknown>[],
+): Record<string, unknown>[] {
   const policy = SEED_POLICY[collection]
-  if (policy === undefined)
-    return [...docs]
+  if (policy === undefined) return [...docs]
   return docs
-    .filter(doc => policy.keep === undefined || policy.keep(doc))
-    .map(doc => (policy.normalize === undefined ? doc : policy.normalize(doc)))
+    .filter((doc) => policy.keep === undefined || policy.keep(doc))
+    .map((doc) => (policy.normalize === undefined ? doc : policy.normalize(doc)))
 }

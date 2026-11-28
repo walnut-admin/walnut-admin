@@ -11,8 +11,7 @@ function onClick() {
   if (appStoreAdapter.isMobile) {
     appStoreMenu.setShowAside(!appStoreMenu.getShowAside)
     appStoreMenu.setCollapse(false)
-  }
-  else {
+  } else {
     appStoreMenu.setCollapse(!appStoreMenu.getCollapse)
   }
 }

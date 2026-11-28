@@ -24,6 +24,8 @@ import {
   formatLine,
   GATE_BUDGET_MS,
   gateBudgetMs,
+  hasNativeCrashSignature,
+  isNativeCrashFailure,
   nativeCrashNote,
   PREPUSH_BUDGET_ENV,
   PREPUSH_GATES,
@@ -37,7 +39,7 @@ import {
  * 表里 argv 首词的合法集合 = **可执行的名字**：保留的根脚本、命令表 id、pnpm 子命令。
  * 根脚本瘦身后 `package.json` 里只剩保留的那几条，拿它当全集会把所有被移走的门禁判成「不存在」。
  */
-const commandIds = new Set(COMMANDS.map(command => command.id))
+const commandIds = new Set(COMMANDS.map((command) => command.id))
 const legalNames = new Set<string>([...KEPT_ROOT_SCRIPTS, ...commandIds])
 
 /** `argv[0]` 是 pnpm 自己的子命令（不是可执行名字）时，这几个是合法的例外 */
@@ -45,10 +47,9 @@ const PNPM_SUBCOMMANDS = new Set(['exec', 'change'])
 
 describe('pREPUSH_GATES —— 表本身', () => {
   it('id 无重复且都非空', () => {
-    const ids = PREPUSH_GATES.map(g => g.id)
+    const ids = PREPUSH_GATES.map((g) => g.id)
     expect(new Set(ids).size).toBe(ids.length)
-    for (const id of ids)
-      expect(id, 'id 不能为空').not.toBe('')
+    for (const id of ids) expect(id, 'id 不能为空').not.toBe('')
   })
 
   it('每一段的 argv（含 followups）的首词都能落到**真实存在**的可执行名字 / pnpm 子命令上', () => {
@@ -63,30 +64,42 @@ describe('pREPUSH_GATES —— 表本身', () => {
           expect(argv.length, `${gate.id}.${where}: pnpm 子命令不该只有一段`).toBeGreaterThan(1)
           continue
         }
-        expect(legalNames.has(head!), `${gate.id}.${where}: 根脚本与命令表里都没有 \`${head}\``).toBe(true)
+        expect(
+          legalNames.has(head!),
+          `${gate.id}.${where}: 根脚本与命令表里都没有 \`${head}\``,
+        ).toBe(true)
       }
     }
   })
 
   it('openapi 段同时查暂存区（F-53 边界①：已 add 的生成物不许让门禁绿）', () => {
-    const openapi = PREPUSH_GATES.find(gate => gate.id === 'openapi')
+    const openapi = PREPUSH_GATES.find((gate) => gate.id === 'openapi')
     expect(openapi, 'openapi 段不见了 —— 门禁被摘').toBeTruthy()
 
     const followups = openapi!.followups ?? []
-    const staged = followups.find(argv => argv.includes('--cached'))
-    expect(staged, 'openapi 段缺少 `git diff --cached` 这一步：git diff 只比工作区 vs 暂存区，已 add 的生成物会让门禁假绿').toBeTruthy()
+    const staged = followups.find((argv) => argv.includes('--cached'))
+    expect(
+      staged,
+      'openapi 段缺少 `git diff --cached` 这一步：git diff 只比工作区 vs 暂存区，已 add 的生成物会让门禁假绿',
+    ).toBeTruthy()
 
     // 两个生成物都要盯：只查一个等于漏一个
     // 段② 的产物（schema.d.ts）2026-11 批次 4 · D9 起在 packages/generated/api-types 下
-    for (const generated of ['apps/server/openapi.json', 'packages/generated/api-types/src/schema.d.ts']) {
+    for (const generated of [
+      'apps/server/openapi.json',
+      'packages/generated/api-types/src/schema.d.ts',
+    ]) {
       expect(staged!.includes(generated), `${generated} 不在暂存区比对里`).toBe(true)
     }
   })
 
   it('circular 段在表里，且链路真的带 --circular（摘掉旗标 = 门禁变成只数文件）', () => {
-    const gate = PREPUSH_GATES.find(g => g.id === 'circular')
+    const gate = PREPUSH_GATES.find((g) => g.id === 'circular')
     expect(gate, 'circular 段不见了 —— 环会重新变回「没有任何闸看得见」的失效面').toBeTruthy()
-    expect(gate!.argv[0], 'circular 段必须写命令表里的那个名字（这样 CI 与发版电池才引用得到同一项）').toBe('madge:check')
+    expect(
+      gate!.argv[0],
+      'circular 段必须写命令表里的那个名字（这样 CI 与发版电池才引用得到同一项）',
+    ).toBe('madge:check')
 
     // 命令表 → apps/server 的同名脚本 → madge 的旗标，链条上任一环写错都让这一段变成空转：
     // 少了 --circular 它只输出文件清单（永远 0 环）；少了 --extensions 它默认只认 .js
@@ -99,7 +112,10 @@ describe('pREPUSH_GATES —— 表本身', () => {
     ) as { scripts?: Record<string, string> }
     const madgeCmd = serverManifest.scripts?.madge ?? ''
     expect(madgeCmd, 'apps/server 的 madge 脚本没有 --circular').toContain('--circular')
-    expect(madgeCmd, 'apps/server 的 madge 脚本没有 --extensions（默认只认 .js ⇒ 静默 0 环）').toMatch(/--extensions[= ]/)
+    expect(
+      madgeCmd,
+      'apps/server 的 madge 脚本没有 --extensions（默认只认 .js ⇒ 静默 0 环）',
+    ).toMatch(/--extensions[= ]/)
   })
 
   it('负对照：真造一个环 madge 必须非零退出；正对照：无环必须零退出', () => {
@@ -108,29 +124,29 @@ describe('pREPUSH_GATES —— 表本身', () => {
     const madgeCli = path.join(REPO_ROOT, 'apps/server/node_modules/madge/bin/cli.js')
     expect(existsSync(madgeCli), `找不到 madge 的入口：${madgeCli}（先 pnpm install）`).toBe(true)
 
-    const run = (files: Record<string, string>): { status: number | null, out: string } => {
+    const run = (files: Record<string, string>): { status: number | null; out: string } => {
       const dir = mkdtempSync(path.join(os.tmpdir(), 'walnut-madge-'))
       try {
-        for (const [name, body] of Object.entries(files))
-          writeFileSync(path.join(dir, name), body)
-        const r = spawnSync(process.execPath, [madgeCli, '--circular', '--extensions', 'ts', dir], { encoding: 'utf8' })
+        for (const [name, body] of Object.entries(files)) writeFileSync(path.join(dir, name), body)
+        const r = spawnSync(process.execPath, [madgeCli, '--circular', '--extensions', 'ts', dir], {
+          encoding: 'utf8',
+        })
         return { status: r.status, out: `${r.stdout ?? ''}${r.stderr ?? ''}` }
-      }
-      finally {
+      } finally {
         // 自建的临时目录（os.tmpdir 下，不是仓库内容）
         rmSync(dir, { recursive: true, force: true })
       }
     }
 
     const cyclic = run({
-      'a.ts': 'import { b } from \'./b\'\nexport const a = (): unknown => b\n',
-      'b.ts': 'import { a } from \'./a\'\nexport const b = (): unknown => a\n',
+      'a.ts': "import { b } from './b'\nexport const a = (): unknown => b\n",
+      'b.ts': "import { a } from './a'\nexport const b = (): unknown => a\n",
     })
     expect(cyclic.status, `环没被 madge 判红（exit ${cyclic.status}）：\n${cyclic.out}`).not.toBe(0)
     expect(cyclic.out).toMatch(/circular/i)
 
     const acyclic = run({
-      'a.ts': 'import { b } from \'./b\'\nexport const a = (): unknown => b\n',
+      'a.ts': "import { b } from './b'\nexport const a = (): unknown => b\n",
       'b.ts': 'export const b = (): unknown => null\n',
     })
     expect(acyclic.status, `无环却判红了（exit ${acyclic.status}）：\n${acyclic.out}`).toBe(0)
@@ -147,11 +163,13 @@ describe('pREPUSH_GATES —— 表本身', () => {
 
   it('顺序与 id 稳定 —— 整表列出，不是抽样', () => {
     // 表里的顺序是「读起来该怎么理解」，不是依赖关系（并行跑）。改动它应该是**有意的**。
-    expect(PREPUSH_GATES.map(g => g.id)).toEqual([
+    expect(PREPUSH_GATES.map((g) => g.id)).toEqual([
       'boundaries',
       'circular',
       'lint',
       'lint-root',
+      'lint:oxlint',
+      'format',
       'types',
       'types-root',
       'test',
@@ -186,16 +204,20 @@ describe('pREPUSH_GATES —— 表本身', () => {
     // 判据是「有 workspace 包声明了这个脚本」，不是名单：新加一段 `exec turbo run <包级任务>`
     // 而忘了填 lane，这里就红。只有根任务的不算扇出（`turbo run lint:root` 只跑 `//#lint:root`，一路、秒级）
     const packageScripts = new Set(
-      workspacePackages().flatMap(pkg => Object.keys(pkg.manifest.scripts ?? {})),
+      workspacePackages().flatMap((pkg) => Object.keys(pkg.manifest.scripts ?? {})),
     )
     const fansOut = (gate: PrepushGate): boolean => {
       const task = gate.argv[3]
-      return gate.argv.slice(0, 3).join(' ') === 'exec turbo run'
-        && task !== undefined && !task.startsWith('//#') && packageScripts.has(task)
+      return (
+        gate.argv.slice(0, 3).join(' ') === 'exec turbo run' &&
+        task !== undefined &&
+        !task.startsWith('//#') &&
+        packageScripts.has(task)
+      )
     }
     const heavy = PREPUSH_GATES.filter(fansOut)
     // 判据本身失效（比如表里的 argv 不再这么写）时也要红，否则这条守卫会静默变成空转
-    expect(heavy.map(gate => gate.id)).toEqual(expect.arrayContaining(['lint', 'types', 'test']))
+    expect(heavy.map((gate) => gate.id)).toEqual(expect.arrayContaining(['lint', 'types', 'test']))
     for (const gate of heavy)
       expect(gate.lane, `${gate.id} 经 turbo 扇出，却不在重道 ${TURBO_LANE} 里`).toBe(TURBO_LANE)
   })
@@ -206,7 +228,9 @@ describe('formatLine —— 结果行（三态）', () => {
 
   it('通过打 ✓、失败打 ✗，并带上秒数', () => {
     expect(formatLine({ gate, status: 'ok', ms: 1234, output: '' })).toBe('  ✓    1.2s  某段门禁')
-    expect(formatLine({ gate, status: 'failed', ms: 12_340, output: '' })).toBe('  ✗   12.3s  某段门禁')
+    expect(formatLine({ gate, status: 'failed', ms: 12_340, output: '' })).toBe(
+      '  ✗   12.3s  某段门禁',
+    )
   })
 
   // 这一条是这次的**回归锚**：以前「跳过」与「通过」打的是同一个对勾（子进程 exit 0 + 只在失败时
@@ -223,6 +247,14 @@ describe('formatLine —— 结果行（三态）', () => {
     const long = formatLine({ gate, status: 'ok', ms: 12_300, output: '' })
     expect(short.indexOf('某段门禁')).toBe(long.indexOf('某段门禁'))
   })
+
+  it('崩溃后重试过的行在行尾标注（先崩后过不能与一次就过同形）', () => {
+    expect(formatLine({ gate, status: 'ok', ms: 1234, output: '', retried: true })).toBe(
+      '  ✓    1.2s  某段门禁  [崩溃后重试]',
+    )
+    // 没有重试过的行一个字符都不变（既有读法不受影响）
+    expect(formatLine({ gate, status: 'ok', ms: 1234, output: '' })).toBe('  ✓    1.2s  某段门禁')
+  })
 })
 
 /**
@@ -235,32 +267,311 @@ describe('runGates —— 三态（跳过既不算通过、也不算失败）', 
   const mkGate = (id: string) => ({ id, label: `段 ${id}`, argv: ['x'], why: 'y'.repeat(30) })
 
   it('正常返回 ⇒ ok', async () => {
-    const results = await runGates([mkGate('a'), mkGate('b')], () => {}, 2, async () => {})
-    expect(results.map(r => r.status)).toEqual(['ok', 'ok'])
+    const results = await runGates(
+      [mkGate('a'), mkGate('b')],
+      () => {},
+      2,
+      async () => {},
+    )
+    expect(results.map((r) => r.status)).toEqual(['ok', 'ok'])
   })
 
   it('抛 ChildRunError(…, 3) ⇒ skipped（「环境缺失、未验证」的唯一入口）', async () => {
-    const results = await runGates([mkGate('a')], () => {}, 1, async (gate) => {
-      throw new ChildRunError(`${gate.id} 未验证`, SKIPPED_EXIT_CODE)
-    })
-    expect(results.map(r => r.status)).toEqual(['skipped'])
+    const results = await runGates(
+      [mkGate('a')],
+      () => {},
+      1,
+      async (gate) => {
+        throw new ChildRunError(`${gate.id} 未验证`, SKIPPED_EXIT_CODE)
+      },
+    )
+    expect(results.map((r) => r.status)).toEqual(['skipped'])
   })
 
   it('抛别的非零退出码 ⇒ failed（1 违规 / 2 前置未满足都算失败，只有 3 是跳过）', async () => {
-    const results = await runGates([mkGate('a'), mkGate('b'), mkGate('c')], () => {}, 3, async (gate) => {
-      throw new ChildRunError(`${gate.id} 挂了`, gate.id === 'c' ? 2 : 1)
-    })
-    expect(results.map(r => r.status)).toEqual(['failed', 'failed', 'failed'])
+    const results = await runGates(
+      [mkGate('a'), mkGate('b'), mkGate('c')],
+      () => {},
+      3,
+      async (gate) => {
+        throw new ChildRunError(`${gate.id} 挂了`, gate.id === 'c' ? 2 : 1)
+      },
+    )
+    expect(results.map((r) => r.status)).toEqual(['failed', 'failed', 'failed'])
   })
 
   it('混合时逐段分类，且结果顺序仍是表里的顺序（并行不影响断言）', async () => {
     const exitOf: Record<string, number> = { a: 0, b: SKIPPED_EXIT_CODE, c: 1 }
-    const results = await runGates([mkGate('a'), mkGate('b'), mkGate('c')], () => {}, 3, async (gate) => {
-      const code = exitOf[gate.id]!
-      if (code !== 0)
-        throw new ChildRunError(`${gate.id} 退出码 ${code}`, code)
-    })
-    expect(results.map(r => `${r.gate.id}:${r.status}`)).toEqual(['a:ok', 'b:skipped', 'c:failed'])
+    const results = await runGates(
+      [mkGate('a'), mkGate('b'), mkGate('c')],
+      () => {},
+      3,
+      async (gate) => {
+        const code = exitOf[gate.id]!
+        if (code !== 0) throw new ChildRunError(`${gate.id} 退出码 ${code}`, code)
+      },
+    )
+    expect(results.map((r) => `${r.gate.id}:${r.status}`)).toEqual([
+      'a:ok',
+      'b:skipped',
+      'c:failed',
+    ])
+  })
+})
+
+/**
+ * 原生崩溃重试（判据与上游证据见 prepush.ts 的 isNativeCrashFailure 注释）。
+ *
+ * 用它钉住的四条边：① Windows 上崩溃 → 重试一次 → 绿；② 普通失败不重试；③ 只重试一次；
+ * ④ Linux 上同一份输出不重试（CI 口径不变）。超时 / 非 turbo 重道两条边界也在下面。
+ */
+describe('runGates —— 原生崩溃自动重试一次（Windows 专属，普通失败不重试）', () => {
+  /** `lane` 用 `null` 表达「不占道」（不能用 `undefined`：那会触发默认参数） */
+  const mkGate = (id: string, lane: string | null = TURBO_LANE): PrepushGate => ({
+    id,
+    label: `段 ${id}`,
+    argv: ['x'],
+    why: 'y'.repeat(30),
+    ...(lane === null ? {} : { lane }),
+  })
+
+  /** turbo 转述崩溃的真实形态（样本取自 2026-11-24 的门禁失败回放） */
+  const CRASH_LINE =
+    '@walnut/admin#lint:  ERROR  command (apps/admin) pnpm.cmd run lint exited (-1073741819)'
+
+  it('输出里的崩溃转述（exit 1）⇒ 重试一次；第二次通过 ⇒ ok 且 retried（先崩后过）', async () => {
+    let attempts = 0
+    const [result] = await runGates(
+      [mkGate('lint')],
+      () => {},
+      1,
+      async (_gate, write) => {
+        attempts += 1
+        if (attempts === 1) {
+          write(CRASH_LINE)
+          throw new ChildRunError('lint 失败：退出码 1', 1)
+        }
+      },
+      { platform: 'win32' },
+    )
+    expect(attempts).toBe(2)
+    expect(result!.status).toBe('ok')
+    expect(result!.retried).toBe(true)
+    // 第一次的崩溃原文与重试分界线都留在输出里（失败回放时是唯一线索）
+    expect(result!.output).toContain('exited (-1073741819)')
+    expect(result!.output).toContain('自动重试一次')
+  })
+
+  it('直接以崩溃码退出（不经 turbo 转述，exit 3221225477）⇒ 同样重试', async () => {
+    let attempts = 0
+    const [result] = await runGates(
+      [mkGate('lint')],
+      () => {},
+      1,
+      async () => {
+        attempts += 1
+        if (attempts === 1) throw new ChildRunError('子进程直接崩溃', 3221225477)
+      },
+      { platform: 'win32' },
+    )
+    expect(attempts).toBe(2)
+    expect(result!.status).toBe('ok')
+    expect(result!.retried).toBe(true)
+  })
+
+  it('普通失败（exit 1、输出里没有崩溃特征）⇒ 一次都不重试', async () => {
+    let attempts = 0
+    const [result] = await runGates(
+      [mkGate('lint')],
+      () => {},
+      1,
+      async (_gate, write) => {
+        attempts += 1
+        write('  28:3  error  Prefer using a top-level type-only import')
+        throw new ChildRunError('lint 失败：退出码 1', 1)
+      },
+      { platform: 'win32' },
+    )
+    expect(attempts).toBe(1)
+    expect(result!.status).toBe('failed')
+    expect(result!.retried).toBeUndefined()
+  })
+
+  it('普通失败里带崩溃码字面量 + 失败摘要 ⇒ 不重试（本仓用例就会打印这种断言）', async () => {
+    let attempts = 0
+    const [result] = await runGates(
+      [mkGate('test')],
+      () => {},
+      1,
+      async (_gate, write) => {
+        attempts += 1
+        write(
+          [
+            "expect(stderr).toContain('exit code 3221225477')",
+            ' ❯ src/foo.test.ts:12:3',
+            '  10| const output = run()',
+            '  11| // 崩溃码是本仓用例的断言字面量',
+            '  12| expect(output).toContain(crash)',
+            ' ✕ foo.test.ts (1 test | 1 failed)',
+            ' Test Files  1 failed (1)',
+          ].join('\n'),
+        )
+        throw new ChildRunError('test 失败：退出码 1', 1)
+      },
+      { platform: 'win32' },
+    )
+    expect(attempts).toBe(1)
+    expect(result!.status).toBe('failed')
+    expect(result!.retried).toBeUndefined()
+  })
+
+  it('重试后仍崩溃 ⇒ failed，且只重试一次（不无限重试）', async () => {
+    let attempts = 0
+    const [result] = await runGates(
+      [mkGate('lint')],
+      () => {},
+      1,
+      async (_gate, write) => {
+        attempts += 1
+        write(CRASH_LINE)
+        throw new ChildRunError('lint 失败：退出码 1', 1)
+      },
+      { platform: 'win32' },
+    )
+    expect(attempts).toBe(2)
+    expect(result!.status).toBe('failed')
+    expect(result!.retried).toBe(true)
+  })
+
+  it('在 Linux 上同一份崩溃输出不重试（CI 行为一行都不变）', async () => {
+    let attempts = 0
+    const [result] = await runGates(
+      [mkGate('lint')],
+      () => {},
+      1,
+      async (_gate, write) => {
+        attempts += 1
+        write(CRASH_LINE)
+        throw new ChildRunError('lint 失败：退出码 1', 1)
+      },
+      { platform: 'linux' },
+    )
+    expect(attempts).toBe(1)
+    expect(result!.status).toBe('failed')
+    expect(result!.retried).toBeUndefined()
+  })
+
+  it('非 turbo 重道的段不重试（范围就是实测出崩溃的扇出面）', async () => {
+    let attempts = 0
+    await runGates(
+      [mkGate('lint:adr', null)],
+      () => {},
+      1,
+      async (_gate, write) => {
+        attempts += 1
+        write(CRASH_LINE)
+        throw new ChildRunError('adr 失败', 1)
+      },
+      { platform: 'win32' },
+    )
+    expect(attempts).toBe(1)
+  })
+
+  it('超时（exit 2）即使输出里带崩溃转述也不重试（重试一次 = 预算翻倍）', async () => {
+    let attempts = 0
+    await runGates(
+      [mkGate('lint')],
+      () => {},
+      1,
+      async (_gate, write) => {
+        attempts += 1
+        write(CRASH_LINE)
+        throw new ChildRunError('超时（>900s）', 2)
+      },
+      { platform: 'win32' },
+    )
+    expect(attempts).toBe(1)
+  })
+})
+
+/**
+ * 判据本身（纯函数）：识别崩溃特征，不被普通失败 / 超时 / 跳过 / 裸数字带跑。
+ *
+ * 「认得出」与「不误认」缺一条都会让重试变成有害机制：认不出 = 机制永远不生效；
+ * 误认 = 把一条真的门禁失败重跑一遍，还可能在修不好的机器上把每段都拖成两倍。
+ */
+describe('isNativeCrashFailure —— 崩溃特征的三条边（平台 / 退出码 / 上下文）', () => {
+  const crashOutput = '@walnut/admin#lint: ERROR command ... exited (-1073741819)'
+  const plain = '  28:3  error  Prefer using a top-level type-only import'
+
+  it('win32 + turbo 转述 + exit 1 ⇒ true', () => {
+    expect(isNativeCrashFailure(new ChildRunError('失败', 1), crashOutput, 'win32')).toBe(true)
+  })
+
+  it('win32 + 直接崩溃码（无符号与有符号两种写法）⇒ true', () => {
+    for (const code of [3221225477, -1073741819]) {
+      expect(isNativeCrashFailure(new ChildRunError('崩溃', code), '', 'win32')).toBe(true)
+    }
+  })
+
+  it('win32 + 十六进制写法（exit code 0xC0000005）⇒ true；裸数字 ⇒ false', () => {
+    expect(
+      isNativeCrashFailure(new ChildRunError('失败', 1), 'exit code 0xC0000005', 'win32'),
+    ).toBe(true)
+    expect(
+      isNativeCrashFailure(new ChildRunError('失败', 1), '耗时 3221225477 纳秒', 'win32'),
+    ).toBe(false)
+  })
+
+  it('冒号形态（Exit code: 3221225477 / exit code: 0xC0000005）同样认得', () => {
+    for (const output of ['Exit code: 3221225477', 'exit code: 0xC0000005']) {
+      expect(isNativeCrashFailure(new ChildRunError('失败', 1), output, 'win32'), output).toBe(true)
+      expect(nativeCrashNote(output, false, 'win32'), output).not.toBeNull()
+    }
+  })
+
+  it('崩溃转述在输出尾部（最后 5 行）且有失败摘要 ⇒ true', () => {
+    const output = [
+      ' Tasks:    1 failed, 1 total',
+      ' Failed:    @walnut/admin#lint',
+      '@walnut/admin#lint:  ERROR  command ... exited (-1073741819)',
+    ].join('\n')
+    expect(hasNativeCrashSignature(output)).toBe(true)
+  })
+
+  it('普通失败：崩溃码字面量在前、失败摘要在后 ⇒ false（不重试也不出提示）', () => {
+    const output = [
+      "expect(stderr).toContain('exit code 3221225477')",
+      ' ❯ src/foo.test.ts:12:3',
+      '  10| const output = run()',
+      '  11| // 崩溃码是本仓用例的断言字面量',
+      '  12| expect(output).toContain(crash)',
+      ' ✕ foo.test.ts (1 test | 1 failed)',
+      ' Test Files  1 failed (1)',
+    ].join('\n')
+    expect(hasNativeCrashSignature(output)).toBe(false)
+    expect(isNativeCrashFailure(new ChildRunError('失败', 1), output, 'win32')).toBe(false)
+    expect(nativeCrashNote(output, false, 'win32')).toBeNull()
+  })
+
+  it('exit 2（超时 / 没跑起来 / 被信号结束）与 exit 3（未验证）都不是崩溃', () => {
+    expect(isNativeCrashFailure(new ChildRunError('超时', 2), crashOutput, 'win32')).toBe(false)
+    expect(isNativeCrashFailure(new ChildRunError('跳过', 3), crashOutput, 'win32')).toBe(false)
+  })
+
+  it('非 ChildRunError（执行器自身的编程错误）不算崩溃', () => {
+    expect(isNativeCrashFailure(new TypeError('boom'), crashOutput, 'win32')).toBe(false)
+  })
+
+  it('非 win32 平台一律 false（同一份输出在 Linux 上不重试）', () => {
+    for (const platform of ['linux', 'darwin'] as const) {
+      expect(isNativeCrashFailure(new ChildRunError('失败', 1), crashOutput, platform)).toBe(false)
+      expect(isNativeCrashFailure(new ChildRunError('崩溃', 3221225477), '', platform)).toBe(false)
+    }
+  })
+
+  it('普通失败输出 ⇒ false（不许把真违规说成「重跑就好」）', () => {
+    expect(isNativeCrashFailure(new ChildRunError('失败', 1), plain, 'win32')).toBe(false)
   })
 })
 
@@ -276,7 +587,7 @@ describe('runGates —— 三态（跳过既不算通过、也不算失败）', 
 describe('runGates —— 重道互斥', () => {
   function manual() {
     const started: string[] = []
-    const held = new Map<string, { resolve: () => void, reject: (error: Error) => void }>()
+    const held = new Map<string, { resolve: () => void; reject: (error: Error) => void }>()
     const execute: GateExecutor = async (gate) => {
       started.push(gate.id)
       await new Promise<void>((resolve, reject) => held.set(gate.id, { resolve, reject }))
@@ -284,19 +595,18 @@ describe('runGates —— 重道互斥', () => {
     /** 放行某一段；带 error = 让它以失败告终 */
     const end = (id: string, error?: Error): void => {
       const release = held.get(id)
-      if (error === undefined)
-        release?.resolve()
-      else
-        release?.reject(error)
+      if (error === undefined) release?.resolve()
+      else release?.reject(error)
     }
     /** 让已经排队的微任务跑完（放行之后，「下一段开始」发生在几步微任务里） */
-    const settle = (): Promise<void> => new Promise(resolve => setTimeout(resolve, 0))
+    const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0))
     return { execute, started, end, settle }
   }
 
-  const mkGate = (id: string, lane?: string): PrepushGate => (lane === undefined
-    ? { id, label: `段 ${id}`, argv: ['x'], why: 'y'.repeat(30) }
-    : { id, label: `段 ${id}`, argv: ['x'], why: 'y'.repeat(30), lane })
+  const mkGate = (id: string, lane?: string): PrepushGate =>
+    lane === undefined
+      ? { id, label: `段 ${id}`, argv: ['x'], why: 'y'.repeat(30) }
+      : { id, label: `段 ${id}`, argv: ['x'], why: 'y'.repeat(30), lane }
 
   it('同一条重道的两段不同时跑；不占道的段照常与它们并行', async () => {
     const m = manual()
@@ -316,7 +626,7 @@ describe('runGates —— 重道互斥', () => {
 
     m.end('c')
     const results = await run
-    expect(results.map(r => `${r.gate.id}:${r.status}`)).toEqual(['a:ok', 'b:ok', 'c:ok'])
+    expect(results.map((r) => `${r.gate.id}:${r.status}`)).toEqual(['a:ok', 'b:ok', 'c:ok'])
   })
 
   it('被挡住的段最终一定有人跑（提前收工 = 那一段永远不跑、结果表里还缺一行）', async () => {
@@ -330,7 +640,7 @@ describe('runGates —— 重道互斥', () => {
     expect(m.started).toEqual(['a', 'c'])
 
     m.end('c')
-    expect((await run).map(r => r.gate.id)).toEqual(['a', 'c'])
+    expect((await run).map((r) => r.gate.id)).toEqual(['a', 'c'])
   })
 
   it('重道里的段以失败 / 跳过告终也腾道（漏腾一次 = 同道的后一段永远不跑 = 静默少跑一道闸）', async () => {
@@ -344,12 +654,17 @@ describe('runGates —— 重道互斥', () => {
 
     m.end('b', new ChildRunError('b 违规', 1))
     const results = await run
-    expect(results.map(r => `${r.gate.id}:${r.status}`)).toEqual(['a:skipped', 'b:failed'])
+    expect(results.map((r) => `${r.gate.id}:${r.status}`)).toEqual(['a:skipped', 'b:failed'])
   })
 
   it('不同重道互不阻挡（道是「谁和谁抢」的最小范围，不是一把全局大锁）', async () => {
     const m = manual()
-    const run = runGates([mkGate('a', 'x'), mkGate('b', 'y'), mkGate('c', 'x')], () => {}, 3, m.execute)
+    const run = runGates(
+      [mkGate('a', 'x'), mkGate('b', 'y'), mkGate('c', 'x')],
+      () => {},
+      3,
+      m.execute,
+    )
     expect(m.started).toEqual(['a', 'b'])
 
     m.end('a')
@@ -358,7 +673,7 @@ describe('runGates —— 重道互斥', () => {
 
     m.end('b')
     m.end('c')
-    expect((await run).every(r => r.status === 'ok')).toBe(true)
+    expect((await run).every((r) => r.status === 'ok')).toBe(true)
   })
 })
 
@@ -398,18 +713,19 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
      * 实测能阻塞事件循环 1s+；一次 1500ms 预算的用例在 `pnpm prepush` 四路并发下外壳墙钟被推到
      * 4.3s，正是余量型判据抖动的来源。封顶 15s：真回归时别留一条分钟级的孤儿进程。
      */
-    hangAfter: (until: string): string[] => script([
-      `const fs = process.getBuiltinModule('node:fs')`,
-      `const stop = Date.now() + 15_000`,
-      `const poll = setInterval(() => {`,
-      `  if (!fs.existsSync(${JSON.stringify(until)})) {`,
-      `    if (Date.now() > stop) { clearInterval(poll); process.exit(0) }`,
-      `    return`,
-      `  }`,
-      `  clearInterval(poll)`,
-      `  setInterval(() => {}, 1_000)`,
-      `}, 25)`,
-    ]),
+    hangAfter: (until: string): string[] =>
+      script([
+        `const fs = process.getBuiltinModule('node:fs')`,
+        `const stop = Date.now() + 15_000`,
+        `const poll = setInterval(() => {`,
+        `  if (!fs.existsSync(${JSON.stringify(until)})) {`,
+        `    if (Date.now() > stop) { clearInterval(poll); process.exit(0) }`,
+        `    return`,
+        `  }`,
+        `  clearInterval(poll)`,
+        `  setInterval(() => {}, 1_000)`,
+        `}, 25)`,
+      ]),
     /**
      * 一上来就写 `started`（证明它真的起来了），然后一直等到 `trigger` 出现才写 `marker` 退出。
      *
@@ -417,19 +733,20 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
      * 测试在卡住那段报出来的那一刻读它们，读到的分别是「还没起来」还是「已经跑完」——
      * 两者都不是时钟读数，所以四路并发下不会漂。
      */
-    markStartedThenWait: (started: string, trigger: string, marker: string): string[] => script([
-      `const fs = process.getBuiltinModule('node:fs')`,
-      `fs.writeFileSync(${JSON.stringify(started)}, 'up')`,
-      `const stop = Date.now() + 15_000`,
-      `const poll = setInterval(() => {`,
-      `  if (fs.existsSync(${JSON.stringify(trigger)})) {`,
-      `    fs.writeFileSync(${JSON.stringify(marker)}, 'done')`,
-      `    clearInterval(poll)`,
-      `    process.exit(0)`,
-      `  }`,
-      `  if (Date.now() > stop) { clearInterval(poll); process.exit(0) }`,
-      `}, 25)`,
-    ]),
+    markStartedThenWait: (started: string, trigger: string, marker: string): string[] =>
+      script([
+        `const fs = process.getBuiltinModule('node:fs')`,
+        `fs.writeFileSync(${JSON.stringify(started)}, 'up')`,
+        `const stop = Date.now() + 15_000`,
+        `const poll = setInterval(() => {`,
+        `  if (fs.existsSync(${JSON.stringify(trigger)})) {`,
+        `    fs.writeFileSync(${JSON.stringify(marker)}, 'done')`,
+        `    clearInterval(poll)`,
+        `    process.exit(0)`,
+        `  }`,
+        `  if (Date.now() > stop) { clearInterval(poll); process.exit(0) }`,
+        `}, 25)`,
+      ]),
   }
 
   const mkGate = (id: string, argv: string[], budgetMs?: number) => ({
@@ -449,10 +766,8 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
     delete process.env[PREPUSH_BUDGET_ENV]
     try {
       return await run()
-    }
-    finally {
-      if (saved !== undefined)
-        process.env[PREPUSH_BUDGET_ENV] = saved
+    } finally {
+      if (saved !== undefined) process.env[PREPUSH_BUDGET_ENV] = saved
     }
   }
 
@@ -470,27 +785,31 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
       // 「谁先跑完」—— 那正是要在本用例里去掉的东西。
       let startedAtStuckFailure: boolean | undefined
       let finishedAtStuckFailure: boolean | undefined
-      const results = await withoutBudgetEnv(() => runGates(
-        [
-          mkGate('stuck', fakeGate.hangAfter(started), 3_000),
-          mkGate('survivor', fakeGate.markStartedThenWait(started, trigger, marker)),
-        ],
-        (done) => {
-          if (done.gate.id !== 'stuck')
-            return
-          // 前提读数（布尔，不是时钟）：这一刻兄弟段起来了没有、收工了没有
-          startedAtStuckFailure = existsSync(started)
-          finishedAtStuckFailure = existsSync(marker)
-          writeFileSync(trigger, 'go')
-        },
-        2,
-        createPnpmGateExecutor({ bin: process.execPath }),
-      ))
+      const results = await withoutBudgetEnv(() =>
+        runGates(
+          [
+            mkGate('stuck', fakeGate.hangAfter(started), 3_000),
+            mkGate('survivor', fakeGate.markStartedThenWait(started, trigger, marker)),
+          ],
+          (done) => {
+            if (done.gate.id !== 'stuck') return
+            // 前提读数（布尔，不是时钟）：这一刻兄弟段起来了没有、收工了没有
+            startedAtStuckFailure = existsSync(started)
+            finishedAtStuckFailure = existsSync(marker)
+            writeFileSync(trigger, 'go')
+          },
+          2,
+          createPnpmGateExecutor({ bin: process.execPath }),
+        ),
+      )
       const [stuck, survivor] = results
 
       // ⓪ 前提：卡住那段超时的那一刻，兄弟段**已经起来了**（否则「全杀」根本碰不到它 ——
       // 那是本用例的假绿）而且**还没收工**（它的后半辈子都落在超时之后）。
-      expect(startedAtStuckFailure, '兄弟段在卡住那段超时之前还没起来 ⇒ 本用例没覆盖到「超时之后」那段寿命').toBe(true)
+      expect(
+        startedAtStuckFailure,
+        '兄弟段在卡住那段超时之前还没起来 ⇒ 本用例没覆盖到「超时之后」那段寿命',
+      ).toBe(true)
       expect(finishedAtStuckFailure, '兄弟段在卡住那段超时之前就收工了 ⇒ 同上').toBe(false)
 
       // ① 卡住那段：它自己的失败，理由是**它自己**超时（不是「被信号结束」）
@@ -499,9 +818,10 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
 
       // ② 兄弟段：跑完、绿，而且真的干完了活（marker 是它自己写的）
       expect(survivor!.status, `兄弟段被连带杀掉了：\n${survivor!.output}`).toBe('ok')
-      expect(existsSync(marker), '兄弟段没跑完（marker 没写出来）—— 它的子进程被提前收掉了').toBe(true)
-    }
-    finally {
+      expect(existsSync(marker), '兄弟段没跑完（marker 没写出来）—— 它的子进程被提前收掉了').toBe(
+        true,
+      )
+    } finally {
       // 自建的临时目录（os.tmpdir 下，不是仓库内容）
       rmSync(dir, { recursive: true, force: true })
     }
@@ -511,13 +831,15 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
     const dir = mkdtempSync(path.join(os.tmpdir(), 'walnut-prepush-budget-'))
     try {
       const marker = path.join(dir, 'finished-20s.txt')
-      const [result] = await withoutBudgetEnv(() => runGates(
-        // 这条假命令要跑满 20s 才写 marker 再退出：**20s 是它自己的耗时**，也就是下面的语义分界
-        [mkGate('tight', fakeGate.work(20_000, marker), 1_500)],
-        () => {},
-        1,
-        createPnpmGateExecutor({ bin: process.execPath }),
-      ))
+      const [result] = await withoutBudgetEnv(() =>
+        runGates(
+          // 这条假命令要跑满 20s 才写 marker 再退出：**20s 是它自己的耗时**，也就是下面的语义分界
+          [mkGate('tight', fakeGate.work(20_000, marker), 1_500)],
+          () => {},
+          1,
+          createPnpmGateExecutor({ bin: process.execPath }),
+        ),
+      )
 
       expect(result!.status).toBe('failed')
       // 超时文案念的是**这一段**的预算（>2s = 1500ms 取整），不是全表的 600s
@@ -525,7 +847,9 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
 
       // 结构判据（与机器快慢无关）：这条命令只有**跑满 20s** 才会写 marker。
       // marker 不在 ⇒ 它从来没跑完，是被 1.5s 预算截断的；一刀切 600s 时它会写完 marker 再 exit 0。
-      expect(existsSync(marker), '20s 的命令居然跑完了 —— 预算没生效（它本该在 1.5s 被截断）').toBe(false)
+      expect(existsSync(marker), '20s 的命令居然跑完了 —— 预算没生效（它本该在 1.5s 被截断）').toBe(
+        false,
+      )
 
       // 分界用**那条命令自己的 20s**（语义边界），不是外壳墙钟里随手挑的一个数：
       // · 预算生效 ⇒ 约 1.5s 就被收掉，剩下的只有 spawn + win32 `taskkill`（同步 /T）的开销；
@@ -536,8 +860,7 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
       // 类型检查并行抢 CPU）时实测 spawn + taskkill 花了 4.8s，当场假红 —— 于是把命令自己的耗时
       // 拉到 20s：余量 18.5s，而预算生效时的测试耗时一点没变（仍是约 1.5s 加回收开销）。
       expect(result!.ms).toBeLessThan(20_000)
-    }
-    finally {
+    } finally {
       // 自建的临时目录（os.tmpdir 下，不是仓库内容）
       rmSync(dir, { recursive: true, force: true })
     }
@@ -568,14 +891,55 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
       // ④ 记录值（`GateResult.ms`）对**它自己的 6s**：没生效时它不可能在 6s 之前结束；
       //    生效时 ≈ 0.4s + spawn/taskkill 开销（2026-11 实测那笔开销 ≈2.8s，仍远低于 6s）
       expect(result!.ms).toBeLessThan(6_000)
-    }
-    finally {
+    } finally {
       // 自建的临时目录（os.tmpdir 下，不是仓库内容）
       rmSync(dir, { recursive: true, force: true })
-      if (saved === undefined)
-        delete process.env[PREPUSH_BUDGET_ENV]
-      else
-        process.env[PREPUSH_BUDGET_ENV] = saved
+      if (saved === undefined) delete process.env[PREPUSH_BUDGET_ENV]
+      else process.env[PREPUSH_BUDGET_ENV] = saved
+    }
+  }, 30_000)
+
+  /**
+   * 崩溃重试的真接线：假执行器测的是调度策略，这条测的是**生产路径**（runArgs 捕获输出 →
+   * ChildRunError → 重试）真的把第一次的 crash 转述交给了判据。子进程按 turbo 的形态打印
+   * 转述并以 1 退出（不做真实原生崩溃：那不可控，也不是本用例要证明的东西）。
+   */
+  it('真子进程：第一次打印崩溃转述并 exit 1，第二次通过 ⇒ 自动重试且段变绿', async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'walnut-prepush-crash-retry-'))
+    try {
+      const counter = path.join(dir, 'attempts.txt')
+      const argv = script([
+        `const fs = process.getBuiltinModule('node:fs')`,
+        `const counter = ${JSON.stringify(counter)}`,
+        `let attempts = 0`,
+        `try { attempts = Number(fs.readFileSync(counter, 'utf8')) } catch {}`,
+        `fs.writeFileSync(counter, String(attempts + 1))`,
+        `if (attempts === 0) {`,
+        `  fs.writeSync(1, '@walnut/admin#lint:  ERROR  command pnpm.cmd run lint exited (-1073741819)\\n')`,
+        `  process.exit(1)`,
+        `}`,
+      ])
+      const gate = {
+        id: 'lint',
+        label: '段 lint',
+        argv,
+        why: 'y'.repeat(30),
+        lane: TURBO_LANE,
+      }
+      const [result] = await withoutBudgetEnv(() =>
+        runGates([gate], () => {}, 1, createPnpmGateExecutor({ bin: process.execPath }), {
+          platform: 'win32',
+        }),
+      )
+
+      // 结构判据（与机器快慢无关）：计数器由子进程自己写，2 = 真的跑了两次
+      expect(readFileSync(counter, 'utf8')).toBe('2')
+      expect(result!.status).toBe('ok')
+      expect(result!.retried).toBe(true)
+      expect(result!.output).toContain('自动重试一次')
+    } finally {
+      // 自建的临时目录（os.tmpdir 下，不是仓库内容）
+      rmSync(dir, { recursive: true, force: true })
     }
   }, 30_000)
 })
@@ -605,7 +969,17 @@ describe('strictFailureMessage —— PREPUSH_STRICT 的口径', () => {
  */
 describe('summarizeRun —— 成功汇总里也要看得见「跳过」', () => {
   const gate = (id: string) => ({ id, label: `段 ${id}`, argv: ['x'], why: 'y'.repeat(30) })
-  const result = (id: string, status: 'ok' | 'failed' | 'skipped') => ({ gate: gate(id), status, ms: 1000, output: '' })
+  const result = (id: string, status: 'ok' | 'failed' | 'skipped') => ({
+    gate: gate(id),
+    status,
+    ms: 1000,
+    output: '',
+  })
+  /** 「崩溃后重试过」的结果（`retried` 只影响可读性，不参与三态） */
+  const retried = (id: string, status: 'ok' | 'failed' = 'ok') => ({
+    ...result(id, status),
+    retried: true,
+  })
 
   it('全都真跑通过：不出现「跳过」字样（没有跳过时那句是噪音）', () => {
     const summary = summarizeRun([result('a', 'ok'), result('b', 'ok')], '3.0', false)
@@ -631,14 +1005,28 @@ describe('summarizeRun —— 成功汇总里也要看得见「跳过」', () =>
   })
 
   it('有失败时：failed 只含失败段，真跑通过数不把跳过算进去', () => {
-    const summary = summarizeRun([
-      result('a', 'ok'),
-      result('b', 'failed'),
-      result('workflows', 'skipped'),
-    ], '2.0', false)
-    expect(summary.failed.map(r => r.gate.id)).toEqual(['b'])
-    expect(summary.skipped.map(r => r.gate.id)).toEqual(['workflows'])
+    const summary = summarizeRun(
+      [result('a', 'ok'), result('b', 'failed'), result('workflows', 'skipped')],
+      '2.0',
+      false,
+    )
+    expect(summary.failed.map((r) => r.gate.id)).toEqual(['b'])
+    expect(summary.skipped.map((r) => r.gate.id)).toEqual(['workflows'])
     expect(summary.okLine).toBe('3 段：1 段真跑通过 / 1 段跳过（未验证）（总 2.0s）')
+  })
+
+  it('「崩溃后重试通过」的段在成功汇总里单列（不判红，但机器不稳必须看得见）', () => {
+    const summary = summarizeRun([result('a', 'ok'), retried('lint')], '10.0', false)
+    expect(summary.failed).toHaveLength(0)
+    expect(summary.retriedPassedLine).toContain('lint')
+    expect(summary.retriedPassedLine).toContain('先崩后过')
+    // 三态报数照旧：先崩后过仍然计入「真跑通过」，不另起一档
+    expect(summary.okLine).toBe('2 段：2 段真跑通过（总 10.0s）')
+  })
+
+  it('一次就过 / 崩溃后仍失败 ⇒ 没有「重试通过」名单（不制造噪音）', () => {
+    expect(summarizeRun([result('a', 'ok')], '1.0', false).retriedPassedLine).toBeNull()
+    expect(summarizeRun([retried('lint', 'failed')], '1.0', false).retriedPassedLine).toBeNull()
   })
 })
 
@@ -674,19 +1062,23 @@ describe('单段预算 —— 冷缓存下不许把还在跑的段判死', () =>
     // 900000：往上调不会假红，往下调回接近实测值会当场红。
     const measuredFloor: Record<string, number> = { lint: 309_500, test: 241_500 }
     for (const [id, floor] of Object.entries(measuredFloor)) {
-      const gate = PREPUSH_GATES.find(g => g.id === id)
+      const gate = PREPUSH_GATES.find((g) => g.id === id)
       expect(gate, `${id} 段不见了 —— 门禁被摘`).toBeTruthy()
       expect(
         gate!.budgetMs,
         `${id} 段没有自己的预算 ⇒ 冷跑会被全局 ${GATE_BUDGET_MS / 1000}s 判死（实测下界 ${floor / 1000}s）`,
       ).toBeTypeOf('number')
-      expect(gateBudgetMs(gate!), `${id} 段的预算不到实测下界的 2 倍`).toBeGreaterThanOrEqual(floor * 2)
+      expect(gateBudgetMs(gate!), `${id} 段的预算不到实测下界的 2 倍`).toBeGreaterThanOrEqual(
+        floor * 2,
+      )
     }
     // 其余段**不许**顺手放大：按段给预算的用途是「把慢段放开」，不是「全表偷偷放宽」
     for (const gate of PREPUSH_GATES) {
-      if (gate.id === 'lint' || gate.id === 'test')
-        continue
-      expect(gate.budgetMs, `${gate.id} 段不该有自己的预算（它没有越过全局值的实测证据）`).toBeUndefined()
+      if (gate.id === 'lint' || gate.id === 'test') continue
+      expect(
+        gate.budgetMs,
+        `${gate.id} 段不该有自己的预算（它没有越过全局值的实测证据）`,
+      ).toBeUndefined()
     }
   })
 })
@@ -700,15 +1092,22 @@ describe('单段预算 —— 冷缓存下不许把还在跑的段判死', () =>
  */
 describe('nativeCrashNote —— 认得出原生崩溃，也不把它误判到别的失败上', () => {
   it('turbo 与 pnpm 转述的访问冲突退出码 ⇒ 给出提示，且说明「不是查出了问题」与下一步', () => {
-    const turbo = '@walnut/admin#lint:  ERROR  command (D:\\walnut-admin\\walnut-admin\\apps\\admin) C:\\nvm4w\\nodejs\\pnpm.cmd run lint exited (-1073741819)'
+    const turbo =
+      '@walnut/admin#lint:  ERROR  command (D:\\walnut-admin\\walnut-admin\\apps\\admin) C:\\nvm4w\\nodejs\\pnpm.cmd run lint exited (-1073741819)'
     const pnpmSigned = '[ELIFECYCLE] Command failed with exit code -1073741819.'
     const pnpmUnsigned = 'npm ERR! Exit code 3221225477'
     for (const sample of [turbo, pnpmSigned, pnpmUnsigned]) {
-      const note = nativeCrashNote(`…噪音…\n${sample}\n…噪音…`)
+      const note = nativeCrashNote(`…噪音…\n${sample}\n…噪音…`, false, 'win32')
       expect(note, `没认出：${sample}`).not.toBeNull()
       expect(note).toContain('0xC0000005')
       expect(note).toContain('不是这条命令查出了问题')
       expect(note).toContain('重跑')
+    }
+  })
+
+  it('非 win32 平台 ⇒ null（与 isNativeCrashFailure 同口径，Linux / macOS 不看这段签名）', () => {
+    for (const platform of ['linux', 'darwin', 'freebsd'] as const) {
+      expect(nativeCrashNote('exit code 0xC0000005', false, platform), platform).toBeNull()
     }
   })
 
@@ -720,7 +1119,10 @@ describe('nativeCrashNote —— 认得出原生崩溃，也不把它误判到�
       '@walnut/admin#lint:  ERROR  command exited (1)',
       '[ELIFECYCLE] Command failed with exit code 134.', // V8 的 OOM 是 abort，有报错原文，不走这条提示
     ]) {
-      expect(nativeCrashNote(sample), `误认了：${JSON.stringify(sample)}`).toBeNull()
+      expect(
+        nativeCrashNote(sample, false, 'win32'),
+        `误认了：${JSON.stringify(sample)}`,
+      ).toBeNull()
     }
   })
 
@@ -730,7 +1132,15 @@ describe('nativeCrashNote —— 认得出原生崩溃，也不把它误判到�
       'hash: -1073741819',
       'exit code 32212254771', // 前缀相同、但不是这个退出码
     ]) {
-      expect(nativeCrashNote(sample), `误认了：${sample}`).toBeNull()
+      expect(nativeCrashNote(sample, false, 'win32'), `误认了：${sample}`).toBeNull()
     }
+  })
+
+  it('已自动重试过（retried=true）⇒ 不再说「重跑一次通常就过」，指向抓转储', () => {
+    const note = nativeCrashNote('@walnut/admin#lint: exited (-1073741819)', true, 'win32')
+    expect(note).not.toBeNull()
+    expect(note).toContain('自动重试一次')
+    expect(note).toContain('最终仍未通过')
+    expect(note).not.toContain('重跑一次通常就过')
   })
 })

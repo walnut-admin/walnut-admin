@@ -15,15 +15,31 @@ import { ConfigService } from '@nestjs/config'
 
 import { ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger'
 
-import { AuthCookieService, AuthSharedService, OAuthGitHubScope, OAuthStateService, WalnutAdminGuardJwtFree } from '@walnut-server/auth'
+import {
+  AuthCookieService,
+  AuthSharedService,
+  OAuthGitHubScope,
+  OAuthStateService,
+  WalnutAdminGuardJwtFree,
+} from '@walnut-server/auth'
 import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { IWalnutAdminConstAppSettingAuthOAuthGitHubKeys } from '@walnut-server/const/app/setting'
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminExceptionDeviceNotAcceptable } from '@walnut-server/exceptions/base/406'
-import { WalnutAdminDecoratorAuthLog, WalnutAdminDecoratorDataScopeSystemChannel, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorFunctionalGuard, WalnutAdminDecoratorUser, WalnutAdminGuardSignFree } from '@walnut-server/guards'
-import { SysUserIdentitySharedService, WalnutAdminConstSysUserIdentityType } from '@walnut-server/identity'
+import {
+  WalnutAdminDecoratorAuthLog,
+  WalnutAdminDecoratorDataScopeSystemChannel,
+  WalnutAdminDecoratorDeviceId,
+  WalnutAdminDecoratorFunctionalGuard,
+  WalnutAdminDecoratorUser,
+  WalnutAdminGuardSignFree,
+} from '@walnut-server/guards'
+import {
+  SysUserIdentitySharedService,
+  WalnutAdminConstSysUserIdentityType,
+} from '@walnut-server/identity'
 import { SecurityRiskFailedLoginService } from '@walnut-server/security/risk/modules/failedLogin.service'
 import { AppTechSseService } from '@walnut-server/sse'
 import { AuthRoutes, LocaleType } from '@walnut/contract'
@@ -33,7 +49,10 @@ import { OAuthGitHubGuard } from './github.guard'
 
 @Controller(AuthRoutes.OAUTH_GITHUB)
 @ApiTags('auth/oauth/github')
-@WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOAuthGitHubKeys>(WalnutAdminConstAppSettingKeys.APP_AUTH_GITHUB, 'authEnable')
+@WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOAuthGitHubKeys>(
+  WalnutAdminConstAppSettingKeys.APP_AUTH_GITHUB,
+  'authEnable',
+)
 @WalnutAdminGuardJwtFree()
 // 数据权限三期：登录链系统通道（匿名进入，按 oauth 绑定读写 sys_user）
 @WalnutAdminDecoratorDataScopeSystemChannel()
@@ -48,7 +67,7 @@ export class OAuthGithubController {
     private readonly failedLoginRiskService: SecurityRiskFailedLoginService,
     private readonly userIdentitySharedService: SysUserIdentitySharedService,
     private readonly oauthStateService: OAuthStateService,
-  ) { }
+  ) {}
 
   private readonly oauthUrl = 'https://github.com/login/oauth/authorize'
 
@@ -89,14 +108,16 @@ export class OAuthGithubController {
    */
   private async getOAuthURL(lang: LocaleType, deviceId: string) {
     const state = await this.oauthStateService.issueState(lang, deviceId)
-    return `${this.oauthUrl}?client_id=${this.clientId}&redirect_uri=${this.callbackURL
+    return `${this.oauthUrl}?client_id=${this.clientId}&redirect_uri=${
+      this.callbackURL
     }&response_type=code&scope=${OAuthGitHubScope.join('%20')}&state=${state}`
   }
 
   @Get('url')
   // F-18（DOC-07）：此前 200 无 schema（handler 返回拼好的授权 URL 串）。
   @ApiWalnutOkResponse({
-    description: 'get the OAuth (github) authorize URL of this deployment (state is signed by the server and bound to the requesting device)',
+    description:
+      'get the OAuth (github) authorize URL of this deployment (state is signed by the server and bound to the requesting device)',
     primitive: 'string',
   })
   async OAuth(
@@ -112,7 +133,8 @@ export class OAuthGithubController {
   // F-18（DOC-07）+ DOC-15：callback 是浏览器跳转目标，响应是 @Render 出的 HTML 页而不是
   // JSON 业务壳（登录结果走同 controller 的 SSE 通道投递），文档按 text/html 声明。
   @ApiOkResponse({
-    description: 'Browser redirect target of the OAuth provider. Renders an HTML result page (view: template/oauth/done) instead of the JSON business shell -- the login result (access token + session key, or a translated error message) is delivered out-of-band on the per-device SSE channel GET /auth/oauth/github/sse/{fp}.',
+    description:
+      'Browser redirect target of the OAuth provider. Renders an HTML result page (view: template/oauth/done) instead of the JSON business shell -- the login result (access token + session key, or a translated error message) is delivered out-of-band on the per-device SSE channel GET /auth/oauth/github/sse/{fp}.',
     content: {
       'text/html': {
         schema: { type: 'string', description: 'rendered HTML result page' },
@@ -147,7 +169,8 @@ export class OAuthGithubController {
 
     try {
       // B7b 归一：refresh 写腿迁 PG —— 单 em（identity 写腿本就 ctx.em）
-      const { accessToken, refreshTokenJti, authSessionKey } = await this.authSharedService.generateAuthTokens(user, deviceId, ctx.em)
+      const { accessToken, refreshTokenJti, authSessionKey } =
+        await this.authSharedService.generateAuthTokens(user, deviceId, ctx.em)
 
       // Mark email identity as verified after successful OAuth validation
       await this.userIdentitySharedService.verifyIdentity(
@@ -174,10 +197,11 @@ export class OAuthGithubController {
 
       if (!delivered) {
         // 只记投递结果，不记载荷内容（accessToken + sessionKey 属凭据材料，F-06 口径）
-        this.logger.warn(`oauth github callback succeeded but nobody is listening on the device channel`)
+        this.logger.warn(
+          `oauth github callback succeeded but nobody is listening on the device channel`,
+        )
       }
-    }
-    catch (exception) {
+    } catch (exception) {
       const errMsg = exception instanceof Error ? exception.message : 'business.auth.authFailed'
       const translatedMsg: string = i18n.t(errMsg, { lang })
       const errorPayload: IWalnutAdminSseClientData<Record<string, never>> = {
@@ -189,15 +213,19 @@ export class OAuthGithubController {
       // Record failed login risk
       // F-05：fire-and-forget 必须自带 catch —— Node 24 默认 --unhandled-rejections=throw，
       // 风控采集（Redis / 队列）抖动会把整个 API 进程带走。
-      void this.failedLoginRiskService.collect({
-        deviceId,
-        identifier: req.identifier,
-        ip: req.realIp,
-        reason: translatedMsg,
-        loginType: WalnutAdminConstDecoratorLogAuthType.OAUTH_GITHUB,
-      }).catch((error: unknown) => {
-        this.logger.warn(`oauth github failed-login risk collect skipped: ${error instanceof Error ? error.message : String(error)}`)
-      })
+      void this.failedLoginRiskService
+        .collect({
+          deviceId,
+          identifier: req.identifier,
+          ip: req.realIp,
+          reason: translatedMsg,
+          loginType: WalnutAdminConstDecoratorLogAuthType.OAUTH_GITHUB,
+        })
+        .catch((error: unknown) => {
+          this.logger.warn(
+            `oauth github failed-login risk collect skipped: ${error instanceof Error ? error.message : String(error)}`,
+          )
+        })
 
       // F-06：不再打印 fingerprint 原文（客户端可控、可含换行 ⇒ 日志伪造面；也便于枚举设备），
       // 只留投递结果。
@@ -221,20 +249,24 @@ export class OAuthGithubController {
   @ApiParam({
     name: 'fp',
     required: true,
-    description: 'Legacy URL segment carrying the client fingerprint. Since F-04 it is NOT part of the SSE channel key (the key is derived from the signed device cookie) and is kept only for URL compatibility with the existing SPA.',
+    description:
+      'Legacy URL segment carrying the client fingerprint. Since F-04 it is NOT part of the SSE channel key (the key is derived from the signed device cookie) and is kept only for URL compatibility with the existing SPA.',
   })
   @ApiOperation({
     summary: 'OAuth (GitHub) login result stream',
-    description: 'Server-Sent Events stream that delivers the OAuth login result to the browser which started the flow. The channel is bound to the signed device cookie (DEVICE_ID) of the requesting device, so only the originating device receives the payload. Each `data:` frame is a JSON encoded `IWalnutAdminSseClientData<IWalnutAdminSseOAuthPayload>` (see @walnut/contract/sse): a success frame carries `{ event: "token:github", accessToken, sessionKey }`, a failure frame carries an empty `data` object plus a translated `message`.',
+    description:
+      'Server-Sent Events stream that delivers the OAuth login result to the browser which started the flow. The channel is bound to the signed device cookie (DEVICE_ID) of the requesting device, so only the originating device receives the payload. Each `data:` frame is a JSON encoded `IWalnutAdminSseClientData<IWalnutAdminSseOAuthPayload>` (see @walnut/contract/sse): a success frame carries `{ event: "token:github", accessToken, sessionKey }`, a failure frame carries an empty `data` object plus a translated `message`.',
   })
   @ApiResponse({
     status: 200,
-    description: 'text/event-stream: each `data:` frame is a JSON encoded `IWalnutAdminSseClientData<IWalnutAdminSseOAuthPayload>`.',
+    description:
+      'text/event-stream: each `data:` frame is a JSON encoded `IWalnutAdminSseClientData<IWalnutAdminSseOAuthPayload>`.',
     content: {
       'text/event-stream': {
         schema: {
           type: 'string',
-          example: 'data: {"success":true,"message":"success","data":{"event":"token:github","accessToken":"<jwt>","sessionKey":"<base64 session key>"}}',
+          example:
+            'data: {"success":true,"message":"success","data":{"event":"token:github","accessToken":"<jwt>","sessionKey":"<base64 session key>"}}',
         },
       },
     },

@@ -3,7 +3,10 @@ import type { WalnutAuthTokens } from '../../helpers/api-client'
 import type { WalnutRootUserFixture } from '../../helpers/auth-login'
 import { randomUUID } from 'node:crypto'
 import { AppTechCacheLockService, AppTechCacheService } from '@walnut-server/cache'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+} from '@walnut-server/const/app/cache'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from '../../helpers/api-client'
@@ -36,7 +39,12 @@ import { createApiApp } from '../../helpers/create-api-app'
 
 /** TypeORM 对 UPDATE/DELETE ... RETURNING 返回 `[rows, affectedCount]`；SELECT 直接返回 rows */
 function returnedRows<T>(raw: unknown): T[] {
-  if (Array.isArray(raw) && raw.length === 2 && Array.isArray(raw[0]) && typeof raw[1] === 'number') {
+  if (
+    Array.isArray(raw) &&
+    raw.length === 2 &&
+    Array.isArray(raw[0]) &&
+    typeof raw[1] === 'number'
+  ) {
     return raw[0] as T[]
   }
   return raw as T[]
@@ -63,36 +71,44 @@ describe('Lock guard：SECURITY_LOCK 缓存 TTL 到期 ⇒ 回源 DB（DB 已解
   }
 
   async function dbLocked(): Promise<boolean> {
-    const rows = returnedRows<{ locked: boolean }>(await api.pgDataSource.query(
-      'SELECT locked FROM sys_user_device WHERE user_id = $1 AND device_id = $2',
-      [fixture!.userId, api.deviceId],
-    ))
+    const rows = returnedRows<{ locked: boolean }>(
+      await api.pgDataSource.query(
+        'SELECT locked FROM sys_user_device WHERE user_id = $1 AND device_id = $2',
+        [fixture!.userId, api.deviceId],
+      ),
+    )
     expect(rows).toHaveLength(1)
     return rows[0].locked
   }
 
   /** 直接改 DB 的锁定列（模拟「空闲到期 / 管理员直改库」—— 绕开 unlock 端点对缓存的同步写） */
   async function setDbLocked(locked: boolean): Promise<void> {
-    const rows = returnedRows<{ locked: boolean }>(await api.pgDataSource.query(
-      'UPDATE sys_user_device SET locked = $3 WHERE user_id = $1 AND device_id = $2 RETURNING locked',
-      [fixture!.userId, api.deviceId, locked],
-    ))
+    const rows = returnedRows<{ locked: boolean }>(
+      await api.pgDataSource.query(
+        'UPDATE sys_user_device SET locked = $3 WHERE user_id = $1 AND device_id = $2 RETURNING locked',
+        [fixture!.userId, api.deviceId, locked],
+      ),
+    )
     expect(rows).toHaveLength(1)
     expect(rows[0].locked).toBe(locked)
   }
 
-  async function lockPreference(): Promise<{ crossDevice: boolean, idleSec: number }> {
-    const rows = returnedRows<{ lock_cross_device: boolean, lock_idle_sec: number }>(await api.pgDataSource.query(
-      'SELECT lock_cross_device, lock_idle_sec FROM sys_user_lock WHERE user_id = $1',
-      [fixture!.userId],
-    ))
+  async function lockPreference(): Promise<{ crossDevice: boolean; idleSec: number }> {
+    const rows = returnedRows<{ lock_cross_device: boolean; lock_idle_sec: number }>(
+      await api.pgDataSource.query(
+        'SELECT lock_cross_device, lock_idle_sec FROM sys_user_lock WHERE user_id = $1',
+        [fixture!.userId],
+      ),
+    )
     expect(rows).toHaveLength(1)
     return { crossDevice: rows[0].lock_cross_device, idleSec: rows[0].lock_idle_sec }
   }
 
   /** 切锁屏偏好（该端点刻意**不** LockFree：锁定期间不许改偏好绕过锁屏） */
   async function setLockCrossDevice(crossDevice: boolean): Promise<void> {
-    const res = await api.root('PATCH', api.apiPath(PREFERENCE_PATH), { lockCrossDevice: crossDevice })
+    const res = await api.root('PATCH', api.apiPath(PREFERENCE_PATH), {
+      lockCrossDevice: crossDevice,
+    })
     expectOk(res, `lock preference crossDevice=${crossDevice}`)
     expect((await lockPreference()).crossDevice).toBe(crossDevice)
   }
@@ -123,7 +139,7 @@ describe('Lock guard：SECURITY_LOCK 缓存 TTL 到期 ⇒ 回源 DB（DB 已解
       if (!(await api.hasWalnutCacheKey(key))) {
         return
       }
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
     }
     expect(await api.hasWalnutCacheKey(key)).toBe(false)
   }
@@ -169,7 +185,10 @@ describe('Lock guard：SECURITY_LOCK 缓存 TTL 到期 ⇒ 回源 DB（DB 已解
       'UPDATE sys_user_device SET locked = false WHERE user_id = $1 AND device_id = $2',
       [fixture.userId, api.deviceId],
     )
-    await api.pgDataSource.query('UPDATE sys_user_lock SET lock_cross_device = false WHERE user_id = $1', [fixture.userId])
+    await api.pgDataSource.query(
+      'UPDATE sys_user_lock SET lock_cross_device = false WHERE user_id = $1',
+      [fixture.userId],
+    )
     const cacheService = app.get(AppTechCacheService)
     await cacheService.del(globalLockKey())
     await cacheService.del(deviceLockKey())
@@ -178,7 +197,9 @@ describe('Lock guard：SECURITY_LOCK 缓存 TTL 到期 ⇒ 回源 DB（DB 已解
   afterAll(async () => {
     if (api !== undefined && fixture !== null) {
       await api.pgDataSource.query('DELETE FROM sys_user_lock WHERE user_id = $1', [fixture.userId])
-      await api.pgDataSource.query('UPDATE sys_user_device SET locked = false WHERE user_id = $1', [fixture.userId])
+      await api.pgDataSource.query('UPDATE sys_user_device SET locked = false WHERE user_id = $1', [
+        fixture.userId,
+      ])
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
       await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [api.deviceId])

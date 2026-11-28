@@ -35,12 +35,7 @@ import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { createClient } from 'redis'
 import { withPg } from '../lib/pg.ts'
-import {
-  assertE2eRedisPort,
-  E2E_REDIS_HOST,
-  E2E_REDIS_PASS,
-  E2E_REDIS_PORT,
-} from './env.ts'
+import { assertE2eRedisPort, E2E_REDIS_HOST, E2E_REDIS_PASS, E2E_REDIS_PORT } from './env.ts'
 import { E2ePreconditionError } from './failure.ts'
 
 /**
@@ -52,34 +47,34 @@ import { E2ePreconditionError } from './failure.ts'
 export const DEVICE_ID_PATTERN = /^d1_[0-9a-f]{32}$/
 
 /** 键族（报告分组用；与 {@link DEVICE_KEY_FAMILIES} 一一对应） */
-export type DeviceKeyFamily
-  = | 'cache:system:device'
-    | 'cache:system:device-cookie-renew'
-    | 'cache:auth:sessions'
-    | 'cache:auth:permissions'
-    | 'cache:auth:mfa:verified'
-    | 'cache:auth:mfa:totp'
-    | 'cache:auth:mfa:webauthn'
-    | 'cache:auth:opaque-state'
-    | 'cache:security:sign-ticket'
-    | 'cache:security:sign-aes-key'
-    | 'cache:security:cap-token'
-    | 'cache:security:rsa-pub-key'
-    | 'cache:security:lock'
-    | 'cache:sensitive-op'
-    | 'risk:device'
-    | 'risk:user-device'
-    | 'risk:failed-login'
-    | 'risk:rate:device'
-    | 'risk:challenge:device'
-    | 'risk:challenge:user-device'
-    | 'murlock:cap'
-    | 'murlock:device-ip-change'
-    | 'murlock:lock-guard'
-    | 'murlock:sign'
-    | 'murlock:risk-failed-login'
-    | 'murlock:risk-device'
-    | 'murlock:risk-user-device'
+export type DeviceKeyFamily =
+  | 'cache:system:device'
+  | 'cache:system:device-cookie-renew'
+  | 'cache:auth:sessions'
+  | 'cache:auth:permissions'
+  | 'cache:auth:mfa:verified'
+  | 'cache:auth:mfa:totp'
+  | 'cache:auth:mfa:webauthn'
+  | 'cache:auth:opaque-state'
+  | 'cache:security:sign-ticket'
+  | 'cache:security:sign-aes-key'
+  | 'cache:security:cap-token'
+  | 'cache:security:rsa-pub-key'
+  | 'cache:security:lock'
+  | 'cache:sensitive-op'
+  | 'risk:device'
+  | 'risk:user-device'
+  | 'risk:failed-login'
+  | 'risk:rate:device'
+  | 'risk:challenge:device'
+  | 'risk:challenge:user-device'
+  | 'murlock:cap'
+  | 'murlock:device-ip-change'
+  | 'murlock:lock-guard'
+  | 'murlock:sign'
+  | 'murlock:risk-failed-login'
+  | 'murlock:risk-device'
+  | 'murlock:risk-user-device'
 
 /**
  * 键形表：`prefix` 逐字对齐服务端拼法，`deviceIndex` 是 split(':') 之后 deviceId 的下标。
@@ -88,9 +83,17 @@ export type DeviceKeyFamily
  * `SYSTEM:DEVICE:` 之前，`SIGN:AES_KEY` 在 `SIGN:` 之前），否则短的那条会先把键吃掉，
  * 把固定段当成 deviceId（形态判据会拒，但报出来的 family 就错了）。
  */
-export const DEVICE_KEY_FAMILIES: readonly { family: DeviceKeyFamily, prefix: string, deviceIndex: number }[] = [
+export const DEVICE_KEY_FAMILIES: readonly {
+  family: DeviceKeyFamily
+  prefix: string
+  deviceIndex: number
+}[] = [
   // ── 应用缓存（AppTechCacheService 统一加 `WALNUT_CACHE_` 前缀）──
-  { family: 'cache:system:device-cookie-renew', prefix: 'WALNUT_CACHE_SYSTEM:DEVICE:COOKIE_RENEW:', deviceIndex: 3 },
+  {
+    family: 'cache:system:device-cookie-renew',
+    prefix: 'WALNUT_CACHE_SYSTEM:DEVICE:COOKIE_RENEW:',
+    deviceIndex: 3,
+  },
   { family: 'cache:system:device', prefix: 'WALNUT_CACHE_SYSTEM:DEVICE:', deviceIndex: 2 },
   { family: 'cache:auth:sessions', prefix: 'WALNUT_CACHE_AUTH:SESSIONS:', deviceIndex: 3 },
   { family: 'cache:auth:permissions', prefix: 'WALNUT_CACHE_AUTH:PERMISSIONS:', deviceIndex: 3 },
@@ -98,10 +101,26 @@ export const DEVICE_KEY_FAMILIES: readonly { family: DeviceKeyFamily, prefix: st
   { family: 'cache:auth:mfa:totp', prefix: 'WALNUT_CACHE_AUTH:MFA:TOTP:', deviceIndex: 4 },
   { family: 'cache:auth:mfa:webauthn', prefix: 'WALNUT_CACHE_AUTH:MFA:WEBAUTN:', deviceIndex: 4 },
   { family: 'cache:auth:opaque-state', prefix: 'WALNUT_CACHE_AUTH:OPAQUE_STATE:', deviceIndex: 3 },
-  { family: 'cache:security:sign-ticket', prefix: 'WALNUT_CACHE_SECURITY:SIGN:TICKET:', deviceIndex: 3 },
-  { family: 'cache:security:sign-aes-key', prefix: 'WALNUT_CACHE_SECURITY:SIGN:AES_KEY:', deviceIndex: 3 },
-  { family: 'cache:security:cap-token', prefix: 'WALNUT_CACHE_SECURITY:CAP_TOKEN:', deviceIndex: 2 },
-  { family: 'cache:security:rsa-pub-key', prefix: 'WALNUT_CACHE_SECURITY:RSA:PUB_KEY:', deviceIndex: 3 },
+  {
+    family: 'cache:security:sign-ticket',
+    prefix: 'WALNUT_CACHE_SECURITY:SIGN:TICKET:',
+    deviceIndex: 3,
+  },
+  {
+    family: 'cache:security:sign-aes-key',
+    prefix: 'WALNUT_CACHE_SECURITY:SIGN:AES_KEY:',
+    deviceIndex: 3,
+  },
+  {
+    family: 'cache:security:cap-token',
+    prefix: 'WALNUT_CACHE_SECURITY:CAP_TOKEN:',
+    deviceIndex: 2,
+  },
+  {
+    family: 'cache:security:rsa-pub-key',
+    prefix: 'WALNUT_CACHE_SECURITY:RSA:PUB_KEY:',
+    deviceIndex: 3,
+  },
   { family: 'cache:security:lock', prefix: 'WALNUT_CACHE_SECURITY:LOCK:', deviceIndex: 3 },
   // 敏感操作二次验证的授权键（`SecuritySensitiveService.getRedisKey`：直连 Redis，无前缀；
   // TTL 15 分钟）。键形 `sensitive_op:<userId>:<deviceId>:<level>` —— 设备在倒数第二槽位。
@@ -205,7 +224,10 @@ export interface RedisGcPlan {
  *
  * 判据只有一条：**deviceId 合法且不在 `existingDeviceIds` 里**才算孤儿。
  */
-export function planRedisGc(keys: readonly string[], existingDeviceIds: ReadonlySet<string>): RedisGcPlan {
+export function planRedisGc(
+  keys: readonly string[],
+  existingDeviceIds: ReadonlySet<string>,
+): RedisGcPlan {
   const plan: RedisGcPlan = { deviceKeys: [], kept: [], orphans: [], skipped: [], ignored: [] }
 
   // 多个 SCAN 模式会重合（`SYSTEM:DEVICE:COOKIE_RENEW:*` 同时命中 `SYSTEM:DEVICE:*`）：
@@ -223,8 +245,7 @@ export function planRedisGc(keys: readonly string[], existingDeviceIds: Readonly
     plan.deviceKeys.push(parsed)
     if (existingDeviceIds.has(parsed.deviceId)) {
       plan.kept.push(parsed)
-    }
-    else {
+    } else {
       plan.orphans.push({ key: parsed.key, family: parsed.family, deviceId: parsed.deviceId })
     }
   }
@@ -263,7 +284,7 @@ async function connectRedis(): Promise<RedisClientType> {
     socket: { host: E2E_REDIS_HOST, port: E2E_REDIS_PORT },
     password: E2E_REDIS_PASS,
   })
-  client.on('error', error => console.error('[e2e/redis-gc] redis:', error))
+  client.on('error', (error) => console.error('[e2e/redis-gc] redis:', error))
   await client.connect()
   return client as RedisClientType
 }
@@ -278,7 +299,7 @@ async function existingDevices(deviceIds: readonly string[]): Promise<Set<string
       'SELECT device_id FROM sys_device WHERE device_id = ANY($1::text[])',
       [unique],
     )
-    return new Set(rows.map(row => row.device_id))
+    return new Set(rows.map((row) => row.device_id))
   })
 }
 
@@ -314,21 +335,21 @@ export async function runRedisGc(options: RedisGcOptions = {}): Promise<RedisGcS
   const client = await connectRedis()
   try {
     const keys = await scanAll(client)
-    const parsed = keys.map(key => parseDeviceKey(key)).filter((item): item is ParsedDeviceKey => item !== null)
-    const candidates = parsed
-      .map(item => item.deviceId)
-      .filter((id): id is string => id !== null)
+    const parsed = keys
+      .map((key) => parseDeviceKey(key))
+      .filter((item): item is ParsedDeviceKey => item !== null)
+    const candidates = parsed.map((item) => item.deviceId).filter((id): id is string => id !== null)
     const existing = await existingDevices(candidates)
     const plan = planRedisGc(keys, existing)
 
     let deletedKeys = 0
     if (!dryRun) {
-      for (const chunk of chunkKeys(plan.orphans.map(orphan => orphan.key))) {
+      for (const chunk of chunkKeys(plan.orphans.map((orphan) => orphan.key))) {
         deletedKeys += await client.del(chunk)
       }
     }
 
-    const orphanDeviceIds = new Set(plan.orphans.map(orphan => orphan.deviceId))
+    const orphanDeviceIds = new Set(plan.orphans.map((orphan) => orphan.deviceId))
     const summary: RedisGcSummary = {
       scannedKeys: keys.length,
       deviceKeys: plan.deviceKeys.length,
@@ -343,9 +364,9 @@ export async function runRedisGc(options: RedisGcOptions = {}): Promise<RedisGcS
     }
 
     log(
-      `扫描 ${summary.scannedKeys} 键 → 设备键 ${summary.deviceKeys}（保留 ${summary.keptKeys}，`
-      + `孤儿 ${summary.orphanKeys} 键 / ${summary.orphanDeviceIds} 个设备，跳过 ${summary.skippedKeys}，`
-      + `非设备键 ${summary.ignoredKeys}）`,
+      `扫描 ${summary.scannedKeys} 键 → 设备键 ${summary.deviceKeys}（保留 ${summary.keptKeys}，` +
+        `孤儿 ${summary.orphanKeys} 键 / ${summary.orphanDeviceIds} 个设备，跳过 ${summary.skippedKeys}，` +
+        `非设备键 ${summary.ignoredKeys}）`,
     )
     if (printLimit > 0 && (dryRun || summary.orphanKeys > 0)) {
       for (const orphan of plan.orphans.slice(0, printLimit)) {
@@ -360,13 +381,11 @@ export async function runRedisGc(options: RedisGcOptions = {}): Promise<RedisGcS
     }
     if (dryRun) {
       log('dry-run：什么都没删')
-    }
-    else {
+    } else {
       log(`已按精确键删除 ${deletedKeys} 个孤儿键（未使用 FLUSHDB / FLUSHALL）`)
     }
     return summary
-  }
-  finally {
+  } finally {
     await client.quit().catch(() => {})
   }
 }
@@ -374,15 +393,15 @@ export async function runRedisGc(options: RedisGcOptions = {}): Promise<RedisGcS
 /** 入口：`node scripts/redis-gc.ts [--dry-run]` */
 async function main(): Promise<void> {
   const argv = process.argv.slice(2)
-  const unknown = argv.filter(arg => arg !== '--dry-run')
+  const unknown = argv.filter((arg) => arg !== '--dry-run')
   if (unknown.length > 0) {
     throw new E2ePreconditionError(`不认识的参数：${unknown.join(' ')}（只接受 --dry-run）`)
   }
   await runRedisGc({ dryRun: argv.includes('--dry-run') })
 }
 
-const invokedDirectly = process.argv[1] !== undefined
-  && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+const invokedDirectly =
+  process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 
 if (invokedDirectly) {
   main().catch((error) => {

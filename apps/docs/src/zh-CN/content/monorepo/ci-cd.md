@@ -88,7 +88,7 @@ runner（pnpm store 命中，install ≈30s）
 | `pnpm install`（store 命中） | 4–8s 本地 / ≈30s CI |
 | `pnpm deploy --legacy --prod` | 19–31s（产物 **268.6 MB / 41561 文件**，其中 node_modules 255 MB） |
 | admin 生产构建（Vite + brotli/gzip + Sentry） | **178.9s**，dist **12.68 MB**（489 `.br` + 489 `.gz`） |
-| `turbo run types:check`（无 packages 构建产物，模拟全新 clone） | 12/12 通过，41.4s |
+| `turbo run types:check`（无 packages 构建产物，模拟全新 clone） | 全仓通过（**2026-11-27 实测**：当时 12 个包跑该任务、41.4s；包数随增包而变，这里看「全绿 + 量级」不看分母） |
 
 ## 两条必须记住的硬约束
 

@@ -16,5 +16,7 @@ export const WALNUT_ADMIN_KEY_STORE = Symbol('WALNUT_ADMIN_KEY_STORE')
 
 export interface IWalnutAdminKeyStore {
   getCurrent: (type: 'RSA_PAIR') => Promise<{ publicKeyPem?: string }>
-  getCurrentActiveKey: (type: 'RSA_PAIR') => Promise<{ meta?: { privateKeyPem?: string } | null } | null>
+  getCurrentActiveKey: (
+    type: 'RSA_PAIR',
+  ) => Promise<{ meta?: { privateKeyPem?: string } | null } | null>
 }

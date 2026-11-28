@@ -3,11 +3,21 @@ import type { DataSource } from 'typeorm'
 import { createHash, randomUUID } from 'node:crypto'
 
 import { ALSRequestService } from '@walnut-server/als'
-import { AppMonitorUserBasicRepository, AppMonitorUserRepositoryService, AppMonitorUserService } from '@walnut-server/app-domain'
+import {
+  AppMonitorUserBasicRepository,
+  AppMonitorUserRepositoryService,
+  AppMonitorUserService,
+} from '@walnut-server/app-domain'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { DBTransactionHooksStore } from '@walnut-server/db'
 import { SysUserDeviceRepositoryService, SysUserDeviceService } from '@walnut-server/identity'
-import { generateDeviceId, isValidDeviceId, SysDeviceBasicRepository, SysDeviceRepositoryService, SysDeviceService } from '@walnut-server/system'
+import {
+  generateDeviceId,
+  isValidDeviceId,
+  SysDeviceBasicRepository,
+  SysDeviceRepositoryService,
+  SysDeviceService,
+} from '@walnut-server/system'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createIntegrationApp, getWalnutPgAdminDataSource } from '../helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from '../helpers/integration.const'
@@ -57,7 +67,8 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
    * 数据权限一期：app_monitor_user 已注册（allowAnonymous），直接调
    * AppMonitorUserBasicRepository 的用例必须显式进入系统通道。
    */
-  const itSystem = (name: string, fn: () => Promise<void>) => it(name, async () => als.runAsSystem(fn))
+  const itSystem = (name: string, fn: () => Promise<void>) =>
+    it(name, async () => als.runAsSystem(fn))
 
   const seed = randomUUID()
   const unique = (prefix: string) => `${prefix}-${seed}`
@@ -91,7 +102,8 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
   function makeFakeReq(fingerprint: string, deviceId?: string) {
     return {
       fingerprint,
-      signedCookies: deviceId === undefined ? {} : { [WalnutAdminConstCookieKeys.DEVICE_ID]: deviceId },
+      signedCookies:
+        deviceId === undefined ? {} : { [WalnutAdminConstCookieKeys.DEVICE_ID]: deviceId },
       realIp: '10.9.9.9',
       os: 'windows',
       browser: 'chrome',
@@ -126,93 +138,131 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
   })
 
   describe('sys_device：注册（业务键 upsert）与唯一约束', () => {
-    itSystem('initial：按业务键 device_id upsert —— 首次插入全字段落位（sr/vp/geo 拍平、locationHistory 种子）', async () => {
-      const fingerprint = unique('fp-initial')
-      const payload = {
-        deviceName: unique('b6-device-initial'),
-        private: false,
-        sr: { height: 2000, width: 1100 },
-        vp: { height: 900, width: 800 },
-        hardwareInfo: { cpuCores: 8 },
-        deviceInfo: { platform: 'win32', netType: 'wifi', isp: 'telecom' },
-      }
-
-      const deviceId = generateDeviceId()
-      const res = await runInHookStore(async () =>
-        deviceService.initial(makeFakeReq(fingerprint, deviceId), payload as never, pgDataSource.manager))
-
-      expect(res.deviceId).toBe(deviceId)
-      // 私网 IP → ip.service 确定性返回 LOCAL（无 countryCode/经纬度）
-      expect(res.locationInfo).toMatchObject(LOCAL_LOCATION)
-
-      const device = await deviceRepoService.findDeviceByDeviceId(deviceId)
-      expect(device).not.toBeNull()
-      expect(device!.deviceName).toMatch(/^desktop_[0-9a-f]{8}$/)
-      expect(device!.srHeight).toBe(2000)
-      expect(device!.srWidth).toBe(1100)
-      expect(device!.vpHeight).toBe(900)
-      expect(device!.vpWidth).toBe(800)
-      expect(device!.geoLongitude).toBeNull()
-      expect(device!.geoLatitude).toBeNull()
-      expect(device!.deviceInfo).toMatchObject({ os: 'windows', browser: 'chrome', type: 'desktop' })
-      expect(device!.locationInfo).toMatchObject(LOCAL_LOCATION)
-      expect(device!.locationHistory).toHaveLength(1)
-      expect(device!.locationHistory[0]).toMatchObject({ ip: '10.9.9.9', location: LOCAL_LOCATION })
-      expect(device!.ipHistory).toEqual(['10.9.9.9'])
-      expect(device!.ip).toBe('10.9.9.9')
-      expect(device!.active).toBe(true)
-      expect(device!.riskScore).toBe(0)
-    })
-
-    itSystem('initial 幂等键 = cookie（B5）：同 cookie 重复 initial 覆盖同一行；无 cookie 两次 ⇒ 两个不同 id', async () => {
-      const fingerprint = unique('fp-initial')
-
-      // 同一个服务端签发的 id 连发两次 ⇒ 同一行整体覆盖（幂等键是 cookie，不是指纹）
-      const sameId = generateDeviceId()
-      await runInHookStore(async () =>
-        deviceService.initial(makeFakeReq(fingerprint, sameId), {
+    itSystem(
+      'initial：按业务键 device_id upsert —— 首次插入全字段落位（sr/vp/geo 拍平、locationHistory 种子）',
+      async () => {
+        const fingerprint = unique('fp-initial')
+        const payload = {
+          deviceName: unique('b6-device-initial'),
           private: false,
           sr: { height: 2000, width: 1100 },
           vp: { height: 900, width: 800 },
-          hardwareInfo: {},
-          deviceInfo: {},
-        } as never, pgDataSource.manager))
+          hardwareInfo: { cpuCores: 8 },
+          deviceInfo: { platform: 'win32', netType: 'wifi', isp: 'telecom' },
+        }
 
-      await runInHookStore(async () =>
-        deviceService.initial(makeFakeReq(fingerprint, sameId), {
-          private: false,
-          sr: { height: 1000, width: 500 },
-          vp: { height: 400, width: 300 },
-          hardwareInfo: {},
-          deviceInfo: {},
-        } as never, pgDataSource.manager))
+        const deviceId = generateDeviceId()
+        const res = await runInHookStore(async () =>
+          deviceService.initial(
+            makeFakeReq(fingerprint, deviceId),
+            payload as never,
+            pgDataSource.manager,
+          ),
+        )
 
-      expect(await countPg('sys_device', 'device_id = $1', [sameId])).toBe(1)
-      const device = await deviceRepoService.findDeviceByDeviceId(sameId)
-      expect(device!.srHeight).toBe(1000)
+        expect(res.deviceId).toBe(deviceId)
+        // 私网 IP → ip.service 确定性返回 LOCAL（无 countryCode/经纬度）
+        expect(res.locationInfo).toMatchObject(LOCAL_LOCATION)
 
-      // 同一个指纹、但没有 cookie ⇒ 每次都是新身份（指纹不再派生 id）
-      const a = await runInHookStore(async () =>
-        deviceService.initial(makeFakeReq(fingerprint), {
-          private: false,
-          sr: { height: 800, width: 600 },
-          vp: { height: 400, width: 300 },
-          hardwareInfo: {},
-          deviceInfo: {},
-        } as never, pgDataSource.manager))
-      const b = await runInHookStore(async () =>
-        deviceService.initial(makeFakeReq(fingerprint), {
-          private: false,
-          sr: { height: 800, width: 600 },
-          vp: { height: 400, width: 300 },
-          hardwareInfo: {},
-          deviceInfo: {},
-        } as never, pgDataSource.manager))
+        const device = await deviceRepoService.findDeviceByDeviceId(deviceId)
+        expect(device).not.toBeNull()
+        expect(device!.deviceName).toMatch(/^desktop_[0-9a-f]{8}$/)
+        expect(device!.srHeight).toBe(2000)
+        expect(device!.srWidth).toBe(1100)
+        expect(device!.vpHeight).toBe(900)
+        expect(device!.vpWidth).toBe(800)
+        expect(device!.geoLongitude).toBeNull()
+        expect(device!.geoLatitude).toBeNull()
+        expect(device!.deviceInfo).toMatchObject({
+          os: 'windows',
+          browser: 'chrome',
+          type: 'desktop',
+        })
+        expect(device!.locationInfo).toMatchObject(LOCAL_LOCATION)
+        expect(device!.locationHistory).toHaveLength(1)
+        expect(device!.locationHistory[0]).toMatchObject({
+          ip: '10.9.9.9',
+          location: LOCAL_LOCATION,
+        })
+        expect(device!.ipHistory).toEqual(['10.9.9.9'])
+        expect(device!.ip).toBe('10.9.9.9')
+        expect(device!.active).toBe(true)
+        expect(device!.riskScore).toBe(0)
+      },
+    )
 
-      expect(a.deviceId).not.toBe(b.deviceId)
-      expect(isValidDeviceId(a.deviceId)).toBe(true)
-      expect(isValidDeviceId(b.deviceId)).toBe(true)
-    })
+    itSystem(
+      'initial 幂等键 = cookie（B5）：同 cookie 重复 initial 覆盖同一行；无 cookie 两次 ⇒ 两个不同 id',
+      async () => {
+        const fingerprint = unique('fp-initial')
+
+        // 同一个服务端签发的 id 连发两次 ⇒ 同一行整体覆盖（幂等键是 cookie，不是指纹）
+        const sameId = generateDeviceId()
+        await runInHookStore(async () =>
+          deviceService.initial(
+            makeFakeReq(fingerprint, sameId),
+            {
+              private: false,
+              sr: { height: 2000, width: 1100 },
+              vp: { height: 900, width: 800 },
+              hardwareInfo: {},
+              deviceInfo: {},
+            } as never,
+            pgDataSource.manager,
+          ),
+        )
+
+        await runInHookStore(async () =>
+          deviceService.initial(
+            makeFakeReq(fingerprint, sameId),
+            {
+              private: false,
+              sr: { height: 1000, width: 500 },
+              vp: { height: 400, width: 300 },
+              hardwareInfo: {},
+              deviceInfo: {},
+            } as never,
+            pgDataSource.manager,
+          ),
+        )
+
+        expect(await countPg('sys_device', 'device_id = $1', [sameId])).toBe(1)
+        const device = await deviceRepoService.findDeviceByDeviceId(sameId)
+        expect(device!.srHeight).toBe(1000)
+
+        // 同一个指纹、但没有 cookie ⇒ 每次都是新身份（指纹不再派生 id）
+        const a = await runInHookStore(async () =>
+          deviceService.initial(
+            makeFakeReq(fingerprint),
+            {
+              private: false,
+              sr: { height: 800, width: 600 },
+              vp: { height: 400, width: 300 },
+              hardwareInfo: {},
+              deviceInfo: {},
+            } as never,
+            pgDataSource.manager,
+          ),
+        )
+        const b = await runInHookStore(async () =>
+          deviceService.initial(
+            makeFakeReq(fingerprint),
+            {
+              private: false,
+              sr: { height: 800, width: 600 },
+              vp: { height: 400, width: 300 },
+              hardwareInfo: {},
+              deviceInfo: {},
+            } as never,
+            pgDataSource.manager,
+          ),
+        )
+
+        expect(a.deviceId).not.toBe(b.deviceId)
+        expect(isValidDeviceId(a.deviceId)).toBe(true)
+        expect(isValidDeviceId(b.deviceId)).toBe(true)
+      },
+    )
 
     itSystem('uq_device_id：业务键重复插入拒绝（对齐 Mongo unique）', async () => {
       const deviceId = devId('b6-dup-device')
@@ -223,12 +273,14 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
         ipHistory: [],
       })
 
-      await expect(deviceBasicRepo.create({
-        deviceName: unique('b6-dup-device-name-2'),
-        deviceId,
-        deviceInfo: {},
-        ipHistory: [],
-      })).rejects.toThrow()
+      await expect(
+        deviceBasicRepo.create({
+          deviceName: unique('b6-dup-device-name-2'),
+          deviceId,
+          deviceInfo: {},
+          ipHistory: [],
+        }),
+      ).rejects.toThrow()
     })
   })
 
@@ -267,11 +319,19 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       await deviceRepoService.updateIpAndLocation(deviceId, '10.0.0.5')
       await deviceRepoService.updateIpAndLocation(deviceId, '10.0.0.6')
       device = await deviceRepoService.findDeviceByDeviceId(deviceId)
-      expect(device!.ipHistory).toEqual(['10.0.0.2', '10.0.0.3', '10.0.0.4', '10.0.0.5', '10.0.0.6'])
-      expect(device!.locationHistory.map(i => i.ip)).toEqual(device!.ipHistory)
+      expect(device!.ipHistory).toEqual([
+        '10.0.0.2',
+        '10.0.0.3',
+        '10.0.0.4',
+        '10.0.0.5',
+        '10.0.0.6',
+      ])
+      expect(device!.locationHistory.map((i) => i.ip)).toEqual(device!.ipHistory)
 
       // 未知业务键 → NotFound
-      await expect(deviceRepoService.updateIpAndLocation(unique('b6-ghost'), '10.0.0.7')).rejects.toThrow()
+      await expect(
+        deviceRepoService.updateIpAndLocation(unique('b6-ghost'), '10.0.0.7'),
+      ).rejects.toThrow()
     })
 
     itSystem('list：location 过滤打在 location_info 三个子字段（ILIKE 字面量）', async () => {
@@ -281,7 +341,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       } as never)
 
       expect(res.total).toBeGreaterThanOrEqual(1)
-      expect(res.data.some(i => isValidDeviceId(i.deviceId))).toBe(true)
+      expect(res.data.some((i) => isValidDeviceId(i.deviceId))).toBe(true)
 
       const miss = await deviceService.list({
         filters: [{ field: 'location', op: 'like', value: 'atlantis' }],
@@ -302,12 +362,15 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
         active: true,
       })
 
-      const snapshot = await deviceRepoService.markDeviceStale(deviceId) as { deviceId: string, stale: boolean }
+      const snapshot = (await deviceRepoService.markDeviceStale(deviceId)) as {
+        deviceId: string
+        stale: boolean
+      }
       expect(snapshot.deviceId).toBe(deviceId)
       // 快照是「标记前」的形态
       expect(snapshot.stale).toBe(false)
 
-      const rows: Array<{ stale: boolean, active: boolean }> = await pgDataSource.query(
+      const rows: Array<{ stale: boolean; active: boolean }> = await pgDataSource.query(
         'SELECT stale, active FROM sys_device WHERE device_id = $1',
         [deviceId],
       )
@@ -327,15 +390,27 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
     itSystem('未知业务键插入拒绝；已知业务键插入成功；(user_id, device_id) UNIQUE', async () => {
       deviceAKey = devId('b6-ua-device')
       deviceBKey = devId('b6-ub-device')
-      await deviceBasicRepo.create({ deviceName: unique('b6-ua-name'), deviceId: deviceAKey, deviceInfo: {}, ipHistory: [] })
-      await deviceBasicRepo.create({ deviceName: unique('b6-ub-name'), deviceId: deviceBKey, deviceInfo: {}, ipHistory: [] })
+      await deviceBasicRepo.create({
+        deviceName: unique('b6-ua-name'),
+        deviceId: deviceAKey,
+        deviceInfo: {},
+        ipHistory: [],
+      })
+      await deviceBasicRepo.create({
+        deviceName: unique('b6-ub-name'),
+        deviceId: deviceBKey,
+        deviceInfo: {},
+        ipHistory: [],
+      })
 
       // FK 挂在业务键 sys_device(device_id)（Q5 定案）：幽灵业务键拒绝，
       // 且必须是 PG 的 foreign_key_violation（23503）—— B7a review 挂单补错误码断言
-      await expect(pgDataSource.query(
-        'INSERT INTO sys_user_device (user_id, device_id) VALUES ($1, $2)',
-        [pgUserId, devId('b6-ghost-device')],
-      )).rejects.toMatchObject({ code: '23503' })
+      await expect(
+        pgDataSource.query('INSERT INTO sys_user_device (user_id, device_id) VALUES ($1, $2)', [
+          pgUserId,
+          devId('b6-ghost-device'),
+        ]),
+      ).rejects.toMatchObject({ code: '23503' })
 
       const row = await userDeviceRepo.upsertDevice(pgUserId, deviceAKey, unique('b6-ua-name'))
       expect(row.deviceId).toBe(deviceAKey)
@@ -347,23 +422,28 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       await userDeviceRepo.upsertDevice(pgUserId, deviceBKey, unique('b6-ub-name'))
 
       // uq_user_device (user_id, device_id)：重复绑定拒绝（Q2 定案补 UNIQUE）
-      await expect(pgDataSource.query(
-        'INSERT INTO sys_user_device (user_id, device_id) VALUES ($1, $2)',
-        [pgUserId, deviceAKey],
-      )).rejects.toThrow()
+      await expect(
+        pgDataSource.query('INSERT INTO sys_user_device (user_id, device_id) VALUES ($1, $2)', [
+          pgUserId,
+          deviceAKey,
+        ]),
+      ).rejects.toThrow()
     })
 
-    itSystem('updateLockStatusForAllDevices：$ne 语义批量翻转 + isAnyDeviceLockedForUser', async () => {
-      expect(await userDeviceRepo.isAnyDeviceLockedForUser(pgUserId)).toBe(false)
+    itSystem(
+      'updateLockStatusForAllDevices：$ne 语义批量翻转 + isAnyDeviceLockedForUser',
+      async () => {
+        expect(await userDeviceRepo.isAnyDeviceLockedForUser(pgUserId)).toBe(false)
 
-      await userDeviceRepo.updateLockStatusForAllDevices(pgUserId, true)
-      expect(await userDeviceRepo.isAnyDeviceLockedForUser(pgUserId)).toBe(true)
-      expect(await userDeviceRepo.isDeviceLockedForUser(pgUserId, deviceAKey)).toBe(true)
-      expect(await userDeviceRepo.isDeviceLockedForUser(pgUserId, deviceBKey)).toBe(true)
+        await userDeviceRepo.updateLockStatusForAllDevices(pgUserId, true)
+        expect(await userDeviceRepo.isAnyDeviceLockedForUser(pgUserId)).toBe(true)
+        expect(await userDeviceRepo.isDeviceLockedForUser(pgUserId, deviceAKey)).toBe(true)
+        expect(await userDeviceRepo.isDeviceLockedForUser(pgUserId, deviceBKey)).toBe(true)
 
-      await userDeviceRepo.updateLockStatusForAllDevices(pgUserId, false)
-      expect(await userDeviceRepo.isAnyDeviceLockedForUser(pgUserId)).toBe(false)
-    })
+        await userDeviceRepo.updateLockStatusForAllDevices(pgUserId, false)
+        expect(await userDeviceRepo.isAnyDeviceLockedForUser(pgUserId)).toBe(false)
+      },
+    )
 
     itSystem('updateUserDeviceLastActiveAt：基线语义（含 isNil 反转分支的原始行为）', async () => {
       const target = await userDeviceRepo.findByUserAndDevice(pgUserId, deviceAKey)
@@ -400,7 +480,14 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       const visitorId = unique('b6-visitor-1')
       const deviceAKey = devId('b6-m-device')
 
-      await deviceBasicRepo.create({ deviceName: unique('b6-m-name'), deviceId: deviceAKey, deviceInfo: { os: 'windows', browser: 'chrome' }, ip: '9.9.9.9', locationInfo: { country: 'China' }, ipHistory: [] })
+      await deviceBasicRepo.create({
+        deviceName: unique('b6-m-name'),
+        deviceId: deviceAKey,
+        deviceInfo: { os: 'windows', browser: 'chrome' },
+        ip: '9.9.9.9',
+        locationInfo: { country: 'China' },
+        ipHistory: [],
+      })
 
       const created = await monitorRepoService.findOneAndUpdate(
         { deviceId: deviceAKey },
@@ -430,10 +517,23 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
 
     itSystem('findActiveByDeviceId / findFirstByDeviceId：left 过滤差异', async () => {
       const deviceKey = devId('b6-left-device')
-      await deviceBasicRepo.create({ deviceName: unique('b6-left-name'), deviceId: deviceKey, deviceInfo: {}, ipHistory: [] })
+      await deviceBasicRepo.create({
+        deviceName: unique('b6-left-name'),
+        deviceId: deviceKey,
+        deviceInfo: {},
+        ipHistory: [],
+      })
 
-      await monitorBasicRepo.create({ visitorId: unique('b6-visitor-left'), deviceId: deviceKey, left: true })
-      await monitorBasicRepo.create({ visitorId: unique('b6-visitor-active'), deviceId: deviceKey, left: false })
+      await monitorBasicRepo.create({
+        visitorId: unique('b6-visitor-left'),
+        deviceId: deviceKey,
+        left: true,
+      })
+      await monitorBasicRepo.create({
+        visitorId: unique('b6-visitor-active'),
+        deviceId: deviceKey,
+        left: false,
+      })
 
       const active = await monitorRepoService.findActiveByDeviceId(deviceKey)
       expect(active!.left).toBe(false)
@@ -443,73 +543,106 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       expect(first).not.toBeNull()
     })
 
-    itSystem('findActiveUserByDeviceId：user 松引用查 sys_user 同源表（ETL 前空数据窗口）', async () => {
-      const deviceKey = devId('b6-pop-device')
-      await deviceBasicRepo.create({ deviceName: unique('b6-pop-name'), deviceId: deviceKey, deviceInfo: {}, ipHistory: [] })
+    itSystem(
+      'findActiveUserByDeviceId：user 松引用查 sys_user 同源表（ETL 前空数据窗口）',
+      async () => {
+        const deviceKey = devId('b6-pop-device')
+        await deviceBasicRepo.create({
+          deviceName: unique('b6-pop-name'),
+          deviceId: deviceKey,
+          deviceInfo: {},
+          ipHistory: [],
+        })
 
-      const withUser = await monitorBasicRepo.create({ visitorId: unique('b6-visitor-user'), deviceId: deviceKey, userId: pgUserId, auth: true })
-      const withoutUser = await monitorBasicRepo.create({ visitorId: unique('b6-visitor-anon'), deviceId: deviceKey, left: true })
+        const withUser = await monitorBasicRepo.create({
+          visitorId: unique('b6-visitor-user'),
+          deviceId: deviceKey,
+          userId: pgUserId,
+          auth: true,
+        })
+        const withoutUser = await monitorBasicRepo.create({
+          visitorId: unique('b6-visitor-anon'),
+          deviceId: deviceKey,
+          left: true,
+        })
 
-      expect(await monitorRepoService.findActiveUserByDeviceId(deviceKey)).toMatchObject({
-        id: pgUserId,
-        userName: unique('b6-user'),
-      })
+        expect(await monitorRepoService.findActiveUserByDeviceId(deviceKey)).toMatchObject({
+          id: pgUserId,
+          userName: unique('b6-user'),
+        })
 
-      // 未知设备 → 无 active monitor → null
-      expect(await monitorRepoService.findActiveUserByDeviceId(unique('b6-nobody'))).toBeNull()
+        // 未知设备 → 无 active monitor → null
+        expect(await monitorRepoService.findActiveUserByDeviceId(unique('b6-nobody'))).toBeNull()
 
-      await monitorBasicRepo.deleteRealById(withoutUser.id)
-      await monitorBasicRepo.deleteRealById(withUser.id)
-    })
+        await monitorBasicRepo.deleteRealById(withoutUser.id)
+        await monitorBasicRepo.deleteRealById(withUser.id)
+      },
+    )
   })
 
   describe('forceQuit 链路', () => {
     itSystem('monitor 不存在 → false（PG 侧短路）', async () => {
-      const result = await monitorUserService.forceQuitByMonitorId(randomUUID(), pgDataSource.manager)
+      const result = await monitorUserService.forceQuitByMonitorId(
+        randomUUID(),
+        pgDataSource.manager,
+      )
       expect(result).toBe(false)
     })
 
-    itSystem('forceQuitByMonitorId：PG 读行 + doSignout，refresh revoke 写腿同为 PG（B7b 归一）', async () => {
-      const deviceKey = devId('b6-fq-device')
-      await deviceBasicRepo.create({ deviceName: unique('b6-fq-name'), deviceId: deviceKey, deviceInfo: {}, ipHistory: [] })
+    itSystem(
+      'forceQuitByMonitorId：PG 读行 + doSignout，refresh revoke 写腿同为 PG（B7b 归一）',
+      async () => {
+        const deviceKey = devId('b6-fq-device')
+        await deviceBasicRepo.create({
+          deviceName: unique('b6-fq-name'),
+          deviceId: deviceKey,
+          deviceInfo: {},
+          ipHistory: [],
+        })
 
-      const jti = unique('b6-fq-jti')
-      // refresh 行已迁 PG（B7b）：双 FK —— user_id → sys_user、device_id → sys_device(device_id)
-      await pgDataSource.query(
-        'INSERT INTO auth_refresh_token (jti, user_id, device_id, encrypted_token, expired_at) VALUES ($1, $2, $3, $4, $5)',
-        [jti, pgUserId, deviceKey, 'enc', new Date(Date.now() + 3600_000).toISOString()],
-      )
+        const jti = unique('b6-fq-jti')
+        // refresh 行已迁 PG（B7b）：双 FK —— user_id → sys_user、device_id → sys_device(device_id)
+        await pgDataSource.query(
+          'INSERT INTO auth_refresh_token (jti, user_id, device_id, encrypted_token, expired_at) VALUES ($1, $2, $3, $4, $5)',
+          [jti, pgUserId, deviceKey, 'enc', new Date(Date.now() + 3600_000).toISOString()],
+        )
 
-      const monitor = await monitorBasicRepo.create({
-        visitorId: unique('b6-fq-visitor'),
-        deviceId: deviceKey,
-        userId: pgUserId,
-        auth: true,
-        // left=true → isOnline=false → forceQuit 只走 revoke 腿、不发 socket
-        left: true,
-      })
+        const monitor = await monitorBasicRepo.create({
+          visitorId: unique('b6-fq-visitor'),
+          deviceId: deviceKey,
+          userId: pgUserId,
+          auth: true,
+          // left=true → isOnline=false → forceQuit 只走 revoke 腿、不发 socket
+          left: true,
+        })
 
-      const result = await monitorUserService.forceQuitByMonitorId(monitor.id, pgDataSource.manager)
+        const result = await monitorUserService.forceQuitByMonitorId(
+          monitor.id,
+          pgDataSource.manager,
+        )
 
-      // doSignout(admin-kick) 正常完成（返回 void）
-      expect(result).toBeUndefined()
+        // doSignout(admin-kick) 正常完成（返回 void）
+        expect(result).toBeUndefined()
 
-      // B7b 归一：revoke 落 PG 同一行（原 B6~B7 跨引擎窗口的「不落 Mongo」现状断言随之退役）
-      const rows: Array<{ revoked: boolean }> = await pgDataSource.query(
-        'SELECT revoked FROM auth_refresh_token WHERE jti = $1',
-        [jti],
-      )
-      expect(rows[0].revoked).toBe(true)
+        // B7b 归一：revoke 落 PG 同一行（原 B6~B7 跨引擎窗口的「不落 Mongo」现状断言随之退役）
+        const rows: Array<{ revoked: boolean }> = await pgDataSource.query(
+          'SELECT revoked FROM auth_refresh_token WHERE jti = $1',
+          [jti],
+        )
+        expect(rows[0].revoked).toBe(true)
 
-      await monitorBasicRepo.deleteRealById(monitor.id)
-    })
+        await monitorBasicRepo.deleteRealById(monitor.id)
+      },
+    )
 
     itSystem('user_device.forceQuitUserDevice：无 monitor 行 → DataNotFound', async () => {
-      await expect(userDeviceService.forceQuitUserDevice(
-        pgUserId,
-        unique('b6-fq-nobody'),
-        pgDataSource.manager,
-      )).rejects.toThrow()
+      await expect(
+        userDeviceService.forceQuitUserDevice(
+          pgUserId,
+          unique('b6-fq-nobody'),
+          pgDataSource.manager,
+        ),
+      ).rejects.toThrow()
     })
   })
 
@@ -540,7 +673,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
         page: { page: 1, pageSize: 10 },
       } as never)
 
-      const row = res.data.find(i => i.visitorId === authedVisitor)
+      const row = res.data.find((i) => i.visitorId === authedVisitor)
       expect(row).toBeDefined()
       expect(row!.device).toMatchObject({
         deviceInfo: { os: 'windows', browser: 'chrome', type: 'desktop' },

@@ -24,45 +24,45 @@ function withSwaggerSchemaName(cls: Type<any>, name: string): Type<any> {
 
 /** pick 键拼进 schema 名：同基类的不同 PickType 形态也要互不撞键（键序即调用序，稳定） */
 function pickSchemaName(classRef: Type<any>, keys: readonly PropertyKey[]): string {
-  const suffix = keys.map((key) => {
-    const k = String(key)
-    return k.charAt(0).toUpperCase() + k.slice(1)
-  }).join('')
+  const suffix = keys
+    .map((key) => {
+      const k = String(key)
+      return k.charAt(0).toUpperCase() + k.slice(1)
+    })
+    .join('')
   return `${classRef.name}Pick${suffix}`
 }
 
-export function RealOmitType<
-  C extends Type<any>,
-  K extends keyof InstanceType<C>,
->(
+export function RealOmitType<C extends Type<any>, K extends keyof InstanceType<C>>(
   classRef: C,
   keys: readonly K[],
 ): Type<Omit<InstanceType<C>, K>> {
   const realKeys = remove(
     Object.keys(plainToInstance(classRef, {}) as Recordable),
-    i => !keys.includes(i as K),
+    (i) => !keys.includes(i as K),
   ) as (keyof InstanceType<C>)[]
 
   return RealPickType(classRef, realKeys)
 }
 
-export function RealPickType<
-  C extends Type<any>,
-  K extends keyof InstanceType<C>,
->(
+export function RealPickType<C extends Type<any>, K extends keyof InstanceType<C>>(
   classRef: C,
   keys: readonly K[],
 ): Type<Pick<InstanceType<C>, K>> {
   const PickTypeClass = PickType(classRef, keys) as Type<any>
 
   if (keys.length === 0)
-    return withSwaggerSchemaName(PickTypeClass, pickSchemaName(classRef, keys)) as Type<Pick<InstanceType<C>, K>>
+    return withSwaggerSchemaName(PickTypeClass, pickSchemaName(classRef, keys)) as Type<
+      Pick<InstanceType<C>, K>
+    >
 
   keys.forEach((propertyKey) => {
     Expose()(PickTypeClass.prototype as Recordable, propertyKey as string)
   })
 
-  return withSwaggerSchemaName(PickTypeClass, pickSchemaName(classRef, keys)) as Type<Pick<InstanceType<C>, K>>
+  return withSwaggerSchemaName(PickTypeClass, pickSchemaName(classRef, keys)) as Type<
+    Pick<InstanceType<C>, K>
+  >
 }
 
 export interface RealPartialTypeOptions {
@@ -88,17 +88,16 @@ export interface RealPartialTypeOptions {
   preserveAbsent?: boolean
 }
 
-export function RealPartialType<
-  C extends Type<any>,
->(
+export function RealPartialType<C extends Type<any>>(
   classRef: C,
   options: RealPartialTypeOptions = {},
 ): Type<Partial<InstanceType<C>>> {
   const PartialTypeClass = PartialType(classRef) as Type<any>
 
-  const keys = Object.keys(plainToInstance(PartialTypeClass, {}) as Recordable) as (keyof InstanceType<C>)[]
-  if (keys.length === 0)
-    return PartialTypeClass as Type<Partial<InstanceType<C>>>
+  const keys = Object.keys(
+    plainToInstance(PartialTypeClass, {}) as Recordable,
+  ) as (keyof InstanceType<C>)[]
+  if (keys.length === 0) return PartialTypeClass as Type<Partial<InstanceType<C>>>
 
   // preserveAbsent：子类落点（见 options 注释里「为什么需要再包一层」）
   const TargetClass = options.preserveAbsent
@@ -106,26 +105,25 @@ export function RealPartialType<
     : PartialTypeClass
 
   keys.forEach((propertyKey) => {
-    IsOptional({ always: true })(
-      TargetClass.prototype as Recordable,
-      propertyKey as string,
-    )
+    IsOptional({ always: true })(TargetClass.prototype as Recordable, propertyKey as string)
   })
 
   if (options.preserveAbsent) {
     keys.forEach((propertyKey) => {
-      Transform(({ value, obj, key }: TransformFnParams): unknown => {
-        const source = obj as Recordable | null | undefined
-        if (source === null || source === undefined || typeof key !== 'string')
-          return value as unknown
+      Transform(
+        ({ value, obj, key }: TransformFnParams): unknown => {
+          const source = obj as Recordable | null | undefined
+          if (source === null || source === undefined || typeof key !== 'string')
+            return value as unknown
 
-        return Object.hasOwn(source, key) ? value as unknown : undefined
-      }, { toClassOnly: true })(
-        TargetClass.prototype as Recordable,
-        propertyKey as string,
-      )
+          return Object.hasOwn(source, key) ? (value as unknown) : undefined
+        },
+        { toClassOnly: true },
+      )(TargetClass.prototype as Recordable, propertyKey as string)
     })
   }
 
-  return withSwaggerSchemaName(TargetClass, `${classRef.name}Partial`) as Type<Partial<InstanceType<C>>>
+  return withSwaggerSchemaName(TargetClass, `${classRef.name}Partial`) as Type<
+    Partial<InstanceType<C>>
+  >
 }

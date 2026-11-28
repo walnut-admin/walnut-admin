@@ -8,7 +8,10 @@ import {
 } from 'unocss'
 
 export default defineConfig({
-  shortcuts: [['hstack', 'flex flex-row flex-nowrap'], ['vstack', 'flex flex-col flex-nowrap']],
+  shortcuts: [
+    ['hstack', 'flex flex-row flex-nowrap'],
+    ['vstack', 'flex flex-col flex-nowrap'],
+  ],
 
   theme: {
     colors: {
@@ -32,7 +35,8 @@ export default defineConfig({
     animation: {
       keyframes: {
         'hue-rotate': '{ 100% { filter: contrast(15) hue-rotate(360deg) } }',
-        'wave-circle': '{ 0% { transform: translate(-50%, -50%); } 50% { border-radius: 45% / 42% 38% 58% 49%; } 100% { transform: translate(-50%, -50%) rotate(720deg); } }',
+        'wave-circle':
+          '{ 0% { transform: translate(-50%, -50%); } 50% { border-radius: 45% / 42% 38% 58% 49%; } 100% { transform: translate(-50%, -50%) rotate(720deg); } }',
       },
 
       durations: {
@@ -61,7 +65,5 @@ export default defineConfig({
       },
     }),
   ],
-  transformers: [
-    transformerVariantGroup(),
-  ],
+  transformers: [transformerVariantGroup()],
 })

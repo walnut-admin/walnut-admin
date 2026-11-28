@@ -2,7 +2,11 @@ import type { IOtpType } from '@walnut-server/identity'
 import type { IWalnutAdminSystemFailedLoginRiskCollector } from '../../../system.ports'
 import { ExecutionContext, Inject, Injectable, Logger } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { IWalnutAdminConstDecoratorLogAuthType, WalnutAdminConstDecoratorLogAuthMetadataKey, WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
+import {
+  IWalnutAdminConstDecoratorLogAuthType,
+  WalnutAdminConstDecoratorLogAuthMetadataKey,
+  WalnutAdminConstDecoratorLogAuthType,
+} from '@walnut-server/const/decorator/logAuth'
 import { SharedIpService } from '@walnut-server/ip'
 import { isNil } from 'lodash'
 import { I18nContext } from 'nestjs-i18n'
@@ -66,7 +70,10 @@ export class SysLogAuthSharedService {
    * Get raw error message for auth log
    * Handles OTP and Opaque errors
    */
-  private getRawErrorMessage(type: IWalnutAdminConstDecoratorLogAuthType, request: IWalnutAdminExpressRequest) {
+  private getRawErrorMessage(
+    type: IWalnutAdminConstDecoratorLogAuthType,
+    request: IWalnutAdminExpressRequest,
+  ) {
     if (type === WalnutAdminConstDecoratorLogAuthType.OTP) {
       const clientError = (request.body as IAuthLogOpaqueErrorPayload)?.clientError
       if (typeof clientError === 'string' && clientError !== '') {
@@ -79,7 +86,9 @@ export class SysLogAuthSharedService {
   /**
    * Get auth log type from metadata
    */
-  getAuthLogTypeFromMetadata(context: ExecutionContext): IWalnutAdminConstDecoratorLogAuthType | undefined {
+  getAuthLogTypeFromMetadata(
+    context: ExecutionContext,
+  ): IWalnutAdminConstDecoratorLogAuthType | undefined {
     return this.reflector.getAllAndOverride<IWalnutAdminConstDecoratorLogAuthType>(
       WalnutAdminConstDecoratorLogAuthMetadataKey,
       [context.getHandler(), context.getClass()],
@@ -90,22 +99,22 @@ export class SysLogAuthSharedService {
    * Record authentication attempt
    * Insert auth log and optionally collect failed login risk
    */
-  async recordAuth(
-    payload: {
-      request: IWalnutAdminExpressRequest
-      authType: IWalnutAdminConstDecoratorLogAuthType
-      identifier: string
-      deviceId: string
-      success: boolean
-      errI18nMsg?: string
-    },
-  ) {
+  async recordAuth(payload: {
+    request: IWalnutAdminExpressRequest
+    authType: IWalnutAdminConstDecoratorLogAuthType
+    identifier: string
+    deviceId: string
+    success: boolean
+    errI18nMsg?: string
+  }) {
     const { request, authType, identifier, deviceId, success, errI18nMsg } = payload
 
     const i18n = I18nContext.current()!
-    const msg = String(success
-      ? i18n.t('response.20000')
-      : i18n.t(errI18nMsg ?? this.getRawErrorMessage(authType, request)))
+    const msg = String(
+      success
+        ? i18n.t('response.20000')
+        : i18n.t(errI18nMsg ?? this.getRawErrorMessage(authType, request)),
+    )
 
     const location = await this.sharedIpService.getLocationFromBaidu(request.realIp)
 

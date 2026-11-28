@@ -10,7 +10,9 @@ import { MurLockAdapter } from '../murlock.adapter'
  */
 describe('murLock adapter（D11 端口适配器）', () => {
   it('把 (lockKey, releaseTimeMs, fn) 原样透传，并返回临界区结果', async () => {
-    const runWithLock = vi.fn(async (_key: string, _ttl: number, fn: () => Promise<unknown>) => fn())
+    const runWithLock = vi.fn(async (_key: string, _ttl: number, fn: () => Promise<unknown>) =>
+      fn(),
+    )
     const adapter = new MurLockAdapter({ runWithLock } as never)
 
     const result = await adapter.runWithLock('APP:MURLOCK:CAP:device-1', 3000, async () => 'ok')
@@ -21,12 +23,16 @@ describe('murLock adapter（D11 端口适配器）', () => {
   })
 
   it('临界区抛错原样传给调用方（适配器不吞错、不重试）', async () => {
-    const runWithLock = vi.fn(async (_key: string, _ttl: number, fn: () => Promise<unknown>) => fn())
+    const runWithLock = vi.fn(async (_key: string, _ttl: number, fn: () => Promise<unknown>) =>
+      fn(),
+    )
     const adapter = new MurLockAdapter({ runWithLock } as never)
 
-    await expect(adapter.runWithLock('k', 200, async () => {
-      throw new Error('critical-section-failed')
-    })).rejects.toThrow('critical-section-failed')
+    await expect(
+      adapter.runWithLock('k', 200, async () => {
+        throw new Error('critical-section-failed')
+      }),
+    ).rejects.toThrow('critical-section-failed')
   })
 
   it('锁实现自身抛错（Redis 不可达等）原样传播', async () => {
@@ -35,6 +41,8 @@ describe('murLock adapter（D11 端口适配器）', () => {
     })
     const adapter = new MurLockAdapter({ runWithLock } as never)
 
-    await expect(adapter.runWithLock('k', 200, async () => 'never')).rejects.toThrow('redis-unreachable')
+    await expect(adapter.runWithLock('k', 200, async () => 'never')).rejects.toThrow(
+      'redis-unreachable',
+    )
   })
 })

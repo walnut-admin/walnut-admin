@@ -27,7 +27,10 @@ function buildDeptIds(count: number): string[] {
   return Array.from({ length: count }, () => randomUUID())
 }
 
-async function validateDeptIds(DTO: typeof SysRoleDTOCreateRequest | typeof SysRoleDTOUpdateRequest, count: number) {
+async function validateDeptIds(
+  DTO: typeof SysRoleDTOCreateRequest | typeof SysRoleDTOUpdateRequest,
+  count: number,
+) {
   const dto = plainToInstance(
     DTO,
     { ...REQUIRED_FIELDS, deptIds: buildDeptIds(count) },
@@ -37,7 +40,7 @@ async function validateDeptIds(DTO: typeof SysRoleDTOCreateRequest | typeof SysR
 }
 
 function expectArrayMaxSizeOnly(errors: Awaited<ReturnType<typeof validate>>) {
-  const deptErrors = errors.filter(error => error.property === 'deptIds')
+  const deptErrors = errors.filter((error) => error.property === 'deptIds')
 
   expect(deptErrors).toHaveLength(1)
   expect(Object.keys(deptErrors[0].constraints ?? {})).toContain('arrayMaxSize')
@@ -76,7 +79,10 @@ describe('批 7 / L6：role deptIds 清单上限（200）', () => {
  * 口径与 F1 的 menu.dto.spec 一致：未提供的键保持 undefined，显式 null 保留。
  */
 function parseUpdate(body: Record<string, unknown>) {
-  return plainToInstance(SysRoleDTOUpdateRequest, body, { exposeUnsetFields: false }) as Record<string, unknown>
+  return plainToInstance(SysRoleDTOUpdateRequest, body, { exposeUnsetFields: false }) as Record<
+    string,
+    unknown
+  >
 }
 
 describe('update DTO / role：真 partial（preserveAbsent）', () => {

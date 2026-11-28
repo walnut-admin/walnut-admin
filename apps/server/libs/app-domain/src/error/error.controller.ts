@@ -33,7 +33,10 @@ import {
   WalnutAdminExceptionUserAgentOSNotAcceptable,
 } from '@walnut-server/exceptions/base/406'
 
-import { WalnutAdminExceptionServiceUnavailable, WalnutAdminExceptionServiceUnavailableDependencyDown } from '@walnut-server/exceptions/base/503'
+import {
+  WalnutAdminExceptionServiceUnavailable,
+  WalnutAdminExceptionServiceUnavailableDependencyDown,
+} from '@walnut-server/exceptions/base/503'
 
 import { WalnutAdminExceptionEndPointUnavailable } from '@walnut-server/exceptions/business/app'
 
@@ -59,11 +62,23 @@ import {
   WalnutAdminExceptionYouAreBot,
 } from '@walnut-server/exceptions/business/auth'
 
-import { WalnutAdminExceptionRsaDecryptFailed, WalnutAdminExceptionRsaPubKeyNotFound } from '@walnut-server/exceptions/business/rsa'
-import { WalnutAdminDecoratorDevOnly, WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorHasRole } from '@walnut-server/guards'
+import {
+  WalnutAdminExceptionRsaDecryptFailed,
+  WalnutAdminExceptionRsaPubKeyNotFound,
+} from '@walnut-server/exceptions/business/rsa'
+import {
+  WalnutAdminDecoratorDevOnly,
+  WalnutAdminDecoratorHasPermission,
+  WalnutAdminDecoratorHasRole,
+} from '@walnut-server/guards'
 
 import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
-import { AppRoutes, IWalnutAdminConstAppResponseCode, Role, WalnutAdminConstAppResponseCode } from '@walnut/contract'
+import {
+  AppRoutes,
+  IWalnutAdminConstAppResponseCode,
+  Role,
+  WalnutAdminConstAppResponseCode,
+} from '@walnut/contract'
 
 const Permissions = {
   TEST: 'app:error:test',
@@ -86,10 +101,12 @@ export class AppErrorController {
     required: true,
     type: Number,
     enum: WalnutAdminConstAppResponseCode,
-    description: 'app response code to throw; a value outside the enum is rejected by the param pipe (40099)',
+    description:
+      'app response code to throw; a value outside the enum is rejected by the param pipe (40099)',
   })
   @ApiOkResponse({
-    description: 'Always an error envelope (this handler always throws): HTTP 200 with body.data = null, body.code = the requested code (never 20000) and body.msg = the i18n message of that code. Declared as the shared { code, msg, data } shell so the whole response-code enum stays discoverable from this endpoint.',
+    description:
+      'Always an error envelope (this handler always throws): HTTP 200 with body.data = null, body.code = the requested code (never 20000) and body.msg = the i18n message of that code. Declared as the shared { code, msg, data } shell so the whole response-code enum stays discoverable from this endpoint.',
     schema: WalnutAdminSwaggerResponseSuccessSchemeData({ type: 'null' }),
   })
   // 4A：13 个缺 summary 的 op 之一（这个端点唯一用途是演练错误壳，summary 说明它「总是抛」）。

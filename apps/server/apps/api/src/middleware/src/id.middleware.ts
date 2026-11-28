@@ -22,11 +22,7 @@ function generateRequestId(): string {
 export class IdMiddleware implements NestMiddleware {
   constructor() {}
 
-  use(
-    req: IWalnutAdminExpressRequest,
-    _res: IWalnutAdminExpressResponse,
-    next: NextFunction,
-  ) {
+  use(req: IWalnutAdminExpressRequest, _res: IWalnutAdminExpressResponse, next: NextFunction) {
     const uuid: string = generateRequestId()
     req.headers[RequestHeaders.ID] = uuid
     req.id = uuid

@@ -1,6 +1,15 @@
 import { ApiProperty, IntersectionType } from '@nestjs/swagger'
-import { IWalnutAdminConstAppSettingScopeType, IWalnutAdminConstAppSettingType, WalnutAdminConstAppSettingScopeType, WalnutAdminConstAppSettingType } from '@walnut-server/const/app/setting'
-import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
+import {
+  IWalnutAdminConstAppSettingScopeType,
+  IWalnutAdminConstAppSettingType,
+  WalnutAdminConstAppSettingScopeType,
+  WalnutAdminConstAppSettingType,
+} from '@walnut-server/const/app/setting'
+import {
+  WalnutAdminDecoratorFieldBoolean,
+  WalnutAdminDecoratorFieldEnum,
+  WalnutAdminDecoratorFieldString,
+} from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
 import { WalnutAdminCommonBasicModel } from '@walnut-server/identity'
@@ -73,7 +82,9 @@ export class AppSettingDTOSafe extends AppSettingDTO {
   }
 }
 
-class AppSettingDTOSafeRequest extends RealPartialType(RealOmitType(AppSettingDTOSafe, ['settingType'] as const)) {
+class AppSettingDTOSafeRequest extends RealPartialType(
+  RealOmitType(AppSettingDTOSafe, ['settingType'] as const),
+) {
   // 列表查询可选过滤：query 信封不挂 ValidateNested（见 list.dto.ts 的 required: false），
   // enum 校验器也没有 nullable 选项 —— 此处无需 IsOptional（F-38：不裸挂 class-validator）
   @WalnutAdminDecoratorFieldEnum(() => WalnutAdminConstAppSettingType, {
@@ -99,13 +110,15 @@ export class AppSettingDTOListResponse extends CreateWalnutAdminResponseListDTO(
 ) {}
 
 // create
-export class AppSettingDTOCreateRequest extends IntersectionType(RealPickType(
-  AppSettingDTOSafe,
-  ['settingKey', 'settingName', 'settingValue', 'settingType'] as const,
-), RealPartialType(RealPickType(
-  AppSettingDTOSafe,
-  ['remark'] as const,
-))) {}
+export class AppSettingDTOCreateRequest extends IntersectionType(
+  RealPickType(AppSettingDTOSafe, [
+    'settingKey',
+    'settingName',
+    'settingValue',
+    'settingType',
+  ] as const),
+  RealPartialType(RealPickType(AppSettingDTOSafe, ['remark'] as const)),
+) {}
 export class AppSettingDTOCreateResponse extends AppSettingDTOSafe {}
 
 // read
@@ -113,7 +126,13 @@ export class AppSettingDTOReadResponse extends AppSettingDTOSafe {}
 
 // update —— 真 PATCH 语义（preserveAbsent，2026-11 F2）：未提供的键保持 undefined
 export class AppSettingDTOUpdateRequest extends RealPartialType(
-  RealPickType(AppSettingDTOSafe, ['settingKey', 'settingName', 'settingValue', 'settingType', 'remark'] as const),
+  RealPickType(AppSettingDTOSafe, [
+    'settingKey',
+    'settingName',
+    'settingValue',
+    'settingType',
+    'remark',
+  ] as const),
   { preserveAbsent: true },
 ) {}
 export class AppSettingDTOUpdateResponse extends AppSettingDTOSafe {}

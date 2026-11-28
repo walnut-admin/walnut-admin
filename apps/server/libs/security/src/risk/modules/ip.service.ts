@@ -3,7 +3,13 @@ import { AppTechRedisService } from '@walnut-server/cache'
 import { SharedIpService } from '@walnut-server/ip'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { isNil } from 'lodash'
-import { calcScoreAndLevel, SecurityRiskConfigService, WalnutAdminConstRiskFactor, WalnutAdminConstRiskLevel, WalnutAdminConstRiskType } from '../risk.config.service'
+import {
+  calcScoreAndLevel,
+  SecurityRiskConfigService,
+  WalnutAdminConstRiskFactor,
+  WalnutAdminConstRiskLevel,
+  WalnutAdminConstRiskType,
+} from '../risk.config.service'
 
 @Injectable()
 export class SecurityRiskIPService {
@@ -22,9 +28,11 @@ export class SecurityRiskIPService {
   /**
    * @description evaluate ip risk
    */
-  async evaluateIP(ip: string): Promise<IWalnutAdminRiskEvaluationResult<IWalnutAdminIpBlacklistInfo>> {
+  async evaluateIP(
+    ip: string,
+  ): Promise<IWalnutAdminRiskEvaluationResult<IWalnutAdminIpBlacklistInfo>> {
     const infoKey = await this.sharedIpService.getTempBlackListRedisKey(ip)
-    const cached = await this.redis.hGetAll(infoKey) as unknown as IWalnutAdminIpBlacklistInfo
+    const cached = (await this.redis.hGetAll(infoKey)) as unknown as IWalnutAdminIpBlacklistInfo
 
     if (isNil(cached) || Object.keys(cached).length === 0) {
       return {
@@ -43,8 +51,7 @@ export class SecurityRiskIPService {
     if (cached.permanent) {
       score = this.configService.getWeight(WalnutAdminConstRiskFactor.IP_BLACKLIST_PERMANENT)
       factors.push(WalnutAdminConstRiskFactor.IP_BLACKLIST_PERMANENT)
-    }
-    else {
+    } else {
       score = this.configService.getWeight(WalnutAdminConstRiskFactor.IP_BLACKLIST_TEMPORARY)
       factors.push(WalnutAdminConstRiskFactor.IP_BLACKLIST_TEMPORARY)
     }

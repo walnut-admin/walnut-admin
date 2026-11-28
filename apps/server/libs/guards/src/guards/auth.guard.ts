@@ -1,11 +1,5 @@
-import type {
-  ExecutionContext,
-} from '@nestjs/common'
-import {
-  HttpException,
-  Inject,
-  Logger,
-} from '@nestjs/common'
+import type { ExecutionContext } from '@nestjs/common'
+import { HttpException, Inject, Logger } from '@nestjs/common'
 
 import { AuthGuard } from '@nestjs/passport'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
@@ -27,12 +21,7 @@ export function WalnutAdminGuardAuth(strategy: string) {
       super()
     }
 
-    handleRequest<TUser = any>(
-      err: any,
-      user: TUser,
-      info: any,
-      context: ExecutionContext,
-    ): TUser {
+    handleRequest<TUser = any>(err: any, user: TUser, info: any, context: ExecutionContext): TUser {
       const req = context.switchToHttp().getRequest<IWalnutAdminExpressRequest>()
 
       /** ===== success, just return user ===== */
@@ -44,9 +33,10 @@ export function WalnutAdminGuardAuth(strategy: string) {
       const deviceId = getWalnutAdminCookie(req, WalnutAdminConstCookieKeys.DEVICE_ID)
       const identifier = req.identifier!
 
-      const originMsg = err instanceof HttpException
-        ? (err.getResponse() as IWalnutAdminResponseExceptionBase).errMsg
-        : (err as Error).message
+      const originMsg =
+        err instanceof HttpException
+          ? (err.getResponse() as IWalnutAdminResponseExceptionBase).errMsg
+          : (err as Error).message
 
       const payloadAuthType = this.logAuthSharedService.getAuthLogTypeFromMetadata(context)
 

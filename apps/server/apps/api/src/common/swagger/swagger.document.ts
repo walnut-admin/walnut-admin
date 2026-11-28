@@ -3,7 +3,10 @@ import type { OpenAPIObject } from '@nestjs/swagger'
 
 import { DiscoveryService, MetadataScanner, Reflector } from '@nestjs/core'
 import { ApiBearerAuth, ApiSecurity, SwaggerModule } from '@nestjs/swagger'
-import { WalnutAdminConstDecoratorJwtFreeKey, WalnutAdminConstDecoratorJwtOptionalKey } from '@walnut-server/auth'
+import {
+  WalnutAdminConstDecoratorJwtFreeKey,
+  WalnutAdminConstDecoratorJwtOptionalKey,
+} from '@walnut-server/auth'
 
 import { buildSwaggerDocumentOptions } from './swagger.options'
 
@@ -72,44 +75,40 @@ export function applySwaggerBearerAuth(app: INestApplication): number {
 
   for (const wrapper of discoveryService.getControllers()) {
     const metatype = wrapper.metatype as Type | null | undefined
-    if (typeof metatype !== 'function' || metatype.prototype === undefined)
-      continue
+    if (typeof metatype !== 'function' || metatype.prototype === undefined) continue
 
     const prototype = metatype.prototype as Record<string, unknown>
 
     for (const methodKey of metadataScanner.getAllMethodNames(prototype)) {
       const handler = prototype[methodKey]
-      if (typeof handler !== 'function')
-        continue
+      if (typeof handler !== 'function') continue
 
-      const isAnonymous = reflector.getAllAndOverride<boolean>(
-        WalnutAdminConstDecoratorJwtFreeKey,
-        [handler as (...args: unknown[]) => unknown, metatype],
-      ) === true
+      const isAnonymous =
+        reflector.getAllAndOverride<boolean>(WalnutAdminConstDecoratorJwtFreeKey, [
+          handler as (...args: unknown[]) => unknown,
+          metatype,
+        ]) === true
 
-      if (isAnonymous)
-        continue
+      if (isAnonymous) continue
 
-      const isOptional = reflector.getAllAndOverride<boolean>(
-        WalnutAdminConstDecoratorJwtOptionalKey,
-        [handler as (...args: unknown[]) => unknown, metatype],
-      ) === true
+      const isOptional =
+        reflector.getAllAndOverride<boolean>(WalnutAdminConstDecoratorJwtOptionalKey, [
+          handler as (...args: unknown[]) => unknown,
+          metatype,
+        ]) === true
 
-      if (Reflect.getMetadata(WALNUT_ADMIN_SWAGGER_BEARER_INJECTED, handler) === true)
-        continue
+      if (Reflect.getMetadata(WALNUT_ADMIN_SWAGGER_BEARER_INJECTED, handler) === true) continue
 
       const descriptor = Object.getOwnPropertyDescriptor(prototype, methodKey)
       // 类方法恒为 data property（descriptor.value 即 handler）；拿不到描述符时跳过而不是
       // 直接调 ApiBearerAuth() —— 它会退化成写到 **原型** 上（openapi 读的是 handler 函数本体）。
-      if (!descriptor || typeof descriptor.value !== 'function')
-        continue
+      if (!descriptor || typeof descriptor.value !== 'function') continue
 
       ApiBearerAuth()(prototype, methodKey, descriptor)
 
       // JwtOptional：追加空要求 {} = 「不带凭据也可以」。ApiSecurity 的 metadata 是
       // concat 语义（extendMetadata），所以这一步得到 [{ bearer: [] }, {}] 而不是覆盖。
-      if (isOptional)
-        ApiSecurity({})(prototype, methodKey, descriptor)
+      if (isOptional) ApiSecurity({})(prototype, methodKey, descriptor)
 
       Reflect.defineMetadata(WALNUT_ADMIN_SWAGGER_BEARER_INJECTED, true, handler)
 

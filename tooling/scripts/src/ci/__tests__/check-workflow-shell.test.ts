@@ -11,7 +11,13 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { REPO_ROOT } from '../../lib/repo-root.ts'
-import { checkWithBash, collectShellBlocks, findBash, listWorkflows, neutralizeExpressions } from '../check-workflow-shell.ts'
+import {
+  checkWithBash,
+  collectShellBlocks,
+  findBash,
+  listWorkflows,
+  neutralizeExpressions,
+} from '../check-workflow-shell.ts'
 
 const SAMPLE = `
 name: Sample
@@ -50,8 +56,9 @@ describe('collectShellBlocks —— 抽取', () => {
 
 describe('neutralizeExpressions —— ${{ }} 必须先中性化', () => {
   it('把表达式换成裸词占位符', () => {
-    expect(neutralizeExpressions('echo "${{ secrets.X }}" > "${{ steps.y.outputs.z }}"'))
-      .toBe('echo "__GH_EXPR__" > "__GH_EXPR__"')
+    expect(neutralizeExpressions('echo "${{ secrets.X }}" > "${{ steps.y.outputs.z }}"')).toBe(
+      'echo "__GH_EXPR__" > "__GH_EXPR__"',
+    )
   })
 
   it('跨行的表达式也吃得下（`${{` 必须相邻，换行只允许在花括号之内）', () => {
@@ -65,8 +72,8 @@ describe('findBash —— 平台判定可注入', () => {
   })
 
   it('按平台给候选：win32 与 posix 各一条', () => {
-    expect(findBash({}, 'win32', p => p.endsWith('bash.exe'))).toContain('bash.exe')
-    expect(findBash({}, 'linux', p => p === '/bin/bash')).toBe('/bin/bash')
+    expect(findBash({}, 'win32', (p) => p.endsWith('bash.exe'))).toContain('bash.exe')
+    expect(findBash({}, 'linux', (p) => p === '/bin/bash')).toBe('/bin/bash')
   })
 
   it('找不到返回 null（上层据此 SKIP，而不是假装红）', () => {
@@ -87,7 +94,12 @@ describe('checkWithBash —— 真跑 bash -n', () => {
   })
 
   run('heredoc 形态也认（这次线上踩的就是它）', () => {
-    expect(checkWithBash(bash!, 'docker compose exec -T svc sh -s "$DB" <<\'INNER\'\nset -e\necho "$1"\nINNER\n')).toBeNull()
+    expect(
+      checkWithBash(
+        bash!,
+        'docker compose exec -T svc sh -s "$DB" <<\'INNER\'\nset -e\necho "$1"\nINNER\n',
+      ),
+    ).toBeNull()
   })
 })
 
@@ -101,15 +113,25 @@ describe('真实仓库上跑一遍（防这道闸变成假绿）', () => {
   it('至少抽到 20 段 shell 块（抽不到就说明抽取器坏了）', () => {
     const files = listWorkflows(REPO_ROOT)
     expect(files.length).toBeGreaterThanOrEqual(3)
-    const total = files.reduce((sum, file) => sum + collectShellBlocks(readFileSync(join(REPO_ROOT, file), 'utf8'), file).length, 0)
+    const total = files.reduce(
+      (sum, file) =>
+        sum + collectShellBlocks(readFileSync(join(REPO_ROOT, file), 'utf8'), file).length,
+      0,
+    )
     expect(total).toBeGreaterThanOrEqual(20)
   }, 90_000)
 
-  it.runIf(bash !== null)('当前仓库所有 shell 块语法通过', () => {
-    const files = listWorkflows(REPO_ROOT)
-    const failures = files.flatMap(file => collectShellBlocks(readFileSync(join(REPO_ROOT, file), 'utf8'), file)
-      .map(block => ({ block, error: checkWithBash(bash!, block.script) }))
-      .filter(item => item.error !== null))
-    expect(failures.map(f => `${f.block.where}: ${f.error}`)).toEqual([])
-  }, 90_000)
+  it.runIf(bash !== null)(
+    '当前仓库所有 shell 块语法通过',
+    () => {
+      const files = listWorkflows(REPO_ROOT)
+      const failures = files.flatMap((file) =>
+        collectShellBlocks(readFileSync(join(REPO_ROOT, file), 'utf8'), file)
+          .map((block) => ({ block, error: checkWithBash(bash!, block.script) }))
+          .filter((item) => item.error !== null),
+      )
+      expect(failures.map((f) => `${f.block.where}: ${f.error}`)).toEqual([])
+    },
+    90_000,
+  )
 })

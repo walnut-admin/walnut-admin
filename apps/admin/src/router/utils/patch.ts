@@ -17,15 +17,12 @@ function maskDynamicPath(plain: string) {
   const tokens = plain.match(/\/|:([^/]+)|[^/:]+/g) || []
 
   const encryptedPath = tokens.map((t) => {
-    if (t === '/' || t.startsWith(':'))
-      return t
+    if (t === '/' || t.startsWith(':')) return t
 
     return maskRoute(t)
   })
 
-  return plain.startsWith('/')
-    ? encryptedPath.join('')
-    : `/${encryptedPath.join('')}`
+  return plain.startsWith('/') ? encryptedPath.join('') : `/${encryptedPath.join('')}`
 }
 
 export function patchRouter(router: Router) {
@@ -54,7 +51,9 @@ export function patchRouter(router: Router) {
     if (route.children) {
       route.children.forEach(async (child) => {
         if (child.path)
-          child.path = appSettingScope.getMaskUrlValue(route) ? maskDynamicPath(child.path) : child.path
+          child.path = appSettingScope.getMaskUrlValue(route)
+            ? maskDynamicPath(child.path)
+            : child.path
       })
     }
     return rawAddRoute(parentName, route)

@@ -1,7 +1,14 @@
 import { IWalnutAdminConstAppEnv, WalnutAdminConstAppEnv } from '@walnut-server/const/app/env'
 
-import { IWalnutAdminConstAppHTTPMethods, WalnutAdminConstAppHTTPMethods } from '@walnut-server/const/app/methods'
-import { WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldNumber, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
+import {
+  IWalnutAdminConstAppHTTPMethods,
+  WalnutAdminConstAppHTTPMethods,
+} from '@walnut-server/const/app/methods'
+import {
+  WalnutAdminDecoratorFieldEnum,
+  WalnutAdminDecoratorFieldNumber,
+  WalnutAdminDecoratorFieldString,
+} from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { WalnutAdminCommonBasicModel } from '@walnut-server/identity'
 import { RealOmitType, RealPickType } from '@walnut-server/utils/dto'
@@ -35,7 +42,9 @@ class AppErrorPayload {
   query: string
 }
 
-export class AppErrorDTOBase extends RealPickType(WalnutAdminCommonBasicModel, ['createdAt'] as const) {
+export class AppErrorDTOBase extends RealPickType(WalnutAdminCommonBasicModel, [
+  'createdAt',
+] as const) {
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
       title: 'error message',

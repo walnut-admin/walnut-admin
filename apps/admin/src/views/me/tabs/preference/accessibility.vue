@@ -23,7 +23,7 @@ const loading = ref(false)
 
 // 字号可选值的单一真源是 @walnut/contract（server IsEnum + DB CHECK 同源），
 // 滑杆的 min / max / marks 全部由 fontSizeValues 派生，别再手写刻度。
-const fontSizeMarks = Object.fromEntries(fontSizeValues.map(value => [value, `${value}px`]))
+const fontSizeMarks = Object.fromEntries(fontSizeValues.map((value) => [value, `${value}px`]))
 const fontSizeMin = Math.min(...fontSizeValues)
 const fontSizeMax = Math.max(...fontSizeValues)
 
@@ -60,7 +60,7 @@ const [register] = useForm<IStoreUser.Preference.Accessibility>({
         path: 'colorMode',
       },
       componentProp: {
-        options: Object.values(AppConstColorMode).map(i => ({
+        options: Object.values(AppConstColorMode).map((i) => ({
           value: i,
           label: i,
         })),
@@ -72,7 +72,7 @@ const [register] = useForm<IStoreUser.Preference.Accessibility>({
         path: 'CVD',
       },
       componentProp: {
-        options: Object.values(AppConstCVD).map(i => ({
+        options: Object.values(AppConstCVD).map((i) => ({
           value: i,
           label: i,
         })),
@@ -92,8 +92,7 @@ const [register] = useForm<IStoreUser.Preference.Accessibility>({
           try {
             await updateAccessibilityPreferenceAPI(userStorePreference.accessibility)
             useAppMsgSuccess()
-          }
-          finally {
+          } finally {
             loading.value = false
           }
         },

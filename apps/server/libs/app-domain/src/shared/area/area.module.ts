@@ -13,9 +13,7 @@ import { SharedAreaEntity } from './entity/area.entity'
  * service 原先直持 model，随迁移补 SharedAreaBasicRepository（PG）。
  */
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([SharedAreaEntity], WalnutPGConnectionName),
-  ],
+  imports: [TypeOrmModule.forFeature([SharedAreaEntity], WalnutPGConnectionName)],
   controllers: [SharedAreaController],
   providers: [SharedAreaBasicRepository, SharedAreaService, sharedAreaRecoverableProvider],
   exports: [SharedAreaService],

@@ -11,8 +11,7 @@ export async function responseInterceptorsCatch(err: AxiosError) {
     return Promise.reject(err)
   }
 
-  if (isCancel(err))
-    return Promise.reject(err)
+  if (isCancel(err)) return Promise.reject(err)
 
   // TODO need to take a look
   // @ts-expect-error response

@@ -14,9 +14,7 @@ export class SocketIoAdapter extends IoAdapter {
   createIOServer(port: number, options?: ServerOptions): Server {
     port = this.configService.get<number>('socket.port')!
     const path = this.configService.get<string>('socket.path')!
-    const origins = this.configService.get<string>(
-      'socket.origin',
-    )!
+    const origins = this.configService.get<string>('socket.origin')!
     const origin = origins.split(',')
     // Nest 12 的 IoAdapter.createIOServer 第二参为可选，这里合并而非就地改写
     return super.createIOServer(port, {

@@ -1,5 +1,13 @@
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -66,8 +74,7 @@ export function localPath(entry: EnvEntry): string {
  */
 let cachedCliPath: string | null = null
 function dotenvxCliPath(): string {
-  if (cachedCliPath)
-    return cachedCliPath
+  if (cachedCliPath) return cachedCliPath
   const require = createRequire(import.meta.url)
   const manifestPath = require.resolve('@dotenvx/dotenvx/package.json')
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
@@ -76,8 +83,8 @@ function dotenvxCliPath(): string {
   const binField = typeof manifest.bin === 'string' ? manifest.bin : manifest.bin?.dotenvx
   if (!binField) {
     throw new Error(
-      '@dotenvx/dotenvx 的 package.json 里没有 bin.dotenvx —— 无法定位 CLI 入口。'
-      + '上游改了包结构？请检查该依赖的 bin 字段。',
+      '@dotenvx/dotenvx 的 package.json 里没有 bin.dotenvx —— 无法定位 CLI 入口。' +
+        '上游改了包结构？请检查该依赖的 bin 字段。',
     )
   }
   cachedCliPath = join(dirname(manifestPath), binField)
@@ -85,7 +92,7 @@ function dotenvxCliPath(): string {
 }
 
 /** 以 argv 直传拉 dotenvx（不经 shell：参数里含仓库内的路径，不能让 shell 再解释一次） */
-function runDotenvx(args: string[], mode: 'inherit' | 'pipe'): { status: number, stderr: string } {
+function runDotenvx(args: string[], mode: 'inherit' | 'pipe'): { status: number; stderr: string } {
   const result = spawnSync(process.execPath, [dotenvxCliPath(), ...args], {
     cwd: ROOT,
     stdio: mode === 'inherit' ? 'inherit' : 'pipe',
@@ -97,15 +104,16 @@ function runDotenvx(args: string[], mode: 'inherit' | 'pipe'): { status: number,
 /** 输出直通终端（加密时想看到逐文件进度） */
 function dotenvxEncode(args: string[]): void {
   const { status } = runDotenvx(args, 'inherit')
-  if (status !== 0)
-    throw new Error(`dotenvx ${args[0]} 退出码 ${status}`)
+  if (status !== 0) throw new Error(`dotenvx ${args[0]} 退出码 ${status}`)
 }
 
 /** 静默执行（不向 stdout 输出解密内容），失败抛错 */
 function dotenvxQuiet(args: string[]): void {
   const { status, stderr } = runDotenvx(args, 'pipe')
   if (status !== 0)
-    throw new Error(`dotenvx ${args[0]} 退出码 ${status}：${stderr.trim().split('\n').slice(-3).join(' ')}`)
+    throw new Error(
+      `dotenvx ${args[0]} 退出码 ${status}：${stderr.trim().split('\n').slice(-3).join(' ')}`,
+    )
 }
 
 /**
@@ -130,18 +138,19 @@ export function rebuildKeysFile(tmpKeysContent: string): string {
     bannerEnded = true
 
     const eqIdx = line.indexOf('=')
-    if (eqIdx === -1 || trimmed === '')
-      continue
+    if (eqIdx === -1 || trimmed === '') continue
 
     // 基础 .env 的 key 名是 DOTENV_PRIVATE_KEY（无环境后缀），带后缀的如
     // DOTENV_PRIVATE_KEY_PRODUCTION → envName = 'PRODUCTION'，无后缀 → ''
     const rawName = line.slice(0, eqIdx).trim()
     const envName = rawName.replace('DOTENV_PRIVATE_KEY', '').replace(/^_/, '')
-    const value = line.slice(eqIdx + 1).trim().replace(/^"|"$/g, '')
+    const value = line
+      .slice(eqIdx + 1)
+      .trim()
+      .replace(/^"|"$/g, '')
     const keys = byEnv.get(envName) ?? []
     for (const k of value.split(',')) {
-      if (k && !keys.includes(k))
-        keys.push(k)
+      if (k && !keys.includes(k)) keys.push(k)
     }
     byEnv.set(envName, keys)
   }
@@ -183,9 +192,11 @@ function stripPublicKeyHeader(filePath: string): void {
 export function doEncrypt(): number {
   // 1. 前置校验：全部源文件必须存在。缺任何一个就中止，
   //    避免部分文件换新密钥后 keys 文件不完整
-  const missing = ENTRIES.filter(entry => !existsSync(localPath(entry)))
+  const missing = ENTRIES.filter((entry) => !existsSync(localPath(entry)))
   if (missing.length > 0) {
-    console.error(`❌ 以下 env-local 源文件缺失，中止加密：${missing.map(e => `${e.app}/${envFileName(e)}`).join(', ')}`)
+    console.error(
+      `❌ 以下 env-local 源文件缺失，中止加密：${missing.map((e) => `${e.app}/${envFileName(e)}`).join(', ')}`,
+    )
     return 1
   }
 
@@ -193,7 +204,7 @@ export function doEncrypt(): number {
   //    keys 文件。期间不触碰 env-encrypted/ 与 .env.keys，任一步失败可整体放弃
   const tmpDir = mkdtempSync(join(tmpdir(), 'walnut-encrypt-'))
   const tmpKeys = join(tmpDir, '.env.keys.tmp')
-  const staged: Array<{ entry: EnvEntry, dest: string }> = []
+  const staged: Array<{ entry: EnvEntry; dest: string }> = []
 
   try {
     for (const entry of ENTRIES) {
@@ -214,12 +225,15 @@ export function doEncrypt(): number {
       cpSync(dest, checkDest)
       try {
         dotenvxQuiet(['decrypt', '-f', checkDest, '-fk', tmpKeys])
-      }
-      catch {
-        throw new Error(`密钥校验失败：${entry.app}/${envFileName(entry)} 无法解密，已中止（未改动任何文件）`)
+      } catch {
+        throw new Error(
+          `密钥校验失败：${entry.app}/${envFileName(entry)} 无法解密，已中止（未改动任何文件）`,
+        )
       }
       if (!readFileSync(dest, 'utf-8').includes('encrypted:'))
-        throw new Error(`密文完整性检查失败：${entry.app}/${envFileName(entry)} 不含 encrypted: 前缀，已中止（未改动任何文件）`)
+        throw new Error(
+          `密文完整性检查失败：${entry.app}/${envFileName(entry)} 不含 encrypted: 前缀，已中止（未改动任何文件）`,
+        )
     }
 
     // 4. 从临时 keys 重建正式 .env.keys（每环境一行、逗号合并，旧密钥全部作废）
@@ -232,17 +246,25 @@ export function doEncrypt(): number {
       cpSync(dest, encryptedPath(entry))
     }
 
-    const keyLines = fresh.split('\n').filter(l => l.startsWith('DOTENV_PRIVATE_KEY'))
-    const keyCounts = keyLines.map(l => l.slice(l.indexOf('=') + 1).replace(/^"|"$/g, '').split(',').length)
-    console.log(`✅ 加密完成：env-encrypted/ 已更新，.env.keys 已重新生成（${keyLines.length} 行，每行 ${keyCounts.join('/')} 个 key）`)
-    console.log('⚠  旧密钥已全部作废，请将新 .env.keys 同步到 1Password，并提交 env-encrypted/ 到 Git')
+    const keyLines = fresh.split('\n').filter((l) => l.startsWith('DOTENV_PRIVATE_KEY'))
+    const keyCounts = keyLines.map(
+      (l) =>
+        l
+          .slice(l.indexOf('=') + 1)
+          .replace(/^"|"$/g, '')
+          .split(',').length,
+    )
+    console.log(
+      `✅ 加密完成：env-encrypted/ 已更新，.env.keys 已重新生成（${keyLines.length} 行，每行 ${keyCounts.join('/')} 个 key）`,
+    )
+    console.log(
+      '⚠  旧密钥已全部作废，请将新 .env.keys 同步到 1Password，并提交 env-encrypted/ 到 Git',
+    )
     return 0
-  }
-  catch (error: any) {
+  } catch (error: any) {
     console.error(`❌ ${error.message}`)
     return 1
-  }
-  finally {
+  } finally {
     rmSync(tmpDir, { recursive: true, force: true })
   }
 }
@@ -283,11 +305,13 @@ export function main(argv: string[] = process.argv.slice(2)): number {
     case 'encrypt':
       return doEncrypt()
     default:
-      console.log([
-        '用法: walnut-setup-env <decrypt|encrypt>',
-        '  decrypt  — 从 env-encrypted/ 解密到 env-local/（新成员初始化）',
-        '  encrypt  — 从 env-local/ 加密到 env-encrypted/（更新密钥后）',
-      ].join('\n'))
+      console.log(
+        [
+          '用法: walnut-setup-env <decrypt|encrypt>',
+          '  decrypt  — 从 env-encrypted/ 解密到 env-local/（新成员初始化）',
+          '  encrypt  — 从 env-local/ 加密到 env-encrypted/（更新密钥后）',
+        ].join('\n'),
+      )
       return 1
   }
 }

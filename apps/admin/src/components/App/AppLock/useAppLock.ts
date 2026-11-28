@@ -1,6 +1,12 @@
 import type { EffectScope } from 'vue'
 import type { ValueOfAppConstLockMode } from '@/const/app'
-import { debouncedWatch, tryOnUnmounted, useDocumentVisibility, useIdle, usePageLeave } from '@vueuse/core'
+import {
+  debouncedWatch,
+  tryOnUnmounted,
+  useDocumentVisibility,
+  useIdle,
+  usePageLeave,
+} from '@vueuse/core'
 import { effectScope, watch } from 'vue'
 import { AppConstLockMode } from '@/const/app'
 import { useAppRouter } from '@/router/index'
@@ -45,8 +51,7 @@ export function useAppLock() {
   async function tryLock() {
     try {
       await appStoreLock.lock(currentRoute)
-    }
-    catch (error) {
+    } catch (error) {
       console.log(error)
     }
   }
@@ -93,11 +98,15 @@ export function useAppLock() {
 
     setupIdleDetector(() => appStoreLock.getLockSecuritySec)
 
-    debouncedWatch(isPageLeave, async (v) => {
-      if (v) {
-        await tryLock()
-      }
-    }, { debounce: 200 })
+    debouncedWatch(
+      isPageLeave,
+      async (v) => {
+        if (v) {
+          await tryLock()
+        }
+      },
+      { debounce: 200 },
+    )
 
     watch(isVisible, async (v) => {
       if (!v && appStoreLock.getLockMode === AppConstLockMode.SECURITY) {
@@ -117,8 +126,7 @@ export function useAppLock() {
     modeScope.run(() => {
       if (mode === AppConstLockMode.IDLE) {
         setupIdleMode()
-      }
-      else {
+      } else {
         setupSecurityMode()
       }
     })
@@ -134,8 +142,7 @@ export function useAppLock() {
 
           watch(() => appStoreLock.getLockMode, setupLockMode, { immediate: true })
         })
-      }
-      else {
+      } else {
         appStoreLock.setLocked(false)
         appStoreLock.setLockRoute({})
         stopMode()

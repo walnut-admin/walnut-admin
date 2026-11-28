@@ -4,10 +4,7 @@ import { SysUserMfaRepositoryModule } from '../repo/user_mfa.repo.module'
 import { SysUserMfaSharedService } from './user_mfa.shared.service'
 
 @Module({
-  imports: [
-    SysUserRepositoryModule,
-    SysUserMfaRepositoryModule,
-  ],
+  imports: [SysUserRepositoryModule, SysUserMfaRepositoryModule],
   controllers: [],
   providers: [SysUserMfaSharedService],
   exports: [SysUserMfaSharedService],

@@ -22,12 +22,9 @@ async function getStorageComponent() {
       const quota = est.quota || 0
 
       // 将配额分级作为特征（避免精确数值的噪音）
-      if (quota === 0)
-        features.push('quota:none')
-      else if (quota < 150000000)
-        features.push('quota:low') // <150MB → 大概率无痕
-      else if (quota < 1000000000)
-        features.push('quota:medium')
+      if (quota === 0) features.push('quota:none')
+      else if (quota < 150000000) features.push('quota:low') // <150MB → 大概率无痕
+      else if (quota < 1000000000) features.push('quota:medium')
       else features.push('quota:high')
 
       features.push(`usage:${Math.floor((est.usage || 0) / 1000000)}mb`)
@@ -38,8 +35,7 @@ async function getStorageComponent() {
       const persisted = await navigator.storage.persisted()
       features.push(`persisted:${persisted}`)
     }
-  }
-  catch (e) {
+  } catch (e) {
     console.error(e)
     features.push('storage:error')
   }
@@ -54,37 +50,30 @@ async function getBrowserBrandComponent() {
     try {
       const brands = (navigator.userAgentData as any)?.brands ?? []
       if (brands && brands.length > 0) {
-        const brand = brands.find((b: any) =>
-          !b.brand.includes('Chromium')
-          && !b.brand.includes('Not'),
+        const brand = brands.find(
+          (b: any) => !b.brand.includes('Chromium') && !b.brand.includes('Not'),
         )
-        if (brand)
-          return brand.brand
+        if (brand) return brand.brand
       }
 
       const highEntropy = await (navigator.userAgentData as any)?.getHighEntropyValues([
         'brands',
         'fullVersionList',
       ])
-      const fullBrand = highEntropy.brands?.find((b: any) =>
-        b.brand.includes('Edge') || b.brand.includes('Chrome'),
+      const fullBrand = highEntropy.brands?.find(
+        (b: any) => b.brand.includes('Edge') || b.brand.includes('Chrome'),
       )
-      if (fullBrand)
-        return fullBrand.brand
-    }
-    catch (e) {
+      if (fullBrand) return fullBrand.brand
+    } catch (e) {
       console.error(e)
     }
   }
 
   // 方法 2：User Agent 字符串
   const ua = navigator.userAgent
-  if (ua.includes('Edg/'))
-    return 'Microsoft Edge'
-  if (ua.includes('Chrome/'))
-    return 'Google Chrome'
-  if (ua.includes('Safari/') && !ua.includes('Chrome'))
-    return 'Safari'
+  if (ua.includes('Edg/')) return 'Microsoft Edge'
+  if (ua.includes('Chrome/')) return 'Google Chrome'
+  if (ua.includes('Safari/') && !ua.includes('Chrome')) return 'Safari'
   return 'unknown'
 }
 
@@ -93,10 +82,8 @@ function getBrowserSpecificComponent() {
   const features = []
 
   // Edge 独有特征
-  if ('msLaunchUri' in navigator)
-    features.push('edge:msLaunchUri')
-  if ('chrome' in window && (window.chrome as any).webstore)
-    features.push('chrome:webstore')
+  if ('msLaunchUri' in navigator) features.push('edge:msLaunchUri')
+  if ('chrome' in window && (window.chrome as any).webstore) features.push('chrome:webstore')
 
   // Edge 的 PDF 查看器
   if (navigator.pdfViewerEnabled !== undefined) {
@@ -119,15 +106,16 @@ function getBrowserSpecificComponent() {
         features.push(`webgl:${vendor.substring(0, 20)}`)
       }
     }
-  }
-  catch (e) {
+  } catch (e) {
     console.error(e)
   }
 
   return features.join('|')
 }
 
-const fingerprint = useAppStorageSync<string>(AppConstPersistKey.FINGERPRINT, '', { storage: enhancedBase64LocalStorage() })
+const fingerprint = useAppStorageSync<string>(AppConstPersistKey.FINGERPRINT, '', {
+  storage: enhancedBase64LocalStorage(),
+})
 
 const useAppStoreFingerprintInside = defineStore(StoreKeys.APP_FINGERPRINT, {
   state: (): IStoreApp.Fingerprint => ({
@@ -145,8 +133,7 @@ const useAppStoreFingerprintInside = defineStore(StoreKeys.APP_FINGERPRINT, {
 
   actions: {
     async setupFingerprint() {
-      if (this.getFingerprint)
-        return
+      if (this.getFingerprint) return
 
       const fpPromise = FingerprintJS.load({})
       const fp = await fpPromise
@@ -181,7 +168,6 @@ const useAppStoreFingerprintInside = defineStore(StoreKeys.APP_FINGERPRINT, {
 const useAppStoreFingerprintOutside = () => useAppStoreFingerprintInside(store)
 
 export function useAppStoreFingerprint() {
-  if (getCurrentInstance())
-    return useAppStoreFingerprintInside()
+  if (getCurrentInstance()) return useAppStoreFingerprintInside()
   return useAppStoreFingerprintOutside()
 }

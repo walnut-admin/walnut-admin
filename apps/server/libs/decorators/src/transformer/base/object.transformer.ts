@@ -7,8 +7,7 @@ import { isNil } from 'lodash'
 import { WalnutAdminDecoratorTransformDefault } from '../common/default'
 
 function defaultReqOpt(): IWADTObjReqOpt {
-  return {
-  }
+  return {}
 }
 
 function defaultResOpt(): IWADTObjResOpt {
@@ -46,10 +45,15 @@ export function WalnutAdminDecoratorTransformerObject(
     decorators.push(
       // obj 传进去：缺省值若是裸对象，要实例化成 DTO —— 否则 ValidateNested 会按
       // `unknownValue` 拒掉"什么都没传"的请求（批次 1 · P0，见 common/default.ts 注释）
-      WalnutAdminDecoratorTransformDefault(defaultValue, isArray, {
-        toClassOnly: reqOptions.defaultTransform,
-        toPlainOnly: resOptions.defaultTransform,
-      }, obj === Object ? undefined : obj),
+      WalnutAdminDecoratorTransformDefault(
+        defaultValue,
+        isArray,
+        {
+          toClassOnly: reqOptions.defaultTransform,
+          toPlainOnly: resOptions.defaultTransform,
+        },
+        obj === Object ? undefined : obj,
+      ),
     )
   }
 
@@ -61,8 +65,7 @@ export function WalnutAdminDecoratorTransformObjectMaskSensitive(
   options: TransformOptions = {},
 ): PropertyDecorator {
   return Transform(({ value }: { value: Recordable | null | undefined }) => {
-    if (isNil(value))
-      return null
+    if (isNil(value)) return null
 
     if (isArray && Array.isArray(value)) {
       return value.map((v: Recordable) => maskSensitiveFields(v))

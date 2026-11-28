@@ -6,7 +6,5 @@ defineOptions({
 </script>
 
 <template>
-  <div>
-    account
-  </div>
+  <div>account</div>
 </template>

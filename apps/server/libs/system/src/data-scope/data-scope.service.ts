@@ -1,11 +1,21 @@
 import type { IWalnutAdminDataScopeDescriptor } from '@walnut-server/db'
 import type { IIdentityDataScopeInvalidator } from '@walnut-server/identity'
 import type { EntityManager } from 'typeorm'
-import type { IWalnutAdminDataScopeResolveInput, IWalnutAdminDataScopeRoleSnapshot } from './data-scope.resolver'
+import type {
+  IWalnutAdminDataScopeResolveInput,
+  IWalnutAdminDataScopeRoleSnapshot,
+} from './data-scope.resolver'
 import { Injectable, Logger } from '@nestjs/common'
 import { AppTechCacheAppSettingsService, AppTechCacheService } from '@walnut-server/cache'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType, WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
-import { WalnutAdminConstDataScope, WalnutAdminConstDataScopeMode } from '@walnut-server/const/app/dataScope'
+import {
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+  WalnutAdminConstAppSettingKeys,
+} from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstDataScope,
+  WalnutAdminConstDataScopeMode,
+} from '@walnut-server/const/app/dataScope'
 import { SysUserRepositoryService } from '@walnut-server/identity'
 import { SharedScopeResolverService } from '@walnut-server/scope-resolver'
 import { AppTokenService } from '@walnut-server/token'
@@ -103,9 +113,11 @@ export class DataScopeService implements IIdentityDataScopeInvalidator {
       const raw = await this.cacheService.redis.get(this.getEpochCacheKey())
       const epoch = raw === null ? 0 : Number.parseInt(raw, 10)
       return Number.isFinite(epoch) && epoch >= 0 ? epoch : 0
-    }
-    catch (error) {
-      this.logger.warn('read data scope epoch failed, bypassing descriptor cache for this resolution', error)
+    } catch (error) {
+      this.logger.warn(
+        'read data scope epoch failed, bypassing descriptor cache for this resolution',
+        error,
+      )
       return null
     }
   }
@@ -128,9 +140,11 @@ export class DataScopeService implements IIdentityDataScopeInvalidator {
   async bumpEpoch(): Promise<void> {
     try {
       await this.cacheService.redis.incr(this.getEpochCacheKey())
-    }
-    catch (error) {
-      this.logger.warn('bump data scope epoch failed; stale descriptors may persist until TTL', error)
+    } catch (error) {
+      this.logger.warn(
+        'bump data scope epoch failed; stale descriptors may persist until TTL',
+        error,
+      )
     }
   }
 
@@ -158,16 +172,11 @@ export class DataScopeService implements IIdentityDataScopeInvalidator {
     const deptId = user?.deptId ?? null
 
     try {
-      await this.cacheService.set(
-        this.getUserDeptCacheKey(userId),
-        deptId ?? '',
-        {
-          ttl: this.tokenService.getAccessTokenExpireSeconds(),
-          t: WalnutAdminConstAppCacheType.AUTH,
-        },
-      )
-    }
-    catch (error) {
+      await this.cacheService.set(this.getUserDeptCacheKey(userId), deptId ?? '', {
+        ttl: this.tokenService.getAccessTokenExpireSeconds(),
+        t: WalnutAdminConstAppCacheType.AUTH,
+      })
+    } catch (error) {
       this.logger.warn(`write data scope user dept cache failed for user ${userId}`, error)
     }
 
@@ -180,7 +189,10 @@ export class DataScopeService implements IIdentityDataScopeInvalidator {
    * 无用户 / 无启用角色 → 默认拒绝（CUSTOM 空集）。缓存正负结果都写
    * （避免无角色用户每请求都打库）。
    */
-  async resolveForUser(userId: string, em?: EntityManager): Promise<IWalnutAdminDataScopeDescriptor> {
+  async resolveForUser(
+    userId: string,
+    em?: EntityManager,
+  ): Promise<IWalnutAdminDataScopeDescriptor> {
     const epoch = await this.tryGetEpoch()
 
     // epoch 不可读 → 跳过描述符缓存（不读不写）：宁可每次重算，也不把可能过期的
@@ -199,16 +211,11 @@ export class DataScopeService implements IIdentityDataScopeInvalidator {
     const descriptor = await this.computeForUser(userId, em)
 
     try {
-      await this.cacheService.set(
-        cacheKey,
-        descriptor,
-        {
-          ttl: this.tokenService.getAccessTokenExpireSeconds(),
-          t: WalnutAdminConstAppCacheType.AUTH,
-        },
-      )
-    }
-    catch (error) {
+      await this.cacheService.set(cacheKey, descriptor, {
+        ttl: this.tokenService.getAccessTokenExpireSeconds(),
+        t: WalnutAdminConstAppCacheType.AUTH,
+      })
+    } catch (error) {
       // 缓存失败不影响本次判定；下一次请求重算（Redis 故障时数据权限仍然正确）
       this.logger.warn(`write data scope cache failed for user ${userId}`, error)
     }
@@ -217,7 +224,10 @@ export class DataScopeService implements IIdentityDataScopeInvalidator {
   }
 
   /** 绕过缓存重算（测试/失效后立即重算用） */
-  async computeForUser(userId: string, em?: EntityManager): Promise<IWalnutAdminDataScopeDescriptor> {
+  async computeForUser(
+    userId: string,
+    em?: EntityManager,
+  ): Promise<IWalnutAdminDataScopeDescriptor> {
     const user = await this.userRepoService.findUserByUserId(userId, em)
 
     if (user === null || user === undefined) {
@@ -225,11 +235,10 @@ export class DataScopeService implements IIdentityDataScopeInvalidator {
     }
 
     const orderedRoleIds = await this.roleRepoService.findRoleIdsByUserId(userId, em)
-    const roles = orderedRoleIds.length > 0
-      ? await this.roleRepoService.findByIds(orderedRoleIds, em)
-      : []
+    const roles =
+      orderedRoleIds.length > 0 ? await this.roleRepoService.findByIds(orderedRoleIds, em) : []
 
-    const roleSnapshots: IWalnutAdminDataScopeRoleSnapshot[] = roles.map(role => ({
+    const roleSnapshots: IWalnutAdminDataScopeRoleSnapshot[] = roles.map((role) => ({
       id: role.id,
       roleName: role.roleName,
       status: role.status,
@@ -242,18 +251,23 @@ export class DataScopeService implements IIdentityDataScopeInvalidator {
     })
 
     // root 恒 ALL：无需再查 CUSTOM 部门清单 / 部门子树
-    const hasRoot = roleSnapshots.some(role => role.status && role.roleName === Role.ROOT)
+    const hasRoot = roleSnapshots.some((role) => role.status && role.roleName === Role.ROOT)
 
-    const activeDeptRoles = roleSnapshots.filter(role => role.status
-      && role.roleName !== Role.ROOT
-      && role.roleName !== Role.VISITOR)
+    const activeDeptRoles = roleSnapshots.filter(
+      (role) => role.status && role.roleName !== Role.ROOT && role.roleName !== Role.VISITOR,
+    )
 
     const userDeptId = user.deptId ?? null
 
     // 子树只在 DEPT_AND_CHILD / DEPT_OR_SELF 出现且用户有部门时查询（一次 CTE 覆盖全部角色）
-    const needsSubtree = userDeptId !== null && !hasRoot && activeDeptRoles.some(role =>
-      role.dataScope === WalnutAdminConstDataScope.DEPT_AND_CHILD
-      || role.dataScope === WalnutAdminConstDataScope.DEPT_OR_SELF)
+    const needsSubtree =
+      userDeptId !== null &&
+      !hasRoot &&
+      activeDeptRoles.some(
+        (role) =>
+          role.dataScope === WalnutAdminConstDataScope.DEPT_AND_CHILD ||
+          role.dataScope === WalnutAdminConstDataScope.DEPT_OR_SELF,
+      )
 
     const userDeptSubtreeIds = needsSubtree
       ? await this.deptBasicRepo.findDeptIdsInSubtree(userDeptId, em)
@@ -301,7 +315,7 @@ export class DataScopeService implements IIdentityDataScopeInvalidator {
     }
 
     const epoch = await this.tryGetEpoch()
-    const keys = ids.flatMap(userId => [
+    const keys = ids.flatMap((userId) => [
       ...(epoch === null ? [] : [this.buildCacheKey(epoch, userId)]),
       this.getUserDeptCacheKey(userId),
     ])
@@ -357,7 +371,7 @@ export class DataScopeService implements IIdentityDataScopeInvalidator {
    * （删除后 CTE 已查不到该子树，所以不能复用 invalidateForDeptMove。）
    */
   async invalidateForDeptIds(deptIds: readonly string[], em?: EntityManager): Promise<void> {
-    const ids = [...new Set(deptIds.filter(id => typeof id === 'string' && id !== ''))]
+    const ids = [...new Set(deptIds.filter((id) => typeof id === 'string' && id !== ''))]
     if (ids.length === 0) {
       return
     }

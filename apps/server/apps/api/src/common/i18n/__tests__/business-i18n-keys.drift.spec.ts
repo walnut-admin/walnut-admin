@@ -68,7 +68,7 @@ function collectReferencedKeys(): Map<string, string[]> {
 }
 
 /** locale 词条文件拍平成「点路径 → 值」 */
-function flattenLocale(locale: typeof LOCALES[number]): Map<string, string> {
+function flattenLocale(locale: (typeof LOCALES)[number]): Map<string, string> {
   const filePath = resolve(process.cwd(), 'apps/api/src/i18n', locale, 'business.json')
   const parsed = JSON.parse(readFileSync(filePath, 'utf8')) as Record<string, unknown>
   const flat = new Map<string, string>()
@@ -95,7 +95,7 @@ function flattenLocale(locale: typeof LOCALES[number]): Map<string, string> {
 
 describe('i18n 词条 drift 守卫（代码里的 business.* key ↔ zh_CN / en_US 词条，F-23）', () => {
   const referenced = collectReferencedKeys()
-  const locales = new Map(LOCALES.map(locale => [locale, flattenLocale(locale)] as const))
+  const locales = new Map(LOCALES.map((locale) => [locale, flattenLocale(locale)] as const))
 
   it('扫描面非空（正则/目录改坏时本守卫必须失效报警）', () => {
     expect(referenced.size).toBeGreaterThan(0)
@@ -104,8 +104,8 @@ describe('i18n 词条 drift 守卫（代码里的 business.* key ↔ zh_CN / en_
   it('覆盖本次修复的抛出点：oauth 的 business.auth.emailAlreadyBound 必须落在扫描结果内', () => {
     const files = referenced.get('auth.emailAlreadyBound') ?? []
 
-    expect(files.some(file => file.endsWith('github.service.ts'))).toBe(true)
-    expect(files.some(file => file.endsWith('gitee.service.ts'))).toBe(true)
+    expect(files.some((file) => file.endsWith('github.service.ts'))).toBe(true)
+    expect(files.some((file) => file.endsWith('gitee.service.ts'))).toBe(true)
   })
 
   it('每个被引用的 key 在两个语种都有非空词条', () => {
@@ -120,7 +120,10 @@ describe('i18n 词条 drift 守卫（代码里的 business.* key ↔ zh_CN / en_
       }
     }
 
-    expect(missing, '缺少词条的 errMsg key（补 `apps/api/src/i18n/<locale>/business.json`）').toEqual([])
+    expect(
+      missing,
+      '缺少词条的 errMsg key（补 `apps/api/src/i18n/<locale>/business.json`）',
+    ).toEqual([])
   })
 
   it('两个语种的键集合相等（只补一个语言 = 另一个语言的用户看到原始 key）', () => {

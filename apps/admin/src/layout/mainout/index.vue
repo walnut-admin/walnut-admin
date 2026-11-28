@@ -14,7 +14,7 @@ const appStoreBackendSettings = useAppStoreSettingBackend()
 const router = useAppRouter()
 
 const getMainoutRouteOptions = computed(() => {
-  return mainoutRoutes.map(item => ({
+  return mainoutRoutes.map((item) => ({
     label: `${item.name as string}(auth: ${item.meta?._auth})`,
     value: item.path,
   }))
@@ -26,14 +26,17 @@ function onChange(path: string) {
 
 // get user preference
 const appStorePreference = useAppStoreUserPreference()
-const stop = watch(() => router.currentRoute.value, () => {
-  try {
-    appStorePreference.onInitPreference()
-  }
-  catch {
-    stop()
-  }
-}, { immediate: true })
+const stop = watch(
+  () => router.currentRoute.value,
+  () => {
+    try {
+      appStorePreference.onInitPreference()
+    } catch {
+      stop()
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>

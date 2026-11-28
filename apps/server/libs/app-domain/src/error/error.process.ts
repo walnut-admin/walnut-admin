@@ -25,8 +25,7 @@ export class AppErrorProcessor extends WalnutAdminCommonBasicProcessor {
 
     try {
       await this.appErrorService.insertToDB(payload)
-    }
-    catch {
+    } catch {
       return false
     }
 

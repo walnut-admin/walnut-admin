@@ -115,7 +115,7 @@ export const logOperateFormSchema: WForm.Schema.Item<SystemLogOperate>[] = [
     formProp: {
       path: 'durationMs',
     },
-    descriptionProp: { formatter: ms => `${ms} ms` },
+    descriptionProp: { formatter: (ms) => `${ms} ms` },
   },
 
   {

@@ -49,10 +49,10 @@ const OPERATION_VALUES = [
   'user.lock.reset',
 ]
 
-const OPERATION_VALUES_BEFORE = OPERATION_VALUES.filter(v => v !== 'user.lock.reset')
+const OPERATION_VALUES_BEFORE = OPERATION_VALUES.filter((v) => v !== 'user.lock.reset')
 
 function operationConstraintSql(values: string[]) {
-  return `ALTER TABLE sys_log_operate ADD CONSTRAINT ${OPERATION_CONSTRAINT} CHECK (operation IN (${values.map(v => `'${v}'`).join(', ')}))`
+  return `ALTER TABLE sys_log_operate ADD CONSTRAINT ${OPERATION_CONSTRAINT} CHECK (operation IN (${values.map((v) => `'${v}'`).join(', ')}))`
 }
 
 const UP_SQL = [

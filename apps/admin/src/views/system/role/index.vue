@@ -5,7 +5,12 @@ import { DataScope } from '@walnut/contract'
 import { computed } from 'vue'
 import { roleAPI } from '@/api/system/role'
 import { useCRUD } from '@/components/Advanced/CRUD'
-import { WTablePresetCreatedAtColumn, WTablePresetOrderColumn, WTablePresetStatusColumn, WTablePresetUpdatedAtColumn } from '@/components/UI/Table/src/utils/presetColumns'
+import {
+  WTablePresetCreatedAtColumn,
+  WTablePresetOrderColumn,
+  WTablePresetStatusColumn,
+  WTablePresetUpdatedAtColumn,
+} from '@/components/UI/Table/src/utils/presetColumns'
 import { AppConstRoles } from '@/const/app'
 import { AppConstMenuType } from '@/const/menu'
 import { useAppConfirm } from '@/hooks/component/useConfirm'
@@ -56,7 +61,13 @@ function collectNonLeafDeptIds(tree: SystemDeptTree[]): Set<string> {
  * 「CUSTOM 不含子部门、仅勾选的部门本身」。语义不变（不递归），只防「勾父部门以为
  * 含子部门」的误解；取消则中止提交、表单保持打开。
  */
-async function onBeforeFormSubmit({ formData, actionType }: { formData: SystemRole, actionType: IActionType }) {
+async function onBeforeFormSubmit({
+  formData,
+  actionType,
+}: {
+  formData: SystemRole
+  actionType: IActionType
+}) {
   if (actionType !== 'create' && actionType !== 'update') {
     return true
   }
@@ -71,7 +82,7 @@ async function onBeforeFormSubmit({ formData, actionType }: { formData: SystemRo
   }
 
   const nonLeaf = collectNonLeafDeptIds(getDeptTree.value)
-  const count = deptIds.filter(id => nonLeaf.has(id)).length
+  const count = deptIds.filter((id) => nonLeaf.has(id)).length
   if (count === 0) {
     return true
   }
@@ -80,291 +91,285 @@ async function onBeforeFormSubmit({ formData, actionType }: { formData: SystemRo
   return confirmed
 }
 
-const [
-  register,
-  {
-    onOpenCreateForm,
-    onReadAndOpenUpdateForm,
-    onGetActionType,
-    onApiList,
-  },
-] = useCRUD<SystemRole>({
-  baseAPI: roleAPI,
+const [register, { onOpenCreateForm, onReadAndOpenUpdateForm, onGetActionType, onApiList }] =
+  useCRUD<SystemRole>({
+    baseAPI: roleAPI,
 
-  strictFormData: true,
+    strictFormData: true,
 
-  // 批 7 / L6：CUSTOM 勾选含非叶子部门时先确认「不含子部门，仅勾选的部门本身」
-  onBeforeFormSubmit,
+    // 批 7 / L6：CUSTOM 勾选含非叶子部门时先确认「不含子部门，仅勾选的部门本身」
+    onBeforeFormSubmit,
 
-  safeForm: true,
-  safeFormFeedback: true,
-  safeFormKey: key,
-  safeFormUnwantedFields: ['status'],
+    safeForm: true,
+    safeFormFeedback: true,
+    safeFormKey: key,
+    safeFormUnwantedFields: ['status'],
 
-  tableProps: {
-    // E2E：`role-list-table` 供「只有 list 权限的角色」验证列表可读；`role-create-btn` 验证无 create 权限时隐藏
-    testId: 'role-list-table',
-    localeUniqueKey: key,
-    rowKey: row => row[keyField]!,
-    striped: true,
-    bordered: true,
-    singleLine: false,
+    tableProps: {
+      // E2E：`role-list-table` 供「只有 list 权限的角色」验证列表可读；`role-create-btn` 验证无 create 权限时隐藏
+      testId: 'role-list-table',
+      localeUniqueKey: key,
+      rowKey: (row) => row[keyField]!,
+      striped: true,
+      bordered: true,
+      singleLine: false,
 
-    headerLeftBuiltInActions: [
-      {
-        _builtInType: 'create',
-        testId: 'role-create-btn',
-        onPresetClick() {
-          onOpenCreateForm()
+      headerLeftBuiltInActions: [
+        {
+          _builtInType: 'create',
+          testId: 'role-create-btn',
+          onPresetClick() {
+            onOpenCreateForm()
+          },
         },
-      },
-    ],
+      ],
 
-    auths: {
-      list: `system:${key}:list`,
-      create: `system:${key}:create`,
-      read: `system:${key}:read`,
-      update: `system:${key}:update`,
+      auths: {
+        list: `system:${key}:list`,
+        create: `system:${key}:create`,
+        read: `system:${key}:read`,
+        update: `system:${key}:update`,
+      },
+
+      queryFormProps: {
+        localeUniqueKey: key,
+        localeWithTable: true,
+        span: 6,
+        showFeedback: false,
+        labelWidth: 120,
+        // query form schemas
+        schemas: [
+          {
+            type: 'Base:Input',
+            formProp: {
+              path: 'roleName',
+            },
+            componentProp: {
+              clearable: true,
+              onKeyupEnter() {
+                onApiList()
+              },
+            },
+          },
+
+          {
+            type: 'Extend:Query',
+          },
+        ],
+      },
+
+      // table columns
+      columns: [
+        {
+          key: 'index',
+          extendType: 'index',
+          fixed: 'left',
+        },
+
+        {
+          key: 'roleName',
+          width: 200,
+          sorter: {
+            multiple: 5,
+            compare: 'default',
+          },
+        },
+
+        {
+          key: 'description',
+          width: 200,
+          ellipsis: {
+            tooltip: true,
+          },
+        },
+
+        {
+          key: 'usersCount',
+          width: 120,
+        },
+
+        {
+          ...WTablePresetOrderColumn,
+          defaultSortOrder: 'ascend',
+          sorter: {
+            multiple: 4,
+            compare: 'default',
+          },
+        },
+
+        {
+          ...WTablePresetStatusColumn,
+          sorter: {
+            multiple: 3,
+            compare: 'default',
+          },
+        },
+
+        {
+          ...WTablePresetCreatedAtColumn,
+          sorter: {
+            multiple: 2,
+            compare: 'default',
+          },
+        },
+
+        {
+          ...WTablePresetUpdatedAtColumn,
+          sorter: {
+            multiple: 1,
+            compare: 'default',
+          },
+        },
+
+        {
+          key: 'action',
+          width: 160,
+          extendType: 'action',
+          fixed: 'right',
+          columnBuiltInActions: [
+            {
+              _builtInType: 'read',
+              _show: (row) => row.roleName !== AppConstRoles.ROOT,
+              async onPresetClick(rowData) {
+                await onReadAndOpenUpdateForm(rowData[keyField]!)
+              },
+            },
+          ],
+        },
+      ],
     },
 
-    queryFormProps: {
+    formProps: {
       localeUniqueKey: key,
       localeWithTable: true,
-      span: 6,
-      showFeedback: false,
-      labelWidth: 120,
-      // query form schemas
+      dialogPreset: 'drawer',
+      baseRules: true,
+      labelWidth: 140,
+      xGap: 0,
+      // create/update form schemas
       schemas: [
         {
           type: 'Base:Input',
           formProp: {
             path: 'roleName',
+            labelHelpMessage: true,
           },
           componentProp: {
             clearable: true,
-            onKeyupEnter() {
-              onApiList()
+            disabled: computed((): boolean => onGetActionType().value === 'update'),
+          },
+        },
+        {
+          type: 'Base:Input',
+          formProp: {
+            path: 'description',
+          },
+          componentProp: {
+            clearable: true,
+            type: 'textarea',
+          },
+        },
+        {
+          type: 'Base:InputNumber',
+          formProp: {
+            path: 'order',
+          },
+          componentProp: {
+            clearable: true,
+            defaultValue: 0,
+          },
+        },
+        {
+          // 数据权限二期六档：数值与语义真源在 @walnut/contract 的 DataScope
+          // （1=ALL 2=CUSTOM 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF）。
+          // CUSTOM 的部门清单即下方 deptIds；CUSTOM 不递归子树、DEPT_AND_CHILD 含自身。
+          type: 'Base:Select',
+          formProp: {
+            path: 'dataScope',
+            labelHelpMessage: true,
+          },
+          componentProp: {
+            defaultValue: DataScope.ALL,
+            options: [
+              { label: t('table.role.dataScope.all'), value: DataScope.ALL },
+              { label: t('table.role.dataScope.custom'), value: DataScope.CUSTOM },
+              { label: t('table.role.dataScope.dept'), value: DataScope.DEPT },
+              { label: t('table.role.dataScope.deptAndChild'), value: DataScope.DEPT_AND_CHILD },
+              { label: t('table.role.dataScope.self'), value: DataScope.SELF },
+              { label: t('table.role.dataScope.deptOrSelf'), value: DataScope.DEPT_OR_SELF },
+            ],
+          },
+        },
+        {
+          // CUSTOM 档位的部门清单：只在选中 CUSTOM 时显示（visibleProp.vIf 读 formData）。
+          // 提交到角色 create/update 的 deptIds，后端整组替换 sys_role_dept junction。
+          // 非 CUSTOM 时该 schema 仍参与 strictFormData 的字段收集，但值保持上次勾选
+          // （后端对非 CUSTOM 角色无执行语义，切回 CUSTOM 时可直接复用）。
+          type: 'Base:TreeSelect',
+          formProp: {
+            path: 'deptIds',
+            labelHelpMessage: true,
+          },
+          visibleProp: {
+            vIf: ({ formData }) =>
+              (formData as { dataScope?: number }).dataScope === DataScope.CUSTOM,
+          },
+          componentProp: {
+            multiple: true,
+            defaultValue: [],
+            treeSelectProps: {
+              options: getDeptTree as unknown as any[],
+              keyField: 'id',
+              labelField: 'deptName',
+              placeholder: t('table.role.deptIds.placeholder'),
             },
           },
         },
-
         {
-          type: 'Extend:Query',
+          type: 'Business:Dict',
+          formProp: {
+            path: 'status',
+          },
+          componentProp: {
+            dictType: 'sys_shared_status',
+            renderType: 'radio',
+            defaultValue: true,
+            componentProps: {
+              button: true,
+              valueType: 'boolean',
+            },
+          },
+        },
+        {
+          type: 'Base:Tree',
+          formProp: {
+            path: 'menus',
+            rule: false,
+            labelHelpMessage: true,
+          },
+          componentProp: {
+            presetPrefixIcon: true,
+            toolbar: true,
+            multiple: true,
+            maxHeight: '600px',
+            defaultValue: [],
+
+            treeProps: {
+              data: getLeftMenu as unknown as any[],
+              blockLine: true,
+              blockNode: true,
+              keyField,
+              labelField: 'title',
+              renderLabel: ({ option }) =>
+                option.type === AppConstMenuType.ELEMENT
+                  ? ((option as unknown as SystemMenu).meta.permission as string)
+                  : (option.title as string),
+            },
+          },
         },
       ],
     },
-
-    // table columns
-    columns: [
-      {
-        key: 'index',
-        extendType: 'index',
-        fixed: 'left',
-      },
-
-      {
-        key: 'roleName',
-        width: 200,
-        sorter: {
-          multiple: 5,
-          compare: 'default',
-        },
-      },
-
-      {
-        key: 'description',
-        width: 200,
-        ellipsis: {
-          tooltip: true,
-        },
-      },
-
-      {
-        key: 'usersCount',
-        width: 120,
-      },
-
-      {
-        ...WTablePresetOrderColumn,
-        defaultSortOrder: 'ascend',
-        sorter: {
-          multiple: 4,
-          compare: 'default',
-        },
-      },
-
-      {
-        ...WTablePresetStatusColumn,
-        sorter: {
-          multiple: 3,
-          compare: 'default',
-        },
-      },
-
-      {
-        ...WTablePresetCreatedAtColumn,
-        sorter: {
-          multiple: 2,
-          compare: 'default',
-        },
-      },
-
-      {
-        ...WTablePresetUpdatedAtColumn,
-        sorter: {
-          multiple: 1,
-          compare: 'default',
-        },
-      },
-
-      {
-        key: 'action',
-        width: 160,
-        extendType: 'action',
-        fixed: 'right',
-        columnBuiltInActions: [
-          {
-            _builtInType: 'read',
-            _show: row => row.roleName !== AppConstRoles.ROOT,
-            async onPresetClick(rowData) {
-              await onReadAndOpenUpdateForm(rowData[keyField]!)
-            },
-          },
-        ],
-      },
-    ],
-  },
-
-  formProps: {
-    localeUniqueKey: key,
-    localeWithTable: true,
-    dialogPreset: 'drawer',
-    baseRules: true,
-    labelWidth: 140,
-    xGap: 0,
-    // create/update form schemas
-    schemas: [
-      {
-        type: 'Base:Input',
-        formProp: {
-          path: 'roleName',
-          labelHelpMessage: true,
-        },
-        componentProp: {
-          clearable: true,
-          disabled: computed((): boolean => onGetActionType().value === 'update'),
-        },
-      },
-      {
-        type: 'Base:Input',
-        formProp: {
-          path: 'description',
-        },
-        componentProp: {
-          clearable: true,
-          type: 'textarea',
-        },
-      },
-      {
-        type: 'Base:InputNumber',
-        formProp: {
-          path: 'order',
-        },
-        componentProp: {
-          clearable: true,
-          defaultValue: 0,
-        },
-      },
-      {
-        // 数据权限二期六档：数值与语义真源在 @walnut/contract 的 DataScope
-        // （1=ALL 2=CUSTOM 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF）。
-        // CUSTOM 的部门清单即下方 deptIds；CUSTOM 不递归子树、DEPT_AND_CHILD 含自身。
-        type: 'Base:Select',
-        formProp: {
-          path: 'dataScope',
-          labelHelpMessage: true,
-        },
-        componentProp: {
-          defaultValue: DataScope.ALL,
-          options: [
-            { label: t('table.role.dataScope.all'), value: DataScope.ALL },
-            { label: t('table.role.dataScope.custom'), value: DataScope.CUSTOM },
-            { label: t('table.role.dataScope.dept'), value: DataScope.DEPT },
-            { label: t('table.role.dataScope.deptAndChild'), value: DataScope.DEPT_AND_CHILD },
-            { label: t('table.role.dataScope.self'), value: DataScope.SELF },
-            { label: t('table.role.dataScope.deptOrSelf'), value: DataScope.DEPT_OR_SELF },
-          ],
-        },
-      },
-      {
-        // CUSTOM 档位的部门清单：只在选中 CUSTOM 时显示（visibleProp.vIf 读 formData）。
-        // 提交到角色 create/update 的 deptIds，后端整组替换 sys_role_dept junction。
-        // 非 CUSTOM 时该 schema 仍参与 strictFormData 的字段收集，但值保持上次勾选
-        // （后端对非 CUSTOM 角色无执行语义，切回 CUSTOM 时可直接复用）。
-        type: 'Base:TreeSelect',
-        formProp: {
-          path: 'deptIds',
-          labelHelpMessage: true,
-        },
-        visibleProp: {
-          vIf: ({ formData }) => (formData as { dataScope?: number }).dataScope === DataScope.CUSTOM,
-        },
-        componentProp: {
-          multiple: true,
-          defaultValue: [],
-          treeSelectProps: {
-            options: getDeptTree as unknown as any[],
-            keyField: 'id',
-            labelField: 'deptName',
-            placeholder: t('table.role.deptIds.placeholder'),
-          },
-        },
-      },
-      {
-        type: 'Business:Dict',
-        formProp: {
-          path: 'status',
-        },
-        componentProp: {
-          dictType: 'sys_shared_status',
-          renderType: 'radio',
-          defaultValue: true,
-          componentProps: {
-            button: true,
-            valueType: 'boolean',
-          },
-        },
-      },
-      {
-        type: 'Base:Tree',
-        formProp: {
-          path: 'menus',
-          rule: false,
-          labelHelpMessage: true,
-        },
-        componentProp: {
-          presetPrefixIcon: true,
-          toolbar: true,
-          multiple: true,
-          maxHeight: '600px',
-          defaultValue: [],
-
-          treeProps: {
-            data: getLeftMenu as unknown as any[],
-            blockLine: true,
-            blockNode: true,
-            keyField,
-            labelField: 'title',
-            renderLabel: ({ option }) =>
-              option.type === AppConstMenuType.ELEMENT
-                ? ((option as unknown as SystemMenu).meta.permission as string)
-                : (option.title as string),
-          },
-        },
-      },
-    ],
-  },
-})
+  })
 </script>
 
 <template>

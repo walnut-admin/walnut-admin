@@ -37,18 +37,18 @@ function main(): void {
   try {
     writeFileSync(tmp, redacted, 'utf8')
     renameSync(tmp, target)
-  }
-  catch (error) {
+  } catch (error) {
     rmSync(tmp, { force: true })
     throw error
   }
-  console.log(`[e2e/redact-log] ${target} 已重新脱敏（多杀 ${original.length - redacted.length} 字符）`)
+  console.log(
+    `[e2e/redact-log] ${target} 已重新脱敏（多杀 ${original.length - redacted.length} 字符）`,
+  )
 }
 
 try {
   main()
-}
-catch (error) {
+} catch (error) {
   console.error(`[e2e/redact-log] 失败：${error instanceof Error ? error.message : String(error)}`)
   process.exitCode = 1
 }

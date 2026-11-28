@@ -43,10 +43,9 @@ export class WalnutAdminGuardThrottler extends ThrottlerGuard {
     // block 过后每 10s 又能再打 4 发。这里把 blockDuration 与动态 ttl 同步覆盖。
     let { limit, ttl, blockDuration } = requestProps
 
-    const TargetService = this.reflector.getAllAndOverride<Type<IWalnutAdminThrottleConfigProvider>>(
-      THROTTLE_SERVICE_KEY,
-      [context.getHandler(), context.getClass()],
-    )
+    const TargetService = this.reflector.getAllAndOverride<
+      Type<IWalnutAdminThrottleConfigProvider>
+    >(THROTTLE_SERVICE_KEY, [context.getHandler(), context.getClass()])
 
     if (!isNil(TargetService)) {
       const service = this.moduleRef.get<IWalnutAdminThrottleConfigProvider>(TargetService, {

@@ -32,8 +32,7 @@ export const colorModeConst = {
   INVERTED: 'inverted',
 } as const
 
-export type IColorModeConst
-  = ValueOf<typeof colorModeConst>
+export type IColorModeConst = ValueOf<typeof colorModeConst>
 
 export const CVDConst = {
   DEFAULT: 'default',
@@ -43,13 +42,11 @@ export const CVDConst = {
   ACHROMATOPIA: 'achromatopsia', // no color
 } as const
 
-export type ICVDConst
-  = ValueOf<typeof CVDConst>
+export type ICVDConst = ValueOf<typeof CVDConst>
 
 export const layoutModeConst = {
   LEFT_MENU: 'left-menu',
   TOP_MENU: 'top-menu',
 } as const
 
-export type ILayoutModeConst
-  = ValueOf<typeof layoutModeConst>
+export type ILayoutModeConst = ValueOf<typeof layoutModeConst>

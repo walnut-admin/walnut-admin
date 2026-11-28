@@ -125,8 +125,8 @@ function makeExecutionContext(request: Record<string, unknown>): ExecutionContex
       getResponse: () => ({}),
       getNext: () => undefined,
     }),
-    getClass: () => class SpecTxHandler { },
-    getHandler: () => function specTxHandler() { },
+    getClass: () => class SpecTxHandler {},
+    getHandler: () => function specTxHandler() {},
   } as unknown as ExecutionContext
 }
 
@@ -155,28 +155,31 @@ describe('walnutTxInterceptor 失败路径的连接语义（先 rollback 再 rel
     const { runner, calls, activeAtRelease } = createFakeRunner({ setupThrows: true })
     const interceptor = new WalnutTxInterceptor(fakeDataSource(runner))
 
-    await expect(interceptor.intercept(makeExecutionContext({}), okHandler()))
-      .rejects
-      .toThrow('pg set_config boom')
+    await expect(interceptor.intercept(makeExecutionContext({}), okHandler())).rejects.toThrow(
+      'pg set_config boom',
+    )
 
     // 池污染判据（先断言它 —— 这才是生产症状）：还池那一刻连接上不能还有活跃事务
     expect(activeAtRelease).toEqual([false])
     // 顺序判据：rollback 必须在 release 之前
     expect(calls).toEqual(['connect', 'start', 'rollback', 'release'])
     // release 只发生一次
-    expect(calls.filter(c => c === 'release')).toHaveLength(1)
+    expect(calls.filter((c) => c === 'release')).toHaveLength(1)
   })
 
   it('handler 抛错（catchError 路径）：同样先 rollback 再 release，还池的连接不带事务', async () => {
     const { runner, calls, activeAtRelease } = createFakeRunner()
     const interceptor = new WalnutTxInterceptor(fakeDataSource(runner))
 
-    const result$ = await interceptor.intercept(makeExecutionContext({}), failingHandler('handler boom'))
+    const result$ = await interceptor.intercept(
+      makeExecutionContext({}),
+      failingHandler('handler boom'),
+    )
     await expect(lastValueFrom(result$)).rejects.toThrow('handler boom')
 
     expect(activeAtRelease).toEqual([false])
     expect(calls).toEqual(['connect', 'start', 'rollback', 'release'])
-    expect(calls.filter(c => c === 'release')).toHaveLength(1)
+    expect(calls.filter((c) => c === 'release')).toHaveLength(1)
   })
 
   it('rollback 自身抛错：不掩盖原始错误，release 仍然发生且只一次', async () => {
@@ -184,21 +187,21 @@ describe('walnutTxInterceptor 失败路径的连接语义（先 rollback 再 rel
     const interceptor = new WalnutTxInterceptor(fakeDataSource(runner))
 
     // 透传的必须是 setup 的错，不是 'pg rollback boom'
-    await expect(interceptor.intercept(makeExecutionContext({}), okHandler()))
-      .rejects
-      .toThrow('pg set_config boom')
+    await expect(interceptor.intercept(makeExecutionContext({}), okHandler())).rejects.toThrow(
+      'pg set_config boom',
+    )
 
     expect(calls).toEqual(['connect', 'start', 'rollback', 'release'])
-    expect(calls.filter(c => c === 'release')).toHaveLength(1)
+    expect(calls.filter((c) => c === 'release')).toHaveLength(1)
   })
 
   it('connect 抛错（事务从未开启）：不 rollback（1.1.2 会抛 TransactionNotStartedError），release 一次', async () => {
     const { runner, calls, activeAtRelease } = createFakeRunner({ connectThrows: true })
     const interceptor = new WalnutTxInterceptor(fakeDataSource(runner))
 
-    await expect(interceptor.intercept(makeExecutionContext({}), okHandler()))
-      .rejects
-      .toThrow('pg connect boom')
+    await expect(interceptor.intercept(makeExecutionContext({}), okHandler())).rejects.toThrow(
+      'pg connect boom',
+    )
 
     expect(calls).toEqual(['connect', 'release'])
     expect(activeAtRelease).toEqual([false])
@@ -208,9 +211,9 @@ describe('walnutTxInterceptor 失败路径的连接语义（先 rollback 再 rel
     const { runner, calls, activeAtRelease } = createFakeRunner({ startThrows: true })
     const interceptor = new WalnutTxInterceptor(fakeDataSource(runner))
 
-    await expect(interceptor.intercept(makeExecutionContext({}), okHandler()))
-      .rejects
-      .toThrow('pg start boom')
+    await expect(interceptor.intercept(makeExecutionContext({}), okHandler())).rejects.toThrow(
+      'pg start boom',
+    )
 
     expect(activeAtRelease).toEqual([false])
     expect(calls).toEqual(['connect', 'start', 'rollback', 'release'])
@@ -249,21 +252,25 @@ describe('walnutTxInterceptor 失败路径的连接语义（先 rollback 再 rel
     await expect(lastValueFrom(result$)).resolves.toBe('committed')
 
     expect(calls).toEqual(['connect', 'start', 'commit', 'release'])
-    expect(calls.filter(c => c === 'release')).toHaveLength(1)
+    expect(calls.filter((c) => c === 'release')).toHaveLength(1)
     expect(errorSpy).toHaveBeenCalledTimes(1)
   })
 
   it('rollback 与 release 双双抛错：原始错误仍透传，连接只归还一次', async () => {
-    const { runner, calls } = createFakeRunner({ setupThrows: true, rollbackThrows: true, releaseThrows: true })
+    const { runner, calls } = createFakeRunner({
+      setupThrows: true,
+      rollbackThrows: true,
+      releaseThrows: true,
+    })
     const interceptor = new WalnutTxInterceptor(fakeDataSource(runner))
 
     // 两条清理腿都坏掉时，暴露给调用方的必须是真正的根因（setup 的错）
-    await expect(interceptor.intercept(makeExecutionContext({}), okHandler()))
-      .rejects
-      .toThrow('pg set_config boom')
+    await expect(interceptor.intercept(makeExecutionContext({}), okHandler())).rejects.toThrow(
+      'pg set_config boom',
+    )
 
     expect(calls).toEqual(['connect', 'start', 'rollback', 'release'])
-    expect(calls.filter(c => c === 'release')).toHaveLength(1)
+    expect(calls.filter((c) => c === 'release')).toHaveLength(1)
   })
 
   it('setup 阶段同步错误（RLS 设置抛 TypeError）同样走 rollback → release', async () => {
@@ -272,9 +279,9 @@ describe('walnutTxInterceptor 失败路径的连接语义（先 rollback 再 rel
     const interceptor = new WalnutTxInterceptor(fakeDataSource(runner))
     const request = { dataScopeRls: { mode: 'system', userId: '', deptIds: null } }
 
-    await expect(interceptor.intercept(makeExecutionContext(request), okHandler()))
-      .rejects
-      .toThrow(TypeError)
+    await expect(interceptor.intercept(makeExecutionContext(request), okHandler())).rejects.toThrow(
+      TypeError,
+    )
 
     expect(activeAtRelease).toEqual([false])
     expect(calls).toEqual(['connect', 'start', 'rollback', 'release'])

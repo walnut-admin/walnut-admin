@@ -6,7 +6,11 @@ import { WalnutAdminExceptionDataExists } from '@walnut-server/exceptions/base/4
 
 import { DataScopeService } from '../data-scope/data-scope.service'
 import { SysDeptBasicRepository } from './dept.basic.repository'
-import { SysDeptDTOCreateRequest, SysDeptDTOListRequest, SysDeptDTOUpdateRequest } from './dto/dept.dto'
+import {
+  SysDeptDTOCreateRequest,
+  SysDeptDTOListRequest,
+  SysDeptDTOUpdateRequest,
+} from './dto/dept.dto'
 import { SysDeptEntity } from './entity/dept.entity'
 
 /** children 数组形态的树节点（出参经 DTO 序列化，内部只关心 id/parentId/sortOrder） */
@@ -87,7 +91,7 @@ export class SysDeptService {
 
       // 防环：目标父节点不得落在自身子树内（含自身，上面已单独拦）
       const subtree = await this.deptBasicRepo.findSubtreeById(id, undefined, em)
-      if (subtree.some(row => row.id === parentId)) {
+      if (subtree.some((row) => row.id === parentId)) {
         throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.dept.parentCycle' })
       }
     }
@@ -110,9 +114,13 @@ export class SysDeptService {
     // 数据权限二期批 1：部门移动（parent_id 变更）改变旧/新祖先链的子树 ——
     // 旧祖先链必须在 update 前取（update 之后 parent_id 已指向新父）。
     // 旧父节点本身也必须进集合（findAncestorDeptIds 不含自身，而旧父的子树已丢节点）。
-    const oldAncestorIds = parentId !== current.parentId && current.parentId !== null
-      ? [current.parentId, ...(await this.deptBasicRepo.findAncestorDeptIds(current.parentId, em))]
-      : []
+    const oldAncestorIds =
+      parentId !== current.parentId && current.parentId !== null
+        ? [
+            current.parentId,
+            ...(await this.deptBasicRepo.findAncestorDeptIds(current.parentId, em)),
+          ]
+        : []
 
     const updated = await this.deptBasicRepo.update(id, payload, em)
 
@@ -131,11 +139,11 @@ export class SysDeptService {
   async delete(id: string, userId: string, em?: EntityManager) {
     await this.deptBasicRepo.readById(id, em)
 
-    if (await this.deptBasicRepo.countChildren(id, em) > 0) {
+    if ((await this.deptBasicRepo.countChildren(id, em)) > 0) {
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.dept.hasChildren' })
     }
 
-    if (await this.deptBasicRepo.countEmployees(id, em) > 0) {
+    if ((await this.deptBasicRepo.countEmployees(id, em)) > 0) {
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.dept.hasEmployees' })
     }
 
@@ -208,7 +216,9 @@ export class SysDeptService {
    * 环组件（成员互为父子）没有自然根，按首见提升为根并剪掉回边 —— CYCLE 兜底路径
    * 保证输出可序列化、不丢行、不悬挂。
    */
-  private buildTree<T extends { id: string, parentId: string | null }>(rows: T[]): DeptTreeNode<T>[] {
+  private buildTree<T extends { id: string; parentId: string | null }>(
+    rows: T[],
+  ): DeptTreeNode<T>[] {
     const nodes = new Map<string, DeptTreeNode<T>>()
     for (const row of rows) {
       if (!nodes.has(row.id)) {
@@ -221,8 +231,7 @@ export class SysDeptService {
       const parent = node.parentId === null ? undefined : nodes.get(node.parentId)
       if (parent !== undefined) {
         parent.children.push(node)
-      }
-      else {
+      } else {
         roots.push(node)
       }
     }

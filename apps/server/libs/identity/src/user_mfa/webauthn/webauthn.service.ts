@@ -19,9 +19,15 @@ import { isoBase64URL } from '@simplewebauthn/server/helpers'
 import { AppTechCacheMfaService } from '@walnut-server/cache'
 
 import { AppTechCryptoService } from '@walnut-server/crypto'
-import { WalnutAdminExceptionBadRequest, WalnutAdminExceptionNotFound } from '@walnut-server/exceptions/base.exception'
+import {
+  WalnutAdminExceptionBadRequest,
+  WalnutAdminExceptionNotFound,
+} from '@walnut-server/exceptions/base.exception'
 import { isNil } from 'lodash'
-import { IIdentityMfaPostVerification, WALNUT_ADMIN_IDENTITY_MFA_POST_VERIFICATION } from '../../identity.ports'
+import {
+  IIdentityMfaPostVerification,
+  WALNUT_ADMIN_IDENTITY_MFA_POST_VERIFICATION,
+} from '../../identity.ports'
 import { SysUserMfaRepositoryService } from '../repo/user_mfa.repo.service'
 import { SysUserMfaWebauthnAuthenticateVerifyDTO } from './webauthn.dto'
 
@@ -61,12 +67,17 @@ export class SysUserMfaWebauthnService {
   /**
    * 生成注册选项
    */
-  async generateRegistrationOptions(userId: string, deviceId: string, userName: string, deviceName: string) {
+  async generateRegistrationOptions(
+    userId: string,
+    deviceId: string,
+    userName: string,
+    deviceName: string,
+  ) {
     // 获取用户已有的 WebAuthn 设备
     const existingDevices = await this.sysUserMfaRepo.findActiveWebauthnByUserId(userId)
 
     // 排除已注册的凭证（webauthn 行必有凭据 id —— uq_user_mfa_credential 语义）
-    const excludeCredentials = existingDevices.map(device => ({
+    const excludeCredentials = existingDevices.map((device) => ({
       id: device.webauthnCredentialId!,
       transports: this.allowedTransports,
     }))
@@ -113,7 +124,11 @@ export class SysUserMfaWebauthnService {
     response: RegistrationResponseJSON,
   ) {
     // 从缓存获取 challenge
-    const expectedChallenge = await this.cacheMfaService.getWebauthnCache(userId, deviceId, 'registration')
+    const expectedChallenge = await this.cacheMfaService.getWebauthnCache(
+      userId,
+      deviceId,
+      'registration',
+    )
     if (isNil(expectedChallenge)) {
       throw new WalnutAdminExceptionBadRequest()
     }
@@ -131,8 +146,7 @@ export class SysUserMfaWebauthnService {
     let verification: Awaited<ReturnType<typeof verifyRegistrationResponse>>
     try {
       verification = await verifyRegistrationResponse(opts)
-    }
-    catch (err) {
+    } catch (err) {
       throw new WalnutAdminExceptionBadRequest({
         errMsg: 'business.auth.mfa.verifyFail',
         _devMsg: err instanceof Error ? err.message : String(err),
@@ -150,7 +164,9 @@ export class SysUserMfaWebauthnService {
     const existing = await this.sysUserMfaRepo.findWebauthnByCredentialId(id)
 
     if (existing) {
-      throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.auth.mfa.webauthn.alreadyBound' })
+      throw new WalnutAdminExceptionBadRequest({
+        errMsg: 'business.auth.mfa.webauthn.alreadyBound',
+      })
     }
 
     // 加密公钥存储
@@ -189,7 +205,7 @@ export class SysUserMfaWebauthnService {
     }
 
     // 允许的凭证列表（webauthn 行必有凭据 id —— uq_user_mfa_credential 语义）
-    const allowCredentials = devices.map(device => ({
+    const allowCredentials = devices.map((device) => ({
       id: device.webauthnCredentialId!,
       transports: this.allowedTransports,
     }))
@@ -225,21 +241,32 @@ export class SysUserMfaWebauthnService {
     em?: EntityManager,
   ) {
     // 获取 challenge
-    const expectedChallenge = await this.cacheMfaService.getWebauthnCache(user.userId, deviceId, 'authentication')
+    const expectedChallenge = await this.cacheMfaService.getWebauthnCache(
+      user.userId,
+      deviceId,
+      'authentication',
+    )
     if (isNil(expectedChallenge)) {
       throw new WalnutAdminExceptionBadRequest()
     }
 
     // 根据 credentialId 查找设备
     const credentialIdBase64 = dto.response.id
-    const device = await this.sysUserMfaRepo.findWebauthnWithPublicKeyByUserIdAndCredentialId(user.userId, credentialIdBase64, em)
+    const device = await this.sysUserMfaRepo.findWebauthnWithPublicKeyByUserIdAndCredentialId(
+      user.userId,
+      credentialIdBase64,
+      em,
+    )
 
     if (!device || device.webauthnPublicKey === null) {
       throw new WalnutAdminExceptionNotFound()
     }
 
     // 解密公钥
-    const decryptedKey = this.cryptoService.decrypt(device.webauthnPublicKey, this.MFA_ENCRYPTION_KEY)
+    const decryptedKey = this.cryptoService.decrypt(
+      device.webauthnPublicKey,
+      this.MFA_ENCRYPTION_KEY,
+    )
 
     const opts: VerifyAuthenticationResponseOpts = {
       response: dto.response,
@@ -259,8 +286,7 @@ export class SysUserMfaWebauthnService {
     let verification: Awaited<ReturnType<typeof verifyAuthenticationResponse>>
     try {
       verification = await verifyAuthenticationResponse(opts)
-    }
-    catch (err) {
+    } catch (err) {
       throw new WalnutAdminExceptionBadRequest({
         errMsg: 'business.auth.mfa.verifyFail',
         _devMsg: err instanceof Error ? err.message : String(err),
@@ -284,6 +310,13 @@ export class SysUserMfaWebauthnService {
 
     // post verification
     // B7b 归一：post verification 全链 PG —— 单 em 透传
-    return this.mfaPostVerification.handlePostVerification(dto.trusted, jti, user.sid!, user.userId, deviceId, em)
+    return this.mfaPostVerification.handlePostVerification(
+      dto.trusted,
+      jti,
+      user.sid!,
+      user.userId,
+      deviceId,
+      em,
+    )
   }
 }

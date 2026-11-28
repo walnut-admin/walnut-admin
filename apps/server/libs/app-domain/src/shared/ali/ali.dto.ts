@@ -12,21 +12,24 @@ export class SharedAliOSSDTO {
 
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
-      description: 'RSA envelope payload string of the STS access key id (decrypt with the client private key)',
+      description:
+        'RSA envelope payload string of the STS access key id (decrypt with the client private key)',
     },
   })
   accessKeyId: string
 
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
-      description: 'RSA envelope payload string of the STS access key secret (decrypt with the client private key)',
+      description:
+        'RSA envelope payload string of the STS access key secret (decrypt with the client private key)',
     },
   })
   accessKeySecret: string
 
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
-      description: 'RSA envelope payload string of the STS session token (decrypt with the client private key)',
+      description:
+        'RSA envelope payload string of the STS session token (decrypt with the client private key)',
     },
   })
   stsToken: string

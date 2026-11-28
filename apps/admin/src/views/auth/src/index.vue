@@ -19,7 +19,9 @@ defineOptions({
 const { t, locale } = useAppI18n()
 
 const tabsInstRef = ref<TabsInst>()
-const opaqueRef = useTemplateRef<{ setFormData: (n: string, p: string) => Record<string, never> }>('opaque')
+const opaqueRef = useTemplateRef<{ setFormData: (n: string, p: string) => Record<string, never> }>(
+  'opaque',
+)
 const appStoreBackendSettings = useAppStoreSettingBackend()
 
 watch(
@@ -53,10 +55,7 @@ defineExpose({
         display-directive="show:lazy"
         :tab="t('form.app.auth.tab.account')"
       >
-        <SignInWithOpaque
-          ref="opaque"
-          class="mt-2 w-72 text-justify"
-        />
+        <SignInWithOpaque ref="opaque" class="mt-2 w-72 text-justify" />
       </n-tab-pane>
 
       <n-tab-pane

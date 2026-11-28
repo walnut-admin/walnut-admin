@@ -3,8 +3,22 @@ import { ApiTags } from '@nestjs/swagger'
 
 import { WalnutAdminGuardJwtOptional } from '@walnut-server/auth'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser, WalnutAdminGuardDeviceFree, WalnutAdminGuardLockFree, WalnutAdminGuardMFAFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
-import { SysUserPreferenceDTOAccessibilityRequest, SysUserPreferenceDTOBasicRequest, SysUserPreferenceDTOLayoutRequest, SysUserPreferenceDTOThemeRequest, SysUserPreferenceResponseDTO, SysUserPreferenceService } from '@walnut-server/identity'
+import {
+  WalnutAdminDecoratorHasPermission,
+  WalnutAdminDecoratorUser,
+  WalnutAdminGuardDeviceFree,
+  WalnutAdminGuardLockFree,
+  WalnutAdminGuardMFAFree,
+  WalnutAdminGuardSignFree,
+} from '@walnut-server/guards'
+import {
+  SysUserPreferenceDTOAccessibilityRequest,
+  SysUserPreferenceDTOBasicRequest,
+  SysUserPreferenceDTOLayoutRequest,
+  SysUserPreferenceDTOThemeRequest,
+  SysUserPreferenceResponseDTO,
+  SysUserPreferenceService,
+} from '@walnut-server/identity'
 import { SystemEndpointRoutes } from '@walnut/contract'
 
 const Permissions = {
@@ -17,9 +31,7 @@ const Permissions = {
 @Controller(SystemEndpointRoutes.USER_PREFERENCE)
 @ApiTags('system/user/preference')
 export class SysUserPreferenceController {
-  constructor(
-    private readonly preferenceService: SysUserPreferenceService,
-  ) {}
+  constructor(private readonly preferenceService: SysUserPreferenceService) {}
 
   @Get('read')
   @HttpCode(HttpStatus.OK)

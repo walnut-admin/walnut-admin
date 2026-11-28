@@ -1,4 +1,4 @@
-<script lang="ts" setup  generic="T">
+<script lang="ts" setup generic="T">
 import type { Fn } from '@walnut/types/universal'
 import type { Recordable } from 'easy-fns-ts'
 import { omit } from 'lodash-es'
@@ -28,10 +28,8 @@ const loadFinish = () => (loading.value = false)
 async function onOpen(beforeHook?: Fn) {
   loading.value = true
 
-  if (beforeHook)
-    await beforeHook(loadFinish)
-  else
-    loadFinish()
+  if (beforeHook) await beforeHook(loadFinish)
+  else loadFinish()
 
   show.value = true
 }
@@ -45,8 +43,7 @@ async function onBeforeClose() {
   if (getCloseConfirm.value) {
     const { confirmed } = await useAppConfirm(t('comp.form.closeConfirm'))
     return confirmed
-  }
-  else {
+  } else {
     onClose()
     return true
   }
@@ -68,8 +65,7 @@ async function onYes() {
         if (result) {
           onClose()
           useAppMsgSuccess()
-        }
-        else {
+        } else {
           return Promise.reject(new Error('Request Error'))
         }
       }
@@ -84,18 +80,15 @@ async function onYes() {
 
     formProps.value.dialogProps?.onYes!(apiHandler, ({ closeModal } = { closeModal: true }) => {
       loadFinish()
-      if (closeModal)
-        onClose()
+      if (closeModal) onClose()
     })
-  }
-  catch (err) {
+  } catch (err) {
     console.log(err)
   }
 }
 
 function onNo() {
-  if (!formProps.value.descriptionProps)
-    formRef.value!.restoreValidation()
+  if (!formProps.value.descriptionProps) formRef.value!.restoreValidation()
 
   if (formProps.value.dialogProps?.onNo) {
     formProps.value.dialogProps?.onNo(onClose)
@@ -105,13 +98,11 @@ function onNo() {
 function onGetTitle(title: string) {
   const uniqueKey = formProps.value.localeUniqueKey
 
-  if (!uniqueKey)
-    return title
+  if (!uniqueKey) return title
 
   const actionType = unref(formProps.value?.dialogProps?.actionType)
 
-  if (!actionType)
-    return title
+  if (!actionType) return title
 
   return title
     ? `${t(`app.base.${actionType}`)}${t(title)}`
@@ -122,7 +113,16 @@ function onGetTitle(title: string) {
 
 const getTitle = computed(() => onGetTitle(formProps.value.dialogProps?.title as string))
 
-const getBindProps = computed(() => omit(formProps.value.dialogProps, ['onYes', 'onNo', 'show', 'title', 'loading', 'displayDirective']))
+const getBindProps = computed(() =>
+  omit(formProps.value.dialogProps, [
+    'onYes',
+    'onNo',
+    'show',
+    'title',
+    'loading',
+    'displayDirective',
+  ]),
+)
 
 onDeactivated(() => {
   onClose()
@@ -162,14 +162,13 @@ defineExpose({ onOpen, onClose })
       <slot />
 
       <template v-if="formProps.dialogProps?.footerButtons" #footer>
-        <WScrollbar
-          height="auto"
-          x-scrollable
-          :x-step="50"
-          width="auto"
-        >
+        <WScrollbar height="auto" x-scrollable :x-step="50" width="auto">
           <div class="flex flex-row flex-wrap justify-end gap-2">
-            <WButton v-for="item in formProps.dialogProps?.footerButtons" :key="item.textProp" v-bind="item" />
+            <WButton
+              v-for="item in formProps.dialogProps?.footerButtons"
+              :key="item.textProp"
+              v-bind="item"
+            />
           </div>
         </WScrollbar>
       </template>

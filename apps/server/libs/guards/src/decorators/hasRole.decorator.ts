@@ -12,7 +12,10 @@ import { WalnutAdminGuardRole } from '../guards/roles.guard'
  * Otherwise `request.user` will be undefined in context access
  * @link https://github.com/nestjs/docs.nestjs.com/issues/1567#issuecomment-731808138
  */
-export function WalnutAdminDecoratorHasRole(roles: RoleType | RoleType[], mode: IWalnutAdminConstDecoratorRoleMode = 'and') {
+export function WalnutAdminDecoratorHasRole(
+  roles: RoleType | RoleType[],
+  mode: IWalnutAdminConstDecoratorRoleMode = 'and',
+) {
   return applyDecorators(
     SetMetadata(WalnutAdminConstDecoratorRoleMetadataKey.ROLE, roles),
     SetMetadata(WalnutAdminConstDecoratorRoleMetadataKey.ROLE_MODE, mode),

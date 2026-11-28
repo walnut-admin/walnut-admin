@@ -21,7 +21,16 @@ describe('device id：服务端签发与形态校验（B5）', () => {
   })
 
   it('伪造与畸形值必须被判为非法', () => {
-    for (const bad of ['', 'd1_', 'd1_xyz', `D1_${'a'.repeat(32)}`, `d1_${'A'.repeat(32)}`, ` d1_${'a'.repeat(32)}`, `d1_${'a'.repeat(31)}`, `d1_${'a'.repeat(33)}`]) {
+    for (const bad of [
+      '',
+      'd1_',
+      'd1_xyz',
+      `D1_${'a'.repeat(32)}`,
+      `d1_${'A'.repeat(32)}`,
+      ` d1_${'a'.repeat(32)}`,
+      `d1_${'a'.repeat(31)}`,
+      `d1_${'a'.repeat(33)}`,
+    ]) {
       expect(isValidDeviceId(bad), `应判非法: ${JSON.stringify(bad)}`).toBe(false)
     }
   })

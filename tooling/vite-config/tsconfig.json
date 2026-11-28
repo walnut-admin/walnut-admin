@@ -1,7 +1,6 @@
 {
   "extends": "@walnut/tsconfig/ts.json",
   "compilerOptions": {
-    "baseUrl": ".",
     "types": ["node"]
   },
   // 本包源码由 **Node 原生类型剥离**执行：`exports` 指向 `./src/**`，pnpm 把它链接到

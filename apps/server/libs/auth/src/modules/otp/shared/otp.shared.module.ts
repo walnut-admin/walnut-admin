@@ -12,11 +12,7 @@ import { OtpSharedService } from './otp.shared.service'
  */
 @Global()
 @Module({
-  imports: [
-    AppMailerModule,
-    AppSmsModule,
-    AliyunSmsModule,
-  ],
+  imports: [AppMailerModule, AppSmsModule, AliyunSmsModule],
   providers: [
     OtpSharedService,
     OtpSettingService,

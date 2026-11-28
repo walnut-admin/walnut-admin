@@ -15,9 +15,7 @@ export const useInputHistory = createGlobalState(() => {
 
   /** Rebuild the input history array from the current conversation's user messages and reset navigation state */
   function rebuildInputHistory() {
-    inputHistory.value = messages.value
-      .filter(m => m.role === 'user')
-      .map(m => m.content)
+    inputHistory.value = messages.value.filter((m) => m.role === 'user').map((m) => m.content)
     inputText.value = ''
     historyIndex.value = -1
     draftInput.value = ''
@@ -29,9 +27,13 @@ export const useInputHistory = createGlobalState(() => {
    * Use case: Enables arrow-up/down navigation through previously sent messages in the current conversation
    * Side effect: Resets inputText, historyIndex, and draftInput; triggers immediately on mount via { immediate: true }
    */
-  watch(currentId, () => {
-    rebuildInputHistory()
-  }, { immediate: true })
+  watch(
+    currentId,
+    () => {
+      rebuildInputHistory()
+    },
+    { immediate: true },
+  )
 
   /** Save the current text to input history (called after successful send) and reset navigation */
   function commitToHistory(text: string) {
@@ -44,10 +46,8 @@ export const useInputHistory = createGlobalState(() => {
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'ArrowUp') {
       e.preventDefault()
-      if (inputHistory.value.length === 0)
-        return
-      if (historyIndex.value === -1)
-        draftInput.value = inputText.value
+      if (inputHistory.value.length === 0) return
+      if (historyIndex.value === -1) draftInput.value = inputText.value
       if (historyIndex.value < inputHistory.value.length - 1) {
         historyIndex.value++
         inputText.value = inputHistory.value[inputHistory.value.length - 1 - historyIndex.value]
@@ -60,8 +60,7 @@ export const useInputHistory = createGlobalState(() => {
       if (historyIndex.value <= 0) {
         inputText.value = draftInput.value
         historyIndex.value = -1
-      }
-      else {
+      } else {
         historyIndex.value--
         inputText.value = inputHistory.value[inputHistory.value.length - 1 - historyIndex.value]
       }

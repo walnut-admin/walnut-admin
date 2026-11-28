@@ -33,35 +33,19 @@ function onToggle() {
 }
 
 const getHelpMsg = computed(() => {
-  if (props.helpMessage === true)
-    return t(`${props.title}.helpMsg`)
+  if (props.helpMessage === true) return t(`${props.title}.helpMsg`)
 
   return props.helpMessage === false ? '' : props.helpMessage
 })
 </script>
 
 <template>
-  <n-divider
-    v-if="title"
-    class="my-1"
-    :title-placement="titlePlacement"
-    :dashed="dashed"
-  >
-    <WTitle
-      :class="titleClass"
-      :help-message="getHelpMsg"
-      :prefix="prefix"
-      :type="type"
-    >
+  <n-divider v-if="title" class="my-1" :title-placement="titlePlacement" :dashed="dashed">
+    <WTitle :class="titleClass" :help-message="getHelpMsg" :prefix="prefix" :type="type">
       {{ t(title!) }}
     </WTitle>
 
-    <WArrow
-      v-if="foldable"
-      :active="!active"
-      class="mb-1 ml-1"
-      @click="onToggle"
-    />
+    <WArrow v-if="foldable" :active="!active" class="mb-1 ml-1" @click="onToggle" />
   </n-divider>
 
   <n-divider v-else />

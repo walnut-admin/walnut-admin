@@ -2,7 +2,12 @@ import type { HmrContext } from 'vite'
 import type { IconifyPluginOptions } from './types.ts'
 import path from 'node:path'
 import process from 'node:process'
-import { iconBundleCodeMap, iconListCodeMap, RESOLVED_VIRTUAL_MODULE_ICON_BUNDLE, RESOLVED_VIRTUAL_MODULE_ICON_LIST } from './const.ts'
+import {
+  iconBundleCodeMap,
+  iconListCodeMap,
+  RESOLVED_VIRTUAL_MODULE_ICON_BUNDLE,
+  RESOLVED_VIRTUAL_MODULE_ICON_LIST,
+} from './const.ts'
 import { cleanName } from './shared.ts'
 import { buildCustomSvgObject } from './svg.ts'
 
@@ -14,18 +19,16 @@ import { buildCustomSvgObject } from './svg.ts'
 async function generateDevIconListAndBundle(options: IconifyPluginOptions) {
   const { sets, customPrefix } = options
 
-  const names = sets.filter(i => i !== customPrefix)
+  const names = sets.filter((i) => i !== customPrefix)
 
   const customJson = await buildCustomSvgObject(customPrefix)
 
   // 1. iconBundle
   const jsonImports = names
-    .map(n => `import ${cleanName(n)} from '@iconify/json/json/${n}.json';`)
+    .map((n) => `import ${cleanName(n)} from '@iconify/json/json/${n}.json';`)
     .join('\n')
 
-  const addCalls = names
-    .map(n => `addCollection(${cleanName(n)});`)
-    .join('\n')
+  const addCalls = names.map((n) => `addCollection(${cleanName(n)});`).join('\n')
 
   const bundleCode = `
 import { addCollection } from '@iconify/vue';
@@ -58,8 +61,7 @@ export async function handleDevelopmentMode(options: IconifyPluginOptions) {
     const { bundleCode, listCode } = await generateDevIconListAndBundle(options)
     iconBundleCodeMap.set('default', bundleCode)
     iconListCodeMap.set('default', listCode)
-  }
-  catch (error) {
+  } catch (error) {
     console.error('[iconify-plugin] Failed to generate icons in dev mode:', error)
   }
 }

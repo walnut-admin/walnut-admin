@@ -6,7 +6,8 @@ import { useFloatingDock } from '@/components/Global/AI/store/useFloatingDock'
 defineOptions({ name: 'FloatingTrigger' })
 
 const baseZIndex = inject<number>('ai-z-index', 2000)
-const { isDragging, triggerStyle, onPointerDown, onPointerMove, onPointerUp, onPointerCancel } = useFloatingDock()
+const { isDragging, triggerStyle, onPointerDown, onPointerMove, onPointerUp, onPointerCancel } =
+  useFloatingDock()
 </script>
 
 <template>
@@ -33,9 +34,9 @@ const { isDragging, triggerStyle, onPointerDown, onPointerMove, onPointerUp, onP
 </template>
 
 <style lang="scss" scoped>
-$dur:    0.5s;
+$dur: 0.5s;
 $spring: cubic-bezier(0.16, 1, 0.3, 1);
-$ease:   cubic-bezier(0.25, 0, 0, 1);
+$ease: cubic-bezier(0.25, 0, 0, 1);
 
 // 鼠标离开后延迟收起，模拟原来 1s hide timer
 $leave-delay: 1s;
@@ -60,14 +61,18 @@ $leave-delay: 1s;
   opacity: 0;
   transform: translate(-50%, -50%) scale(0.6);
   // 离开时延迟消失
-  transition: opacity 0.8s $ease $leave-delay, transform 0.9s $spring $leave-delay;
+  transition:
+    opacity 0.8s $ease $leave-delay,
+    transform 0.9s $spring $leave-delay;
 }
 .trigger-root:hover .glow,
 .trigger-root.is-dragging .glow {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
   // 进入时立即响应
-  transition: opacity 0.8s $ease, transform 0.9s $spring;
+  transition:
+    opacity 0.8s $ease,
+    transform 0.9s $spring;
 }
 
 // ── pill ───────────────────────────────────────────────
@@ -87,11 +92,11 @@ $leave-delay: 1s;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 
   transition:
-    width         $dur $spring $leave-delay,
+    width $dur $spring $leave-delay,
     border-radius $dur $spring $leave-delay,
-    transform     $dur $spring $leave-delay,
-    border-color  0.3s ease    $leave-delay,
-    box-shadow    0.35s $ease  $leave-delay;
+    transform $dur $spring $leave-delay,
+    border-color 0.3s ease $leave-delay,
+    box-shadow 0.35s $ease $leave-delay;
 }
 
 // 展开状态：hover 或拖拽中，立即响应
@@ -107,11 +112,11 @@ $leave-delay: 1s;
   border-right: none;
 
   transition:
-    width         $dur $spring,
+    width $dur $spring,
     border-radius $dur $spring,
-    transform     $dur $spring,
-    border-color  0.3s ease,
-    box-shadow    0.35s $ease;
+    transform $dur $spring,
+    border-color 0.3s ease,
+    box-shadow 0.35s $ease;
 }
 
 .trigger-root.is-dragging .pill {
@@ -142,7 +147,12 @@ $leave-delay: 1s;
 }
 
 @keyframes breathe {
-  0%, 100% { opacity: 0.65; }
-  50%       { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 </style>

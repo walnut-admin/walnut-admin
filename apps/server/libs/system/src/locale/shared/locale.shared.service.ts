@@ -1,7 +1,10 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { AppTechCacheService } from '@walnut-server/cache'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+} from '@walnut-server/const/app/cache'
 import { runAfterCommit } from '@walnut-server/db'
 import { fireAndForget } from '@walnut-server/utils'
 import { LocaleType } from '@walnut/contract'
@@ -50,7 +53,7 @@ export class SysLocaleSharedService {
   async extractLangIdsIntoCache(langs: SysLangEntity[]) {
     await this.cacheService.set(
       WalnutAdminConstAppCacheKeys.SYS_LANG_ID_LIST,
-      langs.map(i => i.id),
+      langs.map((i) => i.id),
       {
         t: WalnutAdminConstAppCacheType.SYSTEM,
       },
@@ -108,11 +111,7 @@ export class SysLocaleSharedService {
    * @description: delete locales through key (used by controller and other modules)
    */
   async deleteByKey(key: string, userId: string, em?: EntityManager) {
-    const deleted = await this.localeBasicRepo.deleteSoftManyByCondition(
-      { key },
-      userId,
-      em,
-    )
+    const deleted = await this.localeBasicRepo.deleteSoftManyByCondition({ key }, userId, em)
 
     this.triggerCacheRefresh()
 
@@ -126,7 +125,7 @@ export class SysLocaleSharedService {
     const deleted: SysLocaleEntity[] = []
     for (const key of keys) {
       const deletedItems = await this.localeBasicRepo.deleteSoftManyByCondition({ key }, userId, em)
-      deletedItems.map(i => deleted.push(i))
+      deletedItems.map((i) => deleted.push(i))
     }
 
     this.triggerCacheRefresh()

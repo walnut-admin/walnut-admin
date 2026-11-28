@@ -1,6 +1,9 @@
 import type { IWalnutAdminTokenTtl } from '../token-ttl.port'
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+} from '@walnut-server/const/app/cache'
 import { AppTechCacheService } from '../cache.service'
 import { WALNUT_ADMIN_TOKEN_TTL } from '../token-ttl.port'
 
@@ -15,22 +18,40 @@ export class AppTechCacheSignService {
 
   async setSignTicketCache(deviceId: string, payload: string) {
     this.logger.debug(`set sign ticket cache, deviceId: ${deviceId}, payload: ${payload}`)
-    await this.cacheService.set(`${WalnutAdminConstAppCacheKeys.SECURITY_SIGN_TICKET}:${deviceId}`, payload, { t: WalnutAdminConstAppCacheType.AUTH, ttl: this.tokenService.getAccessTokenExpireSeconds() })
+    await this.cacheService.set(
+      `${WalnutAdminConstAppCacheKeys.SECURITY_SIGN_TICKET}:${deviceId}`,
+      payload,
+      {
+        t: WalnutAdminConstAppCacheType.AUTH,
+        ttl: this.tokenService.getAccessTokenExpireSeconds(),
+      },
+    )
   }
 
   async getSignTicketCache(deviceId: string) {
     this.logger.debug(`get sign ticket cache, deviceId: ${deviceId}`)
-    return this.cacheService.get<string>(`${WalnutAdminConstAppCacheKeys.SECURITY_SIGN_TICKET}:${deviceId}`)
+    return this.cacheService.get<string>(
+      `${WalnutAdminConstAppCacheKeys.SECURITY_SIGN_TICKET}:${deviceId}`,
+    )
   }
 
   async setAesKeyCache(deviceId: string, payload: string) {
     this.logger.debug(`set aes key cache, deviceId: ${deviceId}, payload: ${payload}`)
-    await this.cacheService.set(`${WalnutAdminConstAppCacheKeys.SECURITY_SIGN_AES_KEY}:${deviceId}`, payload, { t: WalnutAdminConstAppCacheType.AUTH, ttl: this.tokenService.getAccessTokenExpireSeconds() })
+    await this.cacheService.set(
+      `${WalnutAdminConstAppCacheKeys.SECURITY_SIGN_AES_KEY}:${deviceId}`,
+      payload,
+      {
+        t: WalnutAdminConstAppCacheType.AUTH,
+        ttl: this.tokenService.getAccessTokenExpireSeconds(),
+      },
+    )
   }
 
   async getAesKeyCache(deviceId: string) {
     this.logger.debug(`get aes key cache, deviceId: ${deviceId}`)
-    return this.cacheService.get<string>(`${WalnutAdminConstAppCacheKeys.SECURITY_SIGN_AES_KEY}:${deviceId}`)
+    return this.cacheService.get<string>(
+      `${WalnutAdminConstAppCacheKeys.SECURITY_SIGN_AES_KEY}:${deviceId}`,
+    )
   }
 
   /**
@@ -48,6 +69,8 @@ export class AppTechCacheSignService {
 
   async getNonceCache(nonce: string) {
     this.logger.debug(`get nonce cache, nonce: ${nonce}`)
-    return this.cacheService.get<string>(`${WalnutAdminConstAppCacheKeys.SECURITY_SIGN_NONCE}:${nonce}`)
+    return this.cacheService.get<string>(
+      `${WalnutAdminConstAppCacheKeys.SECURITY_SIGN_NONCE}:${nonce}`,
+    )
   }
 }

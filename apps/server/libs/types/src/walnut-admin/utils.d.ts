@@ -1,5 +1,5 @@
 declare global {
-  type AnyFn = (() => any)
+  type AnyFn = () => any
 }
 
-export { }
+export {}

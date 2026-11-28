@@ -5,11 +5,7 @@ import { AuthOpaqueCoreModule } from '../core/opaque.core.module'
 import { AuthOpaqueAdminService } from './opaque.admin.service'
 
 @Module({
-  imports: [
-    AuthOpaqueCoreModule,
-    AuthSignoutModule,
-    SysUserIdentityRepositoryModule,
-  ],
+  imports: [AuthOpaqueCoreModule, AuthSignoutModule, SysUserIdentityRepositoryModule],
   providers: [AuthOpaqueAdminService],
   exports: [AuthOpaqueAdminService],
 })

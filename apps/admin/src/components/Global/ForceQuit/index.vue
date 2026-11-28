@@ -23,8 +23,7 @@ const { retryText, clear, resume } = useCountdownStorage({
 resume()
 
 async function onForceQuit() {
-  if (loading.value)
-    return
+  if (loading.value) return
   loading.value = true
 
   try {
@@ -32,8 +31,7 @@ async function onForceQuit() {
     compStoreForceQuit.onCloseForceQuitModal()
     compStoreForceQuit.$reset()
     await userStoreAuth.Signout()
-  }
-  finally {
+  } finally {
     loading.value = false
   }
 }

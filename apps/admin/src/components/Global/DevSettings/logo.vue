@@ -69,9 +69,7 @@ const [register] = useForm<typeof logoRelatives>({
         path: 'transition',
       },
       componentProp: {
-        disabled: computed(
-          () => !logoRelatives.status || getCanAnimate.value,
-        ),
+        disabled: computed(() => !logoRelatives.status || getCanAnimate.value),
         tooltip: true,
       },
     },

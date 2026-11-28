@@ -1,28 +1,41 @@
 import type { KnipConfig } from 'knip'
 
 /**
- * **`pnpm knip` 当前是红的，而且这是已知的、有意维持的状态**（2026-09-23 决策）。
+ * **`pnpm knip` 是绿的（exit 0）** —— 2026-11-28 收口；此前长期按「有意维持红、非门禁」运行。
  *
- * 它**不在任何门禁里**（prepush / CI / 发版电池都没有它）⇒ 不影响交付，但也意味着**没人会看到
- * 它的提示** —— 这个文件里的注释就是那些提示的落脚点。也因此这里**不写命中计数**：数会变，
- * 要看就跑 `pnpm knip`。
+ * 它**仍不在任何门禁里**（prepush / CI / 发版电池都没有它），所以这份文件就是「为什么这里这么配」
+ * 的唯一落脚点。这里**不写命中计数**：数会变，要看就跑 `pnpm knip`。
  *
- * 为什么不为了变绿而删：**本仓是模板项目，「未用导出」不等于死代码** —— 最典型的是
- * `apps/server/libs/decorators/src/transformer/**` 里那批 `WalnutAdminDecoratorTransform*`，
- * 它们正是**留给模板使用者按需取用**的装饰器 API 面，仓内没有消费者是正常的
- * （`sleep` / `TransformToSeconds` / `TransformToBytes` 同理）。按「有没有人 import」来删，
- * 等于把模板的能力删掉。
+ * ## 为什么之前红、现在怎么绿的（先读这三条判据）
  *
- * 如果将来要接进门禁：**先分类再开闸** —— 用 `entry` / `includeEntryExports` 之类把「有意的
- * 公共面」显式标出来，只让真正的死代码亮红。不要直接删。
+ * 1. **公共面 = 入口导出的符号**。本仓是模板项目，「未用导出」不等于死代码 —— 最典型的是
+ *    `apps/server/libs/decorators/src/transformer/**` 里那批 `WalnutAdminDecoratorTransform*`，
+ *    它们正是**留给模板使用者按需取用**的装饰器 API 面；每个内部库的 `src/index.ts` barrel
+ *    就是该库的公共面。所以每个 lib 的 `src/index.ts` 必须写进 `entry`，而不是写进 `ignore`
+ *    （写 ignore 会把 barrel 从程序里摘掉，于是 barrel 背后的每个导出都变成"没人 import"，
+ *    2026-11-28 之前 server 那一大片红正是这条造成的）。入口导出**默认不报**（`includeEntryExports`
+ *    保持关闭）—— 这就是「有意的公共面」的显式表达。
+ * 2. **只在文件内使用的导出不是死代码**。`ignoreExportsUsedInFile: true`（见下）让
+ *    「导出给同文件/测试复用」这一类不再亮红；真正零消费的导出仍会报。
+ * 3. **工具看不见的入口要显式点名**。命令行执行的 `migrations/**`、`apps/cli/**`、
+ *    `apps/worker/src/main.ts` 都不是"谁 import 它"，必须进 `entry`；如果入口在包的
+ *    scripts 里写明（admin 的 `node build/generate/index.ts`），knip 会从 scripts 里认出来，
+ *    不必再抄进 `entry`。反过来，`.tsx` 必须写进 `project`（admin 的 `project` 曾只含
+ *    `ts`/`vue`，于是所有被 `.tsx` 消费的导出都被误报）。
+ *
+ * 如果将来要接进门禁：**先分类再开闸** —— 用 `entry` / `ignoreDependencies` 把「有意的公共面 /
+ * 工具盲区」显式标出来，只让真正的死代码亮红。不要直接删公共导出。
  *
  * ## `packages/**` 直到 2026-11-02 才真正进入分析面（批次 2 · R2）
  *
  * 在这之前 `packages/**` **几乎没有发现**（2026-11-02 实测只有 `tooling/eslint-config` 的 4 条）——
  * 不是因为它干净，而是因为它**整块不在分析面里**：
  * workspace 只写了 `entry`，knip 于是只分析「entry 领进来的文件」，非 entry 的深层文件死了
- * 也没人报。现在五个共享包各补了两行（`project` + `includeEntryExports`），两行的分工见下面
- * workspace 配置里的注释。改前 / 改后的实测数据与每个探针的结果记在
+ * 也没人报。现在五个共享包都显式写了 `project`（不写就只分析 entry 领进来的文件）。
+ * 2026-11-28 收口时又删掉了 `includeEntryExports` 开关：包的 `entry` / `exports` 声明
+ * 就是它的公共 API 面，要求仓内必须有人 import 每个入口导出，只会把模板留用的公共函数判死；
+ * 入口**背后**的深层文件仍会被查（它们不是 entry）。
+ * 改前 / 改后的实测数据与每个探针的结果记在
  * apps/docs/src/zh-CN/content/monorepo/knip.md 的「共享包进入分析面」一节 —— 这里不抄数字
  * （数会变，要看就跑 `pnpm knip`）。
  *
@@ -45,8 +58,8 @@ import type { KnipConfig } from 'knip'
  * 批次 4 把 `packages/platform-web/{client,http}` 的 barrel 删掉、把
  * `packages/platform-any/utils-core` 的 barrel 收缩成两个模块之后，同一个命令的读数掉了**整整一档**，
  * 掉的那部分全是「barrel 里 re-export 了、但入口没人消费」的符号 —— **每个符号一行**。
- * 所以这一轮噪音的主因是**桶**，不是配置：`project` + `includeEntryExports` 只是把那批东西
- * **变可见**，删桶才是把它**变不见**。下次再看到读数暴涨，先查「是不是又多了个 barrel」。
+ * 所以这一轮噪音的主因是**桶**，不是配置：当时 `project` + `includeEntryExports` 只是把那批
+ * 东西**变可见**，删桶才是把它**变不见**。下次再看到读数暴涨，先查「是不是又多了个 barrel」。
  *
  * 复测之后「怎么看」按这三步（读数会变，判据不变）：
  *
@@ -58,8 +71,14 @@ import type { KnipConfig } from 'knip'
  *      API 面；`apps/{cli,worker}/src/main.ts` 与 `apps/api/migrations/**` 是**被命令行执行**的入口 ——
  *      knip 只看 import 图，看不见「谁在命令行里跑它」。
  *
- * **不要**用 `ignoreIssues` 把它们抹绿：桶已经删了，剩下每一条都该能说出「它为什么还在」；
- * 抹掉等于把这一面重新变回盲区。真要进门禁，先按上面三步分类，只给「真死」开红。
+ * **`ignoreIssues` 只给「工具确实看不见」的面**（逐条理由见下面 `ignoreIssues`
+ * 段）：不要把公共 barrel 或普通死导出塞进去 —— 那等于把这一面重新变回盲区。真要进门禁，
+ * 先按上面三步分类，只给「真死」开红。
+ *
+ * 2026-11-28 server 依赖与兼容层清理之后，`ignoreIssues` 里的**整个 server 段已删除**：
+ * 六处兼容再导出层（pg-list.builder / data-scope / config·utils·env / socket.const /
+ * libs/const 三条 contract shim）逐处 grep 到零消费后删的是**源码**，不是又加一层豁免。
+ * 现在只剩 docs 英文站脚手架一条（有意保留、暂不启用）。
  *
  * 逐条读数与归因**不写在这里**（数会变）：真要引用数字，就写明是哪天的 `pnpm knip` ——
  * 历史上那份带日期的记录已随 2026-11-04 收尾归档至 git 历史；
@@ -67,6 +86,11 @@ import type { KnipConfig } from 'knip'
  * 截断长路径）。
  */
 const config: KnipConfig = {
+  // `export` 给同文件内部复用（含递归）不是死代码的判据。「导出给外部消费」由 barrel / entry
+  // 表达；这一开关只影响那些**没有外部消费者、但自己还在用**的符号（如 `STEP_TIMEOUT_MS`、
+  // `DEFAULT_ALLOWED`、`mfaVerifiedKey`），否则它们会被误报成可删。
+  ignoreExportsUsedInFile: true,
+
   // ============================================================
   // Workspace 包入口
   //
@@ -80,73 +104,61 @@ const config: KnipConfig = {
     // vite: false：阻止 knip 的 vite 插件尝试 jiti 加载 vite.config.ts
     // （它依赖 loadEnv/回调执行，knip 无法安全执行）；entry 已手动指定。
     'apps/admin': {
-      entry: [
-        'src/main.ts',
-        'src/router/index.ts',
-        'src/router/routes/**/*.ts',
-      ],
-      project: ['src/**/*.{ts,vue}'],
+      entry: ['src/main.ts', 'src/router/index.ts', 'src/router/routes/**/*.ts'],
+      // `tsx` 不能漏：本仓有 `*.tsx`（如 views/system/menu/useMenuFormSchema.tsx），漏掉它
+      // 会让「只被 tsx 消费」的导出全部误报（2026-11-28 之前的 `menuTypeOptions` 等）。
+      // `build/**` 也不能再整块 ignore：`predev` / `prebuild` / `pretypes:check` 由
+      // `node build/generate/index.ts` 直接执行，knip 从 package.json 的脚本里能认出这个入口
+      // （所以不必手写进 `entry`）；而入口背后的 `tsrs` 正是这样进入依赖图的。
+      project: ['src/**/*.{ts,tsx,vue}', 'build/**/*.ts'],
       vite: false,
       ignore: [
-        // 构建辅助脚本
-        'build/**',
-        // 以下目录的文件通过组件自动注册 / Pinia 动态注册 / barrel 聚合引用，
-        // knip 追踪不到这些隐式 import 链 → 不应报告为 unused
-        //
-        // TODO: 这份清单是**移除 auto-import（2026-09-29）之前**按「自动导入」的理由列的；
-        // 当时那些文件里确实有隐式全局。现在理由是「Pinia / barrel」，而 knip 本仓有意维持
-        // 红色、没有门禁看着它 ⇒ 没人验证过收紧之后是否还有真实命中。要收紧就先跑 `pnpm knip`
-        // 看这批目录里到底还剩什么，别直接删。
+        // `unplugin-vue-components` 自动注册：组件目录的 `index.ts` 默认导出与 .vue 文件
+        // 都不在 import 图里（实际消费者是模板里的标签名）。这是本仓唯一必须整块豁免的目录。
         'src/components/**',
-        'src/composables/**',
-        'src/hooks/**',
-        'src/api/**',
-        'src/store/**',
-        'src/socket/**',
-        // 类型 & 常量文件通常通过 barrel 或 ambient 引用
-        'src/types/**',
+        // 常量 / 派生类型（`ValueOfAppConst*`）是组件层的公共词汇，消费方在 components
+        // 与模板里；components 已整块忽略，这里跟着豁免，避免把公共词汇判成死导出。
         'src/const/**',
-        'src/enums/**',
+        // socket 事件 / 房间常量与 @walnut/contract 同源，由 socket 层按事件名动态使用。
+        'src/socket/**',
       ],
     },
 
     // --- 后端 NestJS 应用 ---
+    //
+    // `entry` 必须把**三类非 import 入口**点名，否则它们不是"死文件"就是"死导出"：
+    //   · 命令行执行：`apps/api/migrations/**`（TypeORM CLI）、`apps/cli/**`（typeorm / openapi
+    //     导出脚本）、`apps/worker/src/main.ts`（`start:worker` 直接 node 跑 dist 入口）；
+    //   · 内部库公共面：`libs/*/src/index.ts` —— 消费者走 tsconfig paths
+    //     `@walnut-server/<lib>`，barrel 就是该库唯一的公共入口。**不要再把它写进 ignore**：
+    //     摘掉 barrel 等于让 barrel 后面的所有导出都"没人 import"（见文件头判据 1）；
+    //   · `apps/api/src/main.ts` 是常规 bin 入口。
+    // barrel 的导出默认不算"未使用"（`includeEntryExports` 未开）—— 这是模板公共面的显式声明。
     'apps/server': {
-      entry: ['apps/api/src/main.ts'],
+      entry: [
+        'apps/api/src/main.ts',
+        'apps/api/migrations/**/*.ts',
+        'apps/cli/src/**/*.ts',
+        'apps/worker/src/main.ts',
+        'libs/*/src/index.ts',
+      ],
       project: ['apps/**/*.ts', 'libs/**/*.ts'],
       ignore: [
-        // NestJS 文件通过装饰器（@Module, @Controller, @Injectable）隐式组装
-        '**/*.module.ts',
-        '**/*.controller.ts',
-        '**/*.service.ts',
-        '**/*.dto.ts',
-        '**/*.schema.ts',
-        '**/*.guard.ts',
-        '**/*.interceptor.ts',
-        '**/*.pipe.ts',
-        '**/*.filter.ts',
+        // 装饰器是模板公共面（如 `OtpDecoratorAuthLog` 由组合根/使用方按需取用）；
+        // 装饰器的"消费"发生在装饰器语法里，knip 看不到这层 API 语义。
         '**/*.decorator.ts',
-        '**/*.strategy.ts',
-        '**/*.middleware.ts',
-        // barrel exports（libs 通过 tsconfig paths 引用，不直接 import）
-        'libs/*/src/index.ts',
-        // 构建 & 测试配置
-        'infra/**',
-        '**/vitest.config.*.ts',
-        '**/*.e2e-spec.ts',
+        // 集成/API 测试的 helper 由 vitest 的 globalSetup / 用例按路径加载，不是 import 图。
         '**/test/**',
-        '**/node-modules-inspector.config.ts',
+        // e2e / integration 的 vitest 配置由包脚本显式 `--config` 指定，不是被 import 的模块。
+        '**/vitest.config.*.ts',
       ],
     },
 
     // --- 文档站 ---
+    // 不写 `entry`：VitePress 插件会从 `.vitepress/config` / `.vitepress/theme` 的约定推出
+    // 两个入口（knip 的 hint 一直在提示这两条是冗余的）。`project` 仍显式限定分析面。
     'apps/docs': {
-      entry: [
-        '.vitepress/config/index.ts',
-        '.vitepress/theme/index.ts',
-      ],
       project: ['.vitepress/**/*.ts'],
-      ignore: ['.vitepress/cache/**'],
     },
 
     // --- 全链路 E2E（Playwright，2026-11-25 进分析面）---
@@ -168,33 +180,28 @@ const config: KnipConfig = {
 
     // --- 共享包（严格检查 — 这里 knip 价值最大）---
     //
-    // 每个包都比原来多两行，缺一不可（批次 2 的 R1 复核实测，逐条数据见
-    // apps/docs/src/zh-CN/content/monorepo/knip.md）：
-    //   · `project` —— 不写时 knip 只分析「entry 领进来的文件」，非 entry 的深层文件
-    //     根本不在程序里，死了也不会有人报；
-    //   · `includeEntryExports: true` —— **唯一**能让非 entry 文件的死导出现身的开关
-    //     （实测：只加 `project` 或只删 `entry` 都是 0 变化，两行齐了才从 50 变 52）。
+    // 每个包都写 `project`：不写时 knip 只分析「entry 领进来的文件」，非 entry 的深层文件
+    // 根本不在程序里，死了也不会有人报。
     //
-    // 注意 `entry` **不要删**：knip 的 Configuration hints 里那 8 条
-    // 「Remove redundant entry pattern」说的是「入口本来能从 package.json exports 推出来」，
-    // 而实测删掉之后 knip 从 `exports` 推回来的还是同一个文件 —— 即「把 barrel 从 entry 摘出去」
-    // 在物理上无法执行，摘了等于没摘（这才是 D18② 原先处方不可用的原因）。
-    // 所以**barrel 自身的死导出依旧是盲区**：`src/index.ts` 是包入口，它的导出天然算
-    // 「公共 API」。要查它只能另立一个「barrel 符号 0 引用」的专用脚本，knip 配置解决不了。
+    // **`includeEntryExports` 一律不开**（2026-11-28 收口）：包的 `entry` / `exports` 声明就是
+    // 它的公共 API 面，入口导出的符号天然是"给消费方用的"。打开它等于要求仓内必须有人 import
+    // 每个公共导出，于是模板留用的公共函数（`downloadByOnlineUrl` / `Cookie` …）全部亮红。
+    // 入口**背后**的文件仍会被查：`src/index.ts` re-export 的深层模块不是 entry，它们自己的
+    // 死导出照报（`project` + 默认行为已覆盖），所以「桶里能看见的只是公共面，桶后仍可查」。
+    //
+    // 注意 `entry` **不写**：这些包的 `exports` 已把入口逐字声明出来（`"."` → `src/index.ts`
+    // 或 `.d.ts`），knip 会按 exports 推导 —— 手写一遍既是重复，也会随包结构变化而腐化。
+    // 这也回答了「能不能把 barrel 从 entry 摘出去」：摘掉显式条目后，knip 推回来的还是同一个
+    // 文件，行为不变；所以**barrel 自身的死导出依旧是盲区**（公共 API 的固有代价）。
+    // 要查它只能另立一个「barrel 符号 0 引用」的专用脚本，knip 配置解决不了。
     'packages/platform-any/contract': {
-      entry: ['src/index.ts'],
       project: ['src/**/*.ts'],
-      includeEntryExports: true,
     },
     'packages/platform-any/utils-core': {
-      entry: ['src/index.ts'],
       project: ['src/**/*.ts'],
-      includeEntryExports: true,
     },
     'packages/platform-any/types': {
-      entry: ['src/universal.d.ts', 'src/storage.d.ts', 'src/deep-ref.d.ts', 'src/object-key.d.ts'],
       project: ['src/**/*.ts'],
-      includeEntryExports: true,
     },
     // client / http 的桶入口（`src/index.ts`）**已于 2026-11 批次 4 删除**（D8）：
     // 两个 barrel 共 75 个导出、全仓裸包名 import 站点 **0** 个，等于「公共 API 面」本身
@@ -207,11 +214,9 @@ const config: KnipConfig = {
     // 「指向不存在的文件」，那是配置错误而不是结论。
     'packages/platform-web/client': {
       project: ['src/**/*.ts'],
-      includeEntryExports: true,
     },
     'packages/platform-web/http': {
       project: ['src/**/*.ts'],
-      includeEntryExports: true,
     },
     // tooling/* 刻意**不写 entry**：knip 能从 package.json 的 `exports`（预设/通用能力）
     // 与 `bin`（命令入口）自己推出入口文件。显式列一遍既是重复，也会随包结构变化而腐化 ——
@@ -219,45 +224,33 @@ const config: KnipConfig = {
   },
 
   // ============================================================
+  // 文件级豁免（只给「工具看不见」的公共面）
+  // ============================================================
+  //
+  // 语义比 `ignoreDependencies` 窄：只关掉指定文件的指定问题类型，文件本身仍在程序里，
+  // 它的 import 边照常参与分析。**新增条目必须能说出「为什么删不掉」**，否则先按文件头
+  // 的三条判据分类；能靠 `entry` / `project` 表达的就不要写到这里。
+  ignoreIssues: {
+    // ---- docs：英文站配置整块保留但有意不启用（2026-09-23 裁决「不要英文站」）----
+    // `en.ts` 的 `search` 仍被 index.ts 使用；导出的 `en` 是将来启用时的完整配置对象。
+    'apps/docs/.vitepress/config/en.ts': ['exports'],
+  },
+
+  // ============================================================
   // 全局忽略
   // ============================================================
-  ignore: [
-    '**/dist/**',
-    '**/.turbo/**',
-    '**/node_modules/**',
+  // 只保留**实测必须**的条目（2026-11-28 用「清空后逐组加回」的办法验证过）：
+  //   · `tooling/tsconfig/**`：纯 JSON 预设，会被 knip 读成「未声明依赖 vue / 未解析 tslib」；
+  //   · vitest 配置：knip 的 vitest 插件会把 `coverage.provider: 'v8'` 读成对
+  //     `@vitest/coverage-v8` 的依赖，而本仓只有 server 装它（其余包不跑 coverage）。
+  // 其余条目（dist / node_modules / 测试 / .d.ts / scripts / env / infra）都是 knip 默认
+  // 已覆盖或实测删掉后 0 变化的面，不再重复声明。
+  ignore: ['tooling/tsconfig/**', '**/vitest.config.ts'],
 
-    // 纯 JSON 的 tsconfig 预设包：没有源码、没有导入。knip 会把预设里的
-    // `jsxImportSource: "vue"` 读成「未声明的依赖 vue」、把 `importHelpers: true` 读成
-    // 「未解析的导入 tslib」—— 两者都是 tsconfig 选项，不是模块引用，属确定性误报。
-    'tooling/tsconfig/**',
-
-    // 测试
-    '**/*.test.ts',
-    '**/*.spec.ts',
-    '**/__tests__/**',
-    '**/__mocks__/**',
-
-    // 配置 & 构建
-    '**/vite.config.ts',
-    '**/vitest.config.ts',
-    '**/vitest.*.config.ts',
-    '**/eslint.config.*',
-    '**/tsconfig*.json',
-
-    // 脚本
-    'scripts/**',
-    '**/scripts/**',
-
-    // 类型声明 & 生成
-    '**/*.d.ts',
-    '**/components.d.ts',
-
-    // 环境 & 部署
-    '**/env*/**',
-    '**/env-*/**',
-    '**/infra/**',
-    '**/docker/**',
-  ],
+  // 收尾状态（2026-11-28）：`pnpm knip` exit 0，issues 为 0；剩余的 configuration hint
+  // 全是 "Compiled extension excluded by project"（admin 的 .sass/.scss、client/docs 的 .vue）——
+  // 样式与编译扩展不在分析面内，knip 无法解析，也不代表未使用代码。**不要**为了消掉这些
+  // hint 把 .vue/.scss 塞进 project（会带进一批无法解析的假红）。
 
   // ============================================================
   // 以下**二进制**来自工具自身，不是任何依赖提供的（knip 会把它们报成 unlisted）
@@ -266,133 +259,44 @@ const config: KnipConfig = {
     // `pnpm change` 是 pnpm 12 的原生命令（发行版自带，不在 node_modules/.bin 里）。
     // 出现在根 `prepush` 脚本与 ci.yml 的 quality job 里（fixed 组锁步门禁）。
     'change',
+    // `actionlint` 是**外部工具**，刻意不进依赖：`lint-workflows` 探测不到就抛 SkippedError
+    // （退出码 3，跳过不等于通过），权威闸门是 CI 的 workflow-lint.yml。
+    'actionlint',
+    // `wsl` 是 Windows 自带的可执行文件（e2e 的 pg-container 在 win32 上经
+    // `wsl -e bash -c` 进 WSL 的 Docker），不是 npm 依赖。
+    'wsl',
   ],
 
   // ============================================================
   // 以下依赖 knip 会报告为 unused/missing，但实际上是需要的
   // ============================================================
+  // 只保留**实测仍需忽略**的条目；2026-11-28 用「清空后跑 knip」验证过：其余几十条
+  // 都是 knip 现在能自行解析的（Vite 插件表、nest CLI、ESLint 预设、workspace bin…），
+  // 留在列表里只会让 configuration hints 永远清不掉。
   ignoreDependencies: [
-    // --- 构建 & 编译器 ---
-    '@swc/core',
-    '@swc/cli',
-    'unplugin-swc',
-    'reflect-metadata',
-
-    // --- ESLint 生态（通过 @antfu/eslint-config 间接引用） ---
-    '@antfu/eslint-config',
-
-    // --- NestJS CLI / 开发工具 ---
-    '@nestjs/schematics',
-    '@nestjs/cli',
-    '@nestjs/testing',
-    '@nestjs/swagger',
-    '@compodoc/compodoc',
-
-    // --- Admin: 通过 vue-codemirror / Pinia 等间接引用 ---
-    'codemirror',
-    '@codemirror/autocomplete',
-    '@codemirror/commands',
-    '@codemirror/lang-javascript',
-    '@codemirror/lang-json',
-    '@codemirror/merge',
-    '@codemirror/search',
-    '@codemirror/state',
-    '@codemirror/theme-one-dark',
-    '@codemirror/view',
-    'vue-codemirror',
-    '@fingerprintjs/fingerprintjs',
-    '@serenity-kit/opaque',
-    '@vueuse/router',
-    'compare-versions',
-    'detectincognitojs',
-    'driver.js',
-    'fflate',
-    'idb',
-    'js-base64',
-    'socket.io-client',
-    'superjson',
-
-    // --- Server: 通过 NestJS DI / 运行时 require 间接引用 ---
-    'hbs',
-    'raw-body',
-    'tencentcloud-sdk-nodejs',
-
-    // --- Vite 插件（在 vite.config.ts 中配置，knip 无法解析） ---
-    '@vitejs/plugin-legacy',
-    '@vitejs/plugin-vue',
-    '@vitejs/plugin-vue-jsx',
-    'vite-plugin-banner',
-    'vite-plugin-bundle-obfuscator',
-    'vite-plugin-cdn2',
-    'vite-plugin-checker',
-    'vite-plugin-compression2',
-    'vite-plugin-csp-guard',
-    'vite-plugin-devtools-json',
-    'vite-plugin-image-optimizer',
-    'vite-plugin-mkcert',
-    'vite-plugin-restart',
-    'vite-plugin-vue-devtools',
-    'vite-bundle-analyzer',
-    '@sentry/vite-plugin',
-    'unplugin-vue-components',
-
-    // --- Admin 构建辅助 ---
+    // --- tooling：动态拼接的模块路径 / 配置字符串，knip 的静态分析看不见 ---
+    // @walnut/vite-config 的 iconify 插件用模板字符串 import @iconify/json/json/<name>.json。
     '@iconify/json',
-    '@iconify/tools',
-    '@iconify/types',
-    '@iconify/utils',
-    '@unocss/preset-icons',
-    '@unocss/transformer-variant-group',
-    'chalk',
-    'javascript-obfuscator',
-    'mockjs',
-    'sharp',
-    'sharp-ico',
-    'tinyglobby',
-    'zod',
-
-    // --- Docs 专用 ---
-    '@mermaid-js/mermaid-mindmap',
-    'segment',
-
-    // --- 类型包 ---
-    '@types/node',
-    '@types/express',
-    '@types/supertest',
-    '@types/codemirror',
-    '@types/intro.js',
-    '@standard-schema/spec',
-
-    // --- 测试工具 ---
-    'supertest',
-
-    // --- Git hooks & 代码质量 ---
-    // lefthook 只在 `pnpm install` 的 postinstall 与 .git/hooks 里被调用，源码不 import 它
-    'lefthook',
-    'lint-staged',
-    'knip',
-
-    // --- commitlint（通过 index.ts 的 extends 字符串引用，knip 追踪不到） ---
+    // Nest CLI 从 infra/nest/*.json 的 collection 字符串加载它，不是 TS import。
+    '@nestjs/schematics',
+    // commitlint 从 extends 字符串数组加载，不是 TS import。
     '@commitlint/config-conventional',
 
-    // --- 发版（git-cliff 走编程 API 调用，但平台二进制由它自己的 optionalDependencies 提供） ---
-    'git-cliff',
-
-    // --- Dev 工具链 ---
+    // --- 命令表间接调用（pnpm walnut <id> 的 argv 在运行时拼出） ---
+    'syncpack',
     'taze',
-    'rimraf',
-    'turbo',
-    'madge',
-    'cross-env',
-    'vite-tsconfig-paths',
 
-    // --- 工具链包在根 devDependencies 里的引用（都通过 bin 或 tsconfig extends 使用） ---
-    '@walnut/eslint-config',
-    '@walnut/commitlint-config',
-    '@walnut/tsconfig',
-    // 根 scripts 通过它们的 bin 调用：release / lint:workflows / setup-env / check-git-hooks
-    '@walnut/scripts',
-    '@walnut/release',
+    // --- pnpm packageExtensions 的 peer（knip 的 pnpm 插件把它当根配置依赖） ---
+    'rxjs',
+
+    // --- 只在被 ignore 的目录里被消费 ---
+    // 类型包是 codemirror 的类型来源（tsc 消费，不产生 import 边）；`codemirror` 本身在
+    // components 里 import，knip 顺着 barrel / vue-codemirror 也能看到它，所以不必 ignore。
+    '@types/codemirror',
+
+    // --- 运行时按名字 require ---
+    // Express 的 app.setViewEngine('hbs') 由 Express 在运行期 require 该包。
+    'hbs',
   ],
 }
 

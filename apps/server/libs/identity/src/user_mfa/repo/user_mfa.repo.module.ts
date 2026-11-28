@@ -13,4 +13,4 @@ import { SysUserMfaRepositoryService } from './user_mfa.repo.service'
   providers: [SysUserMfaRepositoryService],
   exports: [SysUserMfaRepositoryService],
 })
-export class SysUserMfaRepositoryModule { }
+export class SysUserMfaRepositoryModule {}

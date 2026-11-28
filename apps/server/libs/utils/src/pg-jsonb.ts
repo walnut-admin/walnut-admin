@@ -27,8 +27,7 @@ export function toWalnutPgJsonbPayload(value: unknown): IWalnutPgJsonbPayload {
       data: JSON.parse(JSON.stringify(value) ?? 'null') as Record<string, unknown>,
       raw: null,
     }
-  }
-  catch {
+  } catch {
     return { data: null, raw: String(value) }
   }
 }

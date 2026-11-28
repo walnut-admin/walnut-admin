@@ -8,7 +8,10 @@ import { useRedirect } from '@/hooks/core/useRedirect'
 import { useAppI18n } from '@/locales/index'
 import { useAppStoreTab } from '@/store/modules/app/app-tab'
 
-export function useTabsUtils(scrollRef: Ref<Nullable<ICompExtraScrollbarInst>>, scrollToCurrentTab: Fn) {
+export function useTabsUtils(
+  scrollRef: Ref<Nullable<ICompExtraScrollbarInst>>,
+  scrollToCurrentTab: Fn,
+) {
   const { t } = useAppI18n()
 
   const appStoreTab = useAppStoreTab()

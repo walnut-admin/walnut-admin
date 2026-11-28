@@ -14,12 +14,7 @@ import { SysLangRepoService } from './lang.repo.service'
  */
 @Global()
 @Module({
-  imports: [
-    TypeOrmModule.forFeature(
-      [SysLangEntity, SysLocaleEntity],
-      WalnutPGConnectionName,
-    ),
-  ],
+  imports: [TypeOrmModule.forFeature([SysLangEntity, SysLocaleEntity], WalnutPGConnectionName)],
   controllers: [],
   providers: [SysLangRepoService],
   exports: [SysLangRepoService],

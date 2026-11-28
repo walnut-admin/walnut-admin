@@ -38,12 +38,15 @@ function readEnvLocal(key: string): string {
   const envPath = envLocalPath()
 
   if (!fs.existsSync(envPath)) {
-    throw new Error(`[integration globalSetup] env file not found: ${envPath} (run \`pnpm setup-env\` first)`)
+    throw new Error(
+      `[integration globalSetup] env file not found: ${envPath} (run \`pnpm setup-env\` first)`,
+    )
   }
 
-  const line = fs.readFileSync(envPath, 'utf-8')
+  const line = fs
+    .readFileSync(envPath, 'utf-8')
     .split(/\r?\n/)
-    .find(l => l.startsWith(`${key}=`))
+    .find((l) => l.startsWith(`${key}=`))
 
   if (line === undefined) {
     throw new Error(`[integration globalSetup] missing ${key} in ${envPath}`)
@@ -103,7 +106,12 @@ const INTEGRATION_RUN_LOCK_POLL_MS = 1_000
  * （`max: 1` + `min: 1` + 关掉 idle 回收），否则「抢锁」与「放锁」可能落到不同连接上，
  * unlock 会静默变成 no-op、锁随空闲连接被回收而提前消失。
  */
-function createRunLockDataSource(host: string, port: number, user: string, pass: string): DataSource {
+function createRunLockDataSource(
+  host: string,
+  port: number,
+  user: string,
+  pass: string,
+): DataSource {
   return new DataSource({
     type: 'postgres',
     host,
@@ -116,7 +124,12 @@ function createRunLockDataSource(host: string, port: number, user: string, pass:
 }
 
 /** 抢排他锁：拿不到就轮询等待，超时报错退出并把**持锁者**打出来 */
-async function acquireIntegrationRunLock(host: string, port: number, user: string, pass: string): Promise<DataSource> {
+async function acquireIntegrationRunLock(
+  host: string,
+  port: number,
+  user: string,
+  pass: string,
+): Promise<DataSource> {
   const lock = createRunLockDataSource(host, port, user, pass)
   await lock.initialize()
 
@@ -141,17 +154,19 @@ async function acquireIntegrationRunLock(host: string, port: number, user: strin
     }
 
     if (Date.now() - startedAt >= INTEGRATION_RUN_LOCK_WAIT_MS) {
-      const holders = await describeLockHolders(lock).catch((e: unknown) => `  （查持锁者失败：${String(e)}）`)
+      const holders = await describeLockHolders(lock).catch(
+        (e: unknown) => `  （查持锁者失败：${String(e)}）`,
+      )
       await lock.destroy().catch(() => undefined)
       throw new Error(
-        `[integration globalSetup] 等锁超时（${INTEGRATION_RUN_LOCK_WAIT_MS / 1000}s）：另一个 test:integration 仍在跑。\n`
-        + `拒绝并发跑：集成库 "${INTEGRATION_DATABASE_NAME}" 是共享的，本轮的 drop/create 会删掉对方的库。\n`
-        + `持锁者：\n${holders}\n`
-        + '规矩见 apps/server/AGENTS.md「测试」小节：同一 worktree 同时只允许一个 test:integration。',
+        `[integration globalSetup] 等锁超时（${INTEGRATION_RUN_LOCK_WAIT_MS / 1000}s）：另一个 test:integration 仍在跑。\n` +
+          `拒绝并发跑：集成库 "${INTEGRATION_DATABASE_NAME}" 是共享的，本轮的 drop/create 会删掉对方的库。\n` +
+          `持锁者：\n${holders}\n` +
+          '规矩见 apps/server/AGENTS.md「测试」小节：同一 worktree 同时只允许一个 test:integration。',
       )
     }
 
-    await new Promise(resolve => setTimeout(resolve, INTEGRATION_RUN_LOCK_POLL_MS))
+    await new Promise((resolve) => setTimeout(resolve, INTEGRATION_RUN_LOCK_POLL_MS))
   }
 
   process.stdout.write(
@@ -165,8 +180,7 @@ async function acquireIntegrationRunLock(host: string, port: number, user: strin
 async function releaseIntegrationRunLock(lock: DataSource): Promise<void> {
   try {
     await lock.query('SELECT pg_advisory_unlock($1::bigint)', [INTEGRATION_RUN_LOCK_KEY])
-  }
-  finally {
+  } finally {
     await lock.destroy()
   }
 }
@@ -204,11 +218,19 @@ async function describeLockHolders(lock: DataSource): Promise<string> {
   }
 
   return rows
-    .map(row => `  pid=${row.pid} app=${row.application_name ?? '-'} user=${row.usename ?? '-'} db=${row.db ?? '-'} addr=${row.client_addr ?? 'local'} state=${row.state ?? '-'} query=${row.query ?? '-'}`)
+    .map(
+      (row) =>
+        `  pid=${row.pid} app=${row.application_name ?? '-'} user=${row.usename ?? '-'} db=${row.db ?? '-'} addr=${row.client_addr ?? 'local'} state=${row.state ?? '-'} query=${row.query ?? '-'}`,
+    )
     .join('\n')
 }
 
-function createPgIntegrationDataSource(host: string, port: number, user: string, pass: string): DataSource {
+function createPgIntegrationDataSource(
+  host: string,
+  port: number,
+  user: string,
+  pass: string,
+): DataSource {
   return new DataSource({
     type: 'postgres',
     host,
@@ -228,7 +250,9 @@ function createPgIntegrationDataSource(host: string, port: number, user: string,
 async function undoAllMigrations(ds: DataSource): Promise<void> {
   const safetyCap = 100
   for (let i = 0; i < safetyCap; i++) {
-    const rows: Array<{ count: number }> = await ds.query('SELECT count(*)::int AS count FROM public.migrations')
+    const rows: Array<{ count: number }> = await ds.query(
+      'SELECT count(*)::int AS count FROM public.migrations',
+    )
     if (rows[0] === undefined || rows[0].count === 0) {
       return
     }
@@ -237,7 +261,12 @@ async function undoAllMigrations(ds: DataSource): Promise<void> {
   throw new Error('[integration globalSetup] undoAllMigrations exceeded safety cap')
 }
 
-async function runPgMigrationsRound(host: string, port: number, user: string, pass: string): Promise<void> {
+async function runPgMigrationsRound(
+  host: string,
+  port: number,
+  user: string,
+  pass: string,
+): Promise<void> {
   const admin = createAdminDataSource(host, port, user, pass)
   await admin.initialize()
   try {
@@ -250,8 +279,7 @@ async function runPgMigrationsRound(host: string, port: number, user: string, pa
       await ds.runMigrations({ transaction: 'each' })
       // 可逆性验证：undo 全部，剩给下一轮的必须是空库
       await undoAllMigrations(ds)
-    }
-    finally {
+    } finally {
       await ds.destroy()
     }
 
@@ -262,12 +290,10 @@ async function runPgMigrationsRound(host: string, port: number, user: string, pa
     await finalDs.initialize()
     try {
       await finalDs.runMigrations({ transaction: 'each' })
-    }
-    finally {
+    } finally {
       await finalDs.destroy()
     }
-  }
-  finally {
+  } finally {
     await admin.destroy()
   }
 }
@@ -311,8 +337,7 @@ async function teardownPgIntegrationDatabase(): Promise<void> {
   await admin.initialize()
   try {
     await dropPgIntegrationDatabase(admin)
-  }
-  finally {
+  } finally {
     await admin.destroy()
   }
 }
@@ -328,8 +353,7 @@ export default async function globalIntegrationSetup(): Promise<() => Promise<vo
 
   try {
     await setupPgIntegrationDatabase()
-  }
-  catch (error) {
+  } catch (error) {
     // 建库失败也要放锁：不让一次早退把同 worktree 的下一次跑批挡在门外
     await releaseIntegrationRunLock(runLock).catch(() => undefined)
     throw error
@@ -338,8 +362,7 @@ export default async function globalIntegrationSetup(): Promise<() => Promise<vo
   return async () => {
     try {
       await teardownPgIntegrationDatabase()
-    }
-    finally {
+    } finally {
       await releaseIntegrationRunLock(runLock)
     }
   }

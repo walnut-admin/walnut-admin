@@ -50,7 +50,7 @@ const useAppStoreLocaleInside = defineStore(StoreKeys.APP_LOCALE, {
     },
 
     isBaseI18nKey(key: string) {
-      return this.baseI18nKeyList?.some(i => i.endsWith(key))
+      return this.baseI18nKeyList?.some((i) => i.endsWith(key))
     },
 
     isLocaleLoaded(locale: ValueOfAppConstLocale): boolean {
@@ -63,15 +63,14 @@ const useAppStoreLocaleInside = defineStore(StoreKeys.APP_LOCALE, {
     },
 
     async onGetLangListPublic() {
-      if (this.getLangList.length)
-        return
+      if (this.getLangList.length) return
       const res = await getLangListPublicAPI()
       this.setLangList(res)
     },
 
     async onGetLangList() {
       const res = await langAPI.list()
-      return res.data.map(i => ({
+      return res.data.map((i) => ({
         label: i.description!,
         value: i.id,
       }))
@@ -85,7 +84,7 @@ const useAppStoreLocaleInside = defineStore(StoreKeys.APP_LOCALE, {
 
     async onLoadMessageNoCache(locale: ValueOfAppConstLocale) {
       const backendMsg = await getI18nMsgAPI(locale, 0)
-      this.setBaseI18nKeyList(Object.keys(backendMsg).filter(i => i.startsWith('app.base')))
+      this.setBaseI18nKeyList(Object.keys(backendMsg).filter((i) => i.startsWith('app.base')))
       return this.onSetLocaleMessages(locale, backendMsg)
     },
 
@@ -95,7 +94,7 @@ const useAppStoreLocaleInside = defineStore(StoreKeys.APP_LOCALE, {
       }
 
       const backendMsg = await getI18nMsgAPI(locale)
-      this.setBaseI18nKeyList(Object.keys(backendMsg).filter(i => i.startsWith('app.base')))
+      this.setBaseI18nKeyList(Object.keys(backendMsg).filter((i) => i.startsWith('app.base')))
       return this.onSetLocaleMessages(locale, backendMsg)
     },
   },
@@ -104,7 +103,6 @@ const useAppStoreLocaleInside = defineStore(StoreKeys.APP_LOCALE, {
 const useAppStoreLocaleOutside = () => useAppStoreLocaleInside(store)
 
 export function useAppStoreLocale() {
-  if (getCurrentInstance())
-    return useAppStoreLocaleInside()
+  if (getCurrentInstance()) return useAppStoreLocaleInside()
   return useAppStoreLocaleOutside()
 }

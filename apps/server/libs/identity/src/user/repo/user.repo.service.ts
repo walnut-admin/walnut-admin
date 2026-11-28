@@ -33,14 +33,17 @@ export class SysUserRepositoryService {
   constructor(
     @InjectDataSource(WalnutPGConnectionName)
     private readonly dataSource: DataSource,
-  ) { }
+  ) {}
 
   /**
    * 数据权限三期：sys_user 已注册 RLS（缺省 anonymous）。系统读腿在无 em 时必须
    * 开一条 system 事务（登录链 / guard / 缓存失效反查都不在请求事务里）；带 em
    * 的调用沿用调用方事务（会计入当前用户天花板）。
    */
-  private async withSystemManager<T>(em: EntityManager | undefined, fn: (manager: EntityManager) => Promise<T>) {
+  private async withSystemManager<T>(
+    em: EntityManager | undefined,
+    fn: (manager: EntityManager) => Promise<T>,
+  ) {
     return withWalnutSystemManager(this.dataSource, em, fn)
   }
 
@@ -48,24 +51,27 @@ export class SysUserRepositoryService {
    * @description find all users
    */
   async findAllUsers(em?: EntityManager) {
-    return this.withSystemManager(em, async manager =>
-      manager.getRepository(SysUserEntity).find())
+    return this.withSystemManager(em, async (manager) =>
+      manager.getRepository(SysUserEntity).find(),
+    )
   }
 
   /**
    * @description find user by user id
    */
   async findUserByUserId(userId: string, em?: EntityManager) {
-    return this.withSystemManager(em, async manager =>
-      manager.getRepository(SysUserEntity).findOne({ where: { id: userId } }))
+    return this.withSystemManager(em, async (manager) =>
+      manager.getRepository(SysUserEntity).findOne({ where: { id: userId } }),
+    )
   }
 
   /**
    * @description find user by user name
    */
   async findUserByUserName(userName: string, em?: EntityManager) {
-    return this.withSystemManager(em, async manager =>
-      manager.getRepository(SysUserEntity).findOne({ where: { userName } }))
+    return this.withSystemManager(em, async (manager) =>
+      manager.getRepository(SysUserEntity).findOne({ where: { userName } }),
+    )
   }
 
   /**
@@ -82,7 +88,7 @@ export class SysUserRepositoryService {
         where: { deptId: In(deptIds) },
         select: { id: true },
       })
-      return rows.map(i => i.id)
+      return rows.map((i) => i.id)
     })
   }
 
@@ -100,7 +106,7 @@ export class SysUserRepositoryService {
 
       Object.entries(update).forEach(([k, v]) => {
         if (k !== 'id') {
-          (target as unknown as Record<string, unknown>)[k] = v
+          ;(target as unknown as Record<string, unknown>)[k] = v
         }
       })
 
@@ -112,8 +118,9 @@ export class SysUserRepositoryService {
    * @description check user existence by payload, return user if existed, otherwise return null
    */
   async checkUserExistence(payload: Partial<SysUserEntity>, em?: EntityManager) {
-    return this.withSystemManager(em, async manager =>
-      manager.getRepository(SysUserEntity).findOne({ where: payload as never }))
+    return this.withSystemManager(em, async (manager) =>
+      manager.getRepository(SysUserEntity).findOne({ where: payload as never }),
+    )
   }
 
   /**
@@ -132,7 +139,7 @@ export class SysUserRepositoryService {
       const junction = manager.getRepository(SysUserRoleEntity)
       await junction.delete({ userId: created.id })
       if (finalRoles.length > 0) {
-        await junction.insert(finalRoles.map(roleId => ({ userId: created.id, roleId })))
+        await junction.insert(finalRoles.map((roleId) => ({ userId: created.id, roleId })))
       }
 
       return Object.assign(created, { roles: finalRoles })
@@ -161,7 +168,10 @@ export class SysUserRepositoryService {
    * @description 给 user 行组装 roles_list / roles_count
    * （对照 Mongo 版 `user.populate({ path: ROLES_LIST })` 的读出形态）
    */
-  async attachPopulatedRoles<T extends SysUserEntity>(user: T, em?: EntityManager): Promise<T & ISysUserPopulated> {
+  async attachPopulatedRoles<T extends SysUserEntity>(
+    user: T,
+    em?: EntityManager,
+  ): Promise<T & ISysUserPopulated> {
     const roles = await this.populatedRolesList(user.id, em)
 
     return Object.assign(user, {

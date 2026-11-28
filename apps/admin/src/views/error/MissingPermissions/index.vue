@@ -22,10 +22,7 @@ async function onGoToAuth() {
 
 <template>
   <div class="max-w-4xl min-w-[280px] w-full flex items-center justify-center">
-    <n-result
-      status="warning"
-      :title="$t('app.base.missingPermissions')"
-    >
+    <n-result status="warning" :title="$t('app.base.missingPermissions')">
       <template #footer>
         <div class="flex flex-row flex-nowrap items-center justify-center gap-x-2">
           <n-button type="info" @click="onGoToAuth">

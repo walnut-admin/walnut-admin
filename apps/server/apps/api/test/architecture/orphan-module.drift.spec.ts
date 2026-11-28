@@ -84,7 +84,12 @@ function walkTsFiles(dir: string, out: string[] = []): string[] {
       }
       continue
     }
-    if (entry.isFile() && full.endsWith('.ts') && !full.endsWith('.d.ts') && !full.endsWith('.spec.ts')) {
+    if (
+      entry.isFile() &&
+      full.endsWith('.ts') &&
+      !full.endsWith('.d.ts') &&
+      !full.endsWith('.spec.ts')
+    ) {
       out.push(full)
     }
   }
@@ -196,7 +201,11 @@ function readLocalArrays(sourceFile: ts.SourceFile): Map<string, ts.Expression> 
       continue
     }
     for (const declaration of statement.declarationList.declarations) {
-      if (ts.isIdentifier(declaration.name) && declaration.initializer !== undefined && ts.isArrayLiteralExpression(declaration.initializer)) {
+      if (
+        ts.isIdentifier(declaration.name) &&
+        declaration.initializer !== undefined &&
+        ts.isArrayLiteralExpression(declaration.initializer)
+      ) {
         arrays.set(declaration.name.text, declaration.initializer)
       }
     }
@@ -227,7 +236,11 @@ function readModuleClassNames(fileName: string, text: string): string[] {
   const sourceFile = ts.createSourceFile(fileName, text, ts.ScriptTarget.ESNext, true)
   const names: string[] = []
   for (const statement of sourceFile.statements) {
-    if (ts.isClassDeclaration(statement) && statement.name !== undefined && moduleDecoratorCall(statement) !== null) {
+    if (
+      ts.isClassDeclaration(statement) &&
+      statement.name !== undefined &&
+      moduleDecoratorCall(statement) !== null
+    ) {
       names.push(statement.name.text)
     }
   }
@@ -255,8 +268,8 @@ interface IScan {
 }
 
 function scan(): IScan {
-  const declarationFiles = DECLARATION_ROOTS.flatMap(root => walkTsFiles(join(SERVER_ROOT, root)))
-  const referenceFiles = REFERENCE_ROOTS.flatMap(root => walkTsFiles(join(SERVER_ROOT, root)))
+  const declarationFiles = DECLARATION_ROOTS.flatMap((root) => walkTsFiles(join(SERVER_ROOT, root)))
+  const referenceFiles = REFERENCE_ROOTS.flatMap((root) => walkTsFiles(join(SERVER_ROOT, root)))
 
   const moduleClasses: IModuleClass[] = []
   for (const file of declarationFiles) {
@@ -289,25 +302,31 @@ const scanResult = scan()
  * `NestFactory.create` 的入参）与**只在测试里装配的模块**（后者目前为空）。
  * 新增一条 = 在评审里论证它为什么不属于任何上层模块；理由写在这里，不写在 commit message 里。
  */
-const ALLOWED_UNREFERENCED: readonly { className: string, file: string, reason: string }[] = [
+const ALLOWED_UNREFERENCED: readonly { className: string; file: string; reason: string }[] = [
   {
     className: 'AppModule',
     file: 'apps/api/src/app/app.module.ts',
-    reason: 'api 的组合根：由 apps/api/src/main.ts 与 apps/cli/src/export-openapi.ts 的 NestFactory.create(AppModule) 装配，按 Nest 的定义不、也不能进任何 imports 数组 —— 它没有上层模块。',
+    reason:
+      'api 的组合根：由 apps/api/src/main.ts 与 apps/cli/src/export-openapi.ts 的 NestFactory.create(AppModule) 装配，按 Nest 的定义不、也不能进任何 imports 数组 —— 它没有上层模块。',
   },
 ]
 
-const identityOf = (entry: { className: string, file: string }): string => `${entry.file}#${entry.className}`
+const identityOf = (entry: { className: string; file: string }): string =>
+  `${entry.file}#${entry.className}`
 
 // ─── 用例 ────────────────────────────────────────────────────────────────────────
 
 describe('a4 孤儿 @Module 守卫（imports 数组命中，array-aware）', () => {
   it('扫描口径有效（扫不到文件 / 一个模块类都没解析到时，本守卫必须失效报警而不是全绿）', () => {
     expect(scanResult.declarationFiles.length).toBeGreaterThanOrEqual(100)
-    expect(scanResult.referenceFiles.length).toBeGreaterThanOrEqual(scanResult.declarationFiles.length)
+    expect(scanResult.referenceFiles.length).toBeGreaterThanOrEqual(
+      scanResult.declarationFiles.length,
+    )
     expect(scanResult.moduleClasses.length).toBeGreaterThanOrEqual(100)
     // 引用侧确实解析出了东西：绝大多数模块都能被某个 imports 数组命中
-    const hit = scanResult.moduleClasses.filter(entry => scanResult.referenced.has(entry.className))
+    const hit = scanResult.moduleClasses.filter((entry) =>
+      scanResult.referenced.has(entry.className),
+    )
     expect(hit.length).toBeGreaterThanOrEqual(100)
     // 引用侧比声明侧多出的两个入口必须真的进过扫描（worker.module.ts 是 AppCoreModule 的唯一装配点）
     expect(scanResult.referenceFiles.map(rel)).toContain('apps/worker/src/worker.module.ts')
@@ -315,9 +334,9 @@ describe('a4 孤儿 @Module 守卫（imports 数组命中，array-aware）', () 
 
   it('自测：注释 / 字符串 / import 语句 / providers / 类型位里的类名都不算被引用', () => {
     const source = [
-      'import { FooModule } from \'./foo.module\'',
+      "import { FooModule } from './foo.module'",
       '// imports: [FooModule] —— 注释里的不算',
-      'const label = \'FooModule\'',
+      "const label = 'FooModule'",
       'class HolderService {',
       '  constructor(private readonly foo: FooModule) {}',
       '}',
@@ -331,7 +350,12 @@ describe('a4 孤儿 @Module 守卫（imports 数组命中，array-aware）', () 
 
     expect(readImportedIdentifiers('probe.ts', source).size).toBe(0)
     // 反向确认它不是「什么都解析不出来」：同一个类名放进 imports 数组就必须命中
-    expect(readImportedIdentifiers('probe.ts', source.replace('imports: []', 'imports: [FooModule]')).has('FooModule')).toBe(true)
+    expect(
+      readImportedIdentifiers(
+        'probe.ts',
+        source.replace('imports: []', 'imports: [FooModule]'),
+      ).has('FooModule'),
+    ).toBe(true)
   })
 
   it('自测：条件表达式与展开里的数组仍要认（AppModule 的 bootstrap 任务就是这种写法）', () => {
@@ -363,15 +387,18 @@ describe('a4 孤儿 @Module 守卫（imports 数组命中，array-aware）', () 
   it('每个 @Module 类都必须被某个 imports 数组引用（除允许清单）', () => {
     const allowed = new Set(ALLOWED_UNREFERENCED.map(identityOf))
     const orphans = scanResult.moduleClasses
-      .filter(entry => !scanResult.referenced.has(entry.className))
-      .filter(entry => !allowed.has(identityOf(entry)))
-      .map(entry => `${entry.file} 的 ${entry.className}`)
+      .filter((entry) => !scanResult.referenced.has(entry.className))
+      .filter((entry) => !allowed.has(identityOf(entry)))
+      .map((entry) => `${entry.file} 的 ${entry.className}`)
 
-    expect(orphans, '这些 @Module 类没有任何模块 imports 它（孤儿：provider 永远不会被实例化）').toEqual([])
+    expect(
+      orphans,
+      '这些 @Module 类没有任何模块 imports 它（孤儿：provider 永远不会被实例化）',
+    ).toEqual([])
   })
 
   it('允许清单反查：登记的类必须仍然存在、仍然零引用（不需要了就得删掉，清单不许腐烂）', () => {
-    const declared = new Map(scanResult.moduleClasses.map(entry => [identityOf(entry), entry]))
+    const declared = new Map(scanResult.moduleClasses.map((entry) => [identityOf(entry), entry]))
     const problems: string[] = []
 
     for (const entry of ALLOWED_UNREFERENCED) {
@@ -393,6 +420,8 @@ describe('a4 孤儿 @Module 守卫（imports 数组命中，array-aware）', () 
   })
 
   it('允许清单只收组合根 / 测试专用：条目数被钉住，加一条就必须改这里（防悄悄扩大）', () => {
-    expect(ALLOWED_UNREFERENCED.map(identityOf)).toEqual(['apps/api/src/app/app.module.ts#AppModule'])
+    expect(ALLOWED_UNREFERENCED.map(identityOf)).toEqual([
+      'apps/api/src/app/app.module.ts#AppModule',
+    ])
   })
 })

@@ -10,7 +10,7 @@ import { DATA_PATHS, E2E_DATA_PATHS, isE2eDataPath } from './e2e-data-paths.ts'
 
 describe('e2e-data-paths 的路径清单', () => {
   it('路径唯一，且都是仓库相对 POSIX 路径', () => {
-    const paths = E2E_DATA_PATHS.map(entry => entry.path)
+    const paths = E2E_DATA_PATHS.map((entry) => entry.path)
     expect(new Set(paths).size).toBe(paths.length)
     for (const path of paths) {
       expect(path).not.toContain('\\')
@@ -19,7 +19,7 @@ describe('e2e-data-paths 的路径清单', () => {
   })
 
   it('导出的 DATA_PATHS 是同一组路径（顺序一致，git 调用直接消费）', () => {
-    expect(DATA_PATHS).toEqual(E2E_DATA_PATHS.map(entry => entry.path))
+    expect(DATA_PATHS).toEqual(E2E_DATA_PATHS.map((entry) => entry.path))
   })
 
   it('目录项按「等于它或在其下」命中', () => {

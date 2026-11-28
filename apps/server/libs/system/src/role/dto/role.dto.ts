@@ -64,8 +64,7 @@ export class SysRoleDTOBase extends WalnutAdminCommonBasicModel {
     default: true,
     swaggerOptions: {
       title: 'role status',
-      description:
-        'false => users wont retrieve current role menus(permissions)',
+      description: 'false => users wont retrieve current role menus(permissions)',
     },
   })
   status: boolean
@@ -185,12 +184,7 @@ export class SysRoleDTOListResponse extends CreateWalnutAdminResponseListDTO(
 
 // create
 export class SysRoleDTOCreateRequest extends IntersectionType(
-  RealPickType(SysRoleDTOSafe, [
-    'roleName',
-    'description',
-    'order',
-    'status',
-  ] as const),
+  RealPickType(SysRoleDTOSafe, ['roleName', 'description', 'order', 'status'] as const),
   RealPartialType(RealPickType(SysRoleDTOSafe, ['menus'] as const)),
   // dataScope 可省略（DDL DEFAULT 1 = ALL）：老客户端/脚本不传时保持既有可见面
   RealPartialType(RealPickType(SysRoleDTOSafe, ['dataScope'] as const)),

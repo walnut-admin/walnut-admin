@@ -57,7 +57,11 @@ export class AuthOpaqueAdminService {
 
     await this.authOpaqueCoreService.finishChangePassword(user.userName!, dto.finish, em)
 
-    await this.signoutService.doSignout(user.id, { trigger: 'security-policy', revokeReason: 'updatePass' }, em)
+    await this.signoutService.doSignout(
+      user.id,
+      { trigger: 'security-policy', revokeReason: 'updatePass' },
+      em,
+    )
 
     return true
   }
@@ -71,12 +75,7 @@ export class AuthOpaqueAdminService {
       em,
     )
     if (identity) {
-      await this.userIdentityRepo.deleteByUserIdTypeAndPurpose(
-        userId,
-        'password',
-        'login',
-        em,
-      )
+      await this.userIdentityRepo.deleteByUserIdTypeAndPurpose(userId, 'password', 'login', em)
     }
     return true
   }

@@ -5,6 +5,10 @@
 > **权威边界**：**结论以本仓代码为准**；Z 的做法只作为参照，它自己的文档与评审也有过期之处（见「可信度声明」）。
 > **前提**：Z 是另一个更成熟的**私有**内部 monorepo，本页**不写它的仓库名与路径** —— 本仓文档站是公开的。
 > 下文凡 `Z · xxx` 形式的引用都指 Z 仓内的文件；**不带前缀的路径指本仓**。
+> **as-of（2026-09-23）**：本页是 2026-09-23 对参考仓 Z 的一次性对比快照，结论与数字都停在那一时点；
+> 此后本仓工具链已按 [ADR 0031](../adr/0031-rust-toolchain-migration.md) 迁移（oxfmt / oxlint / tsdown / tsrs / TNB），
+> 正文中「格式化由 ESLint stylistic 承担」「无 oxlint」等工具链口径已被取代。**工具链结论以 ADR 0031 与
+> [迁移执行计划 Ledger](../plans/rust-toolchain-migration-execution.md) 为准**；本页只保留对比结论与历史判据。
 
 ---
 
@@ -33,7 +37,7 @@
 
 | 报告的说法 | 复核结果 |
 |-----------|---------|
-| 「catalog 三处写 242，**实测只有 147 条，已经烂掉 95 条**」 | ❌ **假阳性，它自己数错**。`pnpm-workspace.yaml` 的 `catalog:` 段是 **99–351 行**（下一个顶层键在 352 行），实际 **243 条**；它取的 `197–343` 只是这段的中段。差的那 1 条是本次新增的 `eslint-plugin-turbo` |
+| 「catalog 三处写 242，**实测只有 147 条，已经烂掉 95 条**」 | ❌ **假阳性，它自己数错**。判据是 `pnpm-workspace.yaml` 的 `catalog:` 段 —— 从 `catalog:` 起到下一个顶层键之前的**全部条目**（2026-09-23 当次实测 243 条；条数随依赖增长，以文件为准）；它取的 `197–343` 只是这段的中段。差的那 1 条是本次新增的 `eslint-plugin-turbo` |
 | 「`release` scope 不在 commitlint 白名单 ⇒ 发版记账提交会被 hook 拒」 | ❌ **假阳性**。`tooling/commitlint-config/index.ts` 的 `SCOPES` 里 `'release'` 就在第 27 行，上面还专门有一段注释解释它「不是包 scope、是发版记账提交专用」。它引用的行号范围 `:2-28` 恰好包含第 27 行，是被上方注释带偏的 |
 | 「`lint:workflows` 在 actionlint 缺失时静默 `return 0`，是门禁缺口」 | ⚠️ **要打折**。`.github/workflows/workflow-lint.yml` **确实存在**且会下载并执行 actionlint，实现里那句「CI 里才是权威闸门」是准确的、有兜底的**有意设计**。**但它指出的次生问题成立**：`tooling/scripts/src/ci/prepush.ts` 只在**失败**时回放子进程输出，所以本地看到的是绿灯而那一段其实什么都没跑 |
 | 「本仓归档评审否决过『门禁图写在 TS』，所以别做 profile 台账」 | ⚠️ **需澄清**。被否的是**带 `needs`/`after`/`allowFailure` 的依赖图**形态；Z 的实际实现只有 186 行，是**按触发面取用的名册**，两者不是一回事，引用那条否决来反对它是误读 |
@@ -76,7 +80,7 @@
 | # | 事项 | 为什么 |
 |---|------|--------|
 | B1 | **bin ↔ 根脚本 ↔ 门禁表 的接线门禁** ✅ **已做**（`gate-wiring.test.ts` 的「二段跳」一段） | 根脚本经 `walnut-*` bin 二段跳，全靠人工对齐；重命名一个 bin 会让整段门禁**静默消失**。已核对：今天 0 漂移，所以**上了就是绿的** |
-| B2 | **`check-lockfile` 的版本锁步（L5）** ✅ **已做**（`pnpm walnut lint:lockfile`）| 「`catalog:` 的解析版本 == catalog 声明值」。本仓风险比 Z 大：catalog **243 条** + `catalogMode: strict`。**但落地时发现原设计会「恒关」**，见下方 §4.6 的踩坑记录 —— 最终改成比对 **HEAD 里那一对** |
+| B2 | **`check-lockfile` 的版本锁步（L5）** ✅ **已做**（`pnpm walnut lint:lockfile`）| 「`catalog:` 的解析版本 == catalog 声明值」。本仓风险比 Z 大：catalog 表更大（条数以 `pnpm-workspace.yaml` 的 `catalog:` 段为准，2026-09-23 当次 243 条）+ `catalogMode: strict`。**但落地时发现原设计会「恒关」**，见下方 §4.6 的踩坑记录 —— 最终改成比对 **HEAD 里那一对** |
 | B3 | **文档三件套**（归档归宿列 / 占位页处置 / 文档规范页） ✅ **已做** | `archive/index.md` 里「未执行」与「已执行」两篇长得一样；`frontend/features/` 下有 **7 个 1 行的占位页**；「文档该长什么样」散在四处 |
 | B4 | **nginx 安全响应头** ✅ **已做**（`pnpm walnut lint:nginx-headers` + post-verify 硬条件）| 实测 `deploy/nginx/` 下 `add_header` 只有 2 条且**都不是安全头**（HSTS / X-Frame-Options / X-Content-Type-Options / Referrer-Policy 全缺），而 CSP 插件当时在构建配置里是**注释掉的**（现已接成构建开关 `VITE_BUILD_CSP`，默认关、按 env 开）⇒ 构建产物这一面默认仍不注入策略，运行面靠 nginx 安全头兜。**动手时又实测出一条更重的**：`api.conf`（API 域名的入口）**一个安全头都没有** —— 它和 `frontend.conf` 是两个并列 `server` 块，nginx 的 `add_header` 不跨块继承。于是这条按「配置面（推送前静态查）+ 运行面（部署后真发头）」两端落地 |
 | B5 | **产物去密体检** ✅ **已做**（`pnpm walnut lint:dist`，CI 紧跟 admin 构建；**源码侧**另有 `pnpm walnut lint:secrets`，见 §4.5）| 产物侧门禁为 **0**（`apps/admin/package.json` 的 build 只有 `vite build`）。Z 把它列为性价比最高的一条，且规则表与它 CI 的密钥扫描**同源**。**落地时最花功夫的不是写规则，是删规则**：3 条看起来天经地义的规则在真产物上分别是 1 / 8 / 5 次误报（详见 §4.5） |
@@ -94,7 +98,7 @@
 | C2 | **包标准的机械门禁（最小骨架）** ✅ **tags 与 `exports-shape` 已做** | Z 有 **22 条**机械规则（`turbo-tags` / `exports-shape` / `script-matrix` / `package-json-fields` / 目录索引双向对账 …）。本仓不是 0 条（见上方更正）：`lint:turbo-cache` 已有 8 条不变量，其中第 1 条就是「每个包 `turbo.json` 的 `extends` + tags」；2026-09-23 又补了 `exports-shape`（`pnpm walnut lint:exports`，四条不变量：目标存在 / 通配命中 / `types` 条件在前 / 与顶层 `main`·`types` 不矛盾）—— 本仓共享包**不构建就被消费**，`exports` 写错 = 解析到别的入口或类型静默丢失，而这一面此前零判据。**剩下的候选**：`script-matrix`、`package-json-fields`、目录索引双向对账 |
 | C3 | **根脚本白名单** ✅ **已做（只搬前两段）** | 根脚本（调研时 43 条，现已 46 条）零约束。Z 用「白名单 + 形态正则 + 理由」三件套。落地时**只搬「名字形态 + 值里不许有 shell 连接子」**，并只对 `lint:*` 收了紧 —— 全量白名单会变成一份要不停维护的名单（本仓根脚本合法地直接调 `tsc` / `rimraf` / `syncpack` / `docker` / `cross-env`） |
 | C4 | **turbo 缓存跨 CI run** ✅ **已做**（`ci.yml` 的 quality job） | 实测全仓无 `actions/cache`。**落地时把方案换了一个范围，ROI 完全不同**：整份 `.turbo/cache` 是 **385 MB**（build 产物占绝大部分，搬运费吃掉收益），而 quality job 里那份只有几 MB —— 质量门三类任务（lint / types:check / test）的 `outputs` 是空的，条目只是元数据；实测冷跑 **144s → 命中 0.13s**（43/43 `FULL TURBO`，本地口径）。⚠️ **CI 实测又补了两条**：① **命中已实测** —— run #17 三个质量门步骤全 **0s**（无缓存基线 69 / 41 / 10s），另有 `actions/caches` API 上 `last_accessed_at` 被刷新的独立证据；② 「只缓存质量门」第一版**并不成立** —— `Docs build (dead-link check)` 也是 turbo 任务，4.6 MB 的 VitePress 产物跟着上了缓存（归档 4.7 MB → 9.8 MB），现已用 `--cache-dir` 把它挡在外面并把缓存 key 升到 v2。⚠️ 初稿那条风险**比想的低**：turbo 的条目**按 task hash 校验**，恢复到不匹配的只会 miss、不会误用；而且本仓**每次 push 都在用同一套**（prepush 的 `turbo run lint:root` / `types:check` 本来就命中本地缓存）。真正决定"会不会误用"的是 **hash 覆盖面** —— 那正是 `lint:turbo-cache` 那组不变量的职责（docs 构建那一面本仓早已覆盖，见 `apps/docs/turbo.json` 的 inputs 注释；run #16 还顺带证明了「改了就真跑、没改就命中」）。**前提实测**：CI 注入的 `CI` / `TURBO_SCM_BASE` / `TURBO_SCM_HEAD` / `GITHUB_ACTIONS` 都不改变 task hash。详见 [Turbo 缓存边界](./turbo-cache-boundary) 第七节 |
-| C5 | **本地 ESLint 规则** ✅ **已做（两条）** | Z 有 13 条 + 每条配 RuleTester 正反语料。落地取「本仓有成文约定却零判据」的两条：`script-header` 与 `script-exit-code`（0/1/2 三态）。⚠️ **初稿那句「存量已满足、上线即绿」对 `script-header` 是错的** —— 登记时逐个数过：`bin/*.ts` **一个 JSDoc 文件头都没有**；落地实测 13 个 bin 里 2 个连注释都没有，已补。退出码那条实测 1515 个文件零违规，确实上线即绿 |
+| C5 | **本地 ESLint 规则** ✅ **已做（两条）** | Z 有 13 条 + 每条配 RuleTester 正反语料。落地取「本仓有成文约定却零判据」的两条：`script-header` 与 `script-exit-code`（0/1/2/3 四态：通过 / 查出违规 / 前置未满足 / 未验证）。⚠️ **初稿那句「存量已满足、上线即绿」对 `script-header` 是错的** —— 登记时逐个数过：`bin/*.ts` **一个 JSDoc 文件头都没有**；落地实测 13 个 bin 里 2 个连注释都没有，已补。退出码那条实测 1515 个文件零违规，确实上线即绿 |
 
 ### D. 参考仓更弱：**不要反向学**（无需动作）
 
@@ -160,7 +164,7 @@
 
 ### 4.4 ESLint / tsconfig / vitest / AST
 
-- Z 的 43.6 KB「本地规则」实为 **13 条**，每条都有 RuleTester 正反语料 + 两条「结构锁」（名册只增不减、模板分支必须注册）。本仓 `tooling/eslint-config/nest-local-rules.ts` 只有 1 条规则，**全仓 0 个 RuleTester**。
+- Z 的 43.6 KB「本地规则」实为 **13 条**，每条都有 RuleTester 正反语料 + 两条「结构锁」（名册只增不减、模板分支必须注册）。本仓 `tooling/eslint-config/nest-local-rules.ts` 有 **2 条**规则（`sort-nestjs-decorators` / `no-cross-lib-relative-import`），**3 个 RuleTester 文件**（`nest-local-rules` / `script-rules` / `comment-rules`）；其余本地规则共 3 条（两条脚本入口 + emoji）。
 - 13 条里**本仓适用且零误报**的只有两条（= C5）；其余要么被现有机制覆盖（精确版本靠 `saveExact` + syncpack）、要么无命中点、要么前提不同（中文棘轮）。
 - tsconfig：我们把 Z 的 `ts + scripts` 两档合成了一档（`erasableSyntaxOnly` 在 `ts.json`），**属合理取舍**；可选补一条 `types: ['node']` 显式声明。
 - vitest 预设：本仓 `include` **不含 `.tsx`**（当前全仓 0 个 `.test.tsx`，属**潜在**而非现存问题）；Z 还有「include 面偏离 src 时必须写明静默 0 用例风险」这条判据值得借。

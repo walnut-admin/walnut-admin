@@ -34,17 +34,24 @@ interface IRepoCall {
   options: Record<string, unknown>
 }
 
-function createService(options: { rowExists?: boolean, boundVisitorId?: string } = {}) {
+function createService(options: { rowExists?: boolean; boundVisitorId?: string } = {}) {
   const calls: IRepoCall[] = []
 
-  const findOneAndUpdate = vi.fn(async (filter: Record<string, unknown>, update: Record<string, unknown>, opts: Record<string, unknown>) => {
-    calls.push({ filter, update, options: opts })
-    return options.rowExists === false ? null : { id: 'spec-row', userId: null, left: false }
-  })
+  const findOneAndUpdate = vi.fn(
+    async (
+      filter: Record<string, unknown>,
+      update: Record<string, unknown>,
+      opts: Record<string, unknown>,
+    ) => {
+      calls.push({ filter, update, options: opts })
+      return options.rowExists === false ? null : { id: 'spec-row', userId: null, left: false }
+    },
+  )
 
   // 首写时序：行还不存在 ⇒ null（不参与校验）；行存在时返回「这台设备已登记的指纹」
   const findFirstByDeviceId = vi.fn(async () =>
-    options.boundVisitorId === undefined ? null : { visitorId: options.boundVisitorId })
+    options.boundVisitorId === undefined ? null : { visitorId: options.boundVisitorId },
+  )
 
   const service = new AppMonitorUserService(
     {} as never,
@@ -85,7 +92,10 @@ describe('appMonitorUserService.updateState：行键是服务端 deviceId（B6�
 
     const error = await service
       .updateState(DEVICE_ID, { visitorId: ATTACKER_VISITOR_ID, focus: true }, EM)
-      .then(() => null, (e: unknown) => e)
+      .then(
+        () => null,
+        (e: unknown) => e,
+      )
 
     expect(error).toBeInstanceOf(WalnutAdminExceptionRequestDataError)
     // 拒绝必须发生在写库之前（负对照：这里必须是零调用）

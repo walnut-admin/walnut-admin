@@ -15,10 +15,7 @@ import { useAppNotiError } from '@/hooks/component/useNoti'
 import { useAppI18n } from '@/locales/index'
 import { useAppStoreUserPermission } from '@/store/modules/user/user-permission'
 import { extractDefaultFormDataFromSchemas } from '../../../Form/src/utils'
-import {
-  generateDefaultSortParams,
-  generateSortParams,
-} from '../utils'
+import { generateDefaultSortParams, generateSortParams } from '../utils'
 
 export function useTableAPI<T>(
   inst: Ref<WTable.Inst.NDataTableInst | null>,
@@ -51,9 +48,7 @@ export function useTableAPI<T>(
     // won't commit this as default query form data
     const beforeRequestHook = props.value.apiProps?.onBeforeRequest
     if (isFunction(beforeRequestHook)) {
-      const beforeHookQuery = await beforeRequestHook!(
-        cloneDeep(apiListParams.value.query!),
-      )
+      const beforeHookQuery = await beforeRequestHook!(cloneDeep(apiListParams.value.query!))
 
       apiListParams.value.query = Object.assign(apiListParams.value.query!, beforeHookQuery)
     }
@@ -65,33 +60,32 @@ export function useTableAPI<T>(
         // actually i'm thinking is this really a good choice? like mutate the proxyed props inside the component
         // @ts-expect-error haha
         data: computed(() => res.data),
-        pagination: props.value.pagination === false
-          ? false
-          : {
-              itemCount: res.total,
-              page: apiListParams.value.page?.page,
-              pageSize: apiListParams.value.page?.pageSize,
-              showSizePicker: true,
-              showQuickJumper: true,
-              pageSizes: [10, 30, 50],
-              pageSlot: 7,
-              onUpdatePage: async (p) => {
-                apiListParams.value.page!.page = p
-                await onApiList()
+        pagination:
+          props.value.pagination === false
+            ? false
+            : {
+                itemCount: res.total,
+                page: apiListParams.value.page?.page,
+                pageSize: apiListParams.value.page?.pageSize,
+                showSizePicker: true,
+                showQuickJumper: true,
+                pageSizes: [10, 30, 50],
+                pageSlot: 7,
+                onUpdatePage: async (p) => {
+                  apiListParams.value.page!.page = p
+                  await onApiList()
+                },
+                onUpdatePageSize: async (p) => {
+                  apiListParams.value.page!.page = 1
+                  apiListParams.value.page!.pageSize = p
+                  await onApiList()
+                },
+                prefix: () => t('comp.pagination.total', { total: res.total }),
               },
-              onUpdatePageSize: async (p) => {
-                apiListParams.value.page!.page = 1
-                apiListParams.value.page!.pageSize = p
-                await onApiList()
-              },
-              prefix: () => t('comp.pagination.total', { total: res.total }),
-            },
       })
-    }
-    catch (err) {
+    } catch (err) {
       console.log(err)
-    }
-    finally {
+    } finally {
       setProps({ loading: false })
     }
   }
@@ -108,12 +102,9 @@ export function useTableAPI<T>(
   const onApiDeleteMany = async () => {
     const { confirmed } = await useAppConfirm(t('app.base.confirm'))
 
-    if (!confirmed)
-      return
+    if (!confirmed) return
 
-    const res = await props.value.apiProps!.deleteManyApi!(
-      checkedRowKeys.value.join(','),
-    )
+    const res = await props.value.apiProps!.deleteManyApi!(checkedRowKeys.value.join(','))
 
     useAppMsgSuccess()
 
@@ -155,19 +146,20 @@ export function useTableAPI<T>(
 
   // api list init
   const onApiListInit = async () => {
-    if (!isFunction(props.value.apiProps?.listApi))
-      return
+    if (!isFunction(props.value.apiProps?.listApi)) return
 
     // handle params.query default
     if (
-      !isUndefined(props.value.queryFormProps)
-      && !isUndefined(props.value.queryFormProps?.schemas)
+      !isUndefined(props.value.queryFormProps) &&
+      !isUndefined(props.value.queryFormProps?.schemas)
     ) {
-      onSetDefaultQueryFormData(extractDefaultFormDataFromSchemas(props.value.queryFormProps!.schemas!))
+      onSetDefaultQueryFormData(
+        extractDefaultFormDataFromSchemas(props.value.queryFormProps!.schemas!),
+      )
     }
 
     // handle params.sort default
-    if (columns.value.some(i => i.defaultSortOrder)) {
+    if (columns.value.some((i) => i.defaultSortOrder)) {
       apiListParams.value.sort = generateSortParams<T>(generateDefaultSortParams(columns.value))
 
       // commit change, make this version a default version
@@ -179,11 +171,10 @@ export function useTableAPI<T>(
 
   // sorter
   const onSorter = () => {
-    if (columns.value?.some(i => isNumber((i.sorter as SorterMultiple)?.multiple))) {
+    if (columns.value?.some((i) => isNumber((i.sorter as SorterMultiple)?.multiple))) {
       setProps({
         onUpdateSorter: async (sorts) => {
-          if (!sorts)
-            return
+          if (!sorts) return
           apiListParams.value.sort = generateSortParams<T>(sorts)
           if (!isUndefined(props.value?.apiProps)) {
             await onApiList()
@@ -195,11 +186,10 @@ export function useTableAPI<T>(
 
   // filter
   const onFilter = () => {
-    if (columns.value?.some(i => i.filter === true)) {
+    if (columns.value?.some((i) => i.filter === true)) {
       setProps({
         onUpdateFilters: async (filters) => {
-          if (!filters)
-            return
+          if (!filters) return
           apiListParams.value.query = Object.assign(apiListParams.value.query!, filters)
           if (!isUndefined(props.value?.apiProps)) {
             await onApiQuery()
@@ -211,7 +201,7 @@ export function useTableAPI<T>(
 
   // checked row keys
   const onCheckedRowKeys = () => {
-    if (columns.value?.map(i => i.type).includes('selection')) {
+    if (columns.value?.map((i) => i.type).includes('selection')) {
       setProps({
         onUpdateCheckedRowKeys: (rowKeys: StringOrNumber[]) => {
           checkedRowKeys.value = rowKeys

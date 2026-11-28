@@ -7,7 +7,11 @@ import { AppTechCacheService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCronTaskNames } from '@walnut-server/const/app/task'
 import { generateDeviceId, SysDevicePgPurgeService } from '@walnut-server/system'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { createIntegrationApp, getWalnutPgAdminDataSource, getWalnutPgDataSource } from '../helpers/create-integration-app'
+import {
+  createIntegrationApp,
+  getWalnutPgAdminDataSource,
+  getWalnutPgDataSource,
+} from '../helpers/create-integration-app'
 
 /**
  * 90 天设备留存清理（批次 11 · B5 收尾，on real PG）。
@@ -57,7 +61,14 @@ describe('SysDevicePgPurgeService：90 天留存清理（on real PG）', () => {
          (device_name, device_id, device_info, ip_history, active, banned, locked, created_at, updated_at)
        VALUES ($1, $2, '{}'::jsonb, ARRAY[]::text[], $3, $4, $5,
                now() - ($6::int * interval '1 day'), now() - ($6::int * interval '1 day'))`,
-      [`purge11-${seed8}-${randomUUID().slice(0, 8)}`, deviceId, options.active ?? false, options.banned ?? false, options.locked ?? false, days],
+      [
+        `purge11-${seed8}-${randomUUID().slice(0, 8)}`,
+        deviceId,
+        options.active ?? false,
+        options.banned ?? false,
+        options.locked ?? false,
+        days,
+      ],
     )
 
     seededDeviceIds.push(deviceId)
@@ -72,12 +83,26 @@ describe('SysDevicePgPurgeService：90 天留存清理（on real PG）', () => {
    * 在 anonymous 模式下**也可见** —— 那正是应用层 allowAnonymous 的语义，会让「非 system 通道
    * 删不掉」这条断言变成空转。绑一个用户之后，anonymous 模式才真的看不见这一行。
    */
-  async function seedMonitorRow(deviceId: string, options: { visitorId?: string, auth?: boolean, lastActiveDaysAgo?: number, userId?: string } = {}) {
+  async function seedMonitorRow(
+    deviceId: string,
+    options: {
+      visitorId?: string
+      auth?: boolean
+      lastActiveDaysAgo?: number
+      userId?: string
+    } = {},
+  ) {
     const visitorId = options.visitorId ?? `purge11-vis-${seed8}-${randomUUID().slice(0, 8)}`
     await pgDataSource.query(
       `INSERT INTO app_monitor_user (visitor_id, user_id, device_id, auth, is_left, first_visit_at, last_active_at)
        VALUES ($1, $2, $3, $4, false, now() - ($5::int * interval '1 day'), now() - ($5::int * interval '1 day'))`,
-      [visitorId, options.userId ?? null, deviceId, options.auth ?? false, options.lastActiveDaysAgo ?? 0],
+      [
+        visitorId,
+        options.userId ?? null,
+        deviceId,
+        options.auth ?? false,
+        options.lastActiveDaysAgo ?? 0,
+      ],
     )
     return visitorId
   }
@@ -113,10 +138,16 @@ describe('SysDevicePgPurgeService：90 天留存清理（on real PG）', () => {
 
     if (seededDeviceIds.length > 0) {
       // 设备行删除会 CASCADE 掉 user_device / RT；monitor 行没有 FK，单独清
-      await pgDataSource.query('DELETE FROM app_monitor_user WHERE device_id = ANY($1::text[])', [seededDeviceIds])
-      await pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [seededDeviceIds])
+      await pgDataSource.query('DELETE FROM app_monitor_user WHERE device_id = ANY($1::text[])', [
+        seededDeviceIds,
+      ])
+      await pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [
+        seededDeviceIds,
+      ])
     }
-    await pgDataSource.query('DELETE FROM app_monitor_user WHERE visitor_id LIKE $1', [`purge11-vis-${seed8}%`])
+    await pgDataSource.query('DELETE FROM app_monitor_user WHERE visitor_id LIKE $1', [
+      `purge11-vis-${seed8}%`,
+    ])
     await pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [userId])
 
     await app.close()
@@ -124,7 +155,12 @@ describe('SysDevicePgPurgeService：90 天留存清理（on real PG）', () => {
 
   it('job 注册：@Cron 任务已挂到 ScheduleModule（每天 03:00）', () => {
     const schedulerRegistry = app.get(SchedulerRegistry)
-    expect(schedulerRegistry.doesExist('cron', WalnutAdminConstAppCronTaskNames.SYS_DEVICE_RETENTION_PURGE)).toBe(true)
+    expect(
+      schedulerRegistry.doesExist(
+        'cron',
+        WalnutAdminConstAppCronTaskNames.SYS_DEVICE_RETENTION_PURGE,
+      ),
+    ).toBe(true)
   })
 
   it('purgeInactiveDevices：过期行被清，未过期 / banned / locked / active / 有活心跳 / 有活 RT 的一个都不动', async () => {
@@ -142,7 +178,13 @@ describe('SysDevicePgPurgeService：90 天留存清理（on real PG）', () => {
     const sessioned = await seedDevice({ daysAgo: 91 })
     await pgDataSource.query(
       'INSERT INTO auth_refresh_token (jti, user_id, device_id, encrypted_token, expired_at) VALUES ($1, $2, $3, $4, $5)',
-      [`purge11-rt-live-${seed8}`, userId, sessioned, 'enc', new Date(Date.now() + 24 * 3600_000).toISOString()],
+      [
+        `purge11-rt-live-${seed8}`,
+        userId,
+        sessioned,
+        'enc',
+        new Date(Date.now() + 24 * 3600_000).toISOString(),
+      ],
     )
     // ⑤ 该删：过期设备 + 100 天前的旧访客行（「用过之后放弃」的主群 —— stale 恒 false 那群）
     const abandoned = await seedDevice({ daysAgo: 91 })
@@ -170,7 +212,9 @@ describe('SysDevicePgPurgeService：90 天留存清理（on real PG）', () => {
 
     // 同一 visitor_id 现在可以重新登记（uq_monitor_visitor 没有被孤儿钉死）
     const reborn = await seedDevice({ daysAgo: 0 })
-    await expect(seedMonitorRow(reborn, { visitorId: abandonedVisitorId })).resolves.toBe(abandonedVisitorId)
+    await expect(seedMonitorRow(reborn, { visitorId: abandonedVisitorId })).resolves.toBe(
+      abandonedVisitorId,
+    )
   })
 
   it('幂等：第二次跑返回 0（全部谓词都是时间/状态判据，重复执行天然无目标）', async () => {
@@ -185,7 +229,13 @@ describe('SysDevicePgPurgeService：90 天留存清理（on real PG）', () => {
     )
     await pgDataSource.query(
       'INSERT INTO auth_refresh_token (jti, user_id, device_id, encrypted_token, expired_at, revoked) VALUES ($1, $2, $3, $4, $5, true)',
-      [`purge11-rt-old-${seed8}`, userId, target, 'enc', new Date(Date.now() - 3600_000).toISOString()],
+      [
+        `purge11-rt-old-${seed8}`,
+        userId,
+        target,
+        'enc',
+        new Date(Date.now() - 3600_000).toISOString(),
+      ],
     )
 
     expect(await purgeService.purgeInactiveDevices()).toBe(1)
@@ -208,7 +258,9 @@ describe('SysDevicePgPurgeService：90 天留存清理（on real PG）', () => {
       'DELETE FROM app_monitor_user WHERE device_id = $1 RETURNING id',
       [target],
     )
-    const appChannelDeleted = (Array.isArray(appChannelRaw[0]) ? appChannelRaw[0] : appChannelRaw) as Array<{ id: string }>
+    const appChannelDeleted = (
+      Array.isArray(appChannelRaw[0]) ? appChannelRaw[0] : appChannelRaw
+    ) as Array<{ id: string }>
     expect(appChannelDeleted).toHaveLength(0)
     expect(await exists('app_monitor_user', target)).toBe(true)
 

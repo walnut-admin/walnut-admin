@@ -1,13 +1,9 @@
 {
   "name": "@walnut/e2e",
-  "type": "module",
   "version": "0.1.24",
   "private": true,
   "description": "全链路 E2E（Playwright）：独立 PG / Redis 栈 + dist-stage 后端 + dist-staging 前端，覆盖设备 / 风控 / auth 面 / 模块链路 / 页面可达 / 跨端旅程；跑之前要 setup-env、build:stage、playwright install 并起数据栈（见 README.md）",
-  "engines": {
-    "node": ">=24.15.0",
-    "pnpm": ">=12.0.0"
-  },
+  "type": "module",
   "scripts": {
     "e2e": "node scripts/run.ts",
     "e2e:default": "node scripts/run.ts --project=smoke --project=risk --project=network --project=mobile",
@@ -21,7 +17,7 @@
     "e2e:redis-gc": "node scripts/redis-gc.ts",
     "e2e:report": "playwright show-report",
     "lint": "eslint . --concurrency=4",
-    "types:check": "tsc --noEmit",
+    "types:check": "tsrs --noEmit --pretty",
     "test": "vitest run"
   },
   "devDependencies": {
@@ -39,7 +35,12 @@
     "otplib": "catalog:",
     "pg": "catalog:",
     "redis": "catalog:",
+    "tsrs": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.15.0",
+    "pnpm": ">=12.0.0"
   }
 }

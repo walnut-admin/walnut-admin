@@ -91,8 +91,7 @@ export class SysUserDTOBase extends WalnutAdminCommonBasicModel {
     default: true,
     swaggerOptions: {
       title: 'user status',
-      description:
-        'false => user cannot sign in anymore, also should ban tokens as well',
+      description: 'false => user cannot sign in anymore, also should ban tokens as well',
     },
   })
   status: boolean
@@ -120,8 +119,7 @@ export class SysUserDTOBase extends WalnutAdminCommonBasicModel {
     default: false,
     swaggerOptions: {
       title: 'MFA setup',
-      description:
-        'true => user has setup MFA',
+      description: 'true => user has setup MFA',
     },
   })
   mfaSetup: boolean

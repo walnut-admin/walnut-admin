@@ -39,9 +39,7 @@ function onShowAside() {
         height: `${appStoreSettingDev.getHeaderHeight}rem`,
       }"
     >
-      <div
-        class="h-full h-full hstack select-none items-center justify-between px-2"
-      >
+      <div class="h-full h-full hstack select-none items-center justify-between px-2">
         <!-- left -->
         <div class="hstack items-center justify-between space-x-2">
           <img
@@ -50,7 +48,7 @@ function onShowAside() {
             :alt="`${AppTitle} Logo`"
             class="h-9"
             @click="onShowAside"
-          >
+          />
 
           <template v-else>
             <HeaderCollapse />
@@ -62,9 +60,7 @@ function onShowAside() {
         <!-- right -->
         <div
           class="h-full hstack justify-end children:(h-full flex cursor-pointer items-center px-0.5) space-x-2"
-          :class="[
-            { 'space-x-1': appStoreAdapter.isMobile },
-          ]"
+          :class="[{ 'space-x-1': appStoreAdapter.isMobile }]"
         >
           <WAppFullScreen
             v-if="appStoreBackendSettings.getFullScreenEnabled && !appStoreAdapter.isMobile"
@@ -75,10 +71,7 @@ function onShowAside() {
 
           <WAppLock v-if="appStoreLock.getEnable" id="walnut-admin-lock" />
 
-          <WAppSearch
-            v-if="appStoreBackendSettings.getSearchEnabled"
-            id="walnut-admin-search"
-          />
+          <WAppSearch v-if="appStoreBackendSettings.getSearchEnabled" id="walnut-admin-search" />
 
           <div id="walnut-admin-locale">
             <WAppLocalePicker v-if="appStoreBackendSettings.getLocaleEnabled" />

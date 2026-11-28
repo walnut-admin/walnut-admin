@@ -6,7 +6,9 @@ import { useAppStoreSecurity } from '@/store/modules/app/app-security'
 const appStoreSecurity = useAppStoreSecurity()
 const capJSQueue = new SingletonPromise<string>()
 
-export function SingletonPromiseRsaDecryptFailed(res: AxiosResponse<ResponseBase<{ id: string }>, any>) {
+export function SingletonPromiseRsaDecryptFailed(
+  res: AxiosResponse<ResponseBase<{ id: string }>, any>,
+) {
   return capJSQueue.run(async () => {
     // clear server rsa pub key
     appStoreSecurity.clearServerRsaPubKey()

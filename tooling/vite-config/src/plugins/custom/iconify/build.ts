@@ -23,11 +23,8 @@ interface ICustomSvg {
  */
 async function generateBuildSvg(customPrefix: string): Promise<ICustomSvg> {
   const customSvgObject = await buildCustomSvgObject(customPrefix)
-  const customIcons = Object.keys(customSvgObject.icons).map(i => `${customPrefix}:${i}`)
-  IconLog(
-    'Build Icon List Custom',
-    `Getting custom svg icons: ${customIcons.length}`,
-  )
+  const customIcons = Object.keys(customSvgObject.icons).map((i) => `${customPrefix}:${i}`)
+  IconLog('Build Icon List Custom', `Getting custom svg icons: ${customIcons.length}`)
   return { customSvgObject, customIcons }
 }
 
@@ -48,20 +45,18 @@ async function generateBuildIconListAll(options: IconifyPluginOptions, customIco
 
   const builtInSet = [...sets]
   const idx = builtInSet.indexOf(customPrefix)
-  if (idx > -1)
-    builtInSet.splice(idx, 1)
+  if (idx > -1) builtInSet.splice(idx, 1)
 
   await Promise.all(
     builtInSet.map(async (i) => {
-      const mod: { default: IconifyJSON } = await import(
-        `@iconify/json/json/${i}.json`,
-        { with: { type: 'json' } },
-      )
+      const mod: { default: IconifyJSON } = await import(`@iconify/json/json/${i}.json`, {
+        with: { type: 'json' },
+      })
       const fileJSON: IconifyJSON = mod.default
 
       const iconSet = new IconSet(fileJSON)
 
-      const iconArr = iconSet.list().map(i => `${fileJSON.prefix}:${i}`)
+      const iconArr = iconSet.list().map((i) => `${fileJSON.prefix}:${i}`)
 
       allIconsArray = allIconsArray.concat(iconArr)
     }),
@@ -86,7 +81,10 @@ async function generateBuildIconListAll(options: IconifyPluginOptions, customIco
  * @param {string[]} customIcons - List of custom icons
  * @returns {Promise<string[]>} Array of used icon strings
  */
-async function generateBuildIconListUsedInApp(options: IconifyPluginOptions, customIcons: string[]) {
+async function generateBuildIconListUsedInApp(
+  options: IconifyPluginOptions,
+  customIcons: string[],
+) {
   console.time('Build Icon List Used In App')
   const { scanPaths } = options
 
@@ -99,21 +97,18 @@ async function generateBuildIconListUsedInApp(options: IconifyPluginOptions, cus
     'Build Icon Used In App',
     `Scanning all 'vue, ts, tsx' files under 'src'. File number: ${files.length}`,
   )
-  const buffers = await Promise.all(files.map(i => BuildUtilsReadFile(i)))
+  const buffers = await Promise.all(files.map((i) => BuildUtilsReadFile(i)))
 
   const trie = buildTrie(allIconsArray)
   const usedIconsInAppSet = new Set<string>()
   for (const buf of buffers) {
     const icons = scanIcons(buf.toString(), trie)
-    icons.forEach(i => usedIconsInAppSet.add(i))
+    icons.forEach((i) => usedIconsInAppSet.add(i))
   }
 
   const usedIconsInApp = Array.from(usedIconsInAppSet)
 
-  IconLog(
-    'Build Icon Used In App',
-    `Detected ${usedIconsInApp.length} matched icons`,
-  )
+  IconLog('Build Icon Used In App', `Detected ${usedIconsInApp.length} matched icons`)
 
   iconArr = Array.from(new Set([...usedIconsInApp]))
 
@@ -128,8 +123,11 @@ async function generateBuildIconListUsedInApp(options: IconifyPluginOptions, cus
  * @param {IconifyJSON} customSvgObject - Custom SVG icon data
  */
 async function generateBuildIconCustomBundle(customSvgObject: IconifyJSON) {
-  iconBundleCodeMap.set('default', `import { addCollection } from '@iconify/vue';
-addCollection(${JSON.stringify(customSvgObject)});`)
+  iconBundleCodeMap.set(
+    'default',
+    `import { addCollection } from '@iconify/vue';
+addCollection(${JSON.stringify(customSvgObject)});`,
+  )
 
   IconLog(
     '[Online] Build Icon Svg JSON Bundle',
@@ -143,7 +141,11 @@ addCollection(${JSON.stringify(customSvgObject)});`)
  * @param {IconifyJSON} customSvgObject - Custom SVG icon data
  * @param {string[]} iconArr - Array of icon strings
  */
-async function generateBuildIconOfficalBundle(customPrefix: string, customSvgObject: IconifyJSON, iconArr: string[]) {
+async function generateBuildIconOfficalBundle(
+  customPrefix: string,
+  customSvgObject: IconifyJSON,
+  iconArr: string[],
+) {
   console.time('Build Icon Offical Bundle')
   // 1. Split icons
   const customNames: string[] = [] // Icon names without prefix
@@ -151,19 +153,17 @@ async function generateBuildIconOfficalBundle(customPrefix: string, customSvgObj
 
   iconArr.forEach((icon) => {
     const [prefix, name] = icon.split(':')
-    if (!name)
-      return // Fault tolerance
+    if (!name) return // Fault tolerance
     if (prefix === customPrefix) {
       customNames.push(name)
-    }
-    else {
+    } else {
       ;(officialMap[prefix] ||= []).push(name)
     }
   })
 
   // 2. Generate custom icon set
   const customJson: IconifyJSON = customNames.length
-    ? getIcons(customSvgObject, customNames) ?? { prefix: customPrefix, icons: {} }
+    ? (getIcons(customSvgObject, customNames) ?? { prefix: customPrefix, icons: {} })
     : { prefix: customPrefix, icons: {} }
 
   // 3. Generate official icon sets
@@ -171,10 +171,9 @@ async function generateBuildIconOfficalBundle(customPrefix: string, customSvgObj
   const officialJsons = await Promise.all(
     Object.entries(officialMap).map(async ([prefix, names]) => {
       // Official package exports IconifyJSON by default
-      const mod: { default: IconifyJSON } = await import(
-        `@iconify/json/json/${prefix}.json`,
-        { with: { type: 'json' } },
-      )
+      const mod: { default: IconifyJSON } = await import(`@iconify/json/json/${prefix}.json`, {
+        with: { type: 'json' },
+      })
       const picked = getIcons(mod.default, names)
       return picked ?? { prefix, icons: {} }
     }),
@@ -216,14 +215,12 @@ export async function handleProductionMode(options: IconifyPluginOptions, ctx: P
   if (online) {
     if (!treeshake) {
       await generateBuildIconListAll(options, customIcons)
-    }
-    else {
+    } else {
       await generateBuildIconListUsedInApp(options, customIcons)
     }
 
     await generateBuildIconCustomBundle(customSvgObject)
-  }
-  else {
+  } else {
     const usedIconArr = await generateBuildIconListUsedInApp(options, customIcons)
     await generateBuildIconOfficalBundle(customPrefix, customSvgObject, usedIconArr)
   }

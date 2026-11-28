@@ -61,9 +61,14 @@ export class SysDevicePgPurgeService {
    * @returns 删除的设备行数；`null` = 本次 tick 未拿到锁（另一实例在执行），与
    *   「没有过期行（返回 0）」区分。
    */
-  @Cron(CronExpression.EVERY_DAY_AT_3AM, { name: WalnutAdminConstAppCronTaskNames.SYS_DEVICE_RETENTION_PURGE, waitForCompletion: true })
+  @Cron(CronExpression.EVERY_DAY_AT_3AM, {
+    name: WalnutAdminConstAppCronTaskNames.SYS_DEVICE_RETENTION_PURGE,
+    waitForCompletion: true,
+  })
   async purgeInactiveDevices(): Promise<number | null> {
-    const purged = await this.cronLock.runExclusive('purgeInactiveDevices', 600, async () => this.doPurgeInactiveDevices())
+    const purged = await this.cronLock.runExclusive('purgeInactiveDevices', 600, async () =>
+      this.doPurgeInactiveDevices(),
+    )
 
     // runExclusive 的 undefined = 未拿到锁、本次 tick 被跳过（任务体未执行）；
     // 用 null 表达「本次没跑」，不伪装成「删了 0 行」
@@ -76,21 +81,24 @@ export class SysDevicePgPurgeService {
 
     // 事务里只做「删行」：返回被删的 device_id 与连带清掉的 monitor 行数，
     // 缓存失效放到事务**提交之后**（③）。
-    const { deviceIds, monitorRows } = await runInWalnutSystemTransaction(this.dataSource, async (manager) => {
-      // ① 选目标并删除（全部谓词都在 SQL 里 ⇒ 重复执行天然幂等，第二次必 0 行）
-      const ids = await this.deviceRepoService.purgeInactiveDevicesBefore(cutoff, manager)
+    const { deviceIds, monitorRows } = await runInWalnutSystemTransaction(
+      this.dataSource,
+      async (manager) => {
+        // ① 选目标并删除（全部谓词都在 SQL 里 ⇒ 重复执行天然幂等，第二次必 0 行）
+        const ids = await this.deviceRepoService.purgeInactiveDevicesBefore(cutoff, manager)
 
-      if (ids.length === 0) {
-        return { deviceIds: ids, monitorRows: 0 }
-      }
+        if (ids.length === 0) {
+          return { deviceIds: ids, monitorRows: 0 }
+        }
 
-      // ② **同一事务**清 monitor 行：app_monitor_user 没有 FK 到 sys_device（松引用）且
-      // visitor_id 全局唯一 —— 留成孤儿会让同指纹的下一次首行登记撞 uq_monitor_visitor
-      // （23505 → 40000），那台设备心跳永久坏。
-      const rows = await this.monitorRepository.deleteByDeviceIds(ids, manager)
+        // ② **同一事务**清 monitor 行：app_monitor_user 没有 FK 到 sys_device（松引用）且
+        // visitor_id 全局唯一 —— 留成孤儿会让同指纹的下一次首行登记撞 uq_monitor_visitor
+        // （23505 → 40000），那台设备心跳永久坏。
+        const rows = await this.monitorRepository.deleteByDeviceIds(ids, manager)
 
-      return { deviceIds: ids, monitorRows: rows }
-    })
+        return { deviceIds: ids, monitorRows: rows }
+      },
+    )
 
     if (deviceIds.length === 0) {
       return 0
@@ -107,9 +115,9 @@ export class SysDevicePgPurgeService {
     const failed = await this.invalidateDeviceCaches(deviceIds)
 
     this.logger.log(
-      `[PgPurgeTaskLog] purged inactive devices: ${deviceIds.length} (monitor rows: ${monitorRows}; `
-      + `device cache invalidated: ${deviceIds.length - failed.length}/${deviceIds.length}; `
-      + 'sys_user_device / auth_refresh_token 按 fk_* ON DELETE CASCADE 一并清除)',
+      `[PgPurgeTaskLog] purged inactive devices: ${deviceIds.length} (monitor rows: ${monitorRows}; ` +
+        `device cache invalidated: ${deviceIds.length - failed.length}/${deviceIds.length}; ` +
+        'sys_user_device / auth_refresh_token 按 fk_* ON DELETE CASCADE 一并清除)',
     )
 
     return deviceIds.length
@@ -133,8 +141,7 @@ export class SysDevicePgPurgeService {
     for (const deviceId of deviceIds) {
       try {
         await this.cacheDeviceService.delSysDeviceCache(deviceId)
-      }
-      catch (e) {
+      } catch (e) {
         failed.push(deviceId)
         this.logger.error(
           `[PgPurgeCacheInvalidationError] failed to invalidate SYSTEM:DEVICE:${deviceId}`,
@@ -145,8 +152,8 @@ export class SysDevicePgPurgeService {
 
     if (failed.length > 0) {
       this.logger.error(
-        `[PgPurgeCacheInvalidation] ${failed.length}/${deviceIds.length} device cache keys survived purge — `
-        + 'those devices keep passing the device guard until Redis evicts them',
+        `[PgPurgeCacheInvalidation] ${failed.length}/${deviceIds.length} device cache keys survived purge — ` +
+          'those devices keep passing the device guard until Redis evicts them',
       )
     }
 

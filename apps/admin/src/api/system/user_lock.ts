@@ -12,33 +12,29 @@ import { AppAxios } from '@/utils/axios'
  * 解回明文再进 DTO / bcrypt。别把 `_autoEncryptRequestData` 去掉：那会让锁屏密码以明文
  * 落进签名原文与网络抓包。
  */
-export function updateLockPreferenceAPI(data: components['schemas']['SysUserLockPreferenceUpdateDto']) {
-  return AppAxios.patch<boolean>(
-    {
-      url: SystemEndpointRoutes.USER_LOCK_PREFERENCE,
-      data,
-      _autoEncryptRequestData: ['lockPwdHash'],
-    },
-  )
+export function updateLockPreferenceAPI(
+  data: components['schemas']['SysUserLockPreferenceUpdateDto'],
+) {
+  return AppAxios.patch<boolean>({
+    url: SystemEndpointRoutes.USER_LOCK_PREFERENCE,
+    data,
+    _autoEncryptRequestData: ['lockPwdHash'],
+  })
 }
 
 // get lock status
 export function getLockStatusAPI() {
-  return AppAxios.get<SystemUserLockStatus>(
-    {
-      url: SystemEndpointRoutes.USER_LOCK_READ,
-    },
-  )
+  return AppAxios.get<SystemUserLockStatus>({
+    url: SystemEndpointRoutes.USER_LOCK_READ,
+  })
 }
 
 // lock
 export function lockAPI(lockRoute: IStoreApp.LockRoute) {
-  return AppAxios.patch<boolean>(
-    {
-      url: SystemEndpointRoutes.USER_LOCK,
-      data: { lockRoute },
-    },
-  )
+  return AppAxios.patch<boolean>({
+    url: SystemEndpointRoutes.USER_LOCK,
+    data: { lockRoute },
+  })
 }
 
 /**
@@ -48,13 +44,11 @@ export function lockAPI(lockRoute: IStoreApp.LockRoute) {
  * 与偏好写入同一套信封规则（Q10）。
  */
 export function unlockAPI(lockPwdHash?: string) {
-  return AppAxios.patch<boolean>(
-    {
-      url: SystemEndpointRoutes.USER_LOCK_UNLOCK,
-      data: lockPwdHash ? { lockPwdHash } : {},
-      _autoEncryptRequestData: ['lockPwdHash'],
-    },
-  )
+  return AppAxios.patch<boolean>({
+    url: SystemEndpointRoutes.USER_LOCK_UNLOCK,
+    data: lockPwdHash ? { lockPwdHash } : {},
+    _autoEncryptRequestData: ['lockPwdHash'],
+  })
 }
 
 /**
@@ -64,12 +58,10 @@ export function unlockAPI(lockPwdHash?: string) {
  * 也会直接 40000 + `meta.retryAfterSec`（客户端据此先显示倒计时）。
  */
 export function verifyStartAPI(data: components['schemas']['SysUserLockVerifyStartDto']) {
-  return AppAxios.post<string>(
-    {
-      url: SystemEndpointRoutes.USER_LOCK_VERIFY_START,
-      data,
-    },
-  )
+  return AppAxios.post<string>({
+    url: SystemEndpointRoutes.USER_LOCK_VERIFY_START,
+    data,
+  })
 }
 
 /**
@@ -79,12 +71,10 @@ export function verifyStartAPI(data: components['schemas']['SysUserLockVerifySta
  * retryAfterSec），与锁屏密码解锁共用一套计次预算。
  */
 export function verifyFinishAPI(data: components['schemas']['SysUserLockVerifyFinishDto']) {
-  return AppAxios.post<boolean>(
-    {
-      url: SystemEndpointRoutes.USER_LOCK_VERIFY_FINISH,
-      data,
-    },
-  )
+  return AppAxios.post<boolean>({
+    url: SystemEndpointRoutes.USER_LOCK_VERIFY_FINISH,
+    data,
+  })
 }
 
 /**
@@ -93,9 +83,7 @@ export function verifyFinishAPI(data: components['schemas']['SysUserLockVerifyFi
  * 权限 `system:user:lock:reset`（root 短路）；只解锁 + 清计次，不读不碰用户的锁屏密码。
  */
 export function resetUserLockAPI(userId: string) {
-  return AppAxios.put<boolean>(
-    {
-      url: `${SystemEndpointRoutes.USER_LOCK_RESET}/${userId}`,
-    },
-  )
+  return AppAxios.put<boolean>({
+    url: `${SystemEndpointRoutes.USER_LOCK_RESET}/${userId}`,
+  })
 }

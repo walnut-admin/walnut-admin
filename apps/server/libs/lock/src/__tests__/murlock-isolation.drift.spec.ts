@@ -21,7 +21,16 @@ import { describe, expect, it } from 'vitest'
  */
 
 const SERVER_ROOT = process.cwd()
-const SKIP_DIRS = new Set(['node_modules', 'dist', '.git', 'logs', 'coverage', 'env-local', 'env-encrypted', 'public'])
+const SKIP_DIRS = new Set([
+  'node_modules',
+  'dist',
+  '.git',
+  'logs',
+  'coverage',
+  'env-local',
+  'env-encrypted',
+  'public',
+])
 const LOCK_SRC = resolve(SERVER_ROOT, 'libs', 'lock', 'src')
 const LOCK_LIB_PREFIX = relative(SERVER_ROOT, resolve(SERVER_ROOT, 'libs', 'lock')) + sep
 
@@ -30,7 +39,8 @@ const LOCK_LIB_PREFIX = relative(SERVER_ROOT, resolve(SERVER_ROOT, 'libs', 'lock
  * 按**行首锚定**，这样注释里引用的字样（端口与本文件都在解释规则）不算命中；
  * `murlock/x` 这类子路径不算。
  */
-const MURLOCK_IMPORT_RE = /^[ \t]*(?:import|export)\s[^\n]*\sfrom\s+['"]murlock['"]|^[ \t]*import\s+['"]murlock['"]/m
+const MURLOCK_IMPORT_RE =
+  /^[ \t]*(?:import|export)\s[^\n]*\sfrom\s+['"]murlock['"]|^[ \t]*import\s+['"]murlock['"]/m
 
 function walkTsFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -59,8 +69,8 @@ const textOf = (file: string) => readFileSync(file, 'utf8')
 describe('d11 锁端口化：murlock 被收在 libs/lock 内部', () => {
   it('真正的 vendor import 只落在 libs/lock（新代码直连会让这条红）', () => {
     const offenders = allFiles
-      .filter(file => !isInsideLockLib(file))
-      .filter(file => MURLOCK_IMPORT_RE.test(textOf(file)))
+      .filter((file) => !isInsideLockLib(file))
+      .filter((file) => MURLOCK_IMPORT_RE.test(textOf(file)))
       .map(rel)
 
     expect(offenders).toEqual([])
@@ -69,8 +79,8 @@ describe('d11 锁端口化：murlock 被收在 libs/lock 内部', () => {
   it('libs/lock 内部的触碰点恰好两个：适配器（MurLockService）与模块（MurLockModule）', () => {
     const vendorTouches = allFiles
       .filter(isInsideLockLib)
-      .filter(file => MURLOCK_IMPORT_RE.test(textOf(file)))
-      .map(file => relative(LOCK_SRC, file).split(sep).join('/'))
+      .filter((file) => MURLOCK_IMPORT_RE.test(textOf(file)))
+      .map((file) => relative(LOCK_SRC, file).split(sep).join('/'))
       .sort()
 
     expect(vendorTouches).toEqual(['lock.module.ts', 'murlock.adapter.ts'])
@@ -78,7 +88,7 @@ describe('d11 锁端口化：murlock 被收在 libs/lock 内部', () => {
 
   it('注入 WALNUT_ADMIN_LOCK 的地方都带 @Inject(...)：Symbol token 漏装饰器只在运行时炸', () => {
     const missingInject = allFiles
-      .filter(file => !isInsideLockLib(file))
+      .filter((file) => !isInsideLockLib(file))
       .filter((file) => {
         const text = textOf(file)
         if (!/constructor\s*\(/.test(text) || !/WALNUT_ADMIN_LOCK\s*[,)]/.test(text)) {
@@ -93,8 +103,8 @@ describe('d11 锁端口化：murlock 被收在 libs/lock 内部', () => {
 
   it('消费方清单是 10 处（D11 的迁移面）', () => {
     const consumers = allFiles
-      .filter(file => !isInsideLockLib(file))
-      .filter(file => /@Inject\(\s*WALNUT_ADMIN_LOCK\s*\)/.test(textOf(file)))
+      .filter((file) => !isInsideLockLib(file))
+      .filter((file) => /@Inject\(\s*WALNUT_ADMIN_LOCK\s*\)/.test(textOf(file)))
       .map(rel)
       .sort()
 

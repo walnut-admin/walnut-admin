@@ -3,7 +3,9 @@ import { WalnutAdminConstAppAuthStrategy } from '@walnut-server/const/app/strate
 import { WalnutAdminGuardAuth } from '@walnut-server/guards'
 
 @Injectable()
-export class AuthOpaqueUserGuard extends WalnutAdminGuardAuth(WalnutAdminConstAppAuthStrategy.AUTH_OPAQUE) {
+export class AuthOpaqueUserGuard extends WalnutAdminGuardAuth(
+  WalnutAdminConstAppAuthStrategy.AUTH_OPAQUE,
+) {
   constructor() {
     super()
   }

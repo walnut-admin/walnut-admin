@@ -51,11 +51,10 @@ const useAppStoreSettingScopeInside = defineStore(StoreKeys.SETTING_SCOPE, {
   }),
 
   getters: {
-    getMaskUrlStatus: state => state.maskUrl.status,
+    getMaskUrlStatus: (state) => state.maskUrl.status,
     getMaskUrlValue: (state) => {
       return (route: RouteRecordRaw | RouteLocationNormalized): boolean | undefined => {
-        if (state.maskUrl.mode === AppConstBasicMode.GLOBAL)
-          return state.maskUrl.value
+        if (state.maskUrl.mode === AppConstBasicMode.GLOBAL) return state.maskUrl.value
 
         if (state.maskUrl.mode === AppConstBasicMode.SCOPE) {
           return route?.meta?.maskUrl ?? false
@@ -63,11 +62,10 @@ const useAppStoreSettingScopeInside = defineStore(StoreKeys.SETTING_SCOPE, {
       }
     },
 
-    getHijackRefreshStatus: state => state.hijackRefresh.status,
+    getHijackRefreshStatus: (state) => state.hijackRefresh.status,
     getHijackRefresh: (state) => {
       return (route: RouteLocationNormalized): boolean | undefined => {
-        if (state.hijackRefresh.mode === AppConstBasicMode.GLOBAL)
-          return state.hijackRefresh.value
+        if (state.hijackRefresh.mode === AppConstBasicMode.GLOBAL) return state.hijackRefresh.value
 
         if (state.hijackRefresh.mode === AppConstBasicMode.SCOPE) {
           return route?.meta?.hijackRefresh ?? false
@@ -75,11 +73,10 @@ const useAppStoreSettingScopeInside = defineStore(StoreKeys.SETTING_SCOPE, {
       }
     },
 
-    getWatermarkStatus: state => state.watermark.status,
+    getWatermarkStatus: (state) => state.watermark.status,
     getWatermarkConfig: (state) => {
       return (route: RouteLocationNormalized): WatermarkProps | undefined => {
-        if (state.watermark.mode === AppConstBasicMode.GLOBAL)
-          return state.watermark.value
+        if (state.watermark.mode === AppConstBasicMode.GLOBAL) return state.watermark.value
 
         if (state.watermark.mode === AppConstBasicMode.SCOPE) {
           return route?.meta?.watermark ?? {}
@@ -87,15 +84,17 @@ const useAppStoreSettingScopeInside = defineStore(StoreKeys.SETTING_SCOPE, {
       }
     },
 
-    getTransitionStatus: state => state.transition.status,
+    getTransitionStatus: (state) => state.transition.status,
     getTransitionName: (state) => {
       return (route: RouteLocationNormalized): ValueOfAppConstTransitionName | undefined => {
-        if (state.transition.mode === AppConstBasicMode.GLOBAL)
-          return state.transition.value
+        if (state.transition.mode === AppConstBasicMode.GLOBAL) return state.transition.value
 
         if (state.transition.mode === AppConstBasicMode.SCOPE) {
           // 生成 meta 把 transition 放宽为 string；前端路由写入面恒为 AppConstTransitionName 联合
-          return (route?.meta?.transition as ValueOfAppConstTransitionName | undefined) ?? state.transition.value
+          return (
+            (route?.meta?.transition as ValueOfAppConstTransitionName | undefined) ??
+            state.transition.value
+          )
         }
       }
     },
@@ -104,14 +103,12 @@ const useAppStoreSettingScopeInside = defineStore(StoreKeys.SETTING_SCOPE, {
   actions: {
     getRouterEnhanceWhiteListCondition(route: RouteLocationNormalized) {
       const appStoreRoute = useAppStoreRoute()
-      if (appStoreRoute.isPathInWhiteList(route.path))
-        return true
+      if (appStoreRoute.isPathInWhiteList(route.path)) return true
       return !this.getMaskUrlStatus || !this.getMaskUrlValue(route)
     },
 
     async onInitPrivateSettings() {
-      if (this.initialized)
-        return
+      if (this.initialized) return
 
       this.initialized = true
       const res = await getPrivateSettingsAPI()
@@ -124,7 +121,6 @@ const useAppStoreSettingScopeInside = defineStore(StoreKeys.SETTING_SCOPE, {
 const useAppStoreSettingScopeOutside = () => useAppStoreSettingScopeInside(store)
 
 export function useAppStoreSettingScope() {
-  if (getCurrentInstance())
-    return useAppStoreSettingScopeInside()
+  if (getCurrentInstance()) return useAppStoreSettingScopeInside()
   return useAppStoreSettingScopeOutside()
 }

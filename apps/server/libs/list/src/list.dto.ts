@@ -11,10 +11,7 @@ import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field
 
 import { WALNUT_LIST_PAGE_SIZE_MAX } from '@walnut-server/utils/list-page'
 import { FilterOpValues, SortOrderValues } from '@walnut/contract'
-import {
-  ClassConstructor,
-  plainToInstance,
-} from 'class-transformer'
+import { ClassConstructor, plainToInstance } from 'class-transformer'
 
 // request list page dto
 class WalnutAdminRequestListPageDTO {
@@ -74,8 +71,8 @@ export function CreateWalnutAdminRequestListDTO<T>(
   dto: ClassConstructor<T>,
   options?: IWalnutAdminRequestListDTOOptions,
 ) {
-  const keys = options?.sortOnlyIn
-    ?? Object.keys(plainToInstance(dto as ClassConstructor<object>, {}, {}))
+  const keys =
+    options?.sortOnlyIn ?? Object.keys(plainToInstance(dto as ClassConstructor<object>, {}, {}))
 
   class SortDTO {
     @WalnutAdminDecoratorFieldString({
@@ -92,7 +89,7 @@ export function CreateWalnutAdminRequestListDTO<T>(
       // IsEnum 的枚举里没有 false，用 allowFalseValue 放行，其余值仍校验
       validateOptions: { allowFalseValue: true },
     })
-    readonly order: typeof SortOrderValues[keyof typeof SortOrderValues] | false
+    readonly order: (typeof SortOrderValues)[keyof typeof SortOrderValues] | false
 
     @WalnutAdminDecoratorFieldNumber({
       swaggerOptions: { title: 'order priority' },
@@ -256,6 +253,10 @@ export function CreateWalnutAdminResponseListDTO<T>(dto: ClassConstructor<T>) {
   return WalnutAdminResponseListDTO
 }
 
-export type IWalnutAdminRequestList<T> = InstanceType<ReturnType<typeof CreateWalnutAdminRequestListDTO<T>>>
+export type IWalnutAdminRequestList<T> = InstanceType<
+  ReturnType<typeof CreateWalnutAdminRequestListDTO<T>>
+>
 
-export type IWalnutAdminResponseList<T> = InstanceType<ReturnType<typeof CreateWalnutAdminResponseListDTO<T>>>
+export type IWalnutAdminResponseList<T> = InstanceType<
+  ReturnType<typeof CreateWalnutAdminResponseListDTO<T>>
+>

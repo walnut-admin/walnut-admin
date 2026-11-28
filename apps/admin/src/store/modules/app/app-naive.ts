@@ -19,15 +19,15 @@ const useAppStoreNaiveInside = defineStore(StoreKeys.APP_MSG, {
   }),
 
   getters: {
-    getNotiMax: state => state.notiMax,
-    getMsgMax: state => state.msgMax,
+    getNotiMax: (state) => state.notiMax,
+    getMsgMax: (state) => state.msgMax,
 
-    getNotiPlacement: state => state.notiPlacement,
-    getMsgPlacement: state => state.msgPlacement,
+    getNotiPlacement: (state) => state.notiPlacement,
+    getMsgPlacement: (state) => state.msgPlacement,
 
-    getNotiContainerStyle: state => state.notiContainerStyle,
-    getCurrentNotiInst: state => state.currentNotiInst,
-    getCurrentMsgInst: state => state.currentMsgInst,
+    getNotiContainerStyle: (state) => state.notiContainerStyle,
+    getCurrentNotiInst: (state) => state.currentNotiInst,
+    getCurrentMsgInst: (state) => state.currentMsgInst,
   },
 
   actions: {
@@ -70,7 +70,6 @@ const useAppStoreNaiveInside = defineStore(StoreKeys.APP_MSG, {
 const useAppStoreNaiveOutside = () => useAppStoreNaiveInside(store)
 
 export function useAppStoreNaive() {
-  if (getCurrentInstance())
-    return useAppStoreNaiveInside()
+  if (getCurrentInstance()) return useAppStoreNaiveInside()
   return useAppStoreNaiveOutside()
 }

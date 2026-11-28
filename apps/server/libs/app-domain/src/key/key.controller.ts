@@ -1,4 +1,14 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, SetMetadata, UseGuards } from '@nestjs/common'
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  SetMetadata,
+  UseGuards,
+} from '@nestjs/common'
 import { ApiParam, ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorPermissionMetadataKey } from '@walnut-server/const/decorator/permissions'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
@@ -31,7 +41,8 @@ export class AppKeyController {
   @HttpCode(HttpStatus.OK)
   @ApiParam({ name: 'type', description: 'key type enum', enum: AppKeyTypeConst })
   @ApiWalnutOkResponse({
-    description: 'get current app key public face (publicKeyPem for RSA_PAIR / keyB64 for AES_KEY_URL)',
+    description:
+      'get current app key public face (publicKeyPem for RSA_PAIR / keyB64 for AES_KEY_URL)',
     DTO: AppKeyCurrentResponseDTO,
   })
   @UseGuards(AppKeyCurrentGuard)
@@ -48,7 +59,8 @@ export class AppKeyController {
   @WalnutAdminDecoratorHasRole(Role.ROOT)
   // F-18（DOC-07）：init / rotate 的 200 此前无 schema（handler 返回 plainToInstance 后的 key 行）。
   @ApiWalnutOkResponse({
-    description: 'initialize the first app key of a type (root only; the private key never leaves the server)',
+    description:
+      'initialize the first app key of a type (root only; the private key never leaves the server)',
     DTO: AppKeyDTOSafe,
   })
   async init(@Body() dto: AppKeyDTOInit) {
@@ -62,7 +74,8 @@ export class AppKeyController {
   @WalnutTx()
   @ApiParam({ name: 'type', description: 'key type enum', enum: AppKeyTypeConst })
   @ApiWalnutOkResponse({
-    description: 'rotate the app key of a type (root only; the previous key row is kept as history)',
+    description:
+      'rotate the app key of a type (root only; the previous key row is kept as history)',
     DTO: AppKeyDTOSafe,
   })
   async rotate(

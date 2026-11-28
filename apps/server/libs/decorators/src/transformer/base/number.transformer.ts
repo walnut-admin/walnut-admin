@@ -25,13 +25,9 @@ export function WalnutAdminDecoratorTransformerNumber(
 
   if (typeof resOptions.precision === 'number') {
     decorators.push(
-      WalnutAdminDecoratorTransformNumberPrecision(
-        resOptions.precision,
-        isArray,
-        {
-          toPlainOnly: true,
-        },
-      ),
+      WalnutAdminDecoratorTransformNumberPrecision(resOptions.precision, isArray, {
+        toPlainOnly: true,
+      }),
     )
   }
 
@@ -61,14 +57,12 @@ export function WalnutAdminDecoratorTransformNumberPrecision(
   options: TransformOptions = {},
 ): PropertyDecorator {
   return Transform(({ value }) => {
-    if (isNil(value))
-      return null
+    if (isNil(value)) return null
 
-    if (value === 0)
-      return 0
+    if (value === 0) return 0
 
     if (isArray && Array.isArray(value)) {
-      return value.map(v => Number(Number(v).toFixed(precision)))
+      return value.map((v) => Number(Number(v).toFixed(precision)))
     }
 
     return Number(Number(value).toFixed(precision))
@@ -81,11 +75,9 @@ export function WalnutAdminDecoratorTransformNumberRound(
   options: TransformOptions = {},
 ): PropertyDecorator {
   return Transform(({ value }: { value: number | null | undefined }) => {
-    if (isNil(value))
-      return 0
+    if (isNil(value)) return 0
 
-    if (value === 0)
-      return 0
+    if (value === 0) return 0
 
     if (isArray && Array.isArray(value)) {
       return value.map((v: number) => round(v, precision))

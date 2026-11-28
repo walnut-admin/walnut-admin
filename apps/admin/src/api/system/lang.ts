@@ -17,7 +17,7 @@ export async function getLangListPublicAPI() {
     url: SystemEndpointRoutes.LANG_LIST_PUBLIC,
   })
 
-  return lists.map(i => ({
+  return lists.map((i) => ({
     value: i.lang!,
     label: i.description!,
   }))

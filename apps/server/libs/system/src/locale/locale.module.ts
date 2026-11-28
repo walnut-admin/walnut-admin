@@ -20,7 +20,12 @@ import { SysLocaleSharedModule } from './shared/locale.shared.module'
     SysLocaleSharedModule,
   ],
   controllers: [],
-  providers: [SysLocaleBasicRepository, SysLocaleService, LocaleLangIdValidate, sysLocaleRecoverableProvider],
+  providers: [
+    SysLocaleBasicRepository,
+    SysLocaleService,
+    LocaleLangIdValidate,
+    sysLocaleRecoverableProvider,
+  ],
   exports: [SysLocaleService, SysLocaleSharedModule],
 })
 export class SysLocaleModule {}

@@ -8,9 +8,7 @@ import { WalnutTxInterceptor } from './tx.interceptor'
  * `@WalnutTxSession()` 在同端点取 `WalnutTxContext`。
  */
 export function WalnutTx() {
-  return applyDecorators(
-    UseInterceptors(WalnutTxInterceptor),
-  )
+  return applyDecorators(UseInterceptors(WalnutTxInterceptor))
 }
 
 export const WalnutTxSession = createParamDecorator(

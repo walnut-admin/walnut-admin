@@ -13,11 +13,17 @@ import { AppTechTasksService } from '../task.service'
 function createHarness() {
   const appSettingRepo = { extractAppSettingIntoCache: vi.fn(async () => 3) }
   const localeSharedService = { extractLocaleMessagesIntoCacheForCronJob: vi.fn(async () => 7) }
-  const authRefreshSharedService = { revokeExpiredRefreshTokenForCronJob: vi.fn(async () => [{ id: 'rt-1' }]) }
+  const authRefreshSharedService = {
+    revokeExpiredRefreshTokenForCronJob: vi.fn(async () => [{ id: 'rt-1' }]),
+  }
   const appKeyService = { rotateForCronJob: vi.fn(async () => undefined) }
   const sysUserDeviceSharedService = {
     // 拍板-5：残留行只标 stale（计数口径 deletedCount → staleCount）
-    updateDeviceActiveStatusForCronJob: vi.fn(async () => ({ matchedCount: 1, modifiedCount: 1, staleCount: 0 })),
+    updateDeviceActiveStatusForCronJob: vi.fn(async () => ({
+      matchedCount: 1,
+      modifiedCount: 1,
+      staleCount: 0,
+    })),
   }
   const appMonitorUserSharedService = {
     updateAuthStateForCronJob: vi.fn(async (revoked: { id: string }[]) => revoked),
@@ -27,7 +33,9 @@ function createHarness() {
   }
 
   // fake 锁：正常路径执行回调一次并透传返回值；mockResolvedValue(undefined) 可模拟未抢到锁
-  const runExclusive = vi.fn(async (_taskName: string, _ttlSeconds: number, fn: () => Promise<unknown>) => fn())
+  const runExclusive = vi.fn(
+    async (_taskName: string, _ttlSeconds: number, fn: () => Promise<unknown>) => fn(),
+  )
 
   const service = new AppTechTasksService(
     appSettingRepo as never,
@@ -70,7 +78,11 @@ describe('appTechTasksService：@Cron 入口单次执行', () => {
     await h.service.extractSysLocaleMessages()
 
     expect(h.runExclusive).toHaveBeenCalledTimes(1)
-    expect(h.runExclusive).toHaveBeenCalledWith('extractSysLocaleMessages', 600, expect.any(Function))
+    expect(h.runExclusive).toHaveBeenCalledWith(
+      'extractSysLocaleMessages',
+      600,
+      expect.any(Function),
+    )
     expect(h.localeSharedService.extractLocaleMessagesIntoCacheForCronJob).toHaveBeenCalledTimes(1)
   })
 
@@ -80,7 +92,11 @@ describe('appTechTasksService：@Cron 入口单次执行', () => {
     await h.service.deleteExpiredRefreshToken()
 
     expect(h.runExclusive).toHaveBeenCalledTimes(1)
-    expect(h.runExclusive).toHaveBeenCalledWith('deleteExpiredRefreshToken', 900, expect.any(Function))
+    expect(h.runExclusive).toHaveBeenCalledWith(
+      'deleteExpiredRefreshToken',
+      900,
+      expect.any(Function),
+    )
     expect(h.authRefreshSharedService.revokeExpiredRefreshTokenForCronJob).toHaveBeenCalledTimes(1)
     expect(h.appMonitorUserSharedService.updateAuthStateForCronJob).toHaveBeenCalledTimes(1)
   })
@@ -103,7 +119,11 @@ describe('appTechTasksService：@Cron 入口单次执行', () => {
     await h.service.updateDeviceActiveStatus()
 
     expect(h.runExclusive).toHaveBeenCalledTimes(1)
-    expect(h.runExclusive).toHaveBeenCalledWith('updateDeviceActiveStatus', 300, expect.any(Function))
+    expect(h.runExclusive).toHaveBeenCalledWith(
+      'updateDeviceActiveStatus',
+      300,
+      expect.any(Function),
+    )
     expect(h.sysUserDeviceSharedService.updateDeviceActiveStatusForCronJob).toHaveBeenCalledTimes(1)
   })
 

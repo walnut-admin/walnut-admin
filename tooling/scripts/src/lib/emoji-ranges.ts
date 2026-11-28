@@ -13,4 +13,5 @@
  * - `U+2B00–U+2BFF`、`U+23E9–U+23FA`：箭头装饰与媒体控制类（快进/暂停那一类）
  * - `U+FE0F`、`U+200D`：变体选择符与零宽连接符（"emoji 形态"那一位，也是乱码元凶）
  */
-export const EMOJI_RANGES = '\\u{1F000}-\\u{1FAFF}\\u{2600}-\\u{27BF}\\u{2B00}-\\u{2BFF}\\u{23E9}-\\u{23FA}\\uFE0F\\u200D'
+export const EMOJI_RANGES =
+  '\\u{1F000}-\\u{1FAFF}\\u{2600}-\\u{27BF}\\u{2B00}-\\u{2BFF}\\u{23E9}-\\u{23FA}\\uFE0F\\u200D'

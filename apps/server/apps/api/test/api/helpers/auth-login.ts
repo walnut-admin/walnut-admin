@@ -60,7 +60,9 @@ export async function registerRootUserFixture(
 
   // —— opaque 客户端注册流程（与服务真实用法同构：identifiers 双端一致）——
   const appName = configService.get<string>('app.name')!
-  const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({ password })
+  const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({
+    password,
+  })
   const registrationResponse = await opaqueCore.startRegister(userName, registrationRequest)
   const { registrationRecord } = opaque.client.finishRegistration({
     clientRegistrationState,
@@ -95,17 +97,17 @@ export async function registerRootUserFixture(
     [Role.ROOT],
   )
   const roleId = roleRows[0].id
-  await pgDataSource.query(
-    'INSERT INTO sys_user_role (user_id, role_id) VALUES ($1, $2)',
-    [userId, roleId],
-  )
+  await pgDataSource.query('INSERT INTO sys_user_role (user_id, role_id) VALUES ($1, $2)', [
+    userId,
+    roleId,
+  ])
   // 短路判据是 roleNames[0] === 'root'（COMBINE 模式取 roles_list 首位）——
   // finishRegister 已经挂了 visitor 兜底 junction 且排在前，只留 root 并把 current_role_id
   // 一并对齐，AT payload 才是 { roleMode: 'combinable', roleNames: ['root'] }
-  await pgDataSource.query(
-    'DELETE FROM sys_user_role WHERE user_id = $1 AND role_id <> $2',
-    [userId, roleId],
-  )
+  await pgDataSource.query('DELETE FROM sys_user_role WHERE user_id = $1 AND role_id <> $2', [
+    userId,
+    roleId,
+  ])
   await pgDataSource.query(
     'UPDATE sys_user SET mfa_setup = true, role_mode = $2, current_role_id = $3 WHERE id = $1',
     [userId, WalnutAdminConstRoleMode.COMBINE, roleId],
@@ -121,19 +123,21 @@ export async function registerRootUserFixture(
  */
 export interface WalnutOpaqueLoginAttempt {
   code: number
-  data: { accessToken: string, sessionKey: string } | null
+  data: { accessToken: string; sessionKey: string } | null
 }
 
 export async function attemptHttpOpaqueLogin(
   api: WalnutApiClient,
   app: NestExpressApplication,
-  fixture: { userName: string, password: string, userId: string },
+  fixture: { userName: string; password: string; userId: string },
 ): Promise<WalnutOpaqueLoginAttempt> {
   const configService = app.get(ConfigService)
   const appName = configService.get<string>('app.name')!
 
   // 1. login/start
-  const { clientLoginState, startLoginRequest } = opaque.client.startLogin({ password: fixture.password })
+  const { clientLoginState, startLoginRequest } = opaque.client.startLogin({
+    password: fixture.password,
+  })
   const startRes = await api.anon('POST', api.apiPath('/auth/opaque/user/login/start'), {
     userName: fixture.userName,
     start: startLoginRequest,
@@ -161,7 +165,7 @@ export async function attemptHttpOpaqueLogin(
     userName: fixture.userName,
     finish: loginResult.finishLoginRequest,
   })
-  const finishBody = bodyOf<{ accessToken: string, sessionKey: string }>(finishRes)
+  const finishBody = bodyOf<{ accessToken: string; sessionKey: string }>(finishRes)
 
   if (finishBody.code !== 20000 || finishBody.data === undefined) {
     return { code: finishBody.code, data: null }
@@ -178,7 +182,7 @@ export async function attemptHttpOpaqueLogin(
 export async function performHttpOpaqueLogin(
   api: WalnutApiClient,
   app: NestExpressApplication,
-  fixture: { userName: string, password: string, userId: string },
+  fixture: { userName: string; password: string; userId: string },
 ): Promise<WalnutAuthTokens> {
   const attempt = await attemptHttpOpaqueLogin(api, app, fixture)
 

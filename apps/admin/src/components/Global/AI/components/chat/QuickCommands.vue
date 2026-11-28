@@ -10,7 +10,9 @@ const { handleQuickCommand } = useChatSend()
 </script>
 
 <template>
-  <div class="quick-commands border-border bg-fill flex shrink-0 gap-1.5 overflow-x-auto border-b px-2 py-2.5">
+  <div
+    class="quick-commands border-border bg-fill flex shrink-0 gap-1.5 overflow-x-auto border-b px-2 py-2.5"
+  >
     <button
       v-for="cmd in quickCommands"
       :key="cmd.label"

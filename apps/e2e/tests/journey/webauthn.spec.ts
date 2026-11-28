@@ -2,7 +2,11 @@ import type { CDPSession, Page } from '@playwright/test'
 import { deleteLoginableUser } from '../../lib/account-fixtures.ts'
 import { openDevice } from '../../lib/device-fixtures.ts'
 import { findWebauthnMfaRow, readUserMfaSetup, withPg } from '../../lib/pg.ts'
-import { AuthRoutes, SystemEndpointRoutes, WalnutAdminConstAppResponseCode } from '../../lib/protocol/contract.ts'
+import {
+  AuthRoutes,
+  SystemEndpointRoutes,
+  WalnutAdminConstAppResponseCode,
+} from '../../lib/protocol/contract.ts'
 import { rootClient } from '../../lib/protocol/root-client.ts'
 import { captureEnvelopes, describeFailureContext } from '../../lib/ui.ts'
 import { WEBAUTHN_WEB_ORIGIN } from '../../scripts/env.ts'
@@ -48,7 +52,9 @@ interface VirtualCredential {
   isResidentCredential: boolean
 }
 
-async function addVirtualAuthenticator(page: Page): Promise<{ cdp: CDPSession, authenticatorId: string }> {
+async function addVirtualAuthenticator(
+  page: Page,
+): Promise<{ cdp: CDPSession; authenticatorId: string }> {
   const cdp = await page.context().newCDPSession(page)
   await cdp.send('WebAuthn.enable', { enableUI: false })
   const { authenticatorId } = await cdp.send('WebAuthn.addVirtualAuthenticator', {
@@ -66,8 +72,13 @@ async function addVirtualAuthenticator(page: Page): Promise<{ cdp: CDPSession, a
   return { cdp, authenticatorId }
 }
 
-async function readCredentials(cdp: CDPSession, authenticatorId: string): Promise<VirtualCredential[]> {
-  const { credentials } = await cdp.send('WebAuthn.getCredentials', { authenticatorId }) as { credentials: VirtualCredential[] }
+async function readCredentials(
+  cdp: CDPSession,
+  authenticatorId: string,
+): Promise<VirtualCredential[]> {
+  const { credentials } = (await cdp.send('WebAuthn.getCredentials', { authenticatorId })) as {
+    credentials: VirtualCredential[]
+  }
   return credentials
 }
 
@@ -82,7 +93,9 @@ function toBase64Url(base64: string): string {
 }
 
 test.describe('WebAuthn journey', { tag: '@journey' }, () => {
-  test('J6 虚拟认证器注册 → 同一凭据登录 ceremony（PG 凭据行 + counter 递增）', async ({ browser }) => {
+  test('J6 虚拟认证器注册 → 同一凭据登录 ceremony（PG 凭据行 + counter 递增）', async ({
+    browser,
+  }) => {
     const root = await rootClient()
     // 新用户 mfa_setup=false ⇒ 登录后落 /mfa-required，走「强制绑定」的正向注册入口
     const { user } = await createJourneyUser(root, 'e2e-webauthn', { bindTotp: false })
@@ -106,21 +119,29 @@ test.describe('WebAuthn journey', { tag: '@journey' }, () => {
         await expect(modal, 'WebAuthn 绑定弹窗没有打开').toBeVisible({ timeout: 15_000 })
 
         const optionsResponse = page.waitForResponse(
-          response => response.request().method() === 'POST' && response.url().endsWith(SystemEndpointRoutes.USER_MFA_WEBAUTHN_REGISTER_OPTIONS),
+          (response) =>
+            response.request().method() === 'POST' &&
+            response.url().endsWith(SystemEndpointRoutes.USER_MFA_WEBAUTHN_REGISTER_OPTIONS),
         )
         const verifyResponse = page.waitForResponse(
-          response => response.request().method() === 'POST' && response.url().endsWith(SystemEndpointRoutes.USER_MFA_WEBAUTHN_REGISTER_VERIFY),
+          (response) =>
+            response.request().method() === 'POST' &&
+            response.url().endsWith(SystemEndpointRoutes.USER_MFA_WEBAUTHN_REGISTER_VERIFY),
         )
         // 设备名已由 fingerprint 预填（canRegister 成立）；Enter 与「开始注册」按钮同一条 handler
         await modal.locator('input').first().press('Enter')
 
-        const options = await (await optionsResponse).json() as ServerEnvelope<{ options: { challenge: string, rp: { id: string } } }>
+        const options = (await (await optionsResponse).json()) as ServerEnvelope<{
+          options: { challenge: string; rp: { id: string } }
+        }>
         expect(options.code).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
         // 机器证明 RP 口径与浏览器 origin 对齐（127.0.0.1 会被 Chrome 直接拒）
         expect(options.data.options.rp.id, 'RP ID 必须等于页面 host（localhost）').toBe('localhost')
 
-        const verifyBody = await (await verifyResponse).json() as ServerEnvelope<boolean>
-        expect(verifyBody.code, `register/verify 失败：${verifyBody.msg ?? ''}`).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
+        const verifyBody = (await (await verifyResponse).json()) as ServerEnvelope<boolean>
+        expect(verifyBody.code, `register/verify 失败：${verifyBody.msg ?? ''}`).toBe(
+          WalnutAdminConstAppResponseCode.SUCCESS,
+        )
         expect(verifyBody.data, 'register/verify 应返回 true').toBe(true)
 
         // 关掉成功弹窗（完成按钮 / Escape 任一），再点页面上的「验证」完成本次登录
@@ -128,12 +149,16 @@ test.describe('WebAuthn journey', { tag: '@journey' }, () => {
         await expect(modal, '注册成功弹窗没有关闭').toBeHidden({ timeout: 10_000 })
 
         const mfaVerifyResponse = page.waitForResponse(
-          response => response.request().method() === 'POST' && response.url().endsWith(`/api${AuthRoutes.MFA_VERIFY}`),
+          (response) =>
+            response.request().method() === 'POST' &&
+            response.url().endsWith(`/api${AuthRoutes.MFA_VERIFY}`),
         )
         await page.getByTestId('mfa-required-verify-btn').click()
-        const mfaVerifyBody = await (await mfaVerifyResponse).json() as ServerEnvelope<{ accessToken?: string }>
+        const mfaVerifyBody = (await (await mfaVerifyResponse).json()) as ServerEnvelope<{
+          accessToken?: string
+        }>
         expect(mfaVerifyBody.code).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
-        await page.waitForURL(url => url.pathname !== '/mfa-required', { timeout: 40_000 })
+        await page.waitForURL((url) => url.pathname !== '/mfa-required', { timeout: 40_000 })
 
         // 虚拟认证器里恰好一枚本 RP 的 resident 凭据
         const credentials = await readCredentials(authenticator.cdp, authenticator.authenticatorId)
@@ -143,13 +168,19 @@ test.describe('WebAuthn journey', { tag: '@journey' }, () => {
       })
 
       // ─── 2. PG 凭据行 ────────────────────────────────────────────────────
-      const credential = (await readCredentials(authenticator.cdp, authenticator.authenticatorId))[0]!
-      const pgRow = await withPg(pg => findWebauthnMfaRow(pg, user.userId))
+      const credential = (
+        await readCredentials(authenticator.cdp, authenticator.authenticatorId)
+      )[0]!
+      const pgRow = await withPg((pg) => findWebauthnMfaRow(pg, user.userId))
       expect(pgRow, 'sys_user_mfa 没有 webauthn 行').not.toBeNull()
       expect(pgRow!.status, '凭据行 status 应为启用').toBe(true)
-      expect(pgRow!.credentialId, '库里的 credentialId 与虚拟认证器不一致').toBe(toBase64Url(credential.credentialId))
+      expect(pgRow!.credentialId, '库里的 credentialId 与虚拟认证器不一致').toBe(
+        toBase64Url(credential.credentialId),
+      )
       expect(pgRow!.publicKeyCiphertextLength, '公钥密文为空（加密落库失败？）').toBeGreaterThan(0)
-      await expect.poll(() => withPg(pg => readUserMfaSetup(pg, user.userId)), { timeout: 10_000 }).toBe(true)
+      await expect
+        .poll(() => withPg((pg) => readUserMfaSetup(pg, user.userId)), { timeout: 10_000 })
+        .toBe(true)
 
       // ─── 3. 登录 ceremony ────────────────────────────────────────────────
       await test.step('登出 → 密码登录落 /mfa-verified → 虚拟认证器 get → authenticate/verify', async () => {
@@ -158,59 +189,90 @@ test.describe('WebAuthn journey', { tag: '@journey' }, () => {
         await page.getByTestId('header-user-dropdown').hover()
         await page.getByText('退出登录', { exact: true }).click({ timeout: 10_000 })
         const signoutResponse = page.waitForResponse(
-          response => response.request().method() === 'POST' && response.url().endsWith(`/api${AuthRoutes.SIGNOUT}`),
+          (response) =>
+            response.request().method() === 'POST' &&
+            response.url().endsWith(`/api${AuthRoutes.SIGNOUT}`),
         )
         // 页面上有实时刷新的图表，naive dialog 的按钮在 headless 下被判「element is not stable」
         // 直到超时（多次复现）；这里对同一个 DOM 目标派发原生 click —— 要验的是「确认 → 登出
         // 请求 → 会话撤销 → 回登录页」这条链，按钮的命中测试不是被测行为。
         await page.getByRole('button', { name: '确定', exact: true }).evaluate((element) => {
-          (element as HTMLElement).click()
+          ;(element as HTMLElement).click()
         })
-        const signoutBody = await (await signoutResponse).json() as ServerEnvelope<boolean>
-        expect(signoutBody.code, `登出请求失败：${signoutBody.msg ?? ''}`).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
-        await page.waitForURL(url => url.pathname === '/auth', { timeout: 30_000 })
+        const signoutBody = (await (await signoutResponse).json()) as ServerEnvelope<boolean>
+        expect(signoutBody.code, `登出请求失败：${signoutBody.msg ?? ''}`).toBe(
+          WalnutAdminConstAppResponseCode.SUCCESS,
+        )
+        await page.waitForURL((url) => url.pathname === '/auth', { timeout: 30_000 })
 
-        const counterBefore = (await withPg(pg => findWebauthnMfaRow(pg, user.userId)))!.counter
+        const counterBefore = (await withPg((pg) => findWebauthnMfaRow(pg, user.userId)))!.counter
 
         await loginUntilMfaPage(page, user, '/mfa-verified')
 
         const authenticateOptions = page.waitForResponse(
-          response => response.request().method() === 'POST' && response.url().endsWith(SystemEndpointRoutes.USER_MFA_WEBAUTHN_AUTHENTICATE_OPTIONS),
+          (response) =>
+            response.request().method() === 'POST' &&
+            response.url().endsWith(SystemEndpointRoutes.USER_MFA_WEBAUTHN_AUTHENTICATE_OPTIONS),
         )
         const authenticateVerify = page.waitForResponse(
-          response => response.request().method() === 'POST' && response.url().endsWith(SystemEndpointRoutes.USER_MFA_WEBAUTHN_AUTHENTICATE_VERIFY),
+          (response) =>
+            response.request().method() === 'POST' &&
+            response.url().endsWith(SystemEndpointRoutes.USER_MFA_WEBAUTHN_AUTHENTICATE_VERIFY),
         )
         // 只有 WebAuthn 一个方法启用（TOTP 未绑）⇒ /mfa-verified 的卡片唯一
         await page.getByTestId('mfa-method-card').first().click()
 
-        const optionsBody = await (await authenticateOptions).json() as ServerEnvelope<{ options: { challenge: string, allowCredentials?: Array<{ id: string }> } }>
+        const optionsBody = (await (await authenticateOptions).json()) as ServerEnvelope<{
+          options: { challenge: string; allowCredentials?: Array<{ id: string }> }
+        }>
         expect(optionsBody.code).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
-        expect(optionsBody.data.options.allowCredentials?.map(item => item.id), 'allowCredentials 应只含已注册的那枚凭据（base64url 口径）')
-          .toEqual([toBase64Url(credential.credentialId)])
+        expect(
+          optionsBody.data.options.allowCredentials?.map((item) => item.id),
+          'allowCredentials 应只含已注册的那枚凭据（base64url 口径）',
+        ).toEqual([toBase64Url(credential.credentialId)])
 
-        const verifyBody = await (await authenticateVerify).json() as ServerEnvelope<{ accessToken?: string }>
-        expect(verifyBody.code, `authenticate/verify 失败：${verifyBody.msg ?? ''}`).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
-        expect(typeof verifyBody.data.accessToken, 'authenticate/verify 应轮换并返回新 AT').toBe('string')
+        const verifyBody = (await (await authenticateVerify).json()) as ServerEnvelope<{
+          accessToken?: string
+        }>
+        expect(verifyBody.code, `authenticate/verify 失败：${verifyBody.msg ?? ''}`).toBe(
+          WalnutAdminConstAppResponseCode.SUCCESS,
+        )
+        expect(typeof verifyBody.data.accessToken, 'authenticate/verify 应轮换并返回新 AT').toBe(
+          'string',
+        )
 
-        await page.waitForURL(url => url.pathname !== '/mfa-verified', { timeout: 30_000 })
-        await expect(page.locator('[data-testid="sidebar-menu"], .w-menu').first()).toBeVisible({ timeout: 30_000 })
+        await page.waitForURL((url) => url.pathname !== '/mfa-verified', { timeout: 30_000 })
+        await expect(page.locator('[data-testid="sidebar-menu"], .w-menu').first()).toBeVisible({
+          timeout: 30_000,
+        })
 
         // counter 递增 + last_used_at 落库（服务端防重放的真实证据）
-        const afterLogin = await withPg(pg => findWebauthnMfaRow(pg, user.userId))
-        expect(afterLogin!.counter, 'authenticate/verify 后 counter 应递增').toBeGreaterThan(counterBefore)
+        const afterLogin = await withPg((pg) => findWebauthnMfaRow(pg, user.userId))
+        expect(afterLogin!.counter, 'authenticate/verify 后 counter 应递增').toBeGreaterThan(
+          counterBefore,
+        )
         expect(afterLogin!.lastUsedAt, 'authenticate/verify 后 last_used_at 应落库').not.toBeNull()
 
-        const credentialsAfter = await readCredentials(authenticator.cdp, authenticator.authenticatorId)
+        const credentialsAfter = await readCredentials(
+          authenticator.cdp,
+          authenticator.authenticatorId,
+        )
         // CDP 的字段是 JSON 数字，但不同版本的编码可能给 string —— 比较前显式转
-        expect(Number(credentialsAfter[0]!.signCount), '虚拟认证器的签名计数器没有递增').toBeGreaterThan(Number(credential.signCount))
+        expect(
+          Number(credentialsAfter[0]!.signCount),
+          '虚拟认证器的签名计数器没有递增',
+        ).toBeGreaterThan(Number(credential.signCount))
       })
-    }
-    catch (error) {
+    } catch (error) {
       // 失败现场：socket / WebAuthn 的报错经常只剩一句 SecurityError，把页面与最近响应带上
-      const context = await describeFailureContext(page, captured.entries).catch(() => '（失败现场不可读）')
-      throw new Error(`${error instanceof Error ? error.message : String(error)}\n[e2e/journey] WebAuthn 现场：\n${context}`, { cause: error })
-    }
-    finally {
+      const context = await describeFailureContext(page, captured.entries).catch(
+        () => '（失败现场不可读）',
+      )
+      throw new Error(
+        `${error instanceof Error ? error.message : String(error)}\n[e2e/journey] WebAuthn 现场：\n${context}`,
+        { cause: error },
+      )
+    } finally {
       captured.stop()
       await cdp?.detach().catch(() => {})
       await session.context.close()

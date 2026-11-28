@@ -34,9 +34,9 @@ function createController() {
   const updateState = vi.fn<
     (deviceId: string, dto: Record<string, unknown>, em: EntityManager) => Promise<boolean>
   >(async () => true)
-  const verifyAccessToken = vi.fn<
-    (token: string) => Promise<IVerifiedTokenPayload | null>
-  >(async () => null)
+  const verifyAccessToken = vi.fn<(token: string) => Promise<IVerifiedTokenPayload | null>>(
+    async () => null,
+  )
 
   const controller = new AppMonitorUserController(
     { updateState } as unknown as AppMonitorUserService,
@@ -121,7 +121,12 @@ describe('appMonitorUserController.monitor：userId 只认验签通过的 AT（F
     for (const header of ['Basic dXNlcjpwYXNz', 'raw-token-without-scheme', 'Bearer ', '   ']) {
       const { controller, updateState, verifyAccessToken } = createController()
 
-      await controller.monitor(DEVICE_ID, CTX, requestWith(header), body({ userId: VICTIM_USER_ID }))
+      await controller.monitor(
+        DEVICE_ID,
+        CTX,
+        requestWith(header),
+        body({ userId: VICTIM_USER_ID }),
+      )
 
       expect(verifyAccessToken, header).not.toHaveBeenCalled()
       expect(payloadOf(updateState).userId, header).toBeNull()
@@ -131,7 +136,12 @@ describe('appMonitorUserController.monitor：userId 只认验签通过的 AT（F
   it('auth=false 的登出心跳：userId 仍按 AT 结果覆盖（无 AT ⇒ null，service 的清零语义不受影响）', async () => {
     const { controller, updateState } = createController()
 
-    await controller.monitor(DEVICE_ID, CTX, requestWith(), body({ auth: false, userId: VICTIM_USER_ID }))
+    await controller.monitor(
+      DEVICE_ID,
+      CTX,
+      requestWith(),
+      body({ auth: false, userId: VICTIM_USER_ID }),
+    )
 
     expect(payloadOf(updateState)).toMatchObject({ auth: false, userId: null })
   })
@@ -140,8 +150,6 @@ describe('appMonitorUserController.monitor：userId 只认验签通过的 AT（F
     const { controller, updateState } = createController()
     updateState.mockResolvedValueOnce(false)
 
-    await expect(controller.monitor(DEVICE_ID, CTX, requestWith(), body()))
-      .resolves
-      .toBe(false)
+    await expect(controller.monitor(DEVICE_ID, CTX, requestWith(), body())).resolves.toBe(false)
   })
 })

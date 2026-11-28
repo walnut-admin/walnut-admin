@@ -28,8 +28,8 @@ const Permissions = {
   LIST: 'system:log:auth:list',
 } as const
 
-const { WalnutAdminDecoratorDelete, WalnutAdminDecoratorDeleteMany, WalnutAdminDecoratorList }
-  = WalnutCrudDecorators({
+const { WalnutAdminDecoratorDelete, WalnutAdminDecoratorDeleteMany, WalnutAdminDecoratorList } =
+  WalnutCrudDecorators({
     title: WalnutAdminConstDecoratorLogOperateTitle.LOG_AUTH,
     DTO: SysLogAuthDTO,
     // list 行是 RealPartialType(SysLogAuthDTOSafe)：字段集一致、全部可选（P2-6 收尾）。
@@ -71,15 +71,12 @@ export class SysLogAuthController {
   ) {
     const deleted = await this.logAuthService.deleteMany(ids, user.userId, ctx.em)
 
-    return deleted.map(i => plainToInstance(SysLogAuthDTODeleteResponse, i))
+    return deleted.map((i) => plainToInstance(SysLogAuthDTODeleteResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
   @WalnutAdminDecoratorList()
   async list(@Body() payload: SysLogAuthDTOListRequest) {
-    return plainToInstance(
-      SysLogAuthDTOListResponse,
-      await this.logAuthService.list(payload),
-    )
+    return plainToInstance(SysLogAuthDTOListResponse, await this.logAuthService.list(payload))
   }
 }

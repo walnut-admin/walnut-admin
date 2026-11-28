@@ -45,19 +45,34 @@ describe('组织基础表：system/employee CRUD + 绑定解绑 + 一号一职�
     return makeEmployee({ seed8, tag, deptId, postId, overrides })
   }
 
-  async function createEmployee(tag: string, overrides: Record<string, unknown> = {}): Promise<EmployeeRow> {
-    const res = await api.root('POST', api.apiPath('/system/employee'), employeePayload(tag, overrides))
+  async function createEmployee(
+    tag: string,
+    overrides: Record<string, unknown> = {},
+  ): Promise<EmployeeRow> {
+    const res = await api.root(
+      'POST',
+      api.apiPath('/system/employee'),
+      employeePayload(tag, overrides),
+    )
     expectOk(res, `employee create ${tag}`)
     return bodyOf<EmployeeRow>(res).data
   }
 
   async function purgeRows() {
-    await api.pgDataSource.query('DELETE FROM sys_employee WHERE employee_no LIKE $1', [`${employeePrefix}%`])
+    await api.pgDataSource.query('DELETE FROM sys_employee WHERE employee_no LIKE $1', [
+      `${employeePrefix}%`,
+    ])
     await api.pgDataSource.query('DELETE FROM sys_post WHERE post_code LIKE $1', [`${postPrefix}%`])
     await api.pgDataSource.query('DELETE FROM sys_dept WHERE dept_code LIKE $1', [`${deptPrefix}%`])
-    await api.pgDataSource.query('DELETE FROM sys_deleted WHERE content->>\'employeeNo\' LIKE $1', [`${employeePrefix}%`])
-    await api.pgDataSource.query('DELETE FROM sys_deleted WHERE content->>\'postCode\' LIKE $1', [`${postPrefix}%`])
-    await api.pgDataSource.query('DELETE FROM sys_deleted WHERE content->>\'deptCode\' LIKE $1', [`${deptPrefix}%`])
+    await api.pgDataSource.query("DELETE FROM sys_deleted WHERE content->>'employeeNo' LIKE $1", [
+      `${employeePrefix}%`,
+    ])
+    await api.pgDataSource.query("DELETE FROM sys_deleted WHERE content->>'postCode' LIKE $1", [
+      `${postPrefix}%`,
+    ])
+    await api.pgDataSource.query("DELETE FROM sys_deleted WHERE content->>'deptCode' LIKE $1", [
+      `${deptPrefix}%`,
+    ])
   }
 
   beforeAll(async () => {
@@ -120,12 +135,16 @@ describe('组织基础表：system/employee CRUD + 绑定解绑 + 一号一职�
     expect(read.postId).toBe(postId)
 
     // PUT 整体替换：必填核全量回填（缺省即 null，会被 IsNotEmpty 拦成 40099）
-    const updateRes = await api.root('PUT', api.apiPath(`/system/employee/${created.id}`), employeePayload('R1', {
-      employeeName: '职工 R1 改名',
-      // 未定岗：postId 显式置空（可空列）
-      postId: null,
-      status: 'probation',
-    }))
+    const updateRes = await api.root(
+      'PUT',
+      api.apiPath(`/system/employee/${created.id}`),
+      employeePayload('R1', {
+        employeeName: '职工 R1 改名',
+        // 未定岗：postId 显式置空（可空列）
+        postId: null,
+        status: 'probation',
+      }),
+    )
     expectOk(updateRes, 'employee update')
     const updated = bodyOf<EmployeeRow>(updateRes).data
     expect(updated.employeeName).toBe('职工 R1 改名')
@@ -137,7 +156,7 @@ describe('组织基础表：system/employee CRUD + 绑定解绑 + 一号一职�
       page: { page: 1, pageSize: 10 },
     })
     expectOk(listRes, 'employee list')
-    const list = bodyOf<{ data: EmployeeRow[], total: number }>(listRes).data
+    const list = bodyOf<{ data: EmployeeRow[]; total: number }>(listRes).data
     expect(list.total).toBe(1)
     expect(list.data[0].id).toBe(created.id)
   })
@@ -149,9 +168,13 @@ describe('组织基础表：system/employee CRUD + 绑定解绑 + 一号一职�
     const dupCreate = await api.root('POST', api.apiPath('/system/employee'), employeePayload('U1'))
     expect(bodyOf(dupCreate).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_EXISTS)
 
-    const dupUpdate = await api.root('PUT', api.apiPath(`/system/employee/${another.id}`), employeePayload('U2', {
-      employeeNo: `${employeePrefix}-U1`,
-    }))
+    const dupUpdate = await api.root(
+      'PUT',
+      api.apiPath(`/system/employee/${another.id}`),
+      employeePayload('U2', {
+        employeeNo: `${employeePrefix}-U1`,
+      }),
+    )
     expect(bodyOf(dupUpdate).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_EXISTS)
   })
 
@@ -166,23 +189,37 @@ describe('组织基础表：system/employee CRUD + 绑定解绑 + 一号一职�
     expect(bodyOf<EmployeeRow>(bindRes).data.userId).toBe(fixture!.userId)
 
     // 一号一职工：另一职工绑定同一账号 → 40001
-    const conflict = await api.root('POST', api.apiPath(`/system/employee/${second.id}/bind-user`), {
-      userId: fixture!.userId,
-    })
+    const conflict = await api.root(
+      'POST',
+      api.apiPath(`/system/employee/${second.id}/bind-user`),
+      {
+        userId: fixture!.userId,
+      },
+    )
     expect(bodyOf(conflict).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_EXISTS)
 
     // 绑定不存在的账号 → 40000（user_id 是松引用，没有 FK 兜底）
-    const missingUser = await api.root('POST', api.apiPath(`/system/employee/${second.id}/bind-user`), {
-      userId: randomUUID(),
-    })
+    const missingUser = await api.root(
+      'POST',
+      api.apiPath(`/system/employee/${second.id}/bind-user`),
+      {
+        userId: randomUUID(),
+      },
+    )
     expect(bodyOf(missingUser).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
 
-    const unbindRes = await api.root('POST', api.apiPath(`/system/employee/${first.id}/unbind-user`))
+    const unbindRes = await api.root(
+      'POST',
+      api.apiPath(`/system/employee/${first.id}/unbind-user`),
+    )
     expectOk(unbindRes, 'employee unbind user')
     expect(bodyOf<EmployeeRow>(unbindRes).data.userId).toBeNull()
 
     // 幂等：未绑定时再解绑仍 20000 且 userId 为 null
-    const unbindAgain = await api.root('POST', api.apiPath(`/system/employee/${first.id}/unbind-user`))
+    const unbindAgain = await api.root(
+      'POST',
+      api.apiPath(`/system/employee/${first.id}/unbind-user`),
+    )
     expectOk(unbindAgain, 'employee unbind user again')
     expect(bodyOf<EmployeeRow>(unbindAgain).data.userId).toBeNull()
   })
@@ -194,9 +231,13 @@ describe('组织基础表：system/employee CRUD + 绑定解绑 + 一号一职�
     })
     expectOk(bindRes, 'employee bind for resign')
 
-    const resignRes = await api.root('PUT', api.apiPath(`/system/employee/${bound.id}`), employeePayload('S1', {
-      status: 'resigned',
-    }))
+    const resignRes = await api.root(
+      'PUT',
+      api.apiPath(`/system/employee/${bound.id}`),
+      employeePayload('S1', {
+        status: 'resigned',
+      }),
+    )
     expectOk(resignRes, 'employee resign')
     expect(bodyOf<EmployeeRow>(resignRes).data.status).toBe('resigned')
     // 离职不自动解绑
@@ -228,14 +269,22 @@ describe('组织基础表：system/employee CRUD + 绑定解绑 + 一号一职�
   })
 
   it('引用校验：部门 / 岗位不存在 → 40000', async () => {
-    const missingDept = await api.root('POST', api.apiPath('/system/employee'), employeePayload('V1', {
-      deptId: randomUUID(),
-    }))
+    const missingDept = await api.root(
+      'POST',
+      api.apiPath('/system/employee'),
+      employeePayload('V1', {
+        deptId: randomUUID(),
+      }),
+    )
     expect(bodyOf(missingDept).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
 
-    const missingPost = await api.root('POST', api.apiPath('/system/employee'), employeePayload('V2', {
-      postId: randomUUID(),
-    }))
+    const missingPost = await api.root(
+      'POST',
+      api.apiPath('/system/employee'),
+      employeePayload('V2', {
+        postId: randomUUID(),
+      }),
+    )
     expect(bodyOf(missingPost).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
   })
 })

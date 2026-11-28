@@ -6,7 +6,10 @@ import { WalnutAdminConstDecoratorLogOperateAction } from '@walnut-server/const/
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger'
 import { WalnutAdminDecoratorOperateLog } from './operate-log/operate-log.decorator'
 
-export function WalnutAdminDecoratorDelete(options: IWalnutAdminCrudOptions, field: string = WalnutAdminConstAppConfig.deleteField) {
+export function WalnutAdminDecoratorDelete(
+  options: IWalnutAdminCrudOptions,
+  field: string = WalnutAdminConstAppConfig.deleteField,
+) {
   const { operateLog, swagger } = options
 
   const { title, needOperateLog = true } = operateLog

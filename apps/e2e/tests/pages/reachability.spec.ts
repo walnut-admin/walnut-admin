@@ -6,15 +6,17 @@
  * 之前的 E2E 只在浏览器里真正断言过 `/home` 与 `/system/device`，其余页面（含 `/me` 之外的
  * 所有 system / app 模块）的 DOM 从未被打开过。admin 的路由是**库里的菜单**经
  * `buildRoutes()` 在运行期把 `component` 字段解析成 `import.meta.glob` 里的异步组件 ——
- * 「菜单指向不存在的组件」没有任何静态校验，只有真实导航能证伪（已有一例真漂移：
- * `/demo/table/base` → `demo/table/baseTable`，见文件末尾的 fixme）。
+ * 「菜单指向不存在的组件」没有任何静态校验，只有真实导航能证伪（历史真漂移一例：
+ * `/demo/table/base` → `demo/table/baseTable`；2026-11-28 已按废弃从 seed 删除，文件末尾
+ * 留了一条反向断言防止它被加回来）。
  *
  * 每页的断言分三层：
  * 1. **路由可达**：URL 落在菜单拼出的真实 path，没有被 `beforeEach` 的权限兜底踢到
  *    `/missing-permissions`、`/auth` 或 404；
  * 2. **组件挂载**：布局内容容器（`#<route.name>-content`，由 `layout/default/scrollContent.vue`
- *    按当前路由名生成）出现元素子节点 —— 空组件路由只会留下注释节点。这一层也是 fixme 用例
- *    用来钉住「组件解析失败」的判据；
+ *    按当前路由名生成）出现元素子节点 —— 空组件路由只会留下注释节点。这一层也是判断「菜单
+ *    `component` 指向的 `.vue` 不存在」的判据（历史的 `/demo/table/base` fixme 用它复现过
+ *    seed 漂移；该页已按废弃删除，见文件末尾的反向断言）；
  * 3. **首屏主数据**：页面挂载时自己发出的列表 / 树 / 监控请求逐条等 `code === 20000`
  *    （业务错误也是 HTTP 200，所以只认业务码）。纯静态页（home / dashboard）没有主数据请求，
  *    由第 1、2 层兜底；about 的 `/deps`、monitor/server 的 8 个只读面板都按真实端点断言。
@@ -27,8 +29,19 @@
  * app 域 / demo 抽样。一条用例串多页，逐页 `test.step`，失败消息点名页面与缺失的响应。
  */
 import type { Page } from '@playwright/test'
-import { AppRoutes, SystemEndpointRoutes, SystemRoutes, WalnutAdminConstAppResponseCode } from '../../lib/protocol/contract.ts'
-import { captureEnvelopes, expectSidebarRendered, navigateToRoute, waitForEnvelope } from '../../lib/ui.ts'
+import {
+  AppRoutes,
+  SystemEndpointRoutes,
+  SystemRoutes,
+  WalnutAdminConstAppResponseCode,
+} from '../../lib/protocol/contract.ts'
+import {
+  captureEnvelopes,
+  expectSidebarRendered,
+  navigateInApp,
+  navigateToRoute,
+  waitForEnvelope,
+} from '../../lib/ui.ts'
 import { expect, test } from '../fixtures.ts'
 
 const SUCCESS = WalnutAdminConstAppResponseCode.SUCCESS
@@ -58,7 +71,11 @@ type PageCapture = ReturnType<typeof captureEnvelopes>
  * `captured` 是整条用例共用的采集对象，`fromIndex` 只匹配本次导航之后到达的响应 ——
  * 同一 URL 的旧响应（例如启动时的同源请求）不会被误当成本页的证据。
  */
-async function visitPage(page: Page, captured: PageCapture, definition: PageDefinition): Promise<void> {
+async function visitPage(
+  page: Page,
+  captured: PageCapture,
+  definition: PageDefinition,
+): Promise<void> {
   await test.step(definition.path, async () => {
     const fromIndex = captured.entries.length
 
@@ -67,14 +84,14 @@ async function visitPage(page: Page, captured: PageCapture, definition: PageDefi
     // 组件挂载：空组件路由（菜单 component 解析成 undefined）没有元素子节点。
     await expect(
       page.locator(`#${definition.routeName}-content > *`).first(),
-      `${definition.path} 的内容容器 #${definition.routeName}-content 没有挂载任何组件`
-      + '（菜单 component 指向的 .vue 不存在？）',
+      `${definition.path} 的内容容器 #${definition.routeName}-content 没有挂载任何组件` +
+        '（菜单 component 指向的 .vue 不存在？）',
     ).toBeVisible({ timeout: ROUTE_TIMEOUT_MS })
 
     for (const suffix of definition.envelopes ?? []) {
       await waitForEnvelope(
         captured.entries,
-        entry => entry.url.endsWith(suffix) && entry.code === SUCCESS,
+        (entry) => entry.url.endsWith(suffix) && entry.code === SUCCESS,
         ENVELOPE_TIMEOUT_MS,
         fromIndex,
       )
@@ -88,7 +105,9 @@ async function visitPage(page: Page, captured: PageCapture, definition: PageDefi
     }
 
     // 首屏请求期间若权限守卫把页面踢走，URL 断言在这里收口（不只看刚导航完的一瞬）
-    expect(new URL(page.url()).pathname, `${definition.path} 在首屏请求期间被重定向`).toBe(definition.path)
+    expect(new URL(page.url()).pathname, `${definition.path} 在首屏请求期间被重定向`).toBe(
+      definition.path,
+    )
   })
 }
 
@@ -101,15 +120,20 @@ async function openAuthedPage(page: Page): Promise<PageCapture> {
 }
 
 test.describe('全站页面可达链', { tag: '@pages' }, () => {
-  test('静态入口：/home → /dashboard → /about（about 首屏 /deps 20000）', async ({ authedPage }) => {
+  test('静态入口：/home → /dashboard → /about（about 首屏 /deps 20000）', async ({
+    authedPage,
+  }) => {
     const captured = await openAuthedPage(authedPage)
 
     try {
       await visitPage(authedPage, captured, { path: '/home', routeName: 'Homepage' })
       await visitPage(authedPage, captured, { path: '/dashboard', routeName: 'Dashboard' })
-      await visitPage(authedPage, captured, { path: '/about', routeName: 'About', envelopes: [AppRoutes.DEPS] })
-    }
-    finally {
+      await visitPage(authedPage, captured, {
+        path: '/about',
+        routeName: 'About',
+        envelopes: [AppRoutes.DEPS],
+      })
+    } finally {
       captured.stop()
     }
   })
@@ -135,13 +159,14 @@ test.describe('全站页面可达链', { tag: '@pages' }, () => {
         routeName: 'Menu',
         envelopes: [SystemEndpointRoutes.MENU_TREE],
       })
-    }
-    finally {
+    } finally {
       captured.stop()
     }
   })
 
-  test('system 字典与国际化：/system/dict → /system/lang → /system/locale', async ({ authedPage }) => {
+  test('system 字典与国际化：/system/dict → /system/lang → /system/locale', async ({
+    authedPage,
+  }) => {
     const captured = await openAuthedPage(authedPage)
 
     try {
@@ -160,13 +185,14 @@ test.describe('全站页面可达链', { tag: '@pages' }, () => {
         routeName: 'Locale',
         envelopes: [`${SystemRoutes.LOCALE}/list`],
       })
-    }
-    finally {
+    } finally {
       captured.stop()
     }
   })
 
-  test('system 设备与审计：/system/device → /system/deleted → /system/log/auth → /system/log/operate', async ({ authedPage }) => {
+  test('system 设备与审计：/system/device → /system/deleted → /system/log/auth → /system/log/operate', async ({
+    authedPage,
+  }) => {
     const captured = await openAuthedPage(authedPage)
 
     try {
@@ -191,13 +217,14 @@ test.describe('全站页面可达链', { tag: '@pages' }, () => {
         routeName: 'LogOperate',
         envelopes: [`${SystemRoutes.LOG_OPERATE}/list`],
       })
-    }
-    finally {
+    } finally {
       captured.stop()
     }
   })
 
-  test('app 域：/app/setting → /app/logger → /app/monitor/cache → /app/monitor/user → /app/monitor/server', async ({ authedPage }) => {
+  test('app 域：/app/setting → /app/logger → /app/monitor/cache → /app/monitor/user → /app/monitor/server', async ({
+    authedPage,
+  }) => {
     const captured = await openAuthedPage(authedPage)
 
     try {
@@ -236,8 +263,7 @@ test.describe('全站页面可达链', { tag: '@pages' }, () => {
           AppRoutes.MONITOR_SERVER_NETWORK,
         ],
       })
-    }
-    finally {
+    } finally {
       captured.stop()
     }
   })
@@ -246,42 +272,49 @@ test.describe('全站页面可达链', { tag: '@pages' }, () => {
    * demo 抽样（3 页，来自三个不同的 demo 组）：不重复 demo 的组件 showcase，
    * 只证明「菜单 → 组件 → 挂载」这条解析链对演示页同样成立。
    */
-  test('demo 抽样：/demo/table/hook → /demo/form → /demo/vendor/echarts', async ({ authedPage }) => {
+  test('demo 抽样：/demo/table/hook → /demo/form → /demo/vendor/echarts', async ({
+    authedPage,
+  }) => {
     const captured = await openAuthedPage(authedPage)
 
     try {
       await visitPage(authedPage, captured, { path: '/demo/table/hook', routeName: 'UseTableDemo' })
       await visitPage(authedPage, captured, { path: '/demo/form', routeName: 'DemoForm' })
-      await visitPage(authedPage, captured, { path: '/demo/vendor/echarts', routeName: 'EChartsDemo' })
-    }
-    finally {
+      await visitPage(authedPage, captured, {
+        path: '/demo/vendor/echarts',
+        routeName: 'EChartsDemo',
+      })
+    } finally {
       captured.stop()
     }
   })
 
   /**
-   * 已知 seed 漂移（调研报告 §1.1 的「一处真实的数据漂移」）：
+   * 反向断言（2026-11-28）：`/demo/table/base` 已按「功能废弃」从 seed 删除，导航里不应再有它。
    *
-   * - seed 菜单 `/demo/table/base` 的 `component = demo/table/baseTable`；
-   * - `apps/admin/src/views/demo/table/` 下只有 `index.vue` 与 `useTable.vue` ——
-   *   `resolveViewModules()` 返回 `undefined`，路由存在但内容是空的；
-   * - git 历史里从未有过 `baseTable.vue`（`git log --all -S baseTable` 只命中 seed 提交），
-   *   seed 来自上游 Mongo 数据，语义（该指向 `useTable` 还是 `index`）无法从仓库内确定。
+   * 背景：seed 菜单 `/demo/table/base` 的 `component = demo/table/baseTable` 从来没有对应文件
+   * （`views/demo/table/` 只有 `index.vue` / `useTable.vue`，`git log --all -S baseTable`
+   * 只命中 seed 提交），是上游 Mongo 数据带进来的漂移。语义无法从仓库内确定，用户拍板按
+   * 「功能已废弃」处置：删掉 `apps/server/db/seed/sys_menu.json` 的该菜单行（父级 `DemoTable`
+   * 还有 `hook` 子项，父级不空、不级联删），路由因此不再注册。
    *
-   * 处置：不擅自改 seed（那是产品数据）；用 `test.fixme` 留下可执行的复现 —— 别人补上组件
-   * 或修正 seed 后，删掉 `.fixme` 就是一条正常回归。通用判据（内容容器有元素子节点）与
-   * 上面 18 页完全一致。
+   * 这条用例是**防止它被误加回来**的机械闸：从应用内导航到该 path 应落 404（路由未注册），
+   * 而不是挂载一个空组件页。若将来有人把菜单行加回 seed，这条会红（404 变成组件壳），
+   * 届时要么补上真实组件、要么恢复删除。
    */
-  test.fixme('demo/table/base：菜单指向不存在的组件（已知 seed 漂移，待定语义）', async ({ authedPage }) => {
-    const captured = captureEnvelopes(authedPage)
-    await authedPage.goto('/')
-    await expectSidebarRendered(authedPage)
+  test('demo/table/base：废弃菜单已删除 → 应用内导航落 404（防止被误加回来）', async ({
+    authedPage,
+  }) => {
+    const captured = await openAuthedPage(authedPage)
 
-    await navigateToRoute(authedPage, '/demo/table/base', 'BaseTable')
-    await expect(
-      authedPage.locator('#BaseTable-content > *').first(),
-      'demo/table/baseTable 组件不存在：菜单是「空组件路由」',
-    ).toBeVisible({ timeout: ROUTE_TIMEOUT_MS })
-    captured.stop()
+    try {
+      await navigateInApp(authedPage, '/demo/table/base')
+      await expect(
+        authedPage.getByRole('heading', { name: /^404/ }),
+        'demo/table/base 已从 seed 删除，应用内导航应落 404（菜单行被加回来会先出现组件壳）',
+      ).toBeVisible({ timeout: ROUTE_TIMEOUT_MS })
+    } finally {
+      captured.stop()
+    }
   })
 })

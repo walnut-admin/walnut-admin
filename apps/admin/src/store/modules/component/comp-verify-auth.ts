@@ -70,7 +70,6 @@ const useStoreCompVerifyAuthInside = defineStore(StoreKeys.COMP_VERIFY_AUTH, {
 const useStoreCompVerifyAuthOutside = () => useStoreCompVerifyAuthInside(store)
 
 export function useStoreCompVerifyAuth() {
-  if (getCurrentInstance())
-    return useStoreCompVerifyAuthInside()
+  if (getCurrentInstance()) return useStoreCompVerifyAuthInside()
   return useStoreCompVerifyAuthOutside()
 }

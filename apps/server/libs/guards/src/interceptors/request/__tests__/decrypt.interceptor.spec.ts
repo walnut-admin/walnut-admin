@@ -1,7 +1,14 @@
 import type { AppTechCacheRsaService } from '@walnut-server/cache'
 import type { IWalnutAdminKeyStore } from '@walnut-server/rsa'
 import { Buffer } from 'node:buffer'
-import { constants, createCipheriv, generateKeyPairSync, privateDecrypt, publicEncrypt, randomBytes } from 'node:crypto'
+import {
+  constants,
+  createCipheriv,
+  generateKeyPairSync,
+  privateDecrypt,
+  publicEncrypt,
+  randomBytes,
+} from 'node:crypto'
 
 import { SecurityRsaService } from '@walnut-server/rsa'
 import { describe, expect, it, vi } from 'vitest'
@@ -57,13 +64,15 @@ const noopHandler = { handle: () => ({ pipe: () => 'ok' }) } as never
 
 /** 与 admin `encryptRequestValue` 同形的信封（只造形状，内容不必真加密） */
 function fakeEnvelope() {
-  return Buffer.from(JSON.stringify({
-    enc: 'AES_256_GCM',
-    key: Buffer.from('k'.repeat(256)).toString('base64'),
-    iv: Buffer.from('i'.repeat(12)).toString('base64'),
-    ct: Buffer.from('cipher').toString('base64'),
-    tag: Buffer.from('t'.repeat(16)).toString('base64'),
-  })).toString('base64')
+  return Buffer.from(
+    JSON.stringify({
+      enc: 'AES_256_GCM',
+      key: Buffer.from('k'.repeat(256)).toString('base64'),
+      iv: Buffer.from('i'.repeat(12)).toString('base64'),
+      ct: Buffer.from('cipher').toString('base64'),
+      tag: Buffer.from('t'.repeat(16)).toString('base64'),
+    }),
+  ).toString('base64')
 }
 
 describe('拦截器 WalnutAdminInterceptorRequestDecrypt（信封最后一公里）', () => {
@@ -74,12 +83,20 @@ describe('拦截器 WalnutAdminInterceptorRequestDecrypt（信封最后一公里
     expect(WalnutAdminInterceptorRequestDecrypt.isCipherEnvelope(null)).toBe(false)
     expect(WalnutAdminInterceptorRequestDecrypt.isCipherEnvelope(123)).toBe(false)
     // base64(JSON) 但 enc 不对 / 缺 tag
-    expect(WalnutAdminInterceptorRequestDecrypt.isCipherEnvelope(
-      Buffer.from(JSON.stringify({ enc: 'AES_256_CBC', key: 'k', iv: 'i', ct: 'c', tag: 't' })).toString('base64'),
-    )).toBe(false)
-    expect(WalnutAdminInterceptorRequestDecrypt.isCipherEnvelope(
-      Buffer.from(JSON.stringify({ enc: 'AES_256_GCM', key: 'k', iv: 'i', ct: 'c' })).toString('base64'),
-    )).toBe(false)
+    expect(
+      WalnutAdminInterceptorRequestDecrypt.isCipherEnvelope(
+        Buffer.from(
+          JSON.stringify({ enc: 'AES_256_CBC', key: 'k', iv: 'i', ct: 'c', tag: 't' }),
+        ).toString('base64'),
+      ),
+    ).toBe(false)
+    expect(
+      WalnutAdminInterceptorRequestDecrypt.isCipherEnvelope(
+        Buffer.from(JSON.stringify({ enc: 'AES_256_GCM', key: 'k', iv: 'i', ct: 'c' })).toString(
+          'base64',
+        ),
+      ),
+    ).toBe(false)
   })
 
   it('解密后 request.body 被明文替换（@Body()/ValidationPipe 的取值源）', async () => {
@@ -172,32 +189,56 @@ describe('securityRsaService.decryptRequestValueWIthServerRsaPrivKey（wire 互�
     const cipher = createCipheriv('aes-256-gcm', aesKey, iv)
     const ct = Buffer.concat([cipher.update('pin-123456', 'utf8'), cipher.final()])
     const tag = cipher.getAuthTag()
-    const key = publicEncrypt({ key: publicKey, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' }, aesKey)
-    const envelope = Buffer.from(JSON.stringify({
-      enc: 'AES_256_GCM',
-      key: key.toString('base64'),
-      iv: iv.toString('base64'),
-      ct: ct.toString('base64'),
-      tag: tag.toString('base64'),
-    })).toString('base64')
+    const key = publicEncrypt(
+      { key: publicKey, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' },
+      aesKey,
+    )
+    const envelope = Buffer.from(
+      JSON.stringify({
+        enc: 'AES_256_GCM',
+        key: key.toString('base64'),
+        iv: iv.toString('base64'),
+        ct: ct.toString('base64'),
+        tag: tag.toString('base64'),
+      }),
+    ).toString('base64')
 
-    await expect(service.decryptRequestValueWIthServerRsaPrivKey(envelope)).resolves.toBe('pin-123456')
+    await expect(service.decryptRequestValueWIthServerRsaPrivKey(envelope)).resolves.toBe(
+      'pin-123456',
+    )
 
     // 坏输入全部收敛 40011（不是 50000）
     for (const bad of [
       '',
       'not-an-envelope',
       Buffer.from('{"enc":"AES_256_GCM"}').toString('base64'),
-      Buffer.from(JSON.stringify({ enc: 'AES_256_GCM', key: key.toString('base64'), iv: 'AA==', ct: 'AA==', tag: 'AA==' })).toString('base64'),
+      Buffer.from(
+        JSON.stringify({
+          enc: 'AES_256_GCM',
+          key: key.toString('base64'),
+          iv: 'AA==',
+          ct: 'AA==',
+          tag: 'AA==',
+        }),
+      ).toString('base64'),
     ]) {
-      await expect(service.decryptRequestValueWIthServerRsaPrivKey(bad)).rejects.toMatchObject({ response: { errCode: 40011 } })
+      await expect(service.decryptRequestValueWIthServerRsaPrivKey(bad)).rejects.toMatchObject({
+        response: { errCode: 40011 },
+      })
     }
 
     // RSA 私钥缺失同样 40011
     keyStore.getCurrentActiveKey = vi.fn(async () => ({ meta: {} }))
-    await expect(service.decryptRequestValueWIthServerRsaPrivKey(envelope)).rejects.toMatchObject({ response: { errCode: 40011 } })
+    await expect(service.decryptRequestValueWIthServerRsaPrivKey(envelope)).rejects.toMatchObject({
+      response: { errCode: 40011 },
+    })
 
     // 旁证：私钥确实能解（上面的失败不是「整条链路都坏」）
-    expect(privateDecrypt({ key: privateKey, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' }, key)).toHaveLength(32)
+    expect(
+      privateDecrypt(
+        { key: privateKey, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' },
+        key,
+      ),
+    ).toHaveLength(32)
   })
 })

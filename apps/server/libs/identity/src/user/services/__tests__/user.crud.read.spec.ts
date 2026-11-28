@@ -17,10 +17,15 @@ const EM = { marker: 'entity-manager' } as unknown as EntityManager
 describe('userCrudService.read：roles 直出（③）', () => {
   it('roles = roles_list.map(id)，roles_list / roles_count 不动', async () => {
     const readById = vi.fn(async () => ({ id: USER_ID, userName: 'alice' }))
-    const attachPopulatedRoles = vi.fn(async (user: Record<string, unknown>) => Object.assign(user, {
-      roles_list: [{ id: ROLE_A, roleName: 'a' }, { id: ROLE_B, roleName: 'b' }],
-      roles_count: 2,
-    }))
+    const attachPopulatedRoles = vi.fn(async (user: Record<string, unknown>) =>
+      Object.assign(user, {
+        roles_list: [
+          { id: ROLE_A, roleName: 'a' },
+          { id: ROLE_B, roleName: 'b' },
+        ],
+        roles_count: 2,
+      }),
+    )
 
     const service = new SysUserCrudService(
       { readById } as never,
@@ -30,7 +35,7 @@ describe('userCrudService.read：roles 直出（③）', () => {
       {} as never,
     )
 
-    const read = await service.read(USER_ID, EM) as unknown as Record<string, unknown>
+    const read = (await service.read(USER_ID, EM)) as unknown as Record<string, unknown>
 
     expect(readById).toHaveBeenCalledExactlyOnceWith(USER_ID, EM)
     expect(read.roles).toEqual([ROLE_A, ROLE_B])

@@ -9,7 +9,9 @@ import { WalnutAdminGuardAuth } from '@walnut-server/guards'
 import { isObservable, lastValueFrom } from 'rxjs'
 
 @Injectable()
-export class OAuthGitHubGuard extends WalnutAdminGuardAuth(WalnutAdminConstAppAuthStrategy.OAUTH_GITHUB) {
+export class OAuthGitHubGuard extends WalnutAdminGuardAuth(
+  WalnutAdminConstAppAuthStrategy.OAUTH_GITHUB,
+) {
   constructor(private readonly oauthStateService: OAuthStateService) {
     super()
   }

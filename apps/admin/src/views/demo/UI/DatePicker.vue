@@ -16,9 +16,7 @@ const state = reactive<Recordable>({})
 
     <n-list>
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Basic Usage
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Basic Usage </WTitle>
 
         <WDatePicker v-model:value="state.color1" />
       </n-list-item>

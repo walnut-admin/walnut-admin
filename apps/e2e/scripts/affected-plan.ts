@@ -41,10 +41,7 @@ export interface AffectedPlan {
 // 路径）：这里只用它回答「要不要重新封板 + 全量」，`data-key` 用它算树哈希。
 
 /** admin 侧登录 / auth 相关（改这些先跑 smoke）。 */
-const ADMIN_AUTH_PREFIXES = [
-  'apps/admin/src/views/auth',
-  'apps/admin/src/api/auth',
-] as const
+const ADMIN_AUTH_PREFIXES = ['apps/admin/src/views/auth', 'apps/admin/src/api/auth'] as const
 const ADMIN_AUTH_FILES = ['apps/admin/src/api/auth.ts'] as const
 
 /** server 侧设备 / 风控 / 中间件（改这些先跑 risk）。 */
@@ -56,16 +53,10 @@ const RISK_PREFIXES = [
 ] as const
 
 /** admin 页面视图 / 路由（改这些先跑 pages：逐页渲染与导航）。 */
-const PAGES_PREFIXES = [
-  'apps/admin/src/views',
-  'apps/admin/src/router',
-] as const
+const PAGES_PREFIXES = ['apps/admin/src/views', 'apps/admin/src/router'] as const
 
 /** admin socket 客户端与锁屏（改这些先跑 journey：socket / 锁屏旅程）。 */
-const JOURNEY_PREFIXES = [
-  'apps/admin/src/socket',
-  'apps/admin/src/components/App/AppLock',
-] as const
+const JOURNEY_PREFIXES = ['apps/admin/src/socket', 'apps/admin/src/components/App/AppLock'] as const
 
 /** 锁屏状态与 user_lock 管理端 API（文件级规则；auth 面另由 `isAdminAuthPath` 一并覆盖）。 */
 const JOURNEY_FILES = [
@@ -99,20 +90,22 @@ function isAdminAuthPath(path: string): boolean {
   if (ADMIN_AUTH_FILES.includes(path as (typeof ADMIN_AUTH_FILES)[number])) {
     return true
   }
-  if (ADMIN_AUTH_PREFIXES.some(dir => matchesDir(path, dir))) {
+  if (ADMIN_AUTH_PREFIXES.some((dir) => matchesDir(path, dir))) {
     return true
   }
   // store/modules 下的 auth 模块（如 user/user-auth.ts）：目录名带 auth 也算
-  return matchesDir(path, 'apps/admin/src/store/modules')
-    && path.slice('apps/admin/src/store/modules/'.length).toLowerCase().includes('auth')
+  return (
+    matchesDir(path, 'apps/admin/src/store/modules') &&
+    path.slice('apps/admin/src/store/modules/'.length).toLowerCase().includes('auth')
+  )
 }
 
 function isRiskPath(path: string): boolean {
-  return RISK_PREFIXES.some(dir => matchesDir(path, dir))
+  return RISK_PREFIXES.some((dir) => matchesDir(path, dir))
 }
 
 function isAdminPagePath(path: string): boolean {
-  return PAGES_PREFIXES.some(dir => matchesDir(path, dir))
+  return PAGES_PREFIXES.some((dir) => matchesDir(path, dir))
 }
 
 /**
@@ -126,8 +119,10 @@ function isJourneyPath(path: string): boolean {
   if (isAdminAuthPath(path)) {
     return true
   }
-  return JOURNEY_PREFIXES.some(dir => matchesDir(path, dir))
-    || JOURNEY_FILES.includes(path as (typeof JOURNEY_FILES)[number])
+  return (
+    JOURNEY_PREFIXES.some((dir) => matchesDir(path, dir)) ||
+    JOURNEY_FILES.includes(path as (typeof JOURNEY_FILES)[number])
+  )
 }
 
 /**
@@ -136,7 +131,7 @@ function isJourneyPath(path: string): boolean {
  * 判定顺序即优先级：数据 > e2e 自身 > 文档-only > 精确映射 > 未知全量。
  */
 export function classifyAffectedPaths(paths: readonly string[]): AffectedPlan {
-  const changedPaths = [...new Set(paths.map(normalizePath).filter(path => path !== ''))]
+  const changedPaths = [...new Set(paths.map(normalizePath).filter((path) => path !== ''))]
 
   if (changedPaths.length === 0) {
     return {
@@ -170,7 +165,7 @@ export function classifyAffectedPaths(paths: readonly string[]): AffectedPlan {
     }
   }
 
-  const nonDocs = changedPaths.filter(path => !isDocsPath(path))
+  const nonDocs = changedPaths.filter((path) => !isDocsPath(path))
   if (nonDocs.length === 0) {
     return {
       mode: 'skip',
@@ -181,8 +176,10 @@ export function classifyAffectedPaths(paths: readonly string[]): AffectedPlan {
     }
   }
 
-  const unknown = nonDocs.find(path => !isAdminAuthPath(path) && !isRiskPath(path)
-    && !isAdminPagePath(path) && !isJourneyPath(path))
+  const unknown = nonDocs.find(
+    (path) =>
+      !isAdminAuthPath(path) && !isRiskPath(path) && !isAdminPagePath(path) && !isJourneyPath(path),
+  )
   if (unknown !== undefined) {
     return {
       mode: 'all',
@@ -235,7 +232,7 @@ export function describeAffectedPlan(plan: AffectedPlan): string {
   if (plan.mode === 'all') {
     return `全量${plan.rebuild ? ' + 重新封板' : ''}（${plan.reason}）`
   }
-  return `${plan.projects.map(project => `--project=${project}`).join(' ')}（${plan.reason}）`
+  return `${plan.projects.map((project) => `--project=${project}`).join(' ')}（${plan.reason}）`
 }
 
 /**

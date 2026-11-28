@@ -23,7 +23,7 @@ export class AppMailerProcessor extends WalnutAdminCommonBasicProcessor {
 
   // send welcome email
   @Process(WalnutAdminConstAppProcess.EMAIL_WELCOME)
-  async JobSendWelcomeEmail(job: Job<{ toEmail: string, lang: string }>) {
+  async JobSendWelcomeEmail(job: Job<{ toEmail: string; lang: string }>) {
     const { toEmail, lang } = job.data
 
     try {
@@ -40,8 +40,7 @@ export class AppMailerProcessor extends WalnutAdminCommonBasicProcessor {
         },
       })
       this.logger.log(`send welcome email to ${toEmail}`)
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.error(error)
       return false
     }
@@ -51,7 +50,9 @@ export class AppMailerProcessor extends WalnutAdminCommonBasicProcessor {
 
   // send verify code email
   @Process(WalnutAdminConstAppProcess.EMAIL_VERIFY)
-  async JobSendVerifyCodeEmail(job: Job<{ toEmail: string, verifyCode: string, expireSeconds: number, lang: string }>) {
+  async JobSendVerifyCodeEmail(
+    job: Job<{ toEmail: string; verifyCode: string; expireSeconds: number; lang: string }>,
+  ) {
     const { toEmail, verifyCode, expireSeconds, lang } = job.data
 
     try {
@@ -72,8 +73,7 @@ export class AppMailerProcessor extends WalnutAdminCommonBasicProcessor {
         },
       })
       this.logger.log(`send verify code email to ${toEmail}`)
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.error(error)
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.auth.sendVerifyCodeError' })
     }

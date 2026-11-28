@@ -84,16 +84,18 @@ export class SysRoleService {
     // 基类 update 写进 ALS 快照，menus/deptIds 在 junction —— 必须在写腿之前读出，
     // 否则拿到的是替换后的清单。查无此 id 时不读 junction，交给 repo.update 抛
     // DataNotFound（对齐既有路径）。
-    const authorizationBefore = role === null
-      ? null
-      : buildRoleAuthorizationAuditSnapshot(
-          role,
-          await this.roleRepoService.findDeptIdsByRoleId(id, em),
-          await this.roleRepoService.findMenuIdsByRoleId(id, em),
-        )
+    const authorizationBefore =
+      role === null
+        ? null
+        : buildRoleAuthorizationAuditSnapshot(
+            role,
+            await this.roleRepoService.findDeptIdsByRoleId(id, em),
+            await this.roleRepoService.findMenuIdsByRoleId(id, em),
+          )
 
-    const permissionsAffected = dto.menus !== undefined
-      || (dto.status !== undefined && role !== null && dto.status !== role.status)
+    const permissionsAffected =
+      dto.menus !== undefined ||
+      (dto.status !== undefined && role !== null && dto.status !== role.status)
 
     // 数据权限：dataScope 或 status（停用角色不参与 scope 解析）变化都会
     // 改变成员的行级可见面 —— 与权限缓存同一反查腿失效 `AUTH:DATA_SCOPE:<userId>`。
@@ -101,17 +103,19 @@ export class SysRoleService {
     // 二期批 2：`sys_role_dept`（CUSTOM 部门清单）整组替换同样是数据权限输入 ——
     // 只在「当前是 CUSTOM」或「本次改成 CUSTOM」时影响执行语义；清单变更也只影响该角色
     // 成员的描述符（成员反查腿同 dataScope 失效）。
-    const dataScopeAffected = (dto.dataScope !== undefined && role !== null && dto.dataScope !== role.dataScope)
-      || (dto.status !== undefined && role !== null && dto.status !== role.status)
+    const dataScopeAffected =
+      (dto.dataScope !== undefined && role !== null && dto.dataScope !== role.dataScope) ||
+      (dto.status !== undefined && role !== null && dto.status !== role.status)
 
-    const deptScopeAffected = dto.deptIds !== undefined && (
-      role?.dataScope === WalnutAdminConstDataScope.CUSTOM
-      || dto.dataScope === WalnutAdminConstDataScope.CUSTOM
-    )
+    const deptScopeAffected =
+      dto.deptIds !== undefined &&
+      (role?.dataScope === WalnutAdminConstDataScope.CUSTOM ||
+        dto.dataScope === WalnutAdminConstDataScope.CUSTOM)
 
-    const affectedUserIds = permissionsAffected || dataScopeAffected || deptScopeAffected
-      ? await this.roleRepoService.findUserIdsByRoleId(id, em)
-      : []
+    const affectedUserIds =
+      permissionsAffected || dataScopeAffected || deptScopeAffected
+        ? await this.roleRepoService.findUserIdsByRoleId(id, em)
+        : []
 
     // 真 PATCH（2026-11 F2）：preserveAbsent 让未提供的键保持 undefined，这里再滤掉
     // —— 未给列 / junction 不动；显式 null 仍是有意的清空。
@@ -174,7 +178,10 @@ export class SysRoleService {
       return
     }
 
-    const merge = (key: 'snapshotBefore' | 'snapshotAfter', audit: IRoleAuthorizationAuditSnapshot) => {
+    const merge = (
+      key: 'snapshotBefore' | 'snapshotAfter',
+      audit: IRoleAuthorizationAuditSnapshot,
+    ) => {
       const existing = this.alsRequestService.get(key) ?? {}
       this.alsRequestService.set(key, Object.assign({}, existing, audit))
     }

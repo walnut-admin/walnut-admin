@@ -28,8 +28,7 @@ export interface ObjectToPathsOptions {
  * @description lodash `isPlainObject` 的等价实现（覆盖 JSON 数据与 `Object.create(null)`）。
  */
 function isPlainObject(value: unknown): value is PathRecord {
-  if (value === null || typeof value !== 'object')
-    return false
+  if (value === null || typeof value !== 'object') return false
 
   const proto = Object.getPrototypeOf(value)
   return proto === null || proto === Object.prototype
@@ -43,7 +42,7 @@ export function objectToPaths<T>(
   obj: T,
   options: ObjectToPathsOptions | string[] = {},
 ): PathRecord {
-  const ignoreKeys = Array.isArray(options) ? options : options.ignoreKeys ?? []
+  const ignoreKeys = Array.isArray(options) ? options : (options.ignoreKeys ?? [])
   const result: PathRecord = {}
 
   function process(value: unknown, path: string) {
@@ -59,13 +58,11 @@ export function objectToPaths<T>(
       for (const key of Object.keys(value)) {
         process(value[key], path ? `${path}.${key}` : key)
       }
-    }
-    else if (Array.isArray(value)) {
+    } else if (Array.isArray(value)) {
       for (let i = 0; i < value.length; i++) {
         process(value[i], path ? `${path}[${i}]` : `[${i}]`)
       }
-    }
-    else {
+    } else {
       result[path] = value
     }
   }
@@ -79,26 +76,28 @@ export function objectToPaths<T>(
 const reIsPlainProp = /^\w*$/
 const reIsDeepProp = /\.|\[(?:[^[\]]*|(["'])(?:(?!\1)[^\\]|\\.)*?\1)\]/
 // 与 lodash 同款（MIT）：处理 `a.b`、`a[0].b`、`a["b"]`、`a[b]` 等形态
-const rePropName = /[^.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\\]|\\.)*?)\2)\]|(?=(?:\.|\[\])(?:\.|\[\]|$))/g
+const rePropName =
+  /[^.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\\]|\\.)*?)\2)\]|(?=(?:\.|\[\])(?:\.|\[\]|$))/g
 const reEscapeChar = /\\(\\)?/g
 const reIsUint = /^(?:0|[1-9]\d*)$/
 const MAX_SAFE_INTEGER = 9007199254740991
 
 function isIndex(value: unknown): boolean {
-  return typeof value !== 'symbol'
-    && reIsUint.test(String(value))
-    && Number(value) >= 0
-    && Number(value) < MAX_SAFE_INTEGER
+  return (
+    typeof value !== 'symbol' &&
+    reIsUint.test(String(value)) &&
+    Number(value) >= 0 &&
+    Number(value) < MAX_SAFE_INTEGER
+  )
 }
 
 function stringToPath(path: string): string[] {
   const result: string[] = []
 
-  if (path.charCodeAt(0) === 46 /* . */)
-    result.push('')
+  if (path.charCodeAt(0) === 46 /* . */) result.push('')
 
   path.replace(rePropName, (match: string, number: string, quote: string, subString: string) => {
-    result.push(quote ? subString.replace(reEscapeChar, '$1') : (number || match))
+    result.push(quote ? subString.replace(reEscapeChar, '$1') : number || match)
     return match
   })
 
@@ -129,8 +128,7 @@ export function pathsToObject<T extends object, R extends PathRecord = T>(pathsO
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i]
 
-      if (key === '__proto__' || key === 'constructor' || key === 'prototype')
-        break
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') break
 
       if (i === lastIndex) {
         nested[key] = value
@@ -138,7 +136,7 @@ export function pathsToObject<T extends object, R extends PathRecord = T>(pathsO
       }
 
       const current = nested[key]
-      const next = pathsOfValue(current) ? current : (isIndex(keys[i + 1]) ? [] : {})
+      const next = pathsOfValue(current) ? current : isIndex(keys[i + 1]) ? [] : {}
 
       nested[key] = next
       nested = next

@@ -9,7 +9,11 @@ import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { fireAndForget } from '@walnut-server/utils/fire-and-forget'
 import { Recordable } from 'easy-fns-ts'
 import { isNil } from 'lodash'
-import { isWalnutAdminRiskFailClose, resolveWalnutAdminRiskSensitivity, walnutAdminRiskRouteKey } from './risk.sensitivity'
+import {
+  isWalnutAdminRiskFailClose,
+  resolveWalnutAdminRiskSensitivity,
+  walnutAdminRiskRouteKey,
+} from './risk.sensitivity'
 
 /**
  * Risk Guard - Risk assessment (supports both pre and post authentication)
@@ -46,7 +50,7 @@ export class WalnutAdminGuardRisk implements CanActivate {
   constructor(
     private readonly riskService: SecurityRiskService,
     private readonly rateService: SecurityRiskRateService,
-  ) { }
+  ) {}
 
   /**
    * 风控不可用时的收口（批次 8 / B2）—— 分级：敏感端点 fail-close，其余 fail-open + 留痕。
@@ -54,17 +58,24 @@ export class WalnutAdminGuardRisk implements CanActivate {
    * 调用点只有三处：pre-auth 无 deviceId、post-auth 无 deviceId、评估抛未知异常。
    * 返 true 的语义是「放行但已经留痕」，调用方直接 return 它。
    */
-  private degradeOrReject(request: IWalnutAdminExpressRequest, reason: WalnutAdminRiskDegradedReason): true {
+  private degradeOrReject(
+    request: IWalnutAdminExpressRequest,
+    reason: WalnutAdminRiskDegradedReason,
+  ): true {
     if (isWalnutAdminRiskFailClose(request.method, request.path)) {
       const routeKey = walnutAdminRiskRouteKey(request.method, request.path)
       const matched = resolveWalnutAdminRiskSensitivity(request.method, request.path)
-      this.logger.error(`Risk unavailable on fail-close endpoint (${routeKey}): ${reason} — ${matched?.reason ?? 'unclassified'}`)
+      this.logger.error(
+        `Risk unavailable on fail-close endpoint (${routeKey}): ${reason} — ${matched?.reason ?? 'unclassified'}`,
+      )
       throw new WalnutAdminExceptionRiskUnavailable(`${reason} @ ${routeKey}`)
     }
 
     // fail-open + 留痕：request.riskDegraded 由成功拦截器透出为 meta.riskDegraded
     request.riskDegraded = reason
-    this.logger.warn(`Risk unavailable, degraded to fail-open (${walnutAdminRiskRouteKey(request.method, request.path)}): ${reason}`)
+    this.logger.warn(
+      `Risk unavailable, degraded to fail-open (${walnutAdminRiskRouteKey(request.method, request.path)}): ${reason}`,
+    )
 
     return true
   }
@@ -78,7 +89,10 @@ export class WalnutAdminGuardRisk implements CanActivate {
       const ip = request.realIp
       // TODO identifier
       const reqBody = request.body as Recordable
-      const identifier = reqBody?.userName as string || reqBody?.emailAddress as string || reqBody?.phoneNumber as string
+      const identifier =
+        (reqBody?.userName as string) ||
+        (reqBody?.emailAddress as string) ||
+        (reqBody?.phoneNumber as string)
 
       const startTime = AppDayjs().valueOf()
 
@@ -92,10 +106,13 @@ export class WalnutAdminGuardRisk implements CanActivate {
         // rate collect
         if (!request._riskPreAuthCollected) {
           this.logger.debug('[Rate Collect] Pre-Auth - First time')
-          fireAndForget(this.rateService.collectPreAuth(request.path, ip, deviceId), this.logger, 'risk rate collect (pre-auth)')
+          fireAndForget(
+            this.rateService.collectPreAuth(request.path, ip, deviceId),
+            this.logger,
+            'risk rate collect (pre-auth)',
+          )
           request._riskPreAuthCollected = true // 标记已执行
-        }
-        else {
+        } else {
           this.logger.debug('[Rate Skip] Pre-Auth - Already collected')
         }
 
@@ -124,8 +141,8 @@ export class WalnutAdminGuardRisk implements CanActivate {
         // （shouldChallenge → 40116/40117），本 guard 不再自行拒绝请求。
 
         this.logger.debug(
-          `Pre Auth risk evaluation completed - Score: ${comprehensive.overallScore}, `
-          + `Level: ${comprehensive.overallLevel}, ShouldChallenge: ${comprehensive.recommendation.shouldChallenge}`,
+          `Pre Auth risk evaluation completed - Score: ${comprehensive.overallScore}, ` +
+            `Level: ${comprehensive.overallLevel}, ShouldChallenge: ${comprehensive.recommendation.shouldChallenge}`,
         )
 
         return true
@@ -139,10 +156,13 @@ export class WalnutAdminGuardRisk implements CanActivate {
 
       if (!request._riskPostAuthCollected) {
         this.logger.debug('[Rate Collect] Post-Auth')
-        fireAndForget(this.rateService.collectPostAuth(request.path, userId), this.logger, 'risk rate collect (post-auth)')
+        fireAndForget(
+          this.rateService.collectPostAuth(request.path, userId),
+          this.logger,
+          'risk rate collect (post-auth)',
+        )
         request._riskPostAuthCollected = true // 标记已执行
-      }
-      else {
+      } else {
         this.logger.debug('[Rate Skip] Post-Auth - Already collected')
       }
 
@@ -161,7 +181,12 @@ export class WalnutAdminGuardRisk implements CanActivate {
       }
 
       // 合并 Pre Auth + Post Auth，生成综合风险决策
-      const comprehensive = await this.riskService.evaluateComprehensivePostAuth({ preAuth, userId, deviceId, ip })
+      const comprehensive = await this.riskService.evaluateComprehensivePostAuth({
+        preAuth,
+        userId,
+        deviceId,
+        ip,
+      })
 
       // 更新 request.risk（合并结果）
       request.risk = {
@@ -173,13 +198,12 @@ export class WalnutAdminGuardRisk implements CanActivate {
       // P1-13：同 Pre Auth —— 风险只由 CAP guard 升级验证，不做阻塞
 
       this.logger.debug(
-        `Post Auth risk evaluation completed - Score: ${comprehensive.overallScore}, `
-        + `Level: ${comprehensive.overallLevel}, ShouldChallenge: ${comprehensive.recommendation.shouldChallenge}`,
+        `Post Auth risk evaluation completed - Score: ${comprehensive.overallScore}, ` +
+          `Level: ${comprehensive.overallLevel}, ShouldChallenge: ${comprehensive.recommendation.shouldChallenge}`,
       )
 
       return true
-    }
-    catch (error) {
+    } catch (error) {
       // P1-13：受控 HTTP 异常（如未来接入的 RiskTooHigh 40666）必须放行到全局异常
       // 过滤器，不能被「优雅降级」吞成 20000；未知异常仍按降级放行。
       if (error instanceof HttpException) {

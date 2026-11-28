@@ -15,9 +15,7 @@ defineOptions({
         Wrap by string."
       />
 
-      <WMessage
-        :msg="['This is a help message.', 'Wrap by array.']"
-      />
+      <WMessage :msg="['This is a help message.', 'Wrap by array.']" />
 
       <WMessage msg="Change Icon" icon="ant-design:home-outlined" />
 

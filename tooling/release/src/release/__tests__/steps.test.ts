@@ -32,8 +32,7 @@ describe('releaseBatteryArgvs —— 会跑的那几行', () => {
     for (const argv of argvs) {
       expect(Array.isArray(argv)).toBe(true)
       expect(argv.length).toBeGreaterThan(0)
-      for (const token of argv)
-        expect(token.length).toBeGreaterThan(0)
+      for (const token of argv) expect(token.length).toBeGreaterThan(0)
     }
   })
 
@@ -44,6 +43,8 @@ describe('releaseBatteryArgvs —— 会跑的那几行', () => {
       ['madge:check'],
       ['exec', 'turbo', 'run', 'lint'],
       ['exec', 'turbo', 'run', 'lint:root'],
+      ['lint:oxlint'],
+      ['format:check'],
       ['exec', 'turbo', 'run', 'types:check'],
       ['types:check:root'],
       ['exec', 'turbo', 'run', 'test'],
@@ -79,7 +80,7 @@ describe('releaseBatteryArgvs —— 会跑的那几行', () => {
     // 那条理由当时成立 —— 但根 `turbo.json` 现在**定义了** `//#lint:root`（带精确 inputs，
     // 就是根脚本那三个 glob），`turbo run lint lint:root` 实测 16 个任务、正常跑通。
     // 走 turbo 才有缓存：冷跑 3.8s → 热跑 0.1s（以前每次发版都真跑）。
-    const hits = argvs.filter(a => a.join(' ').includes('lint:root'))
+    const hits = argvs.filter((a) => a.join(' ').includes('lint:root'))
     expect(hits, '根级 lint 在电池里只能出现一次').toHaveLength(1)
   })
 
@@ -104,8 +105,7 @@ describe('电池计数与 id 集合', () => {
   it('id 无重复且都非空', () => {
     const ids = releaseBatteryIds()
     expect(new Set(ids).size).toBe(ids.length)
-    for (const id of ids)
-      expect(id.length).toBeGreaterThan(0)
+    for (const id of ids) expect(id.length).toBeGreaterThan(0)
   })
 
   // 暂缓的**只能是**「本地跑不了 / 要分钟级」的那几条，且每条都要写清理由（不是静默少跑）。
@@ -113,9 +113,8 @@ describe('电池计数与 id 集合', () => {
   // 它扫的就是 `apps/admin/dist`，本地没构建时它只会报「前置条件未满足」。
   it('被暂缓的只有 build 与 dist-secrets 两行，且暂缓理由都写在表里', () => {
     const skips = releaseBatterySkips()
-    expect(skips.map(item => item.id)).toEqual(['build', 'dist-secrets'])
-    for (const item of skips)
-      expect(item.skip.length, `${item.id} 没写暂缓理由`).toBeGreaterThan(0)
+    expect(skips.map((item) => item.id)).toEqual(['build', 'dist-secrets'])
+    for (const item of skips) expect(item.skip.length, `${item.id} 没写暂缓理由`).toBeGreaterThan(0)
     expect(releaseBatterySkippedCount()).toBe(2)
   })
 })
@@ -179,7 +178,7 @@ describe('releaseBatteryTally —— 没跑的段不许进「真跑通过」', (
 
   it('表内 skip 暂缓项不参与扣减（它本来就不在 releaseBatteryCount 里，扣两次会把账算负）', () => {
     const total = releaseBatteryCount()
-    const deferredIds = releaseBatterySkips().map(item => item.id)
+    const deferredIds = releaseBatterySkips().map((item) => item.id)
     expect(deferredIds.length).toBeGreaterThan(0)
 
     const tally = releaseBatteryTally(deferredIds, [])
@@ -196,7 +195,7 @@ describe('releaseBatteryTally —— 没跑的段不许进「真跑通过」', (
  * `--skip-gates=lint` 走完整条循环，断言两件事：lint 的 argv 真的没被执行 + 汇总把它列进未验证。
  */
 describe('runReleaseBattery —— 跳过段的记账接线', () => {
-  function fakeUi(): { ui: ReleaseUi, logs: string[], warns: string[] } {
+  function fakeUi(): { ui: ReleaseUi; logs: string[]; warns: string[] } {
     const logs: string[] = []
     const warns: string[] = []
     const ui = {
@@ -229,7 +228,7 @@ describe('runReleaseBattery —— 跳过段的记账接线', () => {
 
     const total = releaseBatteryCount()
     // ① 被跳过的段**没有真的跑**（argv 里那个裸 'lint' 令牌只属于 lint 这一行）
-    expect(ran.some(argv => argv.includes('lint'))).toBe(false)
+    expect(ran.some((argv) => argv.includes('lint'))).toBe(false)
     expect(ran).toHaveLength(total - 1)
     // ② 汇总按「真跑通过 / 跳过（未验证）」分开报，且**点名** lint
     expect(logs.join('\n')).toContain(`${total - 1} 条真跑通过`)
@@ -248,20 +247,26 @@ describe('顺序不变式：门禁必须在打 tag **之前**', () => {
   it('源码里 `runReleaseGates()` 的调用早于打 tag 的 argv 字面量', () => {
     const source = readFileSync(SOURCE_PATH, 'utf8')
     const gateIndex = source.indexOf('await runReleaseGates(')
-    const tagArgvIndex = source.indexOf('\'tag\',')
+    const tagArgvIndex = source.indexOf("'tag',")
 
-    expect(gateIndex, '`await runReleaseGates(` 必须出现在 steps.ts 里（Step 5 的门禁调用）').toBeGreaterThan(-1)
-    expect(tagArgvIndex, '`\'tag\',` 这个 argv 字面量必须出现在 steps.ts 里（创建标签的命令）').toBeGreaterThan(-1)
+    expect(
+      gateIndex,
+      '`await runReleaseGates(` 必须出现在 steps.ts 里（Step 5 的门禁调用）',
+    ).toBeGreaterThan(-1)
+    expect(
+      tagArgvIndex,
+      "`'tag',` 这个 argv 字面量必须出现在 steps.ts 里（创建标签的命令）",
+    ).toBeGreaterThan(-1)
     expect(
       gateIndex < tagArgvIndex,
-      `门禁必须在打 tag 之前跑：runReleaseGates() 在第 ${gateIndex} 个字符处，tag argv 在第 ${tagArgvIndex} 个字符处。`
-      + '顺序反了会让「本地全绿、发版成功、CI 的 verify 却红」变成可达 —— 那时远端已经有一个指向坏提交的 tag。',
+      `门禁必须在打 tag 之前跑：runReleaseGates() 在第 ${gateIndex} 个字符处，tag argv 在第 ${tagArgvIndex} 个字符处。` +
+        '顺序反了会让「本地全绿、发版成功、CI 的 verify 却红」变成可达 —— 那时远端已经有一个指向坏提交的 tag。',
     ).toBe(true)
   })
 
   it('推送用的是 --atomic（分支与 tag 要么一起成功、要么都不动）', () => {
     const source = readFileSync(SOURCE_PATH, 'utf8')
-    expect(source).toContain('\'--atomic\'')
+    expect(source).toContain("'--atomic'")
   })
 })
 
@@ -286,15 +291,16 @@ describe('release.md 的电池表与 RELEASE_BATTERY 对账', () => {
   const DOC_PATH = path.join(REPO_ROOT, 'apps/docs/src/zh-CN/content/monorepo/release.md')
 
   /** 取文档里「| id | 内容 |」那张表，返回 `{ id, desc, text }`（保持文档顺序） */
-  function docTableRows(): { id: string, desc: string, text: string }[] {
+  function docTableRows(): { id: string; desc: string; text: string }[] {
     const lines = readFileSync(DOC_PATH, 'utf8').split('\n')
-    const header = lines.findIndex(line => /^\|\s*id\s*\|\s*内容\s*\|/.test(line))
-    expect(header, `${DOC_PATH} 里找不到「| id | 内容 |」那张表（表头被改过？）`).toBeGreaterThan(-1)
+    const header = lines.findIndex((line) => /^\|\s*id\s*\|\s*内容\s*\|/.test(line))
+    expect(header, `${DOC_PATH} 里找不到「| id | 内容 |」那张表（表头被改过？）`).toBeGreaterThan(
+      -1,
+    )
 
-    const rows: { id: string, desc: string, text: string }[] = []
+    const rows: { id: string; desc: string; text: string }[] = []
     for (const line of lines.slice(header + 2)) {
-      if (!line.startsWith('|'))
-        break
+      if (!line.startsWith('|')) break
       const matched = /^\|\s*`([^`]+)`\s*\|(.*)\|\s*$/.exec(line)
       expect(matched, `表里有一行的第一格不是 \`id\`：${line.slice(0, 40)}…`).not.toBeNull()
       rows.push({ id: matched![1]!, desc: matched![2]!.trim(), text: line })
@@ -303,7 +309,7 @@ describe('release.md 的电池表与 RELEASE_BATTERY 对账', () => {
   }
 
   it('id 与顺序逐字等于 RELEASE_BATTERY（少一条 / 多一条 / 换位置都会红）', () => {
-    expect(docTableRows().map(row => row.id)).toEqual(releaseBatteryIds())
+    expect(docTableRows().map((row) => row.id)).toEqual(releaseBatteryIds())
   })
 
   it('每一行都写了「这条在防什么」，且指向真实命令 / 文件（用反引号引出来）', () => {
@@ -315,13 +321,12 @@ describe('release.md 的电池表与 RELEASE_BATTERY 对账', () => {
   })
 
   it('暂缓的条目在文档里也带 ⏭️ 标记（免得读者以为它会跑）', () => {
-    const skipped = new Set(releaseBatterySkips().map(item => item.id))
+    const skipped = new Set(releaseBatterySkips().map((item) => item.id))
     expect(skipped.size).toBeGreaterThan(0)
     for (const row of docTableRows()) {
       if (skipped.has(row.id))
         expect(row.text, `${row.id} 在电池里是暂缓的，文档那行必须带 ⏭️`).toContain('⏭️')
-      else
-        expect(row.text, `${row.id} 在电池里会跑，文档那行不该带 ⏭️`).not.toContain('⏭️')
+      else expect(row.text, `${row.id} 在电池里会跑，文档那行不该带 ⏭️`).not.toContain('⏭️')
     }
   })
 })
@@ -339,7 +344,7 @@ describe('推送提示 —— 段数写死会腐烂', () => {
   const source = readFileSync(SOURCE_PATH, 'utf8')
 
   it('提到 prepush 的行里没有写死的段数（段数以 prepush.ts 的表为准）', () => {
-    const hintLines = source.split('\n').filter(line => line.includes('prepush'))
+    const hintLines = source.split('\n').filter((line) => line.includes('prepush'))
     expect(hintLines.length, '负对照：一句都没提到 prepush 时，这条断言等于没写').toBeGreaterThan(0)
     for (const line of hintLines)
       expect(line, `这句里写死了段数：${line.trim()}`).not.toMatch(/\d+\s*段/)

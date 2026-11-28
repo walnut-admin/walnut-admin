@@ -11,9 +11,16 @@ import { Reflector } from '@nestjs/core'
 
 import { AppTechCacheDeviceService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
-import { WalnutAdminConstCookieKeys, WalnutAdminConstDeviceCookieMaxAge } from '@walnut-server/const/app/cookie'
+import {
+  WalnutAdminConstCookieKeys,
+  WalnutAdminConstDeviceCookieMaxAge,
+} from '@walnut-server/const/app/cookie'
 import { AppTechCookieService, getWalnutAdminCookieString } from '@walnut-server/cookie'
-import { WalnutAdminExceptionDeviceBanned, WalnutAdminExceptionDeviceLocked, WalnutAdminExceptionDeviceNotAcceptable } from '@walnut-server/exceptions/base/406'
+import {
+  WalnutAdminExceptionDeviceBanned,
+  WalnutAdminExceptionDeviceLocked,
+  WalnutAdminExceptionDeviceNotAcceptable,
+} from '@walnut-server/exceptions/base/406'
 import { WALNUT_ADMIN_LOCK } from '@walnut-server/lock'
 import { isValidDeviceId, SysDeviceRepositoryService } from '@walnut-server/system'
 
@@ -33,7 +40,7 @@ export class WalnutAdminGuardDevice implements CanActivate {
     private readonly deviceRepo: SysDeviceRepositoryService,
     @Inject(WALNUT_ADMIN_LOCK) private readonly lockService: WalnutLockService,
     private readonly cookieService: AppTechCookieService,
-  ) { }
+  ) {}
 
   /**
    * P0-1（设备 cookie 死锁）后端纵深：**DEVICE_ID cookie 滑动续期**。
@@ -94,7 +101,9 @@ export class WalnutAdminGuardDevice implements CanActivate {
     const cookieDeviceId = getWalnutAdminCookieString(request, WalnutAdminConstCookieKeys.DEVICE_ID)
 
     if (!isValidDeviceId(cookieDeviceId)) {
-      this.logger.warn(`Device ID missing or malformed in cookies: ${String(cookieDeviceId).slice(0, 12)}`)
+      this.logger.warn(
+        `Device ID missing or malformed in cookies: ${String(cookieDeviceId).slice(0, 12)}`,
+      )
       throw new WalnutAdminExceptionDeviceNotAcceptable()
     }
 
@@ -134,17 +143,13 @@ export class WalnutAdminGuardDevice implements CanActivate {
     if (deviceState.currentIp && request.realIp && deviceState.currentIp !== request.realIp) {
       this.logger.warn(`Device IP changed: ${deviceId}`)
       const lockKey = `${WalnutAdminConstAppCacheKeys.APP_MURLOCK}:DEVICE:IP_CHANGE:${deviceId}`
-      await this.lockService.runWithLock(
-        lockKey,
-        200,
-        async () => {
-          const latest = await this.cacheDeviceService.getSysDeviceCache(deviceId)
+      await this.lockService.runWithLock(lockKey, 200, async () => {
+        const latest = await this.cacheDeviceService.getSysDeviceCache(deviceId)
 
-          if (latest?.currentIp !== request.realIp) {
-            await this.deviceRepo.updateIpAndLocation(deviceId, request.realIp)
-          }
-        },
-      )
+        if (latest?.currentIp !== request.realIp) {
+          await this.deviceRepo.updateIpAndLocation(deviceId, request.realIp)
+        }
+      })
     }
 
     if (deviceState.banned) {

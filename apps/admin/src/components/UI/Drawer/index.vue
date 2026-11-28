@@ -7,9 +7,15 @@ defineOptions({
   name: 'WCompUIDrawer',
 })
 
-const { closable = false, loading = false, defaultButton = true, showInContent = false, beforeClose } = defineProps<ICompUIDrawerProps>()
+const {
+  closable = false,
+  loading = false,
+  defaultButton = true,
+  showInContent = false,
+  beforeClose,
+} = defineProps<ICompUIDrawerProps>()
 
-const emits = defineEmits<{ yes: [], no: [] }>()
+const emits = defineEmits<{ yes: []; no: [] }>()
 
 const show = defineModel<boolean>('show', { required: true, default: false })
 
@@ -26,27 +32,25 @@ function onYes() {
 async function onUpdateShow(v: boolean) {
   if (beforeClose) {
     const res = await beforeClose()
-    if (!res)
-      return
+    if (!res) return
 
     show.value = v
-    if (!v)
-      onNo()
-  }
-  else {
+    if (!v) onNo()
+  } else {
     show.value = v
-    if (!v)
-      onNo()
+    if (!v) onNo()
   }
 }
 
-const getShowInContentProps = computed(() => (showInContent
-  ? {
-      to: `#${String(currentRoute.value.name)}-content`,
-      trapFocus: false,
-      blockScroll: false,
-    }
-  : {}))
+const getShowInContentProps = computed(() =>
+  showInContent
+    ? {
+        to: `#${String(currentRoute.value.name)}-content`,
+        trapFocus: false,
+        blockScroll: false,
+      }
+    : {},
+)
 </script>
 
 <template>
@@ -73,11 +77,7 @@ const getShowInContentProps = computed(() => (showInContent
       <template #footer>
         <slot v-if="$slots.footer" name="footer" />
         <n-space v-else-if="defaultButton" size="small">
-          <n-button
-            size="small"
-            :disabled="loading"
-            @click="onUpdateShow(false)"
-          >
+          <n-button size="small" :disabled="loading" @click="onUpdateShow(false)">
             {{ $t('app.base.no') }}
           </n-button>
 

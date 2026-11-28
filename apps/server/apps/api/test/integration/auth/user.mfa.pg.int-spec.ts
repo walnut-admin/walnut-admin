@@ -3,7 +3,12 @@ import type { DataSource } from 'typeorm'
 import { randomUUID } from 'node:crypto'
 
 import { AppTechCryptoService } from '@walnut-server/crypto'
-import { SysUserMfaHelperService, SysUserMfaRepositoryService, SysUserMfaSharedService, SysUserMfaTotpService } from '@walnut-server/identity'
+import {
+  SysUserMfaHelperService,
+  SysUserMfaRepositoryService,
+  SysUserMfaSharedService,
+  SysUserMfaTotpService,
+} from '@walnut-server/identity'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createIntegrationApp, getWalnutPgAdminDataSource } from '../helpers/create-integration-app'
 
@@ -78,15 +83,17 @@ describe('B7b user_mfa (on real PG)', () => {
       status: true,
     })
 
-    await expect(mfaRepo.createMfa({
-      userId,
-      type: 'webauthn',
-      deviceId: 'device-other',
-      name: 'yubikey-b',
-      webauthnCredentialId: credentialId,
-      webauthnCounter: 0,
-      status: true,
-    })).rejects.toMatchObject({ code: '23505' })
+    await expect(
+      mfaRepo.createMfa({
+        userId,
+        type: 'webauthn',
+        deviceId: 'device-other',
+        name: 'yubikey-b',
+        webauthnCredentialId: credentialId,
+        webauthnCounter: 0,
+        status: true,
+      }),
+    ).rejects.toMatchObject({ code: '23505' })
 
     // NULL 凭据 id（totp 行）不进 partial unique，多行并存
     await mfaRepo.createMfa({ userId, type: 'totp', deviceId: 'd1', name: 'totp', status: true })
@@ -211,7 +218,13 @@ describe('B7b user_mfa (on real PG)', () => {
     // ②：先把账号级标志置 true，验证 unbind 会立即回落（不等 cron）
     await pgDataSource.query('UPDATE sys_user SET mfa_setup = true WHERE id = $1', [userId])
 
-    await mfaRepo.createMfa({ userId, type: 'totp', deviceId: 'd-status', name: 'totp', status: true })
+    await mfaRepo.createMfa({
+      userId,
+      type: 'totp',
+      deviceId: 'd-status',
+      name: 'totp',
+      status: true,
+    })
 
     await totpService.updateStatus(userId, false)
     expect(await mfaRepo.findActiveTotpByUserId(userId)).toBeNull()
@@ -219,7 +232,10 @@ describe('B7b user_mfa (on real PG)', () => {
 
     expect(await totpService.unbindTotp(userId)).toBe(true)
     expect(await countMfa(userId)).toBe(0)
-    const rows: Array<{ mfa_setup: boolean }> = await pgDataSource.query('SELECT mfa_setup FROM sys_user WHERE id = $1', [userId])
+    const rows: Array<{ mfa_setup: boolean }> = await pgDataSource.query(
+      'SELECT mfa_setup FROM sys_user WHERE id = $1',
+      [userId],
+    )
     expect(rows[0].mfa_setup, '②：unbind 后账号级 mfa_setup 必须立即为 false').toBe(false)
     await expect(totpService.unbindTotp(userId)).rejects.toThrow()
   })
@@ -228,13 +244,31 @@ describe('B7b user_mfa (on real PG)', () => {
     const userA = await seedUser()
     await seedUser() // userB：无 mfa 行，不进聚合
 
-    await mfaRepo.createMfa({ userId: userA, type: 'totp', deviceId: 's1', name: 't', status: true })
-    await mfaRepo.createMfa({ userId: userA, type: 'webauthn', deviceId: 's2', name: 'w', status: true })
+    await mfaRepo.createMfa({
+      userId: userA,
+      type: 'totp',
+      deviceId: 's1',
+      name: 't',
+      status: true,
+    })
+    await mfaRepo.createMfa({
+      userId: userA,
+      type: 'webauthn',
+      deviceId: 's2',
+      name: 'w',
+      status: true,
+    })
     // 排除项：禁用行不参与计数
-    await mfaRepo.createMfa({ userId: userA, type: 'totp', deviceId: 's3', name: 't-off', status: false })
+    await mfaRepo.createMfa({
+      userId: userA,
+      type: 'totp',
+      deviceId: 's3',
+      name: 't-off',
+      status: false,
+    })
 
     const stats = await mfaRepo.aggregateMfaTypeStats()
-    const statA = stats.find(s => s.userId === userA)
+    const statA = stats.find((s) => s.userId === userA)
     expect(statA).toBeDefined()
     expect(typeof statA!.typeCount).toBe('number')
     // P2-24：类型数而非行数 —— totp + webauthn 两种（设备数 2 恰好同值，另由下一用例
@@ -262,7 +296,7 @@ describe('B7b user_mfa (on real PG)', () => {
     })
 
     const stats = await mfaRepo.aggregateMfaTypeStats()
-    expect(stats.find(s => s.userId === userId)?.typeCount).toBe(1)
+    expect(stats.find((s) => s.userId === userId)?.typeCount).toBe(1)
     expect(await mfaRepo.countEnabledMfaTypesByUserId(userId)).toBe(1)
 
     const mfaShared = app.get(SysUserMfaSharedService)
@@ -294,7 +328,13 @@ describe('B7b user_mfa (on real PG)', () => {
 
   it('随 user 删除 CASCADE（fk_user_mfa_user）', async () => {
     const userId = await seedUser()
-    await mfaRepo.createMfa({ userId, type: 'totp', deviceId: 'd-cascade', name: 't', status: true })
+    await mfaRepo.createMfa({
+      userId,
+      type: 'totp',
+      deviceId: 'd-cascade',
+      name: 't',
+      status: true,
+    })
     expect(await countMfa(userId)).toBe(1)
 
     await pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [userId])

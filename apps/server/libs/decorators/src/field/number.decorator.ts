@@ -5,9 +5,7 @@ import { Expose } from 'class-transformer'
 import { WalnutAdminDecoratorTransformerNumber as WADTN } from '../transformer/base/number.transformer'
 import { WalnutAdminDecoratorValidatorNumber as WADVN } from '../validator/base/number.validator'
 
-export function WalnutAdminDecoratorFieldNumber(
-  options: IWADNumOpt,
-): PropertyDecorator {
+export function WalnutAdminDecoratorFieldNumber(options: IWADNumOpt): PropertyDecorator {
   const decorators = [
     // used for list request payload sort field key
     Expose(),
@@ -22,9 +20,8 @@ export function WalnutAdminDecoratorFieldNumber(
   // 为什么在**外面**选装饰器、而不是往字面量里塞 `required`：`swaggerOptions` 的类型是
   // `ApiPropertyOptions`（联合类型），与它一起 spread 时 `required` 的联合会被摊平，TS 随即按
   // `type: 'object'` 那一支报错（`Type 'NumberConstructor' is not assignable to '"object"'`）。
-  const apiPropertyDecorator = options?.validateOptions?.optional === true
-    ? ApiPropertyOptional
-    : ApiProperty
+  const apiPropertyDecorator =
+    options?.validateOptions?.optional === true ? ApiPropertyOptional : ApiProperty
 
   decorators.unshift(
     apiPropertyDecorator({

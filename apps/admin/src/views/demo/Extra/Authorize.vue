@@ -39,31 +39,25 @@ function onReset() {
           `null` preset
         </WTitle>
 
-        <br>
+        <br />
 
         <WJSON height="70px" :value="{ permission1: p1 }" />
 
-        <br>
+        <br />
 
         <n-text> Below is something you can see </n-text>
-        <br>
+        <br />
         <WAppAuthorize value="system:user:list">
-          <n-text type="primary">
-            This is something you can see
-          </n-text>
+          <n-text type="primary"> This is something you can see </n-text>
         </WAppAuthorize>
 
-        <br>
+        <br />
 
         <n-text> Below is something you can't see </n-text>
-        <n-button text type="info" @click="onToggle(p1)">
-          Toggle
-        </n-button>
-        <br>
+        <n-button text type="info" @click="onToggle(p1)"> Toggle </n-button>
+        <br />
         <WAppAuthorize :value="p1">
-          <n-text type="primary">
-            This is something you can't see
-          </n-text>
+          <n-text type="primary"> This is something you can't see </n-text>
         </WAppAuthorize>
       </n-list-item>
 
@@ -76,24 +70,17 @@ function onReset() {
           `tip` preset
         </WTitle>
 
-        <br>
+        <br />
 
         <WJSON height="70px" :value="{ permission2: p2 }" />
 
-        <br>
+        <br />
 
-        <n-button text type="info" @click="onToggle(p2)">
-          Toggle
-        </n-button>
+        <n-button text type="info" @click="onToggle(p2)"> Toggle </n-button>
 
-        <br>
+        <br />
 
-        <WAppAuthorize
-          :value="p2"
-          preset="tip"
-          preset-width="200px"
-          preset-height="200px"
-        >
+        <WAppAuthorize :value="p2" preset="tip" preset-width="200px" preset-height="200px">
           <div
             :style="{
               height: '200px',
@@ -115,15 +102,13 @@ function onReset() {
           `input-permission-to-confirm` preset
         </WTitle>
 
-        <br>
+        <br />
 
         <WJSON height="70px" :value="{ permission3: p3 }" />
 
-        <br>
+        <br />
 
-        <n-button text type="info" @click="onReset">
-          Reset
-        </n-button>
+        <n-button text type="info" @click="onReset"> Reset </n-button>
 
         <WAppAuthorize
           v-if="p3show"
@@ -139,8 +124,7 @@ function onReset() {
             }"
             class="flex items-center justify-center bg-yellow-100 text-center text-blue-900"
           >
-            this is the content that you won't see if you do not enter the right
-            permission code
+            this is the content that you won't see if you do not enter the right permission code
           </div>
         </WAppAuthorize>
       </n-list-item>

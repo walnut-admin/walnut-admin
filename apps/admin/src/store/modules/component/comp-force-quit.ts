@@ -39,7 +39,6 @@ const useStoreCompForceQuitInside = defineStore(StoreKeys.COMP_FORCE_QUIT, {
 const useStoreCompForceQuitOutside = () => useStoreCompForceQuitInside(store)
 
 export function useStoreCompForceQuit() {
-  if (getCurrentInstance())
-    return useStoreCompForceQuitInside()
+  if (getCurrentInstance()) return useStoreCompForceQuitInside()
   return useStoreCompForceQuitOutside()
 }

@@ -34,7 +34,10 @@ interface IMfaGuardMocks {
   getVerifiedCache: ReturnType<typeof vi.fn>
 }
 
-function createGuard(options: { mfaFree?: boolean } = {}): { guard: WalnutAdminGuardMFA, mocks: IMfaGuardMocks } {
+function createGuard(options: { mfaFree?: boolean } = {}): {
+  guard: WalnutAdminGuardMFA
+  mocks: IMfaGuardMocks
+} {
   const mocks: IMfaGuardMocks = {
     getVerifiedCache: vi.fn(async () => null),
   }
@@ -52,7 +55,7 @@ function createGuard(options: { mfaFree?: boolean } = {}): { guard: WalnutAdminG
   return { guard, mocks }
 }
 
-function createContext(options: { user?: unknown, deviceId?: unknown } = {}): ExecutionContext {
+function createContext(options: { user?: unknown; deviceId?: unknown } = {}): ExecutionContext {
   const signedCookies: Record<string, unknown> = {}
 
   if ('deviceId' in options) {
@@ -74,7 +77,10 @@ function createContext(options: { user?: unknown, deviceId?: unknown } = {}): Ex
 }
 
 async function caught(promise: Promise<unknown>): Promise<unknown> {
-  return promise.then(() => null, (error: unknown) => error)
+  return promise.then(
+    () => null,
+    (error: unknown) => error,
+  )
 }
 
 /** 已登录、开了 MFA、payload 未标记验证过（登录时 isTrusted=false 的真实形态） */
@@ -99,31 +105,41 @@ describe('mfa guard：短路腿（MFAFree / 未登录 / visitor）', () => {
   it('装饰器 MFAFree ⇒ 放行，且一次缓存都不查（P1 先于一切）', async () => {
     const { guard, mocks } = createGuard({ mfaFree: true })
 
-    await expect(guard.canActivate(createContext({ user: UNVERIFIED_USER, deviceId: 'device-1' }))).resolves.toBe(true)
+    await expect(
+      guard.canActivate(createContext({ user: UNVERIFIED_USER, deviceId: 'device-1' })),
+    ).resolves.toBe(true)
     expect(mocks.getVerifiedCache).not.toHaveBeenCalled()
   })
 
   it('无 request.user（JwtOptional 降级为匿名）⇒ 放行，不查缓存（P3）', async () => {
     const { guard, mocks } = createGuard()
 
-    await expect(guard.canActivate(createContext({ user: null, deviceId: 'device-1' }))).resolves.toBe(true)
+    await expect(
+      guard.canActivate(createContext({ user: null, deviceId: 'device-1' })),
+    ).resolves.toBe(true)
     expect(mocks.getVerifiedCache).not.toHaveBeenCalled()
   })
 
   it('switchable + currentRoleName=visitor ⇒ 放行，且不查设备缓存（P4）', async () => {
     const { guard, mocks } = createGuard()
 
-    await expect(guard.canActivate(createContext({ user: VISITOR_USER, deviceId: 'device-1' }))).resolves.toBe(true)
+    await expect(
+      guard.canActivate(createContext({ user: VISITOR_USER, deviceId: 'device-1' })),
+    ).resolves.toBe(true)
     expect(mocks.getVerifiedCache).not.toHaveBeenCalled()
   })
 
   it('反例：combinable 用户 roleNames 含 visitor、currentRoleName=admin ⇒ 不跳过，缓存 miss 仍 40115', async () => {
     const { guard, mocks } = createGuard()
 
-    const error = await caught(guard.canActivate(createContext({
-      user: { ...UNVERIFIED_USER, roleNames: [Role.ADMIN, Role.VISITOR] },
-      deviceId: 'device-1',
-    })))
+    const error = await caught(
+      guard.canActivate(
+        createContext({
+          user: { ...UNVERIFIED_USER, roleNames: [Role.ADMIN, Role.VISITOR] },
+          deviceId: 'device-1',
+        }),
+      ),
+    )
 
     expect(error).toBeInstanceOf(WalnutAdminExceptionMfaVerifyFailed)
     expect(mocks.getVerifiedCache).toHaveBeenCalledTimes(1)
@@ -132,10 +148,18 @@ describe('mfa guard：短路腿（MFAFree / 未登录 / visitor）', () => {
   it('反例：switchable 但 currentRoleName=admin ⇒ 不跳过（P4 要两个条件同时成立）', async () => {
     const { guard, mocks } = createGuard()
 
-    const error = await caught(guard.canActivate(createContext({
-      user: { ...UNVERIFIED_USER, roleMode: WalnutAdminConstRoleMode.SWITCH, currentRoleName: Role.ADMIN },
-      deviceId: 'device-1',
-    })))
+    const error = await caught(
+      guard.canActivate(
+        createContext({
+          user: {
+            ...UNVERIFIED_USER,
+            roleMode: WalnutAdminConstRoleMode.SWITCH,
+            currentRoleName: Role.ADMIN,
+          },
+          deviceId: 'device-1',
+        }),
+      ),
+    )
 
     expect(error).toBeInstanceOf(WalnutAdminExceptionMfaVerifyFailed)
     expect(mocks.getVerifiedCache).toHaveBeenCalledTimes(1)
@@ -146,10 +170,14 @@ describe('mfa guard：mfa_setup 闸门（P5）先于 payload 信任位（P6）',
   it('mfa_setup=false ⇒ 40114 MfaRequired，且不查设备缓存', async () => {
     const { guard, mocks } = createGuard()
 
-    const error = await caught(guard.canActivate(createContext({
-      user: { ...UNVERIFIED_USER, mfaSetup: false },
-      deviceId: 'device-1',
-    })))
+    const error = await caught(
+      guard.canActivate(
+        createContext({
+          user: { ...UNVERIFIED_USER, mfaSetup: false },
+          deviceId: 'device-1',
+        }),
+      ),
+    )
 
     expect(error).toBeInstanceOf(WalnutAdminExceptionMfaRequired)
     expect(error).not.toBeInstanceOf(WalnutAdminExceptionMfaVerifyFailed)
@@ -159,10 +187,14 @@ describe('mfa guard：mfa_setup 闸门（P5）先于 payload 信任位（P6）',
   it('反例：mfa_setup=false + payload mfaVerified=true ⇒ 仍是 40114（信任位绕不过 setup 闸门）', async () => {
     const { guard, mocks } = createGuard()
 
-    const error = await caught(guard.canActivate(createContext({
-      user: { ...UNVERIFIED_USER, mfaSetup: false, mfaVerified: true },
-      deviceId: 'device-1',
-    })))
+    const error = await caught(
+      guard.canActivate(
+        createContext({
+          user: { ...UNVERIFIED_USER, mfaSetup: false, mfaVerified: true },
+          deviceId: 'device-1',
+        }),
+      ),
+    )
 
     expect(error).toBeInstanceOf(WalnutAdminExceptionMfaRequired)
     expect(mocks.getVerifiedCache).not.toHaveBeenCalled()
@@ -174,10 +206,14 @@ describe('mfa guard：已 setup 后的两腿（payload 信任位 / 设备级 ver
     const { guard, mocks } = createGuard()
     mocks.getVerifiedCache.mockResolvedValue(null)
 
-    await expect(guard.canActivate(createContext({
-      user: { ...UNVERIFIED_USER, mfaVerified: true },
-      deviceId: 'device-1',
-    }))).resolves.toBe(true)
+    await expect(
+      guard.canActivate(
+        createContext({
+          user: { ...UNVERIFIED_USER, mfaVerified: true },
+          deviceId: 'device-1',
+        }),
+      ),
+    ).resolves.toBe(true)
 
     expect(mocks.getVerifiedCache).not.toHaveBeenCalled()
   })
@@ -186,7 +222,9 @@ describe('mfa guard：已 setup 后的两腿（payload 信任位 / 设备级 ver
     const { guard, mocks } = createGuard()
     mocks.getVerifiedCache.mockResolvedValue(true)
 
-    await expect(guard.canActivate(createContext({ user: UNVERIFIED_USER, deviceId: 'device-A' }))).resolves.toBe(true)
+    await expect(
+      guard.canActivate(createContext({ user: UNVERIFIED_USER, deviceId: 'device-A' })),
+    ).resolves.toBe(true)
 
     expect(mocks.getVerifiedCache).toHaveBeenCalledWith('user-1', 'device-A')
     expect(mocks.getVerifiedCache).toHaveBeenCalledTimes(1)
@@ -195,7 +233,9 @@ describe('mfa guard：已 setup 后的两腿（payload 信任位 / 设备级 ver
   it('缓存 miss ⇒ 40115 MfaVerifyFailed（不是 40114：setup 已过，缺的是本次验证）', async () => {
     const { guard, mocks } = createGuard()
 
-    const error = await caught(guard.canActivate(createContext({ user: UNVERIFIED_USER, deviceId: 'device-A' })))
+    const error = await caught(
+      guard.canActivate(createContext({ user: UNVERIFIED_USER, deviceId: 'device-A' })),
+    )
 
     expect(error).toBeInstanceOf(WalnutAdminExceptionMfaVerifyFailed)
     expect(error).not.toBeInstanceOf(WalnutAdminExceptionMfaRequired)
@@ -208,9 +248,13 @@ describe('mfa guard：已 setup 后的两腿（payload 信任位 / 设备级 ver
     mocks.getVerifiedCache.mockResolvedValueOnce(true)
     mocks.getVerifiedCache.mockResolvedValueOnce(null)
 
-    await expect(guard.canActivate(createContext({ user: UNVERIFIED_USER, deviceId: 'device-A' }))).resolves.toBe(true)
+    await expect(
+      guard.canActivate(createContext({ user: UNVERIFIED_USER, deviceId: 'device-A' })),
+    ).resolves.toBe(true)
 
-    const error = await caught(guard.canActivate(createContext({ user: UNVERIFIED_USER, deviceId: 'device-B' })))
+    const error = await caught(
+      guard.canActivate(createContext({ user: UNVERIFIED_USER, deviceId: 'device-B' })),
+    )
     expect(error).toBeInstanceOf(WalnutAdminExceptionMfaVerifyFailed)
 
     // 守卫逐请求按当前设备查键，不会复用上一次的结果
@@ -232,7 +276,9 @@ describe('mfa guard：设备凭据异常的边界（fail-closed）', () => {
   it('坏签名 cookie（cookie-parser 返回 false）⇒ 同样 miss ⇒ 40115，不会把 false 当成命中', async () => {
     const { guard, mocks } = createGuard()
 
-    const error = await caught(guard.canActivate(createContext({ user: UNVERIFIED_USER, deviceId: false })))
+    const error = await caught(
+      guard.canActivate(createContext({ user: UNVERIFIED_USER, deviceId: false })),
+    )
 
     expect(error).toBeInstanceOf(WalnutAdminExceptionMfaVerifyFailed)
     expect(mocks.getVerifiedCache).toHaveBeenCalledWith('user-1', false)

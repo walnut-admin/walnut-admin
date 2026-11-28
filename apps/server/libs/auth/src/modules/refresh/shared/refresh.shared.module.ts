@@ -15,4 +15,4 @@ import { AuthRefreshSharedService } from './refresh.shared.service'
   providers: [AuthRefreshSharedService],
   exports: [AuthRefreshSharedService],
 })
-export class AuthRefreshSharedModule { }
+export class AuthRefreshSharedModule {}

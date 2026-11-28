@@ -13,7 +13,7 @@ export class SysUserMeService {
 
     private readonly sysUserMfaSharedService: SysUserMfaSharedService,
     private readonly sysUserSharedService: SysUserSharedService,
-  ) { }
+  ) {}
 
   /**
    * @description get user profile

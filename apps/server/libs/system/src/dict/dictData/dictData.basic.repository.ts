@@ -24,9 +24,11 @@ export class SysDictDataBasicRepository extends WalnutAdminCommonPgBaseRepositor
    * sort_order 顺序即索引序，phase2 4.7）
    */
   async findActiveByTypeId(typeId: string, em?: EntityManager) {
-    return this.getManager(em).getRepository(SysDictDataEntity).find({
-      where: { typeId, status: true },
-      order: { order: 'ASC' },
-    })
+    return this.getManager(em)
+      .getRepository(SysDictDataEntity)
+      .find({
+        where: { typeId, status: true },
+        order: { order: 'ASC' },
+      })
   }
 }

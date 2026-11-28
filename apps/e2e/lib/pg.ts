@@ -44,13 +44,23 @@ export interface SysDeviceRow {
 export const LOOPBACK_IP_PATTERN = /^(::ffff:)?127(?:\.\d{1,3}){3}$/
 
 /** 结构化定位（用于断言 LOCAL 路径 / 真实外网定位） */
-export async function findDeviceLocation(client: Client, deviceId: string): Promise<{ ip: string | null, country: string | null, latitude: number | null, longitude: number | null } | null> {
+export async function findDeviceLocation(
+  client: Client,
+  deviceId: string,
+): Promise<{
+  ip: string | null
+  country: string | null
+  latitude: number | null
+  longitude: number | null
+} | null> {
   const { rows } = await client.query<{
     ip: string | null
     location_info: { country?: string } | null
     geo_latitude: number | null
     geo_longitude: number | null
-  }>('SELECT ip, location_info, geo_latitude, geo_longitude FROM sys_device WHERE device_id = $1', [deviceId])
+  }>('SELECT ip, location_info, geo_latitude, geo_longitude FROM sys_device WHERE device_id = $1', [
+    deviceId,
+  ])
 
   const row = rows[0]
   if (row === undefined) {
@@ -89,7 +99,9 @@ async function connectPg(): Promise<Client> {
   const actual = rows[0]?.database
   if (actual !== E2E_PG_DB) {
     await client.end().catch(() => {})
-    throw new Error(`[e2e/safety] 连接落在库 \`${actual}\` 上（期望 \`${E2E_PG_DB}\`）—— 拒绝执行：本连接会 DELETE / UPDATE`)
+    throw new Error(
+      `[e2e/safety] 连接落在库 \`${actual}\` 上（期望 \`${E2E_PG_DB}\`）—— 拒绝执行：本连接会 DELETE / UPDATE`,
+    )
   }
 
   return client
@@ -100,13 +112,15 @@ export async function withPg<T>(run: (client: Client) => Promise<T>): Promise<T>
   const client = await connectPg()
   try {
     return await run(client)
-  }
-  finally {
+  } finally {
     await client.end()
   }
 }
 
-export async function findDeviceRow(client: Client, deviceId: string): Promise<SysDeviceRow | null> {
+export async function findDeviceRow(
+  client: Client,
+  deviceId: string,
+): Promise<SysDeviceRow | null> {
   const { rows } = await client.query<SysDeviceRow>(
     `SELECT id, device_id, device_name, ip, active, locked, banned, private, stale, risk_score, created_at, updated_at
        FROM sys_device WHERE device_id = $1`,
@@ -127,7 +141,11 @@ export async function deleteDeviceRow(client: Client, deviceId: string): Promise
  * 注意 **`updated_at` 不动**（TypeORM 的 UpdateDateColumn 只在 ORM 写时维护，裸 SQL 不回填）；
  * risk 的判据只看 createdAt（device.service 的 getDeviceCreatedDays）。
  */
-export async function backdateDeviceCreatedAt(client: Client, deviceId: string, msAgo: number): Promise<void> {
+export async function backdateDeviceCreatedAt(
+  client: Client,
+  deviceId: string,
+  msAgo: number,
+): Promise<void> {
   await client.query(
     `UPDATE sys_device SET created_at = now() - ($2::bigint * interval '1 millisecond') WHERE device_id = $1`,
     [deviceId, msAgo],
@@ -144,14 +162,22 @@ export async function backdateDeviceCreatedAt(client: Client, deviceId: string, 
  * 用 DELETE 而不是 UPDATE revoked：`ck_refresh_token_revoke_reason` 的枚举里没有「登出」这一
  * 原因（那是产品侧枚举），fixture 不该为它编造一个业务原因；按设备删除是精确且干净的。
  */
-export async function clearRefreshTokensForDevice(client: Client, deviceId: string): Promise<number> {
-  const result = await client.query('DELETE FROM auth_refresh_token WHERE device_id = $1', [deviceId])
+export async function clearRefreshTokensForDevice(
+  client: Client,
+  deviceId: string,
+): Promise<number> {
+  const result = await client.query('DELETE FROM auth_refresh_token WHERE device_id = $1', [
+    deviceId,
+  ])
   return result.rowCount ?? 0
 }
 
 /** 按 userName 取 userId（U14 / U15 的 `sys_user_device` 行按 (user_id, device_id) 定位） */
 export async function findUserIdByUserName(client: Client, userName: string): Promise<string> {
-  const { rows } = await client.query<{ id: string }>('SELECT id FROM sys_user WHERE user_name = $1', [userName])
+  const { rows } = await client.query<{ id: string }>(
+    'SELECT id FROM sys_user WHERE user_name = $1',
+    [userName],
+  )
   const id = rows[0]?.id
   if (id === undefined) {
     throw new Error(`[e2e/pg] sys_user 没有 user_name = ${userName} 的行`)
@@ -169,7 +195,11 @@ export interface SysUserDeviceRow {
 }
 
 /** 读 `sys_user_device` 行（U14 / U15 的 DB 唯一判据：trusted + trusted_expired_at） */
-export async function findUserDeviceRow(client: Client, userId: string, deviceId: string): Promise<SysUserDeviceRow | null> {
+export async function findUserDeviceRow(
+  client: Client,
+  userId: string,
+  deviceId: string,
+): Promise<SysUserDeviceRow | null> {
   const { rows } = await client.query<{
     user_id: string
     device_id: string
@@ -212,7 +242,10 @@ export interface SysUserLockRow {
  * `lockPwdHash` 只在测试侧读取（断言它是 bcrypt 哈希而非明文）；生产响应永远不回列
  * （`GET lock/read` 只回 `lockPwdSet`）。
  */
-export async function findUserLockRow(client: Client, userId: string): Promise<SysUserLockRow | null> {
+export async function findUserLockRow(
+  client: Client,
+  userId: string,
+): Promise<SysUserLockRow | null> {
   const { rows } = await client.query<{
     lock_mode: string
     lock_idle_sec: number
@@ -280,7 +313,12 @@ export async function countLockResetAuditRows(client: Client, userId: string): P
  * 只改这一列：`trusted` 保持 true —— 这样风险判定走的是「已信任但过期」
  * （USER_DEVICE_TRUST_EXPIRED），而不是「未信任」（USER_DEVICE_UNTRUSTED）。
  */
-export async function backdateUserDeviceTrustExpiredAt(client: Client, userId: string, deviceId: string, msAgo: number): Promise<number> {
+export async function backdateUserDeviceTrustExpiredAt(
+  client: Client,
+  userId: string,
+  deviceId: string,
+  msAgo: number,
+): Promise<number> {
   const result = await client.query(
     `UPDATE sys_user_device SET trusted_expired_at = now() - ($3::bigint * interval '1 millisecond')
       WHERE user_id = $1 AND device_id = $2`,
@@ -290,7 +328,12 @@ export async function backdateUserDeviceTrustExpiredAt(client: Client, userId: s
 }
 
 /** U15 的负对照：把 `trusted_expired_at` 拨回将来（同一列、同一行，只翻转过期方向） */
-export async function setUserDeviceTrustExpiredAt(client: Client, userId: string, deviceId: string, at: Date): Promise<number> {
+export async function setUserDeviceTrustExpiredAt(
+  client: Client,
+  userId: string,
+  deviceId: string,
+  at: Date,
+): Promise<number> {
   const result = await client.query(
     'UPDATE sys_user_device SET trusted_expired_at = $3 WHERE user_id = $1 AND device_id = $2',
     [userId, deviceId, at],
@@ -311,7 +354,11 @@ export async function readAppSettingValue(client: Client, key: string): Promise<
 }
 
 /** 写某条 app_setting 的 `setting_value`（U11 造永久黑名单；改完必须经 `POST /app/setting/cache/refresh` 让服务端读到） */
-export async function updateAppSettingValue(client: Client, key: string, value: string): Promise<number> {
+export async function updateAppSettingValue(
+  client: Client,
+  key: string,
+  value: string,
+): Promise<number> {
   const result = await client.query(
     'UPDATE app_setting SET setting_value = $2 WHERE setting_key = $1',
     [key, value],
@@ -322,7 +369,7 @@ export async function updateAppSettingValue(client: Client, key: string, value: 
 /** 读永久 IP 黑名单（JSON 数组） */
 export async function readPermanentIpBlacklist(client: Client): Promise<string[]> {
   const raw = await readAppSettingValue(client, APP_SETTING_KEY_IP_BLACKLIST)
-  return raw === null ? [] : JSON.parse(raw) as string[]
+  return raw === null ? [] : (JSON.parse(raw) as string[])
 }
 
 /** 写永久 IP 黑名单（JSON 数组原样序列化，与服务端 `addToPermanentBlackList` 的落盘形态一致） */
@@ -334,7 +381,10 @@ export async function writePermanentIpBlacklist(client: Client, ips: string[]): 
 
 /** 按 `role_name` 取角色 id（列有 uq_role_name；seed 的 visitor / test-home 用它定位） */
 export async function findRoleIdByName(client: Client, roleName: string): Promise<string> {
-  const { rows } = await client.query<{ id: string }>('SELECT id FROM sys_role WHERE role_name = $1', [roleName])
+  const { rows } = await client.query<{ id: string }>(
+    'SELECT id FROM sys_role WHERE role_name = $1',
+    [roleName],
+  )
   const id = rows[0]?.id
   if (id === undefined) {
     throw new Error(`[e2e/pg] sys_role 没有 role_name = ${roleName} 的行`)
@@ -348,9 +398,12 @@ export async function findRoleIdByName(client: Client, roleName: string): Promis
  * 用途：角色授权用例要拿**真实菜单行**去挂 junction（权限串由菜单的 permission 列派生），
  * 用 seed 里的稳定权限串比新造菜单更干净 —— 新造行属于菜单 spec 的写路径。
  */
-export async function findElementMenuIdByPermission(client: Client, permission: string): Promise<string> {
+export async function findElementMenuIdByPermission(
+  client: Client,
+  permission: string,
+): Promise<string> {
   const { rows } = await client.query<{ id: string }>(
-    'SELECT id FROM sys_menu WHERE permission = $1 AND type = \'element\' AND status = true ORDER BY sort_order LIMIT 1',
+    "SELECT id FROM sys_menu WHERE permission = $1 AND type = 'element' AND status = true ORDER BY sort_order LIMIT 1",
     [permission],
   )
   const id = rows[0]?.id
@@ -367,7 +420,11 @@ export async function findElementMenuIdByPermission(client: Client, permission: 
  * permission）与它的父 catalog：挂上这两行，`/auth/permissions` 就会把路由注册出来，而
  * 任何 element 权限串都不出现。
  */
-export async function findMenuIdByName(client: Client, name: string, type: 'menu' | 'catalog' = 'menu'): Promise<string> {
+export async function findMenuIdByName(
+  client: Client,
+  name: string,
+  type: 'menu' | 'catalog' = 'menu',
+): Promise<string> {
   const { rows } = await client.query<{ id: string }>(
     'SELECT id FROM sys_menu WHERE name = $1 AND type = $2 ORDER BY sort_order LIMIT 1',
     [name, type],
@@ -380,7 +437,11 @@ export async function findMenuIdByName(client: Client, name: string, type: 'menu
 }
 
 /** 按 `path + type` 取菜单行 id（catalog 的 path 是相对段，例如 `system`） */
-export async function findMenuIdByPath(client: Client, path: string, type: 'menu' | 'catalog' = 'catalog'): Promise<string> {
+export async function findMenuIdByPath(
+  client: Client,
+  path: string,
+  type: 'menu' | 'catalog' = 'catalog',
+): Promise<string> {
   const { rows } = await client.query<{ id: string }>(
     'SELECT id FROM sys_menu WHERE path = $1 AND type = $2 ORDER BY sort_order LIMIT 1',
     [path, type],
@@ -413,7 +474,10 @@ export async function findRootMenuId(client: Client): Promise<string> {
 
 /** 读 `sys_user.mfa_setup`（auth 矩阵的账号级判据） */
 export async function readUserMfaSetup(client: Client, userId: string): Promise<boolean> {
-  const { rows } = await client.query<{ mfa_setup: boolean }>('SELECT mfa_setup FROM sys_user WHERE id = $1', [userId])
+  const { rows } = await client.query<{ mfa_setup: boolean }>(
+    'SELECT mfa_setup FROM sys_user WHERE id = $1',
+    [userId],
+  )
   const row = rows[0]
   if (row === undefined) {
     throw new Error(`[e2e/pg] sys_user 没有 id = ${userId} 的行`)
@@ -427,7 +491,10 @@ export async function readUserMfaSetup(client: Client, userId: string): Promise<
  * 备用码是 10 枚一次性码：验证消费一枚后数组长度必须减一 —— 这是「一次性」唯一可回读的
  * 落点（服务端只存哈希后的密文，无法比对具体码值）。
  */
-export async function findTotpMfaRow(client: Client, userId: string): Promise<{ id: string, deviceId: string, status: boolean, backupCodesLeft: number } | null> {
+export async function findTotpMfaRow(
+  client: Client,
+  userId: string,
+): Promise<{ id: string; deviceId: string; status: boolean; backupCodesLeft: number } | null> {
   const { rows } = await client.query<{
     id: string
     device_id: string
@@ -451,7 +518,10 @@ export async function findTotpMfaRow(client: Client, userId: string): Promise<{ 
 }
 
 /** 数某设备上**仍现役**的 refresh token 行（踢下线 / 登出后必须为 0） */
-export async function countActiveRefreshTokensForDevice(client: Client, deviceId: string): Promise<number> {
+export async function countActiveRefreshTokensForDevice(
+  client: Client,
+  deviceId: string,
+): Promise<number> {
   const { rows } = await client.query<{ count: number }>(
     'SELECT count(*)::int AS count FROM auth_refresh_token WHERE device_id = $1 AND revoked = false',
     [deviceId],
@@ -466,7 +536,11 @@ export async function countActiveRefreshTokensForDevice(client: Client, deviceId
  * force-quit 服务按 `(userId, deviceId)` 查 monitor 行，缺行直接 40401。这里补的是
  * **真实运行态里 UI 设备会有的那条行**，不是伪造会话；踢下线链路的服务端行为全部真跑。
  */
-export async function insertMonitorUserRow(client: Client, userId: string, deviceId: string): Promise<void> {
+export async function insertMonitorUserRow(
+  client: Client,
+  userId: string,
+  deviceId: string,
+): Promise<void> {
   await client.query(
     `INSERT INTO app_monitor_user (visitor_id, user_id, device_id, auth, focus, is_left)
      VALUES ($1, $2, $3, true, true, false)`,
@@ -475,7 +549,10 @@ export async function insertMonitorUserRow(client: Client, userId: string, devic
 }
 
 /** 删某设备的 monitor 行（`app_monitor_user` 松引用、无 FK，fixture 必须自己收尾） */
-export async function deleteMonitorUserByDeviceId(client: Client, deviceId: string): Promise<number> {
+export async function deleteMonitorUserByDeviceId(
+  client: Client,
+  deviceId: string,
+): Promise<number> {
   const result = await client.query('DELETE FROM app_monitor_user WHERE device_id = $1', [deviceId])
   return result.rowCount ?? 0
 }
@@ -488,8 +565,12 @@ export async function deleteMonitorUserByDeviceId(client: Client, deviceId: stri
  * FORCE_QUIT。用例把它当**前置断言**：行不在 / auth=false / left=true 时，socket 段
  * 本来就不可能成立，失败原因要在前置处说清，而不是在等帧的地方超时。
  */
-export async function findMonitorUserRow(client: Client, userId: string, deviceId: string): Promise<{ auth: boolean, left: boolean, visitorId: string } | null> {
-  const { rows } = await client.query<{ auth: boolean, is_left: boolean, visitor_id: string }>(
+export async function findMonitorUserRow(
+  client: Client,
+  userId: string,
+  deviceId: string,
+): Promise<{ auth: boolean; left: boolean; visitorId: string } | null> {
+  const { rows } = await client.query<{ auth: boolean; is_left: boolean; visitor_id: string }>(
     'SELECT auth, is_left, visitor_id FROM app_monitor_user WHERE user_id = $1 AND device_id = $2 ORDER BY last_active_at DESC LIMIT 1',
     [userId, deviceId],
   )
@@ -507,7 +588,10 @@ export async function findMonitorUserRow(client: Client, userId: string, deviceI
  * 密文必须非空；`webauthn_credential_id` 与浏览器虚拟认证器里的 credentialId 同源
  * （simplewebauthn 的 base64url），`webauthn_counter` 在每次断言后递增（防重放）。
  */
-export async function findWebauthnMfaRow(client: Client, userId: string): Promise<{
+export async function findWebauthnMfaRow(
+  client: Client,
+  userId: string,
+): Promise<{
   id: string
   deviceId: string
   credentialId: string | null
@@ -579,7 +663,10 @@ export async function countDeletedRows(client: Client, deletedId: string): Promi
  * `content` 是 jsonb 快照对象（恢复时原样插回原表），`model_name` 是恢复路由键
  * （`WalnutAdminRecoverableRegistry`）—— 回收站闭环断言「快照里存的是被删行本身」用它。
  */
-export async function findDeletedRowByDeletedId(client: Client, deletedId: string): Promise<{
+export async function findDeletedRowByDeletedId(
+  client: Client,
+  deletedId: string,
+): Promise<{
   id: string
   deletedId: string
   modelName: string

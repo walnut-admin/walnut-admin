@@ -11,7 +11,7 @@ function isUrlQueryEncrypted(v: unknown): v is string {
 }
 
 export async function urlQueryEncrypt(v: string) {
-  return ENHANCED_URL_PREFIX + await encryptRouterUrl(v)
+  return ENHANCED_URL_PREFIX + (await encryptRouterUrl(v))
 }
 
 async function urlQueryDecrypt(v: string) {
@@ -22,23 +22,20 @@ export function createRouteQueryEncryptGuard(router: Router) {
   const appSettingScope = useAppStoreSettingScope()
 
   router.beforeEach(async (to, _from) => {
-    if (appSettingScope.getRouterEnhanceWhiteListCondition(to))
-      return true
+    if (appSettingScope.getRouterEnhanceWhiteListCondition(to)) return true
 
     // 1. Split query parameters
     const whiteQuery: Record<string, any> = {}
     const normalQuery: Record<string, any> = {}
     Object.entries(to.query).forEach(([k, v]) => {
-      ; (queryWhiteList.includes(k) ? whiteQuery : normalQuery)[k] = v
+      ;(queryWhiteList.includes(k) ? whiteQuery : normalQuery)[k] = v
     })
 
     // 2. Encrypted package already exists (indicates redirect back), allow direct passage
-    if (isUrlQueryEncrypted(to.query._e))
-      return true
+    if (isUrlQueryEncrypted(to.query._e)) return true
 
     // 3. Only whitelisted parameters → allow passage
-    if (Object.keys(normalQuery).length === 0)
-      return true
+    if (Object.keys(normalQuery).length === 0) return true
 
     // 4. Only non-whitelisted parameters → encrypt the entire package
     if (Object.keys(whiteQuery).length === 0) {
@@ -56,8 +53,7 @@ export function createRouteQueryEncryptGuard(router: Router) {
   })
 
   router.beforeResolve(async (to) => {
-    if (appSettingScope.getRouterEnhanceWhiteListCondition(to))
-      return true
+    if (appSettingScope.getRouterEnhanceWhiteListCondition(to)) return true
 
     if (to.query._e) {
       const query = await urlQueryDecrypt(to.query._e as string)

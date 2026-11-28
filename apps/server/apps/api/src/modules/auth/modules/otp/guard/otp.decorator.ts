@@ -1,9 +1,17 @@
 import type { Type } from '@nestjs/common'
 // Note: IWalnutAdminOtpThrottleConfigProvider has been moved to global IWalnutAdminOtpThrottleConfigProvider
 import { applyDecorators, SetMetadata, UseGuards, UseInterceptors } from '@nestjs/common'
-import { OTP_THROTTLE_SERVICE_KEY, OtpFunctionalGuard, OtpSendFunctionalGuard, OtpThrottleGuard } from '@walnut-server/auth'
+import {
+  OTP_THROTTLE_SERVICE_KEY,
+  OtpFunctionalGuard,
+  OtpSendFunctionalGuard,
+  OtpThrottleGuard,
+} from '@walnut-server/auth'
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
-import { WalnutAdminConstDecoratorLogAuthMetadataKey, WalnutAdminInterceptorRequestAuthLog } from '@walnut-server/guards'
+import {
+  WalnutAdminConstDecoratorLogAuthMetadataKey,
+  WalnutAdminInterceptorRequestAuthLog,
+} from '@walnut-server/guards'
 
 // P1-16（2026-10-28）：元数据键与 guard 共享（otp-throttle.const.ts）—— 旧实现 decorator
 // 写 Symbol、guard 读字符串，动态 sendLimit/sendTtl 从未生效。
@@ -13,9 +21,7 @@ import { WalnutAdminConstDecoratorLogAuthMetadataKey, WalnutAdminInterceptorRequ
  * Dynamically checks if OTP auth is enabled based on request type
  */
 export function OtpDecoratorFunctionalGuard() {
-  return applyDecorators(
-    UseGuards(OtpFunctionalGuard),
-  )
+  return applyDecorators(UseGuards(OtpFunctionalGuard))
 }
 
 /**
@@ -23,9 +29,7 @@ export function OtpDecoratorFunctionalGuard() {
  * Dynamically checks if OTP send is enabled based on request type
  */
 export function OtpDecoratorSendFunctionalGuard() {
-  return applyDecorators(
-    UseGuards(OtpSendFunctionalGuard),
-  )
+  return applyDecorators(UseGuards(OtpSendFunctionalGuard))
 }
 
 /**
@@ -45,7 +49,10 @@ export function OtpDecoratorThrottle(service: Type<any>) {
  */
 export function OtpDecoratorAuthLog() {
   return applyDecorators(
-    SetMetadata(WalnutAdminConstDecoratorLogAuthMetadataKey, WalnutAdminConstDecoratorLogAuthType.OTP),
+    SetMetadata(
+      WalnutAdminConstDecoratorLogAuthMetadataKey,
+      WalnutAdminConstDecoratorLogAuthType.OTP,
+    ),
     UseInterceptors(WalnutAdminInterceptorRequestAuthLog),
   )
 }

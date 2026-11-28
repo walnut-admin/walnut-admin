@@ -45,11 +45,24 @@ import process from 'node:process'
 import { E2ePreconditionError } from './failure.ts'
 
 /** 可选的 profile 名（`default` = 本地全量；其余与 Playwright project 同名 1:1） */
-export const STACK_PROFILE_NAMES = ['default', 'smoke', 'risk', 'network', 'pages', 'journey'] as const
+export const STACK_PROFILE_NAMES = [
+  'default',
+  'smoke',
+  'risk',
+  'network',
+  'pages',
+  'journey',
+] as const
 export type StackProfileName = (typeof STACK_PROFILE_NAMES)[number]
 
 /** 命名 profile（有独立 `.e2e/<profile>/` 基线目录的那些） */
-export const NAMED_STACK_PROFILES = ['smoke', 'risk', 'network', 'pages', 'journey'] as const satisfies readonly StackProfileName[]
+export const NAMED_STACK_PROFILES = [
+  'smoke',
+  'risk',
+  'network',
+  'pages',
+  'journey',
+] as const satisfies readonly StackProfileName[]
 export type NamedStackProfileName = (typeof NAMED_STACK_PROFILES)[number]
 
 export interface StackProfile {
@@ -169,9 +182,9 @@ export function resolveStackProfile(raw: string | undefined): StackProfile {
     return STACK_PROFILES[name as StackProfileName]
   }
   throw new E2ePreconditionError(
-    `E2E_STACK_PROFILE=${raw} 不认识：只接受 ${STACK_PROFILE_NAMES.join(' / ')}（不设 = default）。\n`
-    + '  profile 名是端口 / 库名 / 基线目录的唯一选择方式；**不开放**端口或库名的独立覆盖'
-    + '（任意覆盖会让 assertE2eDatabase 的安全闸失去意义）。',
+    `E2E_STACK_PROFILE=${raw} 不认识：只接受 ${STACK_PROFILE_NAMES.join(' / ')}（不设 = default）。\n` +
+      '  profile 名是端口 / 库名 / 基线目录的唯一选择方式；**不开放**端口或库名的独立覆盖' +
+      '（任意覆盖会让 assertE2eDatabase 的安全闸失去意义）。',
   )
 }
 
@@ -184,8 +197,7 @@ export function resolveStackProfile(raw: string | undefined): StackProfile {
 function selectStackProfile(raw: string | undefined): StackProfile {
   try {
     return resolveStackProfile(raw)
-  }
-  catch (error) {
+  } catch (error) {
     console.error(`[e2e/profile] ${error instanceof Error ? error.message : String(error)}`)
     process.exit(2)
   }
@@ -214,7 +226,7 @@ export function localIpFor(slot: number, seq: number): string {
 
 /** 命名 profile 的基线目录名（`clean.ts` 需要保留这些子目录的活文件；纯数据） */
 export function namedProfileArtifactDirs(): string[] {
-  return NAMED_STACK_PROFILES.map(name => STACK_PROFILES[name].artifactDir)
+  return NAMED_STACK_PROFILES.map((name) => STACK_PROFILES[name].artifactDir)
 }
 
 /** 当前 profile 是否命名 profile（default 没有同名 Playwright project） */
@@ -250,13 +262,13 @@ export function resolveProfileTestArgs(profile: StackProfile, args: readonly str
     }
   }
 
-  const foreign = projects.filter(project => project !== profile.name)
+  const foreign = projects.filter((project) => project !== profile.name)
   if (foreign.length > 0) {
     throw new E2ePreconditionError(
-      `E2E_STACK_PROFILE=${profile.name} 只能跑 --project=${profile.name} 的用例，`
-      + `收到 ${foreign.map(project => `--project=${project}`).join(' / ')}。\n`
-      + '  profile 与 Playwright project 同名 1:1（设计稿 P1-6）：换 project 就同时换 profile —— '
-      + '否则会把一个 profile 的用例跑在另一个 profile 的库 / 端口上。',
+      `E2E_STACK_PROFILE=${profile.name} 只能跑 --project=${profile.name} 的用例，` +
+        `收到 ${foreign.map((project) => `--project=${project}`).join(' / ')}。\n` +
+        '  profile 与 Playwright project 同名 1:1（设计稿 P1-6）：换 project 就同时换 profile —— ' +
+        '否则会把一个 profile 的用例跑在另一个 profile 的库 / 端口上。',
     )
   }
 

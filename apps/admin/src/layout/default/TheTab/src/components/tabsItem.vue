@@ -14,7 +14,7 @@ defineOptions({
   name: 'TabsItem',
 })
 
-const { item } = defineProps<{ item: IStoreApp.Tab.Item, index: number }>()
+const { item } = defineProps<{ item: IStoreApp.Tab.Item; index: number }>()
 
 const { t } = useAppI18n()
 const { currentRoute } = useAppRouter()
@@ -36,9 +36,9 @@ const { onTabRemove } = getTabsContext()
 // pnly show when affix mode is pin
 const getShowAffixedPinIcon = computed(
   () =>
-    !appStoreAdapter.isMobile
-    && item.meta.affix
-    && userStorePreference.getTabsAffixMode === AppConstTabAffixMode.PIN,
+    !appStoreAdapter.isMobile &&
+    item.meta.affix &&
+    userStorePreference.getTabsAffixMode === AppConstTabAffixMode.PIN,
 )
 
 // only show when tab not affixed and showIcon is true
@@ -46,9 +46,8 @@ const getShowAffixedPinIcon = computed(
 // only show when tab is affixed and affix mode is icon
 const getShowIcon = computed(
   () =>
-    (!item.meta.affix && userStorePreference.getTabsShowIcon)
-    || (item.meta.affix
-      && userStorePreference.getTabsAffixMode === AppConstTabAffixMode.ICON),
+    (!item.meta.affix && userStorePreference.getTabsShowIcon) ||
+    (item.meta.affix && userStorePreference.getTabsAffixMode === AppConstTabAffixMode.ICON),
 )
 
 // only show when not mobile
@@ -60,10 +59,10 @@ const getShowIcon = computed(
 // current tab
 const getShowDot = computed(
   () =>
-    !appStoreAdapter.isMobile
-    && !item.meta.affix
-    && !userStorePreference.getTabsShowIcon
-    && currentRoute.value.name === item.name,
+    !appStoreAdapter.isMobile &&
+    !item.meta.affix &&
+    !userStorePreference.getTabsShowIcon &&
+    currentRoute.value.name === item.name,
 )
 
 // only show when tab is not affixed
@@ -71,10 +70,9 @@ const getShowDot = computed(
 // tab close mode is always or when close mode is hover and is hovered
 const getShowCloseIcon = computed(
   () =>
-    !item.meta.affix
-    && (userStorePreference.getTabsCloseMode === AppConstTabCloseMode.ALWAYS
-      || (userStorePreference.getTabsCloseMode === AppConstTabCloseMode.HOVER
-        && getHovered.value)),
+    !item.meta.affix &&
+    (userStorePreference.getTabsCloseMode === AppConstTabCloseMode.ALWAYS ||
+      (userStorePreference.getTabsCloseMode === AppConstTabCloseMode.HOVER && getHovered.value)),
 )
 
 // only show when tab is not affixed
@@ -82,19 +80,18 @@ const getShowCloseIcon = computed(
 // tab is affixed and affix mode is pin
 const getShowTite = computed(
   () =>
-    !item.meta.affix
-    || (item.meta.affix
-      && userStorePreference.getTabsAffixMode === AppConstTabAffixMode.PIN),
+    !item.meta.affix ||
+    (item.meta.affix && userStorePreference.getTabsAffixMode === AppConstTabAffixMode.PIN),
 )
 
 // scroll title and real title
 const getTitle = computed(() => {
-  const title = item.meta?._title ?? item.meta?.title as string
+  const title = item.meta?._title ?? (item.meta?.title as string)
   return title ? t(title) : ''
 })
 
 const getIcon = computed(() => {
-  const icon = item.meta?._icon ?? item.meta?.icon as string
+  const icon = item.meta?._icon ?? (item.meta?.icon as string)
   return icon || ''
 })
 </script>
@@ -122,9 +119,7 @@ const getIcon = computed(() => {
     <div
       v-else-if="getShowDot"
       class="col-span-2 h-4 w-4 flex items-center border-8 border-info rounded-full bg-info text-xl font-bold shadow-xl hover:border-infoHover"
-      :class="[
-        { 'animate-bounce': getHovered },
-      ]"
+      :class="[{ 'animate-bounce': getHovered }]"
     />
 
     <WIcon
@@ -146,9 +141,7 @@ const getIcon = computed(() => {
       <div
         v-if="getShowTite"
         class="col-span-10 truncate whitespace-nowrap text-sm"
-        :class="[
-          { 'pr-4': getShowCloseIcon },
-        ]"
+        :class="[{ 'pr-4': getShowCloseIcon }]"
       >
         <WTextScroll
           :texts="[getTitle]"

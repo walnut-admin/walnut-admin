@@ -1,6 +1,16 @@
 import type { IWalnutAdminIpLocationResolver } from '@walnut-server/ip'
 import type { IWalnutAdminOperateLogWriter } from './operate-log.ports'
-import { applyDecorators, CallHandler, ExecutionContext, Inject, Injectable, Logger, NestInterceptor, SetMetadata, UseInterceptors } from '@nestjs/common'
+import {
+  applyDecorators,
+  CallHandler,
+  ExecutionContext,
+  Inject,
+  Injectable,
+  Logger,
+  NestInterceptor,
+  SetMetadata,
+  UseInterceptors,
+} from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { ALSRequestService } from '@walnut-server/als'
@@ -9,7 +19,11 @@ import { WalnutAdminConstAppConfig } from '@walnut-server/const/app/config'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstAppEvent } from '@walnut-server/const/app/event'
 import { IWalnutAdminConstAppHTTPMethods } from '@walnut-server/const/app/methods'
-import { IWalnutAdminConstDecoratorLogOperateAction, IWalnutAdminConstDecoratorLogOperateType, WalnutAdminConstDecoratorLogOperateAction } from '@walnut-server/const/decorator/logOperate'
+import {
+  IWalnutAdminConstDecoratorLogOperateAction,
+  IWalnutAdminConstDecoratorLogOperateType,
+  WalnutAdminConstDecoratorLogOperateAction,
+} from '@walnut-server/const/decorator/logOperate'
 
 import { getWalnutAdminCookie } from '@walnut-server/cookie'
 import { runAfterCommit } from '@walnut-server/db'
@@ -25,9 +39,15 @@ import { Observable } from 'rxjs'
 import { tap } from 'rxjs/operators'
 import { WALNUT_ADMIN_OPERATE_LOG_WRITER } from './operate-log.ports'
 
-const WalnutAdminConstDecoratorLogOperateTitleMetadataKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_METADATA_KEY_LOG_OPERATE_TITLE')
-const WalnutAdminConstDecoratorLogOperateActionMetadataKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_METADATA_KEY_LOG_OPERATE_ACTION')
-const WalnutAdminConstDecoratorLogOperateTypeMetadataKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_METADATA_KEY_LOG_OPERATE_TYPE')
+const WalnutAdminConstDecoratorLogOperateTitleMetadataKey = Symbol(
+  'WALNUT_ADMIN_CONST_DECORATOR_METADATA_KEY_LOG_OPERATE_TITLE',
+)
+const WalnutAdminConstDecoratorLogOperateActionMetadataKey = Symbol(
+  'WALNUT_ADMIN_CONST_DECORATOR_METADATA_KEY_LOG_OPERATE_ACTION',
+)
+const WalnutAdminConstDecoratorLogOperateTypeMetadataKey = Symbol(
+  'WALNUT_ADMIN_CONST_DECORATOR_METADATA_KEY_LOG_OPERATE_TYPE',
+)
 
 // B8：导出供 int-spec 驱动真实拦截器本体（auth 侧拦截器本就是导出形态，对齐）
 @Injectable()
@@ -45,7 +65,7 @@ export class WalnutAdminInterceptorRequestOperateLog implements NestInterceptor 
     private readonly alsRequestService: ALSRequestService,
     @Inject(WALNUT_ADMIN_IP_LOCATION_RESOLVER)
     private readonly ipLocationResolver: IWalnutAdminIpLocationResolver,
-  ) { }
+  ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const now = Date.now()
@@ -72,14 +92,13 @@ export class WalnutAdminInterceptorRequestOperateLog implements NestInterceptor 
     const className = context.getClass().name
     const handlerName = context.getHandler().name
 
-    const insertToLogOperate = async (
-      resData: IWalnutAdminResponseBase,
-      success: boolean,
-    ) => {
+    const insertToLogOperate = async (resData: IWalnutAdminResponseBase, success: boolean) => {
       try {
         const durationMs = Date.now() - now
 
-        const location = await this.ipLocationResolver.getLocationFromBaidu(request.realIp) as string
+        const location = (await this.ipLocationResolver.getLocationFromBaidu(
+          request.realIp,
+        )) as string
 
         const translatedMsg = await translateResponseMessage(resData, i18n)
 
@@ -141,11 +160,15 @@ export class WalnutAdminInterceptorRequestOperateLog implements NestInterceptor 
             // 在事务未提交时按 deletedId 更新（affected=0，关联永久丢失）。runAfterCommit
             // 在有事务上下文时推迟到提交后、无事务上下文时内联执行（对齐 P2-12 手法）。
             await runAfterCommit(async () => {
-              this.eventEmitter.emit(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE, { logOperateId: operateLog.id, deletedId: id })
+              this.eventEmitter.emit(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE, {
+                logOperateId: operateLog.id,
+                deletedId: id,
+              })
             })
-          }
-          else {
-            this.logger.warn(`${className}.${handlerName} - ${WalnutAdminConstAppConfig.deleteField} do not exists on request params`)
+          } else {
+            this.logger.warn(
+              `${className}.${handlerName} - ${WalnutAdminConstAppConfig.deleteField} do not exists on request params`,
+            )
           }
         }
 
@@ -154,17 +177,20 @@ export class WalnutAdminInterceptorRequestOperateLog implements NestInterceptor 
           if (ids) {
             // B9 收口：同上（P2-29 同款 after-commit 推迟）
             await runAfterCommit(async () => {
-              this.eventEmitter.emit(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE_MANY, { logOperateId: operateLog.id, deletedIds: ids })
+              this.eventEmitter.emit(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE_MANY, {
+                logOperateId: operateLog.id,
+                deletedIds: ids,
+              })
             })
-          }
-          else {
-            this.logger.warn(`${className}.${handlerName} - ${WalnutAdminConstAppConfig.deleteManyField} do not exists on request params`)
+          } else {
+            this.logger.warn(
+              `${className}.${handlerName} - ${WalnutAdminConstAppConfig.deleteManyField} do not exists on request params`,
+            )
           }
         }
 
         return operateLog
-      }
-      catch (error) {
+      } catch (error) {
         this.logger.error(error)
       }
     }

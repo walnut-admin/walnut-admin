@@ -39,8 +39,7 @@ async function calculatePasswordStrength(password: string | null | undefined) {
 
     status.value = statusTable[score]
     percentage.value = (score + 1) * 20
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Password strength calculation failed:', error)
     percentage.value = 0
     status.value = 'success'

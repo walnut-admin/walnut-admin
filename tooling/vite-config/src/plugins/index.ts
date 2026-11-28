@@ -102,8 +102,7 @@ export function createVitePlugins(mode: string, env: IViteEnv, options: ViteConf
 
     // https://github.com/liuweiGL/vite-plugin-mkcert
     vitePlugins.push(createHttpsPlugin())
-  }
-  else {
+  } else {
     // https://github.com/FatehAK/vite-plugin-image-optimizer
     vitePlugins.push(createImageOptimizerPlugin())
 
@@ -113,6 +112,9 @@ export function createVitePlugins(mode: string, env: IViteEnv, options: ViteConf
     // 2026-11-24 实测：打开后 admin 的生产构建**成功**，产物里有 `polyfills-legacy-*.js`、
     // `vendor-legacy-*.js` 与 `<script nomodule>`。此前会因插件默认现代目标含 es2020 而拒绝顶层
     // await；修法（显式 modernTargets）与取舍见 ./legacy.ts 的注释。
+    // 守卫（2026-11-27 批次 4 登记）：上游修复前勿开 —— 打开后 Windows 上约 1/6 概率以
+    // 0xC0000005（ACCESS_VIOLATION）偶发崩溃；rolldown >= 1.3.4 或 plugin-legacy 8.2.4 落地、
+    // 且连续 2 次构建通过之后再恢复默认可用。
     env.build.legacy && vitePlugins.push(createLegacyPlugin())
 
     // https://github.com/nonzzz/vite-plugin-cdn

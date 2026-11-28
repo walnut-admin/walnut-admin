@@ -30,7 +30,7 @@ export class SysUserDeviceRepositoryService {
   constructor(
     @InjectDataSource(WalnutPGConnectionName)
     private readonly dataSource: DataSource,
-  ) { }
+  ) {}
 
   private getManager(em?: EntityManager) {
     return em ?? this.dataSource.manager
@@ -141,7 +141,7 @@ export class SysUserDeviceRepositoryService {
         order: { lastActiveAt: 'DESC' },
       })
 
-      const userIds = [...new Set(rows.map(r => r.userId))]
+      const userIds = [...new Set(rows.map((r) => r.userId))]
       let users: IUserDevicePopulatedUser[] = []
       if (userIds.length > 0) {
         const rawUsers = await manager
@@ -151,12 +151,12 @@ export class SysUserDeviceRepositoryService {
           .addSelect('u.nick_name', 'nickName')
           .from('sys_user', 'u')
           .where('u.id IN (:...userIds)', { userIds })
-          .getRawMany<{ id: string, userName: string | null, nickName: string | null }>()
+          .getRawMany<{ id: string; userName: string | null; nickName: string | null }>()
         users = rawUsers
       }
 
       return rows.map((row) => {
-        const user = users.find(u => u.id === row.userId) ?? null
+        const user = users.find((u) => u.id === row.userId) ?? null
         return Object.assign(row, { user })
       })
     })
@@ -192,12 +192,7 @@ export class SysUserDeviceRepositoryService {
    * 幂等化：冲突即回写 device_name 并 RETURNING 既有行（TypeORM orUpdate + returning，
    * 不拼原生 SQL）。返回行恒为落库后的唯一一行。
    */
-  async upsertDevice(
-    userId: string,
-    deviceId: string,
-    deviceName: string,
-    em?: EntityManager,
-  ) {
+  async upsertDevice(userId: string, deviceId: string, deviceName: string, em?: EntityManager) {
     await this.getManager(em)
       .createQueryBuilder()
       .insert()
@@ -214,11 +209,7 @@ export class SysUserDeviceRepositoryService {
   /**
    * @description find device by user and device id
    */
-  async findByUserAndDevice(
-    userId: string,
-    deviceId: string,
-    em?: EntityManager,
-  ) {
+  async findByUserAndDevice(userId: string, deviceId: string, em?: EntityManager) {
     return this.getRepository(em).findOne({ where: { userId, deviceId } })
   }
 
@@ -247,11 +238,7 @@ export class SysUserDeviceRepositoryService {
    * @description update lock status for all user devices
    * （Mongo 版 updateMany({ userId, locked: { $ne: locked } }, { locked }) → QueryBuilder）
    */
-  async updateLockStatusForAllDevices(
-    userId: string,
-    locked: boolean,
-    em?: EntityManager,
-  ) {
+  async updateLockStatusForAllDevices(userId: string, locked: boolean, em?: EntityManager) {
     await this.getRepository(em)
       .createQueryBuilder()
       .update(SysUserDeviceEntity)

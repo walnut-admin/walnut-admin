@@ -3,7 +3,12 @@ import type { DataSource } from 'typeorm'
 import { createHash, randomUUID } from 'node:crypto'
 
 import { DBTransactionHooksStore } from '@walnut-server/db'
-import { SysUserDeviceRepositoryService, SysUserLockRepositoryService, SysUserLockService, SysUserLockSharedService } from '@walnut-server/identity'
+import {
+  SysUserDeviceRepositoryService,
+  SysUserLockRepositoryService,
+  SysUserLockService,
+  SysUserLockSharedService,
+} from '@walnut-server/identity'
 import { compare } from 'bcryptjs'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createIntegrationApp, getWalnutPgAdminDataSource } from '../helpers/create-integration-app'
@@ -87,7 +92,9 @@ describe('B7b user_lock (on real PG)', () => {
     it('首插：缺省列落 DB 默认值，不带密码则 hash 列为空', async () => {
       const userId = await seedUser()
 
-      const row = await lockRepo.insertOrUpdateUserLockPre(userId, { lockRoute: { name: 'dashboard' } })
+      const row = await lockRepo.insertOrUpdateUserLockPre(userId, {
+        lockRoute: { name: 'dashboard' },
+      })
 
       expect(row.userId).toBe(userId)
       expect(row.lockRoute).toEqual({ name: 'dashboard' })
@@ -111,7 +118,9 @@ describe('B7b user_lock (on real PG)', () => {
       expect(await compare('plain-pwd-1', row.lockPwdHash!)).toBe(true)
 
       // 更新路径换密码：旧密码失效、新密码通过，仍只有一行
-      const updated = await lockRepo.insertOrUpdateUserLockPre(userId, { lockPwdHash: 'plain-pwd-2' })
+      const updated = await lockRepo.insertOrUpdateUserLockPre(userId, {
+        lockPwdHash: 'plain-pwd-2',
+      })
       expect(await countLocks(userId)).toBe(1)
       expect(await compare('plain-pwd-2', updated.lockPwdHash!)).toBe(true)
       expect(await compare('plain-pwd-1', updated.lockPwdHash!)).toBe(false)
@@ -123,7 +132,9 @@ describe('B7b user_lock (on real PG)', () => {
       const first = await lockRepo.insertOrUpdateUserLockPre(userId, { lockPwdHash: 'keep-me' })
       const hashAfterFirst = first.lockPwdHash
 
-      const second = await lockRepo.insertOrUpdateUserLockPre(userId, { lockRoute: { name: 'home' } })
+      const second = await lockRepo.insertOrUpdateUserLockPre(userId, {
+        lockRoute: { name: 'home' },
+      })
 
       expect(await countLocks(userId)).toBe(1)
       expect(second.lockPwdHash).toBe(hashAfterFirst)
@@ -177,7 +188,13 @@ describe('B7b user_lock (on real PG)', () => {
       )
 
       await runInHookStore(async () => {
-        await lockSharedService.lockUserDevice(userId, devId('device-lock'), 'fp-1', { name: 'dashboard' }, pgDataSource.manager)
+        await lockSharedService.lockUserDevice(
+          userId,
+          devId('device-lock'),
+          'fp-1',
+          { name: 'dashboard' },
+          pgDataSource.manager,
+        )
       })
 
       const pref = await lockRepo.findUserLockPreByUserId(userId)
@@ -198,7 +215,13 @@ describe('B7b user_lock (on real PG)', () => {
       await lockRepo.insertOrUpdateUserLockPre(userId, { lockPwdHash: 'right-pwd' })
 
       await expect(
-        lockSharedService.unLockUserDevice(userId, devId('device-unlock'), 'fp-2', 'wrong-pwd', pgDataSource.manager),
+        lockSharedService.unLockUserDevice(
+          userId,
+          devId('device-unlock'),
+          'fp-2',
+          'wrong-pwd',
+          pgDataSource.manager,
+        ),
       ).rejects.toThrow()
 
       const device = await userDeviceRepo.findByUserAndDevice(userId, devId('device-unlock'))
@@ -216,7 +239,10 @@ describe('B7b user_lock (on real PG)', () => {
   describe('L1 计次 / 退避 / 空串语义（repo 层）', () => {
     it('recordUnlockFailure：1–4 只计次；第 5 次封 30s；第 6 次起 1m（曲线真源 lock-pwd-backoff）', async () => {
       const userId = await seedUser()
-      await lockRepo.insertOrUpdateUserLockPre(userId, { lockMode: 'security', lockPwdHash: 'right-pwd' })
+      await lockRepo.insertOrUpdateUserLockPre(userId, {
+        lockMode: 'security',
+        lockPwdHash: 'right-pwd',
+      })
 
       for (let attempt = 1; attempt <= 4; attempt++) {
         const result = await lockRepo.recordUnlockFailure(userId)
@@ -262,7 +288,10 @@ describe('B7b user_lock (on real PG)', () => {
       expect(first.lockPwdHash).toMatch(/^\$2[aby]\$/)
       expect(first.lockPwdUpdatedAt).not.toBeNull()
 
-      const second = await lockRepo.insertOrUpdateUserLockPre(userId, { lockPwdHash: '', lockMode: 'security' })
+      const second = await lockRepo.insertOrUpdateUserLockPre(userId, {
+        lockPwdHash: '',
+        lockMode: 'security',
+      })
       expect(second.lockPwdHash).toBe(first.lockPwdHash)
       expect(second.lockMode).toBe('security')
       // 没写新密码 ⇒ 最近变更时间不动（它跟「真的换密码」绑定）

@@ -55,7 +55,7 @@ const SCANNED_EXT = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs
 const SCOPED_PREFIXES = ['apps/']
 
 /** 扫描面的三类例外（理由见文件头表格） */
-const EXCLUDED_PATH: readonly { pattern: RegExp, why: string }[] = [
+const EXCLUDED_PATH: readonly { pattern: RegExp; why: string }[] = [
   { pattern: /\.(?:spec|test)\.[cm]?[jt]sx?$/, why: '测试按路径动态加载夹具' },
   { pattern: /^apps\/[^/]+\/build\//, why: '构建期 Node 工具，不进产物' },
   { pattern: /\/public\//, why: '原样搬运的第三方静态资产' },
@@ -115,7 +115,7 @@ function maskSource(src: string): Masked {
         i += 2
         continue
       }
-      if (c === '\'') {
+      if (c === "'") {
         state = 'single'
         i += 1
         continue
@@ -153,8 +153,7 @@ function maskSource(src: string): Masked {
         i += 2
         continue
       }
-      if (c !== '\n')
-        chars[i] = ' '
+      if (c !== '\n') chars[i] = ' '
       i += 1
       continue
     }
@@ -164,7 +163,11 @@ function maskSource(src: string): Masked {
       i += 2
       continue
     }
-    if ((state === 'single' && c === '\'') || (state === 'double' && c === '"') || (state === 'template' && c === '`')) {
+    if (
+      (state === 'single' && c === "'") ||
+      (state === 'double' && c === '"') ||
+      (state === 'template' && c === '`')
+    ) {
       state = 'code'
       i += 1
       continue
@@ -188,8 +191,7 @@ export function templateEnd(src: string, openIndex: number): number {
       i += 1
       continue
     }
-    if (src[i] === '`')
-      return i
+    if (src[i] === '`') return i
   }
   return src.length
 }
@@ -205,32 +207,25 @@ export function scanSource(file: string, text: string): DynamicImportFinding[] {
   // 而带赋值的 while 条件又会被 no-cond-assign 拦。
   for (;;) {
     const match = re.exec(masked)
-    if (match === null)
-      break
+    if (match === null) break
 
     // 命中点本身在字符串正文里 ⇒ 那是数据，不是代码
-    if (inStringBody[match.index])
-      continue
+    if (inStringBody[match.index]) continue
 
     // `obj.import(x)` 是**属性访问**，不是动态 import（`import` 前面隔着空白是一个 `.`）
     let prev = match.index - 1
-    while (prev >= 0 && /\s/.test(masked[prev]!))
-      prev -= 1
-    if (prev >= 0 && masked[prev] === '.')
-      continue
+    while (prev >= 0 && /\s/.test(masked[prev]!)) prev -= 1
+    if (prev >= 0 && masked[prev] === '.') continue
 
     let cursor = match.index + match[0].length
-    while (cursor < masked.length && /\s/.test(masked[cursor]!))
-      cursor += 1
+    while (cursor < masked.length && /\s/.test(masked[cursor]!)) cursor += 1
     const head = masked[cursor]
 
-    if (head === '\'' || head === '"')
-      continue
+    if (head === "'" || head === '"') continue
 
     if (head === '`') {
       const body = masked.slice(cursor + 1, templateEnd(masked, cursor))
-      if (!body.includes('${'))
-        continue
+      if (!body.includes('${')) continue
       findings.push(findingAt(file, masked, match.index, 'template'))
       continue
     }
@@ -241,12 +236,20 @@ export function scanSource(file: string, text: string): DynamicImportFinding[] {
   return findings
 }
 
-function findingAt(file: string, masked: string, index: number, kind: FindingKind): DynamicImportFinding {
+function findingAt(
+  file: string,
+  masked: string,
+  index: number,
+  kind: FindingKind,
+): DynamicImportFinding {
   const before = masked.slice(0, index)
   const line = before.split('\n').length
   const lineStart = before.lastIndexOf('\n') + 1
   const lineEnd = masked.indexOf('\n', index)
-  const snippet = masked.slice(lineStart, lineEnd === -1 ? masked.length : lineEnd).trim().slice(0, 140)
+  const snippet = masked
+    .slice(lineStart, lineEnd === -1 ? masked.length : lineEnd)
+    .trim()
+    .slice(0, 140)
   return { file, line, kind, snippet }
 }
 
@@ -256,18 +259,20 @@ export function listScannedFiles(repoRoot: string): string[] {
   // 的源文件不参与扫描，于是"写完先本地跑一遍"得到的是假绿，`git add` 之后同一份代码才变红。
   // `--exclude-standard` 仍然生效（dist / node_modules 不会被卷进来），与 `check-doc-refs` 同一口径。
   return lsFilesWithUntracked('*')
-    .filter(f => SCOPED_PREFIXES.some(p => f.startsWith(p)))
-    .filter(f => SCANNED_EXT.some(ext => f.endsWith(ext)))
-    .filter(f => !EXCLUDED_PATH.some(e => e.pattern.test(f)))
-    .filter(f => existsSync(join(repoRoot, f)))
+    .filter((f) => SCOPED_PREFIXES.some((p) => f.startsWith(p)))
+    .filter((f) => SCANNED_EXT.some((ext) => f.endsWith(ext)))
+    .filter((f) => !EXCLUDED_PATH.some((e) => e.pattern.test(f)))
+    .filter((f) => existsSync(join(repoRoot, f)))
     .sort()
 }
 
-export function collectFindings(repoRoot: string, files: string[] = listScannedFiles(repoRoot)): DynamicImportFinding[] {
+export function collectFindings(
+  repoRoot: string,
+  files: string[] = listScannedFiles(repoRoot),
+): DynamicImportFinding[] {
   const findings: DynamicImportFinding[] = []
   for (const file of files) {
-    if (file in ALLOWED)
-      continue
+    if (file in ALLOWED) continue
     findings.push(...scanSource(file, readFileSync(join(repoRoot, file), 'utf8')))
   }
   return findings
@@ -279,7 +284,9 @@ export function main(): void {
   if (files.length === 0)
     throw new PreconditionError('扫描面为空（apps/ 下 0 个源码文件）—— 拒绝把「扫不到东西」当绿灯')
 
-  out(`动态 import 检查：${files.length} 个 apps/ 下的手写运行时代码；豁免 ${Object.keys(ALLOWED).length} 条`)
+  out(
+    `动态 import 检查：${files.length} 个 apps/ 下的手写运行时代码；豁免 ${Object.keys(ALLOWED).length} 条`,
+  )
 
   const findings = collectFindings(repoRoot, files)
   if (findings.length === 0) {
@@ -291,12 +298,15 @@ export function main(): void {
     const label = f.kind === 'template' ? '模板插值' : '非字面量'
     lineErr('violation', `${f.file}:${f.line}  [${label}]  ${f.snippet}`)
   }
-  if (findings.length > 40)
-    err(`… 另有 ${findings.length - 40} 处`)
+  if (findings.length > 40) err(`… 另有 ${findings.length - 40} 处`)
 
   err('')
-  err('为什么禁：拼出来的模块说明符在 tsc 与 vite build 里都不报错，只在运行期抛 Unknown variable dynamic import。')
-  err('修法：改成字面量说明符（import(\'@/components/UI/Switch\')），或用一个显式注册表把路径写死；')
-  err('     确实无法静态化（构建期工具 / 测试夹具 / 第三方资产）时，先看文件头的扫描面表格，再考虑 ALLOWED。')
+  err(
+    '为什么禁：拼出来的模块说明符在 tsc 与 vite build 里都不报错，只在运行期抛 Unknown variable dynamic import。',
+  )
+  err("修法：改成字面量说明符（import('@/components/UI/Switch')），或用一个显式注册表把路径写死；")
+  err(
+    '     确实无法静态化（构建期工具 / 测试夹具 / 第三方资产）时，先看文件头的扫描面表格，再考虑 ALLOWED。',
+  )
   throw new ViolationError(`有 ${findings.length} 处拼出来的动态 import（明细见上）`)
 }

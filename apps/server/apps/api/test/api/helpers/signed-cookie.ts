@@ -48,8 +48,7 @@ export function unsignCookieValue(raw: string): string | undefined {
 
   try {
     decoded = decodeURIComponent(raw)
-  }
-  catch {
+  } catch {
     // 值里有非法百分号转义：保持原样，让下面的形态判定给出 undefined 而不是让断言侧抛
   }
 

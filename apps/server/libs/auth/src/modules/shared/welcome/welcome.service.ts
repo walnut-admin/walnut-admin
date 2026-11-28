@@ -8,7 +8,10 @@ import { AppSmsService } from '@walnut-server/sms'
 export class SharedWelcomeService {
   private readonly logger = new Logger(SharedWelcomeService.name)
 
-  constructor(private readonly mailerService: AppMailerService, private readonly smsService: AppSmsService) { }
+  constructor(
+    private readonly mailerService: AppMailerService,
+    private readonly smsService: AppSmsService,
+  ) {}
 
   /**
    * @description send welcome message to user by type (email/sms)
@@ -17,8 +20,7 @@ export class SharedWelcomeService {
     if (type === 'email') {
       const res = await this.mailerService.sendWelcomeEmail(identifier, language)
       this.logger.log(`send welcome email to ${identifier} result: ${res}`)
-    }
-    else if (type === 'sms') {
+    } else if (type === 'sms') {
       const res = await this.smsService.sendWelcomeTextMessage(identifier, language)
       this.logger.log(`send welcome sms to ${identifier} result: ${res}`)
     }

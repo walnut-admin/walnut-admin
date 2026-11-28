@@ -53,11 +53,9 @@ describe('关闭顺序：CAP cleanup 必须在 PG / Bull 排空之前', () => {
   it('onModuleDestroy(Redis) → beforeApplicationShutdown(CAP) → onApplicationShutdown(PG / Bull)，全程不 process.exit', async () => {
     events.length = 0
 
-    const cleanupSpy = vi
-      .spyOn(AppCapJS, 'cleanup')
-      .mockImplementation(async () => {
-        events.push('cap.cleanup')
-      })
+    const cleanupSpy = vi.spyOn(AppCapJS, 'cleanup').mockImplementation(async () => {
+      events.push('cap.cleanup')
+    })
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never)
 
     const moduleRef = await Test.createTestingModule({
@@ -74,14 +72,20 @@ describe('关闭顺序：CAP cleanup 必须在 PG / Bull 排空之前', () => {
     try {
       await moduleRef.init()
       await moduleRef.close()
-    }
-    finally {
+    } finally {
       cleanupSpy.mockRestore()
       exitSpy.mockRestore()
     }
 
     // 四段都在（少一段就说明那条关闭钩子没挂上）
-    expect(events).toEqual(expect.arrayContaining(['redis.quit', 'cap.cleanup', 'pg.dataSource.closed', 'bull.queue.closed']))
+    expect(events).toEqual(
+      expect.arrayContaining([
+        'redis.quit',
+        'cap.cleanup',
+        'pg.dataSource.closed',
+        'bull.queue.closed',
+      ]),
+    )
 
     // 顺序：Redis 最先（onModuleDestroy 是序列第一段），CAP 落盘在中段，
     // PG / Bull 是 onApplicationShutdown —— 必须排在 CAP 之后

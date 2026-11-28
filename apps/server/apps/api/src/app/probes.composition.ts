@@ -116,20 +116,15 @@ async function probeWithinTimeout(
 ): Promise<boolean> {
   let timer: NodeJS.Timeout | undefined
   const timeout = new Promise<never>((_resolve, reject) => {
-    timer = setTimeout(
-      () => reject(new Error(`probe timeout after ${timeoutMs}ms`)),
-      timeoutMs,
-    )
+    timer = setTimeout(() => reject(new Error(`probe timeout after ${timeoutMs}ms`)), timeoutMs)
   })
 
   try {
     await Promise.race([check(), timeout])
     return true
-  }
-  catch {
+  } catch {
     return false
-  }
-  finally {
+  } finally {
     if (timer) {
       clearTimeout(timer)
     }

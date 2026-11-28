@@ -68,9 +68,9 @@ describe('C 段：system/user/mfa totp 闭环 + webauthn 形状（真实 HTTP �
     const res = await api.root('GET', api.apiPath('/auth/mfa/status'))
     expectOk(res, 'auth mfa status unbound')
 
-    const data = bodyOf<Array<{ type: string, enabled: boolean }>>(res).data
-    expect(data.find(i => i.type === 'totp')?.enabled).toBe(false)
-    expect(data.find(i => i.type === 'webauthn')?.enabled).toBe(false)
+    const data = bodyOf<Array<{ type: string; enabled: boolean }>>(res).data
+    expect(data.find((i) => i.type === 'totp')?.enabled).toBe(false)
+    expect(data.find((i) => i.type === 'webauthn')?.enabled).toBe(false)
   })
 
   it('totp generate → 真 secret + qrCode data URL + totpId=`userId,deviceId`', async () => {
@@ -116,7 +116,7 @@ describe('C 段：system/user/mfa totp 闭环 + webauthn 形状（真实 HTTP �
       expect(code).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/)
     }
 
-    const rows: Array<{ device_id: string, status: boolean }> = await api.pgDataSource.query(
+    const rows: Array<{ device_id: string; status: boolean }> = await api.pgDataSource.query(
       'SELECT device_id, status FROM sys_user_mfa WHERE user_id = $1 AND type = $2',
       [fixture!.userId, 'totp'],
     )
@@ -218,9 +218,9 @@ describe('C 段：system/user/mfa totp 闭环 + webauthn 形状（真实 HTTP �
     const res = await api.root('GET', api.apiPath('/auth/mfa/status'))
     expectOk(res, 'auth mfa status bound')
 
-    const data = bodyOf<Array<{ type: string, enabled: boolean }>>(res).data
-    expect(data.find(i => i.type === 'totp')?.enabled).toBe(true)
-    expect(data.find(i => i.type === 'webauthn')?.enabled).toBe(false)
+    const data = bodyOf<Array<{ type: string; enabled: boolean }>>(res).data
+    expect(data.find((i) => i.type === 'totp')?.enabled).toBe(true)
+    expect(data.find((i) => i.type === 'webauthn')?.enabled).toBe(false)
   })
 
   it('auth/mfa/verify：启用通道数不足 methodsRequiredCount → 40000 verifyFail（E 段补漏）', async () => {
@@ -231,24 +231,33 @@ describe('C 段：system/user/mfa totp 闭环 + webauthn 形状（真实 HTTP �
     try {
       const res = await api.root('POST', api.apiPath('/auth/mfa/verify'), { trusted: false })
       expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
-    }
-    finally {
+    } finally {
       await restore()
     }
   })
 
   it('status 开关：false → true 落库；非活动 totp 不算 verified 通道（security-tab2 对拍）', async () => {
-    const disable = await api.root('PUT', api.apiPath('/system/user/mfa/totp/status'), { status: false })
+    const disable = await api.root('PUT', api.apiPath('/system/user/mfa/totp/status'), {
+      status: false,
+    })
     expectOk(disable, 'totp status disable')
 
     let tab2 = await api.root('GET', api.apiPath('/system/user/me/security-tab2'))
-    expect(bodyOf<{ totp: { status: boolean, verified: boolean } }>(tab2).data.totp).toEqual({ status: false, verified: true })
+    expect(bodyOf<{ totp: { status: boolean; verified: boolean } }>(tab2).data.totp).toEqual({
+      status: false,
+      verified: true,
+    })
 
-    const enable = await api.root('PUT', api.apiPath('/system/user/mfa/totp/status'), { status: true })
+    const enable = await api.root('PUT', api.apiPath('/system/user/mfa/totp/status'), {
+      status: true,
+    })
     expectOk(enable, 'totp status enable')
 
     tab2 = await api.root('GET', api.apiPath('/system/user/me/security-tab2'))
-    expect(bodyOf<{ totp: { status: boolean, verified: boolean } }>(tab2).data.totp).toEqual({ status: true, verified: true })
+    expect(bodyOf<{ totp: { status: boolean; verified: boolean } }>(tab2).data.totp).toEqual({
+      status: true,
+      verified: true,
+    })
   })
 
   it('unbind → 删行；再 unbind → 40401；security-tab2 回全关', async () => {
@@ -273,7 +282,10 @@ describe('C 段：system/user/mfa totp 闭环 + webauthn 形状（真实 HTTP �
     expect(bodyOf(reunbind).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
 
     const tab2 = await api.root('GET', api.apiPath('/system/user/me/security-tab2'))
-    expect(bodyOf<{ totp: { status: boolean, verified: boolean } }>(tab2).data.totp).toEqual({ status: false, verified: false })
+    expect(bodyOf<{ totp: { status: boolean; verified: boolean } }>(tab2).data.totp).toEqual({
+      status: false,
+      verified: false,
+    })
   })
 
   it('webauthn register/options → 公钥注册选项形状（rp/user/challenge/algorithms）', async () => {
@@ -282,12 +294,12 @@ describe('C 段：system/user/mfa totp 闭环 + webauthn 形状（真实 HTTP �
     })
     expectOk(res, 'webauthn register options')
 
-    const data = bodyOf<{ options: Record<string, unknown>, deviceName: string }>(res).data
+    const data = bodyOf<{ options: Record<string, unknown>; deviceName: string }>(res).data
     expect(data.deviceName).toBe(`webauthn-spec-${seed8}`)
 
     const options = data.options as {
-      rp: { name?: string, id?: string }
-      user: { name?: string, displayName?: string }
+      rp: { name?: string; id?: string }
+      user: { name?: string; displayName?: string }
       challenge: string
       pubKeyCredParams: Array<{ alg: number }>
       excludeCredentials: unknown[]
@@ -296,25 +308,36 @@ describe('C 段：system/user/mfa totp 闭环 + webauthn 形状（真实 HTTP �
     expect(options.rp.id).toBeTruthy()
     expect(options.user.name).toBe(fixture!.userName)
     expect(options.challenge).toBeTruthy()
-    expect(options.pubKeyCredParams.some(p => p.alg === -7)).toBe(true)
+    expect(options.pubKeyCredParams.some((p) => p.alg === -7)).toBe(true)
     // 本用户无既有 webauthn 凭证 → 排除列表空
     expect(options.excludeCredentials).toEqual([])
   })
 
   it('webauthn 错误路径：authenticate/options 无凭证 → 40400；verify 无 challenge 缓存 → 40000', async () => {
-    const noCredential = await api.root('POST', api.apiPath('/system/user/mfa/webauthn/authenticate/options'))
+    const noCredential = await api.root(
+      'POST',
+      api.apiPath('/system/user/mfa/webauthn/authenticate/options'),
+    )
     expect(bodyOf(noCredential).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND)
 
-    const noChallenge = await api.root('POST', api.apiPath('/system/user/mfa/webauthn/authenticate/verify'), {
-      trusted: false,
-      response: { id: 'cred-x', rawId: 'cred-x', type: 'public-key' },
-    })
+    const noChallenge = await api.root(
+      'POST',
+      api.apiPath('/system/user/mfa/webauthn/authenticate/verify'),
+      {
+        trusted: false,
+        response: { id: 'cred-x', rawId: 'cred-x', type: 'public-key' },
+      },
+    )
     expect(bodyOf(noChallenge).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
 
-    const regNoChallenge = await api.root('POST', api.apiPath('/system/user/mfa/webauthn/register/verify'), {
-      name: 'webauthn-spec',
-      response: {},
-    })
+    const regNoChallenge = await api.root(
+      'POST',
+      api.apiPath('/system/user/mfa/webauthn/register/verify'),
+      {
+        name: 'webauthn-spec',
+        response: {},
+      },
+    )
     // 上例 register/options 的 challenge 还在 30s TTL 内 → 过了 nil 检查，malformed
     // response 在 simplewebauthn 校验里抛异常 —— P3-5 包装后受控 40000（不再 50000）
     expect(bodyOf(regNoChallenge).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)

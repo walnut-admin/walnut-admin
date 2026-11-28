@@ -27,7 +27,7 @@ export interface AuthPermissions {
   keepAliveNames: string[]
   indexMenuName: string
   affixedTabs: IStoreApp.Tab.Item[]
-  internalIframeList: { name: string, url: string, cache: boolean }[]
+  internalIframeList: { name: string; url: string; cache: boolean }[]
 }
 
 /**

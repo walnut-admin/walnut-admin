@@ -34,31 +34,28 @@ interface Parsed {
 }
 
 function parseArgs(argv: readonly string[]): Parsed {
-  const name = argv.find(arg => !arg.startsWith('-'))
-  const layerArg = argv.find(arg => arg.startsWith('--layer='))
+  const name = argv.find((arg) => !arg.startsWith('-'))
+  const layerArg = argv.find((arg) => arg.startsWith('--layer='))
   const dryRun = argv.includes('--dry-run')
 
-  if (name === undefined)
-    throw new PreconditionError(`缺 lib 名。\n${USAGE}`)
-  if (layerArg === undefined)
-    throw new PreconditionError(`缺 --layer。\n${USAGE}`)
+  if (name === undefined) throw new PreconditionError(`缺 lib 名。\n${USAGE}`)
+  if (layerArg === undefined) throw new PreconditionError(`缺 --layer。\n${USAGE}`)
 
   const layer = layerArg.slice('--layer='.length)
   if ((REFUSED_LAYERS as readonly string[]).includes(layer)) {
     throw new PreconditionError(
-      `层 ${layer} 拒绝自动登记：它的 layer(...) 接线是「单成员层」写法（...DOMAIN_LIBS.filter(lib => lib !== x)），`
-      + `塞第二个 lib 会让 rank 推导出的 banned 集合与接线对不上。\n`
-      + `手工改这几处：eslint.config.ts 的 DOMAIN_LIBS + 对应 layer(...) 的字面量数组 + drift spec 的 LAYER_MATRIX。\n${
-        USAGE}`,
+      `层 ${layer} 拒绝自动登记：它的 layer(...) 接线是「单成员层」写法（...DOMAIN_LIBS.filter(lib => lib !== x)），` +
+        `塞第二个 lib 会让 rank 推导出的 banned 集合与接线对不上。\n` +
+        `手工改这几处：eslint.config.ts 的 DOMAIN_LIBS + 对应 layer(...) 的字面量数组 + drift spec 的 LAYER_MATRIX。\n${
+          USAGE
+        }`,
     )
   }
-  if (!(layer in SCAFFOLD_LAYERS))
-    throw new PreconditionError(`未知的层 ${layer}。\n${USAGE}`)
+  if (!(layer in SCAFFOLD_LAYERS)) throw new PreconditionError(`未知的层 ${layer}。\n${USAGE}`)
 
   try {
     assertLibName(name)
-  }
-  catch (error) {
+  } catch (error) {
     throw new PreconditionError((error as Error).message)
   }
 
@@ -67,8 +64,7 @@ function parseArgs(argv: readonly string[]): Parsed {
 
 /** 打印一处改动：文件名 + 增删行数（新建文件单列） */
 function describe(path: string, before: string | null, after: string): string {
-  if (before === null)
-    return `  + ${path}（新文件，${after.split('\n').length} 行）`
+  if (before === null) return `  + ${path}（新文件，${after.split('\n').length} 行）`
   const added = after.split('\n').length - before.split('\n').length
   return `  ~ ${path}（+${added} 行）`
 }
@@ -78,7 +74,7 @@ export async function main(): Promise<void> {
   const { name, layer, dryRun } = parseArgs(argv)
 
   const files = planScaffold(REPO_ROOT, name, layer)
-  const pending = files.filter(file => file.before !== file.after)
+  const pending = files.filter((file) => file.before !== file.after)
 
   out(`lib ${name}（层 ${layer}）：注册面共 ${files.length} 个文件，待改 ${pending.length} 个`)
 
@@ -87,8 +83,7 @@ export async function main(): Promise<void> {
     return
   }
 
-  for (const file of pending)
-    out(describe(file.path, file.before, file.after))
+  for (const file of pending) out(describe(file.path, file.before, file.after))
 
   if (dryRun) {
     line('ok', '--dry-run：以上是全部改动，未落盘')
@@ -96,12 +91,13 @@ export async function main(): Promise<void> {
   }
 
   const changed = applyScaffold(REPO_ROOT, pending)
-  if (changed.length === 0)
-    throw new ViolationError('清单非空但没有任何文件被写（内部不一致）')
+  if (changed.length === 0) throw new ViolationError('清单非空但没有任何文件被写（内部不一致）')
 
   out('')
   out('下一步（两条都必须绿）：')
   out('  pnpm --filter @walnut/server types:check')
-  out('  cd apps/server && node_modules\\.bin\\vitest.cmd run --config ./apps/api/vitest.config.ts apps/api/test/architecture/lib-registration.drift.spec.ts')
+  out(
+    '  cd apps/server && node_modules\\.bin\\vitest.cmd run --config ./apps/api/vitest.config.ts apps/api/test/architecture/lib-registration.drift.spec.ts',
+  )
   line('ok', `已写入 ${changed.length} 个文件`)
 }

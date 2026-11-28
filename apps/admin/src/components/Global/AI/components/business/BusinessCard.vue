@@ -1,13 +1,16 @@
 <script setup lang="ts">
 defineOptions({ name: 'BusinessCard' })
 
-withDefaults(defineProps<{
-  width?: string
-  icon?: string
-  title?: string
-}>(), {
-  width: '350px',
-})
+withDefaults(
+  defineProps<{
+    width?: string
+    icon?: string
+    title?: string
+  }>(),
+  {
+    width: '350px',
+  },
+)
 </script>
 
 <template>

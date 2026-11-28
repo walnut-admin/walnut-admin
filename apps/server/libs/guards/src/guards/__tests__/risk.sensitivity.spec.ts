@@ -1,6 +1,13 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join, relative, resolve, sep } from 'node:path'
-import { AppRoutes, AuthRoutes, SecurityRoutes, SharedRoutes, SystemEndpointRoutes, SystemRoutes } from '@walnut/contract'
+import {
+  AppRoutes,
+  AuthRoutes,
+  SecurityRoutes,
+  SharedRoutes,
+  SystemEndpointRoutes,
+  SystemRoutes,
+} from '@walnut/contract'
 import { describe, expect, it } from 'vitest'
 import {
   isWalnutAdminRiskFailClose,
@@ -63,7 +70,7 @@ function stripComments(text: string): string {
       continue
     }
 
-    if (char === '\'' || char === '"' || char === '`') {
+    if (char === "'" || char === '"' || char === '`') {
       quote = char
       stripped += char
       continue
@@ -103,14 +110,13 @@ function findMatchingParen(text: string, openParenIndex: number): number {
     if (quote !== null) {
       if (char === '\\') {
         i++
-      }
-      else if (char === quote) {
+      } else if (char === quote) {
         quote = null
       }
       continue
     }
 
-    if (char === '\'' || char === '"' || char === '`') {
+    if (char === "'" || char === '"' || char === '`') {
       quote = char
       continue
     }
@@ -146,7 +152,9 @@ function readPathArgument(raw: string): string | undefined {
 
   const reference = /^([A-Za-z_$][\w$]*)\.([A-Z][A-Z0-9_]*)/.exec(text)
   if (reference === null) {
-    throw new Error(`路径既不是字面量也不是 Group.KEY 引用：${text.slice(0, 60)}（请扩展扫描器而不是绕过）`)
+    throw new Error(
+      `路径既不是字面量也不是 Group.KEY 引用：${text.slice(0, 60)}（请扩展扫描器而不是绕过）`,
+    )
   }
 
   const value = CONTRACT_GROUPS[reference[1]]?.[reference[2]]
@@ -200,7 +208,15 @@ const ROUTE_DECORATORS: Record<string, string> = {
 }
 
 /** 复合路由装饰器：路由由库里的 applyDecorators 生成，controller 源文件里没有字面量可扫 */
-const COMPOSITE_ROUTE_HELPERS = ['WalnutCrudDecorators', 'WalnutAdminDecoratorCreate', 'WalnutAdminDecoratorRead', 'WalnutAdminDecoratorUpdate', 'WalnutAdminDecoratorDelete', 'WalnutAdminDecoratorDeleteMany', 'WalnutAdminDecoratorList'] as const
+const COMPOSITE_ROUTE_HELPERS = [
+  'WalnutCrudDecorators',
+  'WalnutAdminDecoratorCreate',
+  'WalnutAdminDecoratorRead',
+  'WalnutAdminDecoratorUpdate',
+  'WalnutAdminDecoratorDelete',
+  'WalnutAdminDecoratorDeleteMany',
+  'WalnutAdminDecoratorList',
+] as const
 
 interface IScannedRoute {
   file: string
@@ -218,8 +234,7 @@ function listControllerFiles(dir: string): string[] {
     const full = join(dir, entry.name)
     if (entry.isDirectory()) {
       found.push(...listControllerFiles(full))
-    }
-    else if (entry.isFile() && entry.name.endsWith('.controller.ts')) {
+    } else if (entry.isFile() && entry.name.endsWith('.controller.ts')) {
       found.push(full)
     }
   }
@@ -232,17 +247,19 @@ function listAllControllerFiles(): string[] {
   const appFiles = listControllerFiles(resolve(process.cwd(), 'apps/api/src'))
   const libsRoot = resolve(process.cwd(), 'libs')
   const libFiles = readdirSync(libsRoot, { withFileTypes: true })
-    .filter(entry => entry.isDirectory())
-    .flatMap(entry => listControllerFiles(join(libsRoot, entry.name, 'src')))
+    .filter((entry) => entry.isDirectory())
+    .flatMap((entry) => listControllerFiles(join(libsRoot, entry.name, 'src')))
 
   return [...appFiles, ...libFiles].sort()
 }
 
 function isInSensitivityFamily(path: string): boolean {
-  return WALNUT_ADMIN_RISK_SENSITIVITY_FAMILIES.some(family => path === family || path.startsWith(`${family}/`))
+  return WALNUT_ADMIN_RISK_SENSITIVITY_FAMILIES.some(
+    (family) => path === family || path.startsWith(`${family}/`),
+  )
 }
 
-function scanController(file: string): { routes: IScannedRoute[], compositeHelpers: string[] } {
+function scanController(file: string): { routes: IScannedRoute[]; compositeHelpers: string[] } {
   const label = relative(process.cwd(), file).split(sep).join('/')
   const text = stripComments(readFileSync(file, 'utf8'))
 
@@ -271,13 +288,13 @@ function scanController(file: string): { routes: IScannedRoute[], compositeHelpe
     })
   }
 
-  const compositeHelpers = COMPOSITE_ROUTE_HELPERS.filter(helper => text.includes(`${helper}(`))
+  const compositeHelpers = COMPOSITE_ROUTE_HELPERS.filter((helper) => text.includes(`${helper}(`))
 
   return { routes, compositeHelpers }
 }
 
 function scanAllRoutes(): IScannedRoute[] {
-  return listAllControllerFiles().flatMap(file => scanController(file).routes)
+  return listAllControllerFiles().flatMap((file) => scanController(file).routes)
 }
 
 // ─── 归一化器（纯函数）────────────────────────────────────────────────────────
@@ -291,7 +308,9 @@ describe('全局前缀归一化（URI versioning）', () => {
   })
 
   it('不误伤带版本样式的业务段（前缀只在最前面剥一次）', () => {
-    expect(stripWalnutAdminApiVersionPrefix('/w/v1/system/locale/message/v2')).toBe('/system/locale/message/v2')
+    expect(stripWalnutAdminApiVersionPrefix('/w/v1/system/locale/message/v2')).toBe(
+      '/system/locale/message/v2',
+    )
   })
 })
 
@@ -320,7 +339,9 @@ describe('敏感度解析', () => {
     for (const [method, path] of failClose) {
       expect(isWalnutAdminRiskFailClose(method, path), `${method} ${path}`).toBe(true)
       // 带全局前缀也必须命中（运行期 request.path 就是这个形态）
-      expect(isWalnutAdminRiskFailClose(method, `/w/v1${path}`), `${method} /w/v1${path}`).toBe(true)
+      expect(isWalnutAdminRiskFailClose(method, `/w/v1${path}`), `${method} /w/v1${path}`).toBe(
+        true,
+      )
     }
   })
 
@@ -342,7 +363,10 @@ describe('敏感度解析', () => {
   })
 
   it('表内带参路由能匹配具体路径（OAuth SSE 的 :fp）', () => {
-    const resolved = resolveWalnutAdminRiskSensitivity('GET', '/w/v1/auth/oauth/github/sse/abc123def')
+    const resolved = resolveWalnutAdminRiskSensitivity(
+      'GET',
+      '/w/v1/auth/oauth/github/sse/abc123def',
+    )
 
     expect(resolved?.path).toBe('/auth/oauth/github/sse/:fp')
     expect(resolved?.sensitivity).toBe('fail-open')
@@ -361,13 +385,15 @@ describe('敏感度解析', () => {
 
 describe('敏感端点清单 ↔ 真实路由对账（新增端点必须显式归类）', () => {
   const scanned = scanAllRoutes()
-  const familyRoutes = scanned.filter(route => isInSensitivityFamily(route.path))
-  const tableKeys = new Set(WALNUT_ADMIN_RISK_ROUTE_SENSITIVITY.map(entry => `${entry.method} ${entry.path}`))
+  const familyRoutes = scanned.filter((route) => isInSensitivityFamily(route.path))
+  const tableKeys = new Set(
+    WALNUT_ADMIN_RISK_ROUTE_SENSITIVITY.map((entry) => `${entry.method} ${entry.path}`),
+  )
 
   it('扫描器真的扫到了两个家族的路由（防空扫描导致的假绿）', () => {
     expect(familyRoutes.length).toBeGreaterThan(20)
     // 抽查：登录链起点与 sign 握手都在扫描结果里
-    const keys = new Set(familyRoutes.map(route => `${route.method} ${route.path}`))
+    const keys = new Set(familyRoutes.map((route) => `${route.method} ${route.path}`))
     expect(keys.has('POST /auth/opaque/user/login/start')).toBe(true)
     expect(keys.has('POST /security/sign/initial')).toBe(true)
     expect(keys.has('GET /auth/oauth/github/sse/:fp')).toBe(true)
@@ -375,8 +401,8 @@ describe('敏感端点清单 ↔ 真实路由对账（新增端点必须显式�
 
   it('a) /auth/** 与 /security/** 的每条真实路由都在清单里（显式归类）', () => {
     const unclassified = familyRoutes
-      .filter(route => !tableKeys.has(`${route.method} ${route.path}`))
-      .map(route => `${route.method} ${route.path}  (${route.file})`)
+      .filter((route) => !tableKeys.has(`${route.method} ${route.path}`))
+      .map((route) => `${route.method} ${route.path}  (${route.file})`)
 
     expect(
       unclassified,
@@ -385,19 +411,21 @@ describe('敏感端点清单 ↔ 真实路由对账（新增端点必须显式�
   })
 
   it('b) 清单里每条 fail-close 都是真实路由（防「清单里躺着一个已删端点」）', () => {
-    const scannedKeys = new Set(scanned.map(route => `${route.method} ${route.path}`))
-    const stale = WALNUT_ADMIN_RISK_ROUTE_SENSITIVITY
-      .filter(entry => entry.sensitivity === 'fail-close')
-      .map(entry => `${entry.method} ${entry.path}`)
-      .filter(key => !scannedKeys.has(key))
+    const scannedKeys = new Set(scanned.map((route) => `${route.method} ${route.path}`))
+    const stale = WALNUT_ADMIN_RISK_ROUTE_SENSITIVITY.filter(
+      (entry) => entry.sensitivity === 'fail-close',
+    )
+      .map((entry) => `${entry.method} ${entry.path}`)
+      .filter((key) => !scannedKeys.has(key))
 
     expect(stale, `清单里的 fail-close 端点已不存在：\n${stale.join('\n')}`).toEqual([])
   })
 
   it('c) fail-close 集合被逐条钉死（改分级必须同时改本断言）', () => {
-    const failClose = WALNUT_ADMIN_RISK_ROUTE_SENSITIVITY
-      .filter(entry => entry.sensitivity === 'fail-close')
-      .map(entry => `${entry.method} ${entry.path}`)
+    const failClose = WALNUT_ADMIN_RISK_ROUTE_SENSITIVITY.filter(
+      (entry) => entry.sensitivity === 'fail-close',
+    )
+      .map((entry) => `${entry.method} ${entry.path}`)
       .sort()
 
     expect(failClose).toEqual([
@@ -423,9 +451,13 @@ describe('敏感端点清单 ↔ 真实路由对账（新增端点必须显式�
 
   it('d) 家族内的 controller 不得使用复合路由装饰器（否则扫描器会静默漏路由）', () => {
     const offenders = listAllControllerFiles()
-      .map(file => ({ file, ...scanController(file) }))
-      .filter(entry => entry.routes.some(route => isInSensitivityFamily(route.path)) && entry.compositeHelpers.length > 0)
-      .map(entry => `${entry.file}: ${entry.compositeHelpers.join(', ')}`)
+      .map((file) => ({ file, ...scanController(file) }))
+      .filter(
+        (entry) =>
+          entry.routes.some((route) => isInSensitivityFamily(route.path)) &&
+          entry.compositeHelpers.length > 0,
+      )
+      .map((entry) => `${entry.file}: ${entry.compositeHelpers.join(', ')}`)
 
     expect(
       offenders,

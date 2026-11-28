@@ -6,8 +6,10 @@ import vitePluginBundleObfuscator from 'vite-plugin-bundle-obfuscator'
  * 这份映射必须与 app 的 `codeSplitting.groups` 对得上，所以依赖表只能由调用方传进来。
  */
 export function createObfuscatorPlugin(pkg: ViteConfigPackageInfo) {
-  const normal = Object.keys(pkg.dependencies).filter(i => !i.startsWith('@'))
-  const startWithAt = Object.keys(pkg.dependencies).filter(i => i.startsWith('@')).map(i => `vendor-${i.split('/')[0]}`)
+  const normal = Object.keys(pkg.dependencies).filter((i) => !i.startsWith('@'))
+  const startWithAt = Object.keys(pkg.dependencies)
+    .filter((i) => i.startsWith('@'))
+    .map((i) => `vendor-${i.split('/')[0]}`)
 
   return vitePluginBundleObfuscator({
     enable: true,

@@ -23,8 +23,7 @@ function withSyncEncryption(
 
     getItem(key: string) {
       const string = storage.getItem(key)
-      if (string === null)
-        return null
+      if (string === null) return null
       const decrypted = decrypt(string)
       return decrypted
     },
@@ -52,7 +51,5 @@ export function withSyncConditionalEncryption(
   crypto: IWithEncryptionSyncOptions,
   shouldEncrypt: () => boolean,
 ): IStorageSync {
-  return shouldEncrypt()
-    ? withSyncEncryption(storage, crypto)
-    : storage
+  return shouldEncrypt() ? withSyncEncryption(storage, crypto) : storage
 }

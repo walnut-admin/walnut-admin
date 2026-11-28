@@ -1,11 +1,10 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  Logger,
-} from '@nestjs/common'
+import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { IWalnutAdminConstDecoratorRoleMode, WalnutAdminConstDecoratorRoleMetadataKey, WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
+import {
+  IWalnutAdminConstDecoratorRoleMode,
+  WalnutAdminConstDecoratorRoleMetadataKey,
+  WalnutAdminConstDecoratorRoleMode,
+} from '@walnut-server/const/decorator/role'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { WalnutAdminExceptionNoAccessRolePermission } from '@walnut-server/exceptions/business/auth'
 import { Role, RoleType } from '@walnut/contract'
@@ -15,7 +14,7 @@ import { isNil } from 'lodash'
 export class WalnutAdminGuardRole implements CanActivate {
   private readonly logger = new Logger(WalnutAdminGuardRole.name)
 
-  constructor(private readonly reflector: Reflector) { }
+  constructor(private readonly reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const ctx = context.switchToHttp()
@@ -26,11 +25,10 @@ export class WalnutAdminGuardRole implements CanActivate {
       [context.getHandler(), context.getClass()],
     )
 
-    const payloadRoleMode
-      = this.reflector.getAllAndOverride<IWalnutAdminConstDecoratorRoleMode>(
-        WalnutAdminConstDecoratorRoleMetadataKey.ROLE_MODE,
-        [context.getHandler(), context.getClass()],
-      )
+    const payloadRoleMode = this.reflector.getAllAndOverride<IWalnutAdminConstDecoratorRoleMode>(
+      WalnutAdminConstDecoratorRoleMetadataKey.ROLE_MODE,
+      [context.getHandler(), context.getClass()],
+    )
 
     if (isNil(payloadRole)) {
       this.logger.warn(
@@ -62,7 +60,10 @@ export class WalnutAdminGuardRole implements CanActivate {
     const allRoleNames = user.roleNames
 
     // visitor specfic handle
-    if (user.roleMode === WalnutAdminConstRoleMode.SWITCH && user.currentRoleName === Role.VISITOR) {
+    if (
+      user.roleMode === WalnutAdminConstRoleMode.SWITCH &&
+      user.currentRoleName === Role.VISITOR
+    ) {
       // simply throw error
       // controller with role guard visitor cannot access
       throw new WalnutAdminExceptionNoAccessRolePermission()
@@ -77,9 +78,8 @@ export class WalnutAdminGuardRole implements CanActivate {
       if (payloadRoleMode === WalnutAdminConstDecoratorRoleMode.AND) {
         if (user.roleMode === WalnutAdminConstRoleMode.COMBINE) {
           // combine && and
-          canNext = payloadRole.every(i => allRoleNames.includes(i))
-        }
-        else {
+          canNext = payloadRole.every((i) => allRoleNames.includes(i))
+        } else {
           // switch && and
           // P3-32 修复（2026-10-29）：旧实现只打日志、canNext 保持默认 true —— 误配
           // （数组角色 + 默认 mode='and' + switchable 用户）会静默放行任意角色，是安全
@@ -94,9 +94,8 @@ export class WalnutAdminGuardRole implements CanActivate {
       if (payloadRoleMode === WalnutAdminConstDecoratorRoleMode.OR) {
         if (user.roleMode === WalnutAdminConstRoleMode.COMBINE) {
           // combine && or
-          canNext = allRoleNames.some(i => payloadRole.includes(i))
-        }
-        else {
+          canNext = allRoleNames.some((i) => payloadRole.includes(i))
+        } else {
           // switch && or
           canNext = payloadRole.includes(user.currentRoleName)
         }

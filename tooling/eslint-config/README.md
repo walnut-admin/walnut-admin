@@ -3,7 +3,13 @@
 > flat config（`eslint.config.ts`）的三个预设，构建在 `@antfu/eslint-config` 之上。
 > `eslint` 是 `peerDependencies`，插件住本包 `dependencies` —— 消费方只挑预设，不自己装插件
 > （[ADR 0014](../../apps/docs/src/zh-CN/content/adr/0014-eslint-config-strategy.md)）。
-> 本仓**没有 Prettier**：格式化由 ESLint 的 stylistic 规则承担。
+> 本仓**没有 Prettier**：格式的唯一真源是 **oxfmt**（根 `.oxfmtrc.json`）—— 三个预设都是
+> `stylistic: false`，末尾接 `eslint-config-prettier/flat` 兜底；ESLint 只留非格式规则
+> （[ADR 0031](../../apps/docs/src/zh-CN/content/adr/0031-rust-toolchain-migration.md)）。
+> **排序也归 oxfmt**（`sortPackageJson: true` + `sortImports` 全量开启，2026-11-28 最终决策）：
+> ESLint 侧只关 `perfectionist/sort-imports`（见 `sort-ownership.ts`），并保留 oxfmt 做不到的
+> `sort-named-imports` / `sort-named-exports` / `sort-exports` 与 `package.json` 的**窄版**
+> `jsonc/sort-keys`（`exports` 条件序 + `resolutions` / `pnpm.overrides` asc；根键序归 oxfmt）。
 
 ## 三个预设：按**运行环境**分
 
@@ -13,8 +19,10 @@
 | `./vue` → `vue.ts` | 浏览器 + Vue（`apps/admin`、`apps/docs`、`packages/platform-web/*`） | `vue` / `unocss` / `typescript` |
 | `./nest` → `nest.ts` | NestJS 后端（`apps/server`） | TypeScript project 模式 + 后端禁令与本地规则 |
 
-三个预设各自直接调 `antfu(...)`（`nest` 不经过 `base`），所以共用的两段必须显式挂上：
-`turbo-env-vars.ts`（Turbo 未声明环境变量）与 `comment-rules.ts`（注释里不许有 emoji）。
+三个预设各自直接调 `antfu(...)`（`nest` 不经过 `base`），所以共用的**三段**必须显式挂上：
+`turbo-env-vars.ts`（Turbo 未声明环境变量）、`comment-rules.ts`（注释里不许有 emoji）与
+`sort-ownership.ts`（排序所有权 —— 漏掉任何一个预设，那个包就会继续跑
+`perfectionist/sort-imports`，与 oxfmt 互相改回去）。
 
 ## 怎么消费
 
@@ -39,6 +47,11 @@ export default nestConfig().append(/* … */)
 预设签名都是 `(options: OptionsConfig = {}) => WalnutEslintConfig`，`...options` **最后展开**，
 所以消费方的 `rules` / `ignores` 覆盖预设；返回值是 `ReturnType<typeof antfu>`，支持 `.append()`。
 `packages/generated/api-types` 用 `baseConfig().append({ ignores: [...] })` 豁免生成物。
+
+**例外：有几段刻意不可被消费方覆盖** —— `stylistic`（`false`）、`oxlint` 去重段、
+`sort-ownership` 与 `eslint-config-prettier` 兜底挂在 `...options` **之后**。它们是「格式 / 排序
+只有一个真源」的机械保证：允许消费方用 `stylistic: true` 或重新打开 `perfectionist/sort-imports`
+等于把两个真源又接回来。要改这些面就改本包（或 ADR），别在消费方传 options。
 
 ## 契约与扩展点
 

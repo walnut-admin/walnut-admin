@@ -6,7 +6,9 @@ defineOptions({
   name: 'WCompExtraArrow',
 })
 
-const props = withDefaults(defineProps<ICompExtraArrowProps>(), { icon: 'ant-design:down-outlined' })
+const props = withDefaults(defineProps<ICompExtraArrowProps>(), {
+  icon: 'ant-design:down-outlined',
+})
 
 const getClass = computed(() => {
   if (typeof props.active === 'boolean') {
@@ -14,8 +16,8 @@ const getClass = computed(() => {
       'w-arrow',
       {
         'w-arrow--active': props.active,
-        'right': props.right,
-        'left': props.left,
+        right: props.right,
+        left: props.left,
       },
     ]
   }
@@ -25,11 +27,7 @@ const getClass = computed(() => {
 </script>
 
 <template>
-  <WIcon
-    :icon="icon"
-    width="16"
-    :class="getClass"
-  />
+  <WIcon :icon="icon" width="16" :class="getClass" />
 </template>
 
 <style lang="scss" scoped>

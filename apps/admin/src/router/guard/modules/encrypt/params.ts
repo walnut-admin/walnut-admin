@@ -11,7 +11,7 @@ function isUrlParamEncrypted(v: unknown): v is string {
 }
 
 async function urlParamEncrypt(v: string) {
-  return ENHANCED_URL_PREFIX + await encryptRouterUrl(v)
+  return ENHANCED_URL_PREFIX + (await encryptRouterUrl(v))
 }
 
 async function urlParamDecrypt(v: string) {
@@ -23,50 +23,48 @@ export function createRouteParamEncryptGuard(router: Router) {
 
   // beforeEach
   router.beforeEach(async (to, _from) => {
-    if (appSettingScope.getRouterEnhanceWhiteListCondition(to))
-      return true
+    if (appSettingScope.getRouterEnhanceWhiteListCondition(to)) return true
 
     // no name => refresh page
     // to.name redirect
     // route params enhancing
-    if (!router.currentRoute.value.name || to.name === layoutConst.redirect.name)
-      return true
+    if (!router.currentRoute.value.name || to.name === layoutConst.redirect.name) return true
 
-    const needEncrypt = Object.entries(to.params)
-      .filter(([, v]) => typeof v === 'string' && !isUrlParamEncrypted(v))
+    const needEncrypt = Object.entries(to.params).filter(
+      ([, v]) => typeof v === 'string' && !isUrlParamEncrypted(v),
+    )
 
-    if (!needEncrypt.length)
-      return true
+    if (!needEncrypt.length) return true
 
     const encrypted = { ...to.params }
-    await Promise.all(needEncrypt.map(async ([k, v]) => {
-      encrypted[k] = await urlParamEncrypt(v as string)
-    }))
+    await Promise.all(
+      needEncrypt.map(async ([k, v]) => {
+        encrypted[k] = await urlParamEncrypt(v as string)
+      }),
+    )
     return { ...to, params: encrypted, replace: true }
   })
 
   // beforeResolve
   router.beforeResolve(async (to) => {
-    if (appSettingScope.getRouterEnhanceWhiteListCondition(to))
-      return true
+    if (appSettingScope.getRouterEnhanceWhiteListCondition(to)) return true
 
     // to.name redirect
-    if (to.name === layoutConst.redirect.name)
-      return true
+    if (to.name === layoutConst.redirect.name) return true
 
-    const encryptedEntries = Object.entries(to.params)
-      .filter(([, v]) => isUrlParamEncrypted(v))
+    const encryptedEntries = Object.entries(to.params).filter(([, v]) => isUrlParamEncrypted(v))
 
-    if (!encryptedEntries.length)
-      return
+    if (!encryptedEntries.length) return
 
     const resolved = { ...to.params }
-    await Promise.all(encryptedEntries.map(async ([k, v]) => {
-      const decrypted = await urlParamDecrypt(v as string)
-      if (decrypted) {
-        resolved[k] = decrypted
-      }
-    }))
+    await Promise.all(
+      encryptedEntries.map(async ([k, v]) => {
+        const decrypted = await urlParamDecrypt(v as string)
+        if (decrypted) {
+          resolved[k] = decrypted
+        }
+      }),
+    )
 
     to.meta._resolvedParams = resolved
   })

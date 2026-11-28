@@ -6,7 +6,7 @@
 |---|---|
 | 目录 | `packages/platform-any/contract` |
 | 平台 / 运行时 | `platform: any` ｜ `type: contract` ｜ `runtime: none`（`package.json` 的 `walnut` 块） |
-| 消费方式 | **双模**：前端 Vite 经 `source` / `import` 条件直读 `src/*.ts`（JIT）；后端经 `require` 条件拿 `dist/*.cjs`（`vite build` 产出）。见 [ADR 0002](../../../apps/docs/src/zh-CN/content/adr/0002-dual-mode-consumption.md) |
+| 消费方式 | **双模**：前端 Vite 经 `source` / `import` 条件直读 `src/*.ts`（JIT）；后端经 `require` 条件拿 `dist/*.cjs`（`tsdown` 产出）。见 [ADR 0002](../../../apps/docs/src/zh-CN/content/adr/0002-dual-mode-consumption.md) |
 
 ## 它是什么
 
@@ -101,7 +101,7 @@ export const defaultOrder: SortOrder = 'descend'
 
 ## 依赖与边界
 
-- **依赖**：`easy-fns-ts`（仅 `import type`）。devDependencies 是构建 / 测试链：`vite` + `vite-plugin-dts` + `vitest` + `@walnut/vitest-config` + `@walnut/tsconfig`（`ts.json` 预设）。
+- **依赖**：`easy-fns-ts`（仅 `import type`）。devDependencies 是构建 / 测试链：`tsdown` + `vitest` + `@walnut/vitest-config` + `@walnut/tsconfig`（`ts.json` 预设）。
 - **消费者**：`@walnut/admin`、`@walnut/server`、`@walnut/http`（业务码 passthrough）、`@walnut/utils`（`src/crypto/const.ts` 引 `AES_GCM_WIRE`）。
 - **边界由 turbo tags 强制**：workspace 级 `turbo.json` 声明 `shared` / `pure` / `platform-any`，根 `turbo.json` 的 `boundaries.tags` 给出两条规则 —— `shared` 不许依赖 `app`，`platform-any` 不许依赖 `platform-web` / `platform-node`（`pure` 是描述性标签，无对应规则）。由 `pnpm walnut boundaries` 拦。
 - **变更由快照守护**：`src/index.test.ts` 对公开 API 面、错误码、路由、wire format 等逐项 `toMatchSnapshot()`，静默改动会在 diff 里暴露。

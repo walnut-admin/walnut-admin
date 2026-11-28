@@ -14,8 +14,7 @@ export async function useStarOnGithub() {
   const naiveStore = useAppStoreNaive()
 
   const dontShow = getCookie('dont-show-star')
-  if (dontShow === true)
-    return
+  if (dontShow === true) return
 
   function onClick() {
     openExternalLink(homepage)
@@ -46,7 +45,9 @@ export async function useStarOnGithub() {
             <span class="ml-1 font-semibold">{t('app.github.star')}</span>
           </n-button>
 
-          <n-checkbox size="small" onUpdateChecked={onCheckboxChange}>{t('app.base.dontShowAgain')}</n-checkbox>
+          <n-checkbox size="small" onUpdateChecked={onCheckboxChange}>
+            {t('app.base.dontShowAgain')}
+          </n-checkbox>
         </n-space>
       )
     },

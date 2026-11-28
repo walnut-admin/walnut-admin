@@ -3,7 +3,11 @@ import { Injectable } from '@nestjs/common'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { WalnutAdminExceptionDataExists } from '@walnut-server/exceptions/base/400'
 
-import { SysPostDTOCreateRequest, SysPostDTOListRequest, SysPostDTOUpdateRequest } from './dto/post.dto'
+import {
+  SysPostDTOCreateRequest,
+  SysPostDTOListRequest,
+  SysPostDTOUpdateRequest,
+} from './dto/post.dto'
 import { SysPostEntity } from './entity/post.entity'
 import { SysPostBasicRepository } from './post.basic.repository'
 
@@ -63,7 +67,7 @@ export class SysPostService {
   async delete(id: string, userId: string, em?: EntityManager) {
     await this.postBasicRepo.readById(id, em)
 
-    if (await this.postBasicRepo.countEmployees(id, em) > 0) {
+    if ((await this.postBasicRepo.countEmployees(id, em)) > 0) {
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.post.hasEmployees' })
     }
 

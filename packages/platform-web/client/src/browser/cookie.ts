@@ -22,13 +22,11 @@ export class Cookie {
 
   get<T = any>(name: string, defaultValue: Nullable<T> = null): Nullable<T> {
     const m = document.cookie.match(new RegExp(`(?:^|;\\s*)${this.key(name)}=([^;]*)`))
-    if (!m)
-      return defaultValue
+    if (!m) return defaultValue
     try {
       const decoded = decodeURIComponent(m[1])
       return JSON.parse(decoded) as T
-    }
-    catch {
+    } catch {
       return decodeURIComponent(m[1]) as unknown as T
     }
   }

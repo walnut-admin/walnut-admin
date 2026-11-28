@@ -21,7 +21,11 @@
 import { loginDevice, trackDevice, uniqueLocalIp } from '../../lib/device-fixtures.ts'
 import { findUserDeviceRow, findUserIdByUserName, withPg } from '../../lib/pg.ts'
 import { WalnutProtocolClient } from '../../lib/protocol/client.ts'
-import { SystemEndpointRoutes, SystemRoutes, WalnutAdminConstAppResponseCode } from '../../lib/protocol/contract.ts'
+import {
+  SystemEndpointRoutes,
+  SystemRoutes,
+  WalnutAdminConstAppResponseCode,
+} from '../../lib/protocol/contract.ts'
 import { signCookieValue } from '../../lib/protocol/cookie-sign.ts'
 import {
   deleteCapTokenCache,
@@ -41,7 +45,9 @@ import { expect, test } from '../fixtures.ts'
 import { RISK_FACTOR } from './risk-support.ts'
 
 test.describe('post-auth CAP 重武装', { tag: '@risk' }, () => {
-  test('U13 CAP 重新武装：40116 → cap-widget → 求解后重放 20000（post-auth 因子由同一请求的后鉴权腿标记）', async ({ browser }) => {
+  test('U13 CAP 重新武装：40116 → cap-widget → 求解后重放 20000（post-auth 因子由同一请求的后鉴权腿标记）', async ({
+    browser,
+  }) => {
     const credentials = readCredentials()
     // UI 登录的 MFA 页面复选框默认**未勾选**（trusted=false）—— 这正是 post-auth
     // USER_DEVICE_UNTRUSTED 因子的真实来源，不需要额外改库。
@@ -49,7 +55,7 @@ test.describe('post-auth CAP 重武装', { tag: '@risk' }, () => {
     const deviceId = session.deviceId
 
     try {
-      const userId = await withPg(pg => findUserIdByUserName(pg, credentials.userName))
+      const userId = await withPg((pg) => findUserIdByUserName(pg, credentials.userName))
       await withPg(async (pg) => {
         const row = await findUserDeviceRow(pg, userId, deviceId)
         expect(row, `sys_user_device 没有 (${userId}, ${deviceId}) 的行`).not.toBeNull()
@@ -69,9 +75,11 @@ test.describe('post-auth CAP 重武装', { tag: '@risk' }, () => {
       await session.context.clearCookies({ name: CAPJS_COOKIE_NAME })
 
       // 前置证据：清完之后 user-device 的标记确实没了（求解前它必须是 unhandled）
-      const clearedMarker = await withRedis(redis => redis.exists(
-        riskChallengeUserDeviceKey(userId, deviceId, RISK_FACTOR.USER_DEVICE_UNTRUSTED),
-      ))
+      const clearedMarker = await withRedis((redis) =>
+        redis.exists(
+          riskChallengeUserDeviceKey(userId, deviceId, RISK_FACTOR.USER_DEVICE_UNTRUSTED),
+        ),
+      )
       expect(clearedMarker, '清理后 USER_DEVICE_UNTRUSTED 的标记仍在').toBe(0)
 
       const captured = captureEnvelopes(session.page)
@@ -81,8 +89,9 @@ test.describe('post-auth CAP 重武装', { tag: '@risk' }, () => {
       // 目标是被导航触发的列表请求（URL 固定），不拿后台心跳的 40116 充数
       const rejected = await waitForEnvelope(
         captured.entries,
-        entry => entry.url.endsWith(`${SystemRoutes.USER}/list`)
-          && entry.code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED,
+        (entry) =>
+          entry.url.endsWith(`${SystemRoutes.USER}/list`) &&
+          entry.code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED,
         40_000,
       )
       const rejectedIndex = captured.entries.indexOf(rejected)
@@ -97,28 +106,32 @@ test.describe('post-auth CAP 重武装', { tag: '@risk' }, () => {
       // 「验证通过后同一请求重放成功」：同一个 URL 在 40116 之后出现 20000
       const replayed = await waitForEnvelope(
         captured.entries,
-        entry => entry.url === rejected.url && entry.code === WalnutAdminConstAppResponseCode.SUCCESS,
+        (entry) =>
+          entry.url === rejected.url && entry.code === WalnutAdminConstAppResponseCode.SUCCESS,
         40_000,
         rejectedIndex + 1,
       )
-      expect(replayed.code, `重放 ${rejected.url} 没有回到 20000`).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
+      expect(replayed.code, `重放 ${rejected.url} 没有回到 20000`).toBe(
+        WalnutAdminConstAppResponseCode.SUCCESS,
+      )
 
       // 状态落点 1：post-auth critical factor 被重放请求的**后鉴权腿**标为已处理
       // （服务端 api-spec 已确证：USER_DEVICE_UNTRUSTED 的标记只有 post-auth 腿写得出来）。
-      const userDeviceMarker = await withRedis(redis => redis.exists(
-        riskChallengeUserDeviceKey(userId, deviceId, RISK_FACTOR.USER_DEVICE_UNTRUSTED),
-      ))
+      const userDeviceMarker = await withRedis((redis) =>
+        redis.exists(
+          riskChallengeUserDeviceKey(userId, deviceId, RISK_FACTOR.USER_DEVICE_UNTRUSTED),
+        ),
+      )
       expect(userDeviceMarker, 'USER_DEVICE_UNTRUSTED 的挑战标记没有落 Redis').toBe(1)
 
       // 状态落点 2：pre-auth 的 critical 因子同样被这次求解覆盖（同一枚 CAP token 标记两腿）
-      const deviceMarker = await withRedis(redis => redis.exists(
-        `risk:challenge:device:${deviceId}:${RISK_FACTOR.DEVICE_NEW}`,
-      ))
+      const deviceMarker = await withRedis((redis) =>
+        redis.exists(`risk:challenge:device:${deviceId}:${RISK_FACTOR.DEVICE_NEW}`),
+      )
       expect(deviceMarker, 'DEVICE_NEW 的挑战标记没有落 Redis').toBe(1)
 
       captured.stop()
-    }
-    finally {
+    } finally {
       await session.context.close()
     }
   })
@@ -144,9 +157,13 @@ test.describe('post-auth CAP 重武装', { tag: '@risk' }, () => {
     const forged = signCookieValue('not-a-cap-token', cookieSecret)
     client.setCookie(CAPJS_COOKIE_NAME, encodeURIComponent(forged))
 
-    const blocked = await client.requestFree<{ code: number, msg?: string }>('GET', SystemEndpointRoutes.USER_ME_PROFILE, {
-      headers: authHeader,
-    })
+    const blocked = await client.requestFree<{ code: number; msg?: string }>(
+      'GET',
+      SystemEndpointRoutes.USER_ME_PROFILE,
+      {
+        headers: authHeader,
+      },
+    )
     expect(
       blocked.code,
       `畸形签名 CAP cookie 应回 40111，实际 ${blocked.code} ${blocked.msg ?? ''}`,
@@ -154,7 +171,11 @@ test.describe('post-auth CAP 重武装', { tag: '@risk' }, () => {
 
     // 恢复路径：重新领一枚真 CAP token（challenge → PoW → redeem），同一请求重放成功
     await client.refreshCapToken()
-    const replayed = await client.request('GET', SystemEndpointRoutes.USER_ME_PROFILE, { headers: authHeader })
-    expect(replayed.code, '换真 CAP 凭据后同一请求仍失败').toBe(WalnutAdminConstAppResponseCode.SUCCESS)
+    const replayed = await client.request('GET', SystemEndpointRoutes.USER_ME_PROFILE, {
+      headers: authHeader,
+    })
+    expect(replayed.code, '换真 CAP 凭据后同一请求仍失败').toBe(
+      WalnutAdminConstAppResponseCode.SUCCESS,
+    )
   })
 })

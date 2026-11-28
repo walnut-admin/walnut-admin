@@ -49,8 +49,7 @@ const [register] = useForm<IStoreUser.Preference.Theme>({
           try {
             await updateThemePreferenceAPI(userStorePreference.theme)
             useAppMsgSuccess()
-          }
-          finally {
+          } finally {
             loading.value = false
           }
         },

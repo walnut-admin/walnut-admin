@@ -6,7 +6,11 @@ import { clearPasswordAPI, userAPI } from '@/api/system/user'
 import { resetUserLockAPI } from '@/api/system/user_lock'
 import { useCRUD } from '@/components/Advanced/CRUD'
 import { useForm } from '@/components/UI/Form'
-import { WTablePresetCreatedAtColumn, WTablePresetStatusColumn, WTablePresetUpdatedAtColumn } from '@/components/UI/Table/src/utils/presetColumns'
+import {
+  WTablePresetCreatedAtColumn,
+  WTablePresetStatusColumn,
+  WTablePresetUpdatedAtColumn,
+} from '@/components/UI/Table/src/utils/presetColumns'
 import { AppConstRoles } from '@/const/app'
 import { useAppConfirm } from '@/hooks/component/useConfirm'
 import { useAppMsgSuccess } from '@/hooks/component/useMessage'
@@ -29,7 +33,11 @@ const { getDeptTree } = useDeptTree()
 const key = 'user'
 const keyField = 'id'
 
-const { stateRef: updatePasswordFormData, resetState: resetPasswordFormData } = useState({ userId: '', userName: '', newPassword: '' })
+const { stateRef: updatePasswordFormData, resetState: resetPasswordFormData } = useState({
+  userId: '',
+  userName: '',
+  newPassword: '',
+})
 
 const [registerUpdatePassword, { onOpen }] = useForm<typeof updatePasswordFormData.value>({
   dialogPreset: 'modal',
@@ -75,13 +83,7 @@ const [registerUpdatePassword, { onOpen }] = useForm<typeof updatePasswordFormDa
 
 const [
   register,
-  {
-    onOpenCreateForm,
-    onReadAndOpenUpdateForm,
-    onDeleteConfirm,
-    onDeleteManyConfirm,
-    onApiList,
-  },
+  { onOpenCreateForm, onReadAndOpenUpdateForm, onDeleteConfirm, onDeleteManyConfirm, onApiList },
 ] = useCRUD<SystemUser>({
   baseAPI: userAPI,
 
@@ -96,7 +98,7 @@ const [
     // E2E：`user-list-table` 供权限可见性用例判「列表已挂载 / 门禁后为空」；`user-create-btn` 判无 create 权限时隐藏
     testId: 'user-list-table',
     localeUniqueKey: key,
-    rowKey: row => row[keyField]!,
+    rowKey: (row) => row[keyField]!,
     striped: true,
     bordered: true,
     singleLine: false,
@@ -226,7 +228,9 @@ const [
             _builtInType: 'read',
             // E2E：编辑抽屉触发器（权限可见性用例同时验证行内按钮随 read 权限显隐）
             testId: 'user-edit-btn',
-            _show: row => !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.ROOT) && !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.DEVELOPER),
+            _show: (row) =>
+              !row.roles_list?.map((i) => i.roleName).includes(AppConstRoles.ROOT) &&
+              !row.roles_list?.map((i) => i.roleName).includes(AppConstRoles.DEVELOPER),
             async onPresetClick(rowData) {
               await onReadAndOpenUpdateForm(rowData[keyField]!)
             },
@@ -234,7 +238,9 @@ const [
           {
             _builtInType: 'delete',
             _dropdown: true,
-            _show: row => !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.ROOT) && !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.DEVELOPER),
+            _show: (row) =>
+              !row.roles_list?.map((i) => i.roleName).includes(AppConstRoles.ROOT) &&
+              !row.roles_list?.map((i) => i.roleName).includes(AppConstRoles.DEVELOPER),
             async onPresetClick(rowData) {
               await onDeleteConfirm(rowData[keyField]!)
             },
@@ -246,7 +252,9 @@ const [
             // 权限点 `system:user:lock:reset` 由 seed 提供；root 短路放行，其它角色需显式授予。
             // 行内普通按钮（不进 dropdown）：旅程 J3 的「轻 UI」有稳定落点。
             _builtInType: 'resetLock',
-            _show: row => !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.ROOT) && !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.DEVELOPER),
+            _show: (row) =>
+              !row.roles_list?.map((i) => i.roleName).includes(AppConstRoles.ROOT) &&
+              !row.roles_list?.map((i) => i.roleName).includes(AppConstRoles.DEVELOPER),
             confirm: true,
             testId: 'user-reset-lock-btn',
             async onPresetClick(rowData) {
@@ -267,7 +275,9 @@ const [
           {
             _builtInType: 'updatePass',
             _dropdown: true,
-            _show: row => !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.ROOT) && !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.DEVELOPER),
+            _show: (row) =>
+              !row.roles_list?.map((i) => i.roleName).includes(AppConstRoles.ROOT) &&
+              !row.roles_list?.map((i) => i.roleName).includes(AppConstRoles.DEVELOPER),
             async onPresetClick(rowData) {
               updatePasswordFormData.value.userId = rowData[keyField]!
               updatePasswordFormData.value.userName = rowData.userName!
@@ -286,9 +296,13 @@ const [
           {
             _builtInType: 'clearPass',
             _dropdown: true,
-            _show: row => !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.ROOT) && !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.DEVELOPER),
+            _show: (row) =>
+              !row.roles_list?.map((i) => i.roleName).includes(AppConstRoles.ROOT) &&
+              !row.roles_list?.map((i) => i.roleName).includes(AppConstRoles.DEVELOPER),
             async onPresetClick(rowData) {
-              const { confirmed } = await useAppConfirm(t('app.base.pass.clear.confirm', { userName: rowData.userName }))
+              const { confirmed } = await useAppConfirm(
+                t('app.base.pass.clear.confirm', { userName: rowData.userName }),
+              )
 
               if (confirmed) {
                 const res = await clearPasswordAPI({ id: rowData[keyField]! })
@@ -393,8 +407,7 @@ async function onYes(_: any, done: () => void) {
     useAppMsgSuccess()
     resetPasswordFormData()
     await onApiList()
-  }
-  finally {
+  } finally {
     done()
   }
 }

@@ -78,10 +78,12 @@ export const DEFAULT_DIST_DIRS = ['apps/admin/dist', 'apps/admin/dist-staging'] 
 export const TEXT_FILE = /\.(?:js|mjs|cjs|jsx|css|html|htm|json|json5|map|txt|xml|svg)$/i
 
 /** 键名里出现这些词就认为"它的值是机密"（见文件头：别放宽） */
-export const SECRETISH_KEY = /SECRET|PASSWORD|PASSWD|(?:^|_)PASS(?:_|$)|PRIVATE_KEY|ENCRYPTION_KEY|HASH_SALT|ACCESS_KEY|(?:^|_)AK(?:_|$)|(?:^|_)SK(?:_|$)|TOKEN|CREDENTIAL/i
+export const SECRETISH_KEY =
+  /SECRET|PASSWORD|PASSWD|(?:^|_)PASS(?:_|$)|PRIVATE_KEY|ENCRYPTION_KEY|HASH_SALT|ACCESS_KEY|(?:^|_)AK(?:_|$)|(?:^|_)SK(?:_|$)|TOKEN|CREDENTIAL/i
 
 /** 产物里出现这些**文件名**本身就是事故（比内容扫描更硬的判据） */
-export const BAD_FILE_NAME = /(?:^|[\\/])(?:\.env(?:\..+)?|\.npmrc|id_rsa[^\\/]*)$|\.(?:pem|key|p12|pfx|jks|keystore)$/i
+export const BAD_FILE_NAME =
+  /(?:^|[\\/])(?:\.env(?:\..+)?|\.npmrc|id_rsa[^\\/]*)$|\.(?:pem|key|p12|pfx|jks|keystore)$/i
 
 const PEM_PRIVATE_KEY = /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]{0,40}?[A-Za-z0-9+/=\s]{100,}/
 // 用户名可以为空（`redis://:pw@host` 是 Redis 的常见写法），口令必须非空，且**得像真口令**：
@@ -109,8 +111,7 @@ export function looksLikeRealPassword(password: string): boolean {
 /** 找第一处「带凭据且口令像真的」连接串（返回下标，供报行号用） */
 export function findCredentialUri(text: string): { index: number } | null {
   for (const matched of text.matchAll(URI_WITH_CREDENTIALS)) {
-    if (looksLikeRealPassword(matched[2]!))
-      return { index: matched.index ?? 0 }
+    if (looksLikeRealPassword(matched[2]!)) return { index: matched.index ?? 0 }
   }
   return null
 }
@@ -152,16 +153,31 @@ export function scanText(text: string, file: string): Finding[] {
   const findings: Finding[] = []
   const pem = PEM_PRIVATE_KEY.exec(text)
   if (pem !== null)
-    findings.push({ rule: 'pem-private-key', file, index: pem.index, detail: '有真正带 base64 正体的 PEM 私钥块' })
+    findings.push({
+      rule: 'pem-private-key',
+      file,
+      index: pem.index,
+      detail: '有真正带 base64 正体的 PEM 私钥块',
+    })
   const uri = findCredentialUri(text)
   if (uri !== null)
-    findings.push({ rule: 'credential-uri', file, index: uri.index, detail: '有带用户名/口令的连接串（mongodb / redis），且口令看着像真的' })
+    findings.push({
+      rule: 'credential-uri',
+      file,
+      index: uri.index,
+      detail: '有带用户名/口令的连接串（mongodb / redis），且口令看着像真的',
+    })
   const jwt = JWT.exec(text)
   if (jwt !== null)
     findings.push({ rule: 'jwt', file, index: jwt.index, detail: '有 JWT 三段式字符串' })
   const ak = CLOUD_ACCESS_KEY.exec(text)
   if (ak !== null)
-    findings.push({ rule: 'cloud-access-key', file, index: ak.index, detail: `有云厂商 AccessKey 形状的串（${ak[0].slice(0, 4)}…，共 ${ak[0].length} 字符）` })
+    findings.push({
+      rule: 'cloud-access-key',
+      file,
+      index: ak.index,
+      detail: `有云厂商 AccessKey 形状的串（${ak[0].slice(0, 4)}…，共 ${ak[0].length} 字符）`,
+    })
   return findings
 }
 
@@ -169,8 +185,7 @@ export function scanText(text: string, file: string): Finding[] {
 export function lineOf(text: string, index: number): number {
   let line = 1
   for (let i = 0; i < index && i < text.length; i++) {
-    if (text[i] === '\n')
-      line++
+    if (text[i] === '\n') line++
   }
   return line
 }
@@ -181,7 +196,11 @@ export function lineOf(text: string, index: number): number {
  * **只报键名与文件，永不回显值** —— 这个函数的输出会进 CI 日志，而 CI 日志是公开面。
  * 用例里有一条专门钉这件事。
  */
-export function findLeakedValues(text: string, file: string, secrets: readonly SecretValue[]): Finding[] {
+export function findLeakedValues(
+  text: string,
+  file: string,
+  secrets: readonly SecretValue[],
+): Finding[] {
   const findings: Finding[] = []
   for (const secret of secrets) {
     if (text.includes(secret.value)) {
@@ -205,20 +224,16 @@ export function parseSecretValues(text: string, source: string): SecretValue[] {
   const out: SecretValue[] = []
   for (const raw of text.split('\n')) {
     const line = raw.trim()
-    if (line === '' || line.startsWith('#'))
-      continue
+    if (line === '' || line.startsWith('#')) continue
     const eq = line.indexOf('=')
-    if (eq <= 0)
-      continue
+    if (eq <= 0) continue
     const key = line.slice(0, eq).trim()
-    if (!/^[A-Z][A-Z0-9_]*$/.test(key) || !SECRETISH_KEY.test(key))
-      continue
+    if (!/^[A-Z][A-Z0-9_]*$/.test(key) || !SECRETISH_KEY.test(key)) continue
     // 与 dotenv 一致：值后面的 ` # 注释` 不算值的一部分
     const head = line.slice(eq + 1).split(/\s+#/)[0] ?? ''
     const value = head.trim().replace(/^["']|["']$/g, '')
     // 太短 / 是布尔与端口这类值的，全仓到处都是 ⇒ 比了必误报（实测：`JWT_…_EXPIRE` 是纯数字）
-    if (value.length < 8 || /^(?:true|false|localhost|\d+)$/i.test(value))
-      continue
+    if (value.length < 8 || /^(?:true|false|localhost|\d+)$/i.test(value)) continue
     out.push({ key, value, source })
   }
   return out
@@ -226,8 +241,7 @@ export function parseSecretValues(text: string, source: string): SecretValue[] {
 
 /** 读一个 env 目录下所有文件的机密值（目录不存在返回空数组，调用方据此降级） */
 export function collectSecretValues(envDir: string): SecretValue[] {
-  if (!existsSync(envDir))
-    return []
+  if (!existsSync(envDir)) return []
   const out: SecretValue[] = []
   for (const name of readdirSync(envDir).sort())
     out.push(...parseSecretValues(readFileSync(join(envDir, name), 'utf8'), name))
@@ -252,8 +266,7 @@ function walk(dir: string): string[] {
   const out: string[] = []
   for (const name of readdirSync(dir).sort()) {
     const path = join(dir, name)
-    if (statSync(path).isDirectory())
-      out.push(...walk(path))
+    if (statSync(path).isDirectory()) out.push(...walk(path))
     else out.push(path)
   }
   return out
@@ -305,7 +318,9 @@ export function scanDistWithSecrets(distDir: string, secrets: readonly SecretVal
 }
 
 /** 仓库默认口径 */
-export function collectFindings(distDir = join(REPO_ROOT, DEFAULT_DIST_DIR)): ScanResult & { precondition?: string } {
+export function collectFindings(
+  distDir = join(REPO_ROOT, DEFAULT_DIST_DIR),
+): ScanResult & { precondition?: string } {
   if (!existsSync(distDir)) {
     return {
       findings: [],
@@ -372,24 +387,34 @@ export function collectFindingsForDists(
 
 export function main(argv: string[] = []): void {
   // 允许显式传产物目录（本地对着别处的产物跑），默认仓库里的两份
-  const distDirs = argv.length > 0
-    ? argv.map(arg => (isAbsolute(arg) ? arg : join(REPO_ROOT, arg)))
-    : DEFAULT_DIST_DIRS.map(dir => join(REPO_ROOT, dir))
+  const distDirs =
+    argv.length > 0
+      ? argv.map((arg) => (isAbsolute(arg) ? arg : join(REPO_ROOT, arg)))
+      : DEFAULT_DIST_DIRS.map((dir) => join(REPO_ROOT, dir))
 
   const result = collectFindingsForDists(distDirs)
-  if (result.precondition !== undefined)
-    throw new PreconditionError(result.precondition)
+  if (result.precondition !== undefined) throw new PreconditionError(result.precondition)
 
   const mb = (result.stats.bytes / 1024 / 1024).toFixed(2)
-  line('ok', `产物去密体检：${result.scannedDirs.join(' + ')}（${result.stats.files} 个文件 / ${mb} MB；扫文本 ${result.stats.textFiles}，跳过压缩/二进制 ${result.stats.skippedBinary}）`)
+  line(
+    'ok',
+    `产物去密体检：${result.scannedDirs.join(' + ')}（${result.stats.files} 个文件 / ${mb} MB；扫文本 ${result.stats.textFiles}，跳过压缩/二进制 ${result.stats.skippedBinary}）`,
+  )
   if (result.missingDirs.length > 0) {
-    lineErr('warning', ` 跳过的产物目录：${result.missingDirs.join(' / ')}（不存在；该形态**没验过**，不是通过）`)
+    lineErr(
+      'warning',
+      ` 跳过的产物目录：${result.missingDirs.join(' / ')}（不存在；该形态**没验过**，不是通过）`,
+    )
   }
   if (result.secretCount === 0) {
-    lineErr('warning', ` ${DEFAULT_SECRET_ENV_DIR}/ 不存在（没解密？）⇒ **跳过 env 真值比对**，只跑了形状规则。形状规则拦不住「恰好不像任何形状」的机密，这是漏报面不是通过面。`)
-  }
-  else {
-    out(`   env 真值比对：拿 ${DEFAULT_SECRET_ENV_DIR}/ 里 ${result.secretCount} 个**键名像机密**的值逐个在产物里找过`)
+    lineErr(
+      'warning',
+      ` ${DEFAULT_SECRET_ENV_DIR}/ 不存在（没解密？）⇒ **跳过 env 真值比对**，只跑了形状规则。形状规则拦不住「恰好不像任何形状」的机密，这是漏报面不是通过面。`,
+    )
+  } else {
+    out(
+      `   env 真值比对：拿 ${DEFAULT_SECRET_ENV_DIR}/ 里 ${result.secretCount} 个**键名像机密**的值逐个在产物里找过`,
+    )
   }
 
   if (result.findings.length === 0) {
@@ -397,11 +422,15 @@ export function main(argv: string[] = []): void {
     return
   }
 
-  lineErr('violation', `产物里有 ${result.findings.length} 处疑似机密泄漏 —— **产物是公开文件**，先当作已泄漏处理：\n`)
-  for (const f of result.findings)
-    err(`  [${f.rule}] ${f.file}\n      ${f.detail}`)
+  lineErr(
+    'violation',
+    `产物里有 ${result.findings.length} 处疑似机密泄漏 —— **产物是公开文件**，先当作已泄漏处理：\n`,
+  )
+  for (const f of result.findings) err(`  [${f.rule}] ${f.file}\n      ${f.detail}`)
   err('\n修法：先确认它是不是真值（本页刻意不回显值，避免 CI 日志二次泄漏）。')
   err('若是真值：① 轮换那个凭据；② 找到它是怎么进去的（多半是某行 env 从 server 搬到了 admin）；')
-  err('③ 修完后重跑本门禁。若判定是误报，请把**这条规则的判据**写进 check-dist-secrets.ts 顶部的表里，而不是加白名单。')
+  err(
+    '③ 修完后重跑本门禁。若判定是误报，请把**这条规则的判据**写进 check-dist-secrets.ts 顶部的表里，而不是加白名单。',
+  )
   throw new ViolationError(`产物里有 ${result.findings.length} 处疑似机密泄漏（明细见上）`)
 }

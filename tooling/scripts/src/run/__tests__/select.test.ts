@@ -19,12 +19,16 @@ function command(id: string, group: CommandGroup = '门禁'): Command {
 describe('buildCommandGroups —— 分组与顺序', () => {
   it('分组按表里首次出现的顺序，展平后的 id 与表逐条相等', () => {
     const groups = buildCommandGroups(COMMANDS)
-    expect(groups.map(group => group.group)).toEqual([...new Set(COMMANDS.map(cmd => cmd.group))])
-    expect(groups.flatMap(group => group.options.map(option => option.value))).toEqual(COMMANDS.map(cmd => cmd.id))
+    expect(groups.map((group) => group.group)).toEqual([
+      ...new Set(COMMANDS.map((cmd) => cmd.group)),
+    ])
+    expect(groups.flatMap((group) => group.options.map((option) => option.value))).toEqual(
+      COMMANDS.map((cmd) => cmd.id),
+    )
   })
 
   it('每一项都显示 id 与一句话说明（两者在同一个 label 里，不靠 hint）', () => {
-    const options = buildCommandGroups(COMMANDS).flatMap(group => group.options)
+    const options = buildCommandGroups(COMMANDS).flatMap((group) => group.options)
     expect(options).toHaveLength(COMMANDS.length)
     for (const [index, option] of options.entries()) {
       const source = COMMANDS[index]!
@@ -36,7 +40,12 @@ describe('buildCommandGroups —— 分组与顺序', () => {
 
   it('同组命令不连续出现时仍归到第一次出现的位置（顺序只由表决定）', () => {
     const table = [command('a', '构建'), command('b', '门禁'), command('c', '构建')]
-    expect(buildCommandGroups(table).map(group => [group.group, group.options.map(option => option.value)])).toEqual([
+    expect(
+      buildCommandGroups(table).map((group) => [
+        group.group,
+        group.options.map((option) => option.value),
+      ]),
+    ).toEqual([
       ['构建', ['a', 'c']],
       ['门禁', ['b']],
     ])
@@ -60,15 +69,15 @@ describe('chooseCommands —— 可注入的挑选流程', () => {
   })
 
   it('取消（picker 返回 null）：cancelled，不抛错', async () => {
-    await expect(chooseCommands(table, { isInteractive: () => true, picker: async () => null }))
-      .resolves
-      .toEqual({ kind: 'cancelled' })
+    await expect(
+      chooseCommands(table, { isInteractive: () => true, picker: async () => null }),
+    ).resolves.toEqual({ kind: 'cancelled' })
   })
 
   it('空选（picker 返回空数组）：empty，不抛错', async () => {
-    await expect(chooseCommands(table, { isInteractive: () => true, picker: async () => [] }))
-      .resolves
-      .toEqual({ kind: 'empty' })
+    await expect(
+      chooseCommands(table, { isInteractive: () => true, picker: async () => [] }),
+    ).resolves.toEqual({ kind: 'empty' })
   })
 
   it('选了几条：按表里的顺序返回（勾选顺序不作数）', async () => {
@@ -77,7 +86,7 @@ describe('chooseCommands —— 可注入的挑选流程', () => {
       picker: async () => ['c', 'a'],
     })
     expect(outcome.kind).toBe('picked')
-    expect(outcome.kind === 'picked' && outcome.commands.map(cmd => cmd.id)).toEqual(['a', 'c'])
+    expect(outcome.kind === 'picked' && outcome.commands.map((cmd) => cmd.id)).toEqual(['a', 'c'])
   })
 
   it('挑选函数拿到的是按表分组后的选项（分组与顺序都由本模块给，界面只负责勾）', async () => {

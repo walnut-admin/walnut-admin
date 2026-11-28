@@ -59,7 +59,10 @@ export interface IWalnutQueryRunnerTxGuard {
  * `withQueryRunnerTransaction` 的回调式生命周期，但仍应共用同一份守卫实现。
  */
 export function createQueryRunnerTxGuard(
-  queryRunner: Pick<QueryRunner, 'commitTransaction' | 'isTransactionActive' | 'release' | 'rollbackTransaction'>,
+  queryRunner: Pick<
+    QueryRunner,
+    'commitTransaction' | 'isTransactionActive' | 'release' | 'rollbackTransaction'
+  >,
   logger?: IWalnutQueryRunnerTxLogger,
 ): IWalnutQueryRunnerTxGuard {
   const log = logger ?? new Logger('WalnutQueryRunnerTx')
@@ -147,14 +150,12 @@ export async function withQueryRunnerTransaction<T>(
     await tx.commit()
 
     return result
-  }
-  catch (e) {
+  } catch (e) {
     // 含 commit 自身失败：此时 committed 仍为 false、事务状态未知，补一条 ROLLBACK 是安全的
     // （服务端若已自行回滚，PG 只回 WARNING）。
     await tx.rollback()
     throw e
-  }
-  finally {
+  } finally {
     await tx.release()
   }
 }

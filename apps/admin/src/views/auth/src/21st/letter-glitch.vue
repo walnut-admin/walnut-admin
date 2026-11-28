@@ -21,12 +21,14 @@ const props = withDefaults(defineProps<Props>(), {
 
 const canvasRef = shallowRef<HTMLCanvasElement | null>(null)
 const animationRef = shallowRef<number | null>(null)
-const letters = ref<{
-  char: string
-  color: string
-  targetColor: string
-  colorProgress: number
-}[]>([])
+const letters = ref<
+  {
+    char: string
+    color: string
+    targetColor: string
+    colorProgress: number
+  }[]
+>([])
 const grid = ref({ columns: 0, rows: 0 })
 const context = ref<CanvasRenderingContext2D | null>(null)
 const lastGlitchTime = ref(Date.now())
@@ -40,9 +42,7 @@ const charHeight = 20
 const lettersAndSymbols = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$&*()-=_+[]{}<>,0123456789'.split('')
 
 function getRandomChar() {
-  return lettersAndSymbols[
-    Math.floor(Math.random() * lettersAndSymbols.length)
-  ]
+  return lettersAndSymbols[Math.floor(Math.random() * lettersAndSymbols.length)]
 }
 
 function getRandomColor() {
@@ -62,7 +62,11 @@ function hexToRgb(hex: string) {
     : null
 }
 
-function interpolateColor(start: { r: number, g: number, b: number }, end: { r: number, g: number, b: number }, factor: number) {
+function interpolateColor(
+  start: { r: number; g: number; b: number },
+  end: { r: number; g: number; b: number },
+  factor: number,
+) {
   const r = Math.round(start.r + (end.r - start.r) * factor)
   const g = Math.round(start.g + (end.g - start.g) * factor)
   const b = Math.round(start.b + (end.b - start.b) * factor)
@@ -87,8 +91,7 @@ function initializeLetters(columns: number, rows: number) {
 }
 
 function drawLetters() {
-  if (!canvasRef.value || !context.value || letters.value.length === 0)
-    return
+  if (!canvasRef.value || !context.value || letters.value.length === 0) return
 
   const canvas = canvasRef.value
   const ctx = context.value
@@ -107,12 +110,10 @@ function drawLetters() {
 }
 
 function resizeCanvasAndDraw() {
-  if (!canvasRef.value)
-    return
+  if (!canvasRef.value) return
   const canvas = canvasRef.value
   const parent = canvas.parentElement
-  if (!parent)
-    return
+  if (!parent) return
 
   const dpr = window.devicePixelRatio || 1
   const rect = parent.getBoundingClientRect()
@@ -133,20 +134,17 @@ function resizeCanvasAndDraw() {
 }
 
 function updateLetters() {
-  if (!letters.value || letters.value.length === 0)
-    return
+  if (!letters.value || letters.value.length === 0) return
   const updateCount = Math.max(1, Math.floor(letters.value.length * 0.05))
   for (let i = 0; i < updateCount; i++) {
     const index = Math.floor(Math.random() * letters.value.length)
-    if (!letters.value[index])
-      continue
+    if (!letters.value[index]) continue
     letters.value[index].char = getRandomChar()
     letters.value[index].targetColor = getRandomColor()
     if (!props.smooth) {
       letters.value[index].color = letters.value[index].targetColor
       letters.value[index].colorProgress = 1
-    }
-    else {
+    } else {
       letters.value[index].colorProgress = 0
     }
   }
@@ -157,8 +155,7 @@ function handleSmoothTransitions() {
   letters.value.forEach((letter) => {
     if (letter.colorProgress < 1) {
       letter.colorProgress += 0.05
-      if (letter.colorProgress > 1)
-        letter.colorProgress = 1
+      if (letter.colorProgress > 1) letter.colorProgress = 1
       const startRgb = hexToRgb(letter.color)
       const endRgb = hexToRgb(letter.targetColor)
       if (startRgb && endRgb) {
@@ -195,8 +192,7 @@ function startAnimation() {
 function handleResize() {
   clearTimeout(resizeTimeout)
   resizeTimeout = setTimeout(() => {
-    if (animationRef.value)
-      cancelAnimationFrame(animationRef.value)
+    if (animationRef.value) cancelAnimationFrame(animationRef.value)
     resizeCanvasAndDraw()
     startAnimation()
   }, 100)
@@ -219,9 +215,12 @@ onUnmounted(() => {
   clearTimeout(resizeTimeout)
 })
 
-watch(() => [props.glitchSpeed, props.smooth, props.glitchColors], () => {
-  startAnimation()
-})
+watch(
+  () => [props.glitchSpeed, props.smooth, props.glitchColors],
+  () => {
+    startAnimation()
+  },
+)
 
 const containerStyle: CSSProperties = {
   position: 'relative',

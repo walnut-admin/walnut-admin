@@ -22,8 +22,7 @@ export async function generateRsaOaepKeyPair(): Promise<RsaKeyPairPEM | null> {
       publicKey: publicKeyPem,
       privateKey: privateKeyPem,
     }
-  }
-  catch (err) {
+  } catch (err) {
     console.error('Failed to generate key pair:', err)
     return null
   }

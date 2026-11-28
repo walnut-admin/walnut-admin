@@ -19,7 +19,7 @@
 | ~~P1~~ | **没有任何东西在看这一面**（不是「哪里写错了」） | **当前为空** —— 已知的几面都有人看着：turbo tags 反向断言、根脚本形态、脚本入口两条 ESLint、动态 import、madge 0 环、四道文档门禁。2026-11-04 复核无新增 |
 | **P2** | 维护性 / 体验改善，成本有据 | TS 7 迁移准备 · store 工厂迁移 |
 | **P3** | 远期 / 条件触发 | 后端验证策略落地 · E2E 收尾（Phase 2/3） · 组件文档补写 · 两处安全观察 · `@walnut/i18n`/`@walnut/security` 新包 · Phase 4 组件自动注册 · `Global/AI` 评审缺陷 · 基建注释历史账 · env 模板三个 `VITE_*` · `list` 旧 `query` 兼容路径退役 · 设备缓存 TTL 兜底自愈 |
-| **搁置** | 等条件成熟（外部依赖，或已决定先不动） | `pnpm peers check` · knip · tag 发布链路端到端验证 · GitHub Environments · 国内 self-hosted runner · 锚点校验 |
+| **搁置** | 等条件成熟（外部依赖，或已决定先不动） | `pnpm peers check` · tag 发布链路端到端验证 · GitHub Environments · 国内 self-hosted runner · 锚点校验 · Windows Node 原生崩溃（24.15+ 回归） |
 | **未裁决** | 连「做不做」都还没定 | `C4` / `C5` / `C6` + 2026-09-21 评审遗留的 4 条设计选型 |
 
 ---
@@ -141,13 +141,37 @@
 - **判据（照它查）**：以后凡是遇到「**前端被迫传一个后端可选字段**」，先查这个开关、再看生成物的可选性是否与
   `apps/server/openapi.json` 的 `required` 一一对应，**别先动前端类型**。`ed69cb95` 那次纠正了 478 个属性的偏差。
 
+### Windows 本机 Node 原生崩溃（`0xC0000005`，24.15+ 的回归带）
+
+- **现象**：本机 Node 进程偶发以访问冲突退出 —— **没有输出、没有 JS 栈**（等价于「这一步没跑」），
+  重跑即过，Linux CI 零复现。实测暴露面只有两处：ESLint 大批量（`turbo lint`、lint-staged 的成批
+  `eslint --fix`）与 legacy 构建的 rolldown transforming 阶段（`VITE_BUILD_LEGACY`，已按守卫默认关闭，
+  理由写在 `tooling/vite-config/src/plugins/index.ts` 的注释里）。
+- **根因定性**：Node 24.15+ 的 Windows 回归，**不是本仓改配置能解决的**。上游证据：`nodejs/node#62991`
+  （v24.15.0 起、v24.14.1 零复现）、`#65756`（v24.19.0，子进程在全部用例通过之后崩）、`#67133`
+  （与本机同 OS build，仍 open）；`dotnet/aspnetcore#67402` 同症状，最终把 CI 钉回 24.14.1。
+  ESLint 的 `--concurrency` 走 worker_threads，是**暴露面**不是成因；本机 24.21.0 落在回归带内。
+  本仓自己量过并**排除**的成因（提交内存水位 / worker 数 / 堆上限 / turbo 包装）见
+  `plans/tooling-restructure-plan.md` 第 14 节。
+- **已落地缓解**：prepush 对 turbo 重道段（`lint` / `types` / `test`）命中崩溃特征时**自动重试一次**
+  （`8e5b5f82`，19 个新用例含真子进程；判据与完整上游清单在 `tooling/scripts/src/ci/prepush.ts` 的
+  `isNativeCrashFailure` 注释）。**lint-staged 中途崩溃不在覆盖内** —— 崩后手动 `pnpm lint:fix` 一次即可。
+- **2026-11-28 的决定（所有者拍板）：维持 Node 24.21.0 + 重试兜底**，不钉版本、不盲升。
+  `engines` 的 `>=24.15.0` 与 lint 的 `--concurrency=4` 都跟着不动 —— 后者的判据在
+  `monorepo/package-scripts.md`，那里把成因推断为内存压力；**以上游定性为准**（固定 4 仍作为降暴露面保留，
+  但它不是根因结论）。
+- **解除条件**：Node 上游发布含修复的版本、且有连续稳定证据 ⇒ 评估升级；或改钉 24.14.1
+  （低于 `engines` 线，需跨包决策）。
+- **别把重跑读成通过**：崩过的段在 prepush 结果行标 `[崩溃后重试]`、成功汇总单列 —— 那是「机器不稳」的信号，
+  不是「检查通过」的同义词。
+
 ## 剩余待办
 
 ### P2 — 维护性 / 体验改善
 
 | 事项 | 成本 | 判据与证据 |
 |---|---|---|
-| **TS 7 / tsgo 迁移准备** | **M** | `@walnut/tsconfig/base.json` 的 `ignoreDeprecations: "6.0"` 一刀切静音了通往原生编译器的迁移信号。做法是先做一次**阻塞面实测**（全仓 `types:check` 用 TS 7 跑一遍），再定排期。⚠️ 与「全量 deps 升级」重叠，建议并到那一次。另：`apps/server/tsconfig.json` 未显式声明 `moduleResolution`（`module: commonjs` 使其落到默认 `node10`） |
+| **TS 7 / tsgo 迁移准备** | **M** | ✅ **已由 [ADR 0031](../adr/0031-rust-toolchain-migration.md) 执行（2026-11-28）**：`typescript` 包面换成 TNB（classic 6.0.3 外壳 + 进程内 tsgo 7.0.2 引擎），检查侧 12 个包走 `tsrs`、admin/docs 走 `vue-tsc`；`baseUrl` 已清、`ignoreDeprecations: "6.0"` 仍在（裸装 `typescript@7` 仍是红线，见 Ledger D01）。**剩余小项**：`apps/server/tsconfig.json` 未显式声明 `moduleResolution`（`module: commonjs` 使其落到默认 `node10`） |
 | **store 工厂迁移** | **M** | `createWalnutStore()` 只在 `@walnut/client` 内部被引用（`src/index.ts` + `store/createWalnutStore.ts`），admin 侧 26 个 store 文件 **0 处**使用（判据：`rg createWalnutStore apps/admin`）。新 store 优先用它，别再复制模式 |
 
 > 已完成但仍需记住口径的两条：**API 路由迁移收尾**（U2 批）47 个 controller 前缀全部改用 contract 常量，
@@ -218,8 +242,9 @@
 | tag 发布链路端到端验证 | **2026-09-23 的决定：首次发版不着急**。未验证的是镜像构建 → 推 TCR → 自动部署 → post-verify（本机无 Docker，只能等真跑一次 tag）。**解冻**：准备发第一个版本时；清单见 [CI/CD 与容器构建](./ci-cd) |
 | GitHub Environments | 已核实 deploy 作业**未**使用原生 `environment:`（只有作业级 `env:` + `workflow_call`/`workflow_dispatch` 的 `environment` 输入 + `concurrency`）。**解冻**：stage 服务器到位后再评估 |
 | 锚点（`#fragment`）校验 | **2026-09-23 实测后搁置**：VitePress 只查「目标页存在」，**不查 fragment**；能补的现成工具只有 `lychee`。当时全站带锚点的站内链接**实测 8 条**，为一个二进制 + 一个 CI 步骤换 8 条链接的校验，ROI 说不通。**解冻**：① 带锚点的站内链接涨到几十条；② 出现一次锚点静默失效的真实事故（读者点不到，构建照样绿）。📌 已经付过一次代价：那次手工核对当场查到 1 条坏的，且执行记录里「页内锚点全部可解析」那句从写下那天起就是错的 —— 这一面没有任何东西在替我们看着。另半条（prose 里几百处反引号仓库路径）**已经不做**，由 `pnpm walnut lint:docs-refs` 覆盖 |
-| knip（`pnpm walnut knip` exit 1） | **2026-09-23 的决定：先不动，只写明现状**。理由：本仓是模板项目，「未用导出」不等于死代码（`libs/decorators/src/transformer/**` 那批就是给使用者按需取用的 API 面）。**现状不写计数** —— 要读数就跑 `pnpm walnut knip`；判据与怎么看写在 `knip.config.ts` 顶部注释。**若将来要接门禁**：先用 `entry` / `includeEntryExports` 把「有意的公共面」显式标出来，只让真死代码亮红 |
+| knip | **2026-11-28 已收口为 `exit 0`**（此前按 2026-09-23 的「有意维持红」运行）。分类判据与配置理由写在 `knip.config.ts` 顶部：模板公共 API 按入口导出处理、不报；命令行入口 / barrel / `build/generate` 用 `entry` 显式点名；真死代码与无用依赖已清。**仍不进硬门禁**：接门禁前需把 `ignoreIssues` 与 `ignoreDependencies` 的短名单当定期复审的白名单 |
 | 国内 self-hosted runner（决策门） | **解冻**：仅当 tag 链路实测显示「tag 发布总时长 > 20 min 且跨境推送占大头」。runner 在美国、镜像仓库在腾讯云上海，跨境上传是旧流水线 78 分钟的主要嫌疑之一。**先看数据再决定** |
+| **Windows 本机 Node 原生崩溃**（`0xC0000005`，Node 24.15+ 的 Windows 回归带） | **2026-11-28 的决定（所有者拍板）：维持 Node 24.21.0 + 重试兜底**，不钉版本、不盲升 —— 上游没有「改配置即可」的解，重跑是唯一确定有效的处置，prepush 已把它自动化（`8e5b5f82`）。**解冻**：Node 上游发布含修复的版本且有连续稳定证据 ⇒ 评估升级；或改钉 24.14.1（低于 `engines` 的 `>=24.15.0` 线，需跨包决策）。现象、上游证据与 lint-staged 未覆盖的那半条见「已知实现契约与风险面」的 Node 原生崩溃一条 |
 
 ## 未裁决（等你一句话）
 

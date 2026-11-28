@@ -42,28 +42,22 @@ export function useSpeechRecognition() {
    * Side effect: Mutates inputText.value on every tracked reactive change; reads voiceAccumulated/voiceInterim
    */
   watchEffect(() => {
-    if (!isVoiceSessionActive.value)
-      return
+    if (!isVoiceSessionActive.value) return
 
     const transcript = result.value
-    if (!transcript)
-      return
+    if (!transcript) return
 
     if (isFinal.value) {
       voiceAccumulated.value += transcript
       voiceInterim.value = ''
-    }
-    else {
+    } else {
       voiceInterim.value = transcript
     }
 
     const parts: string[] = []
-    if (textBeforeVoice.value)
-      parts.push(textBeforeVoice.value)
-    if (voiceAccumulated.value)
-      parts.push(voiceAccumulated.value)
-    if (voiceInterim.value)
-      parts.push(voiceInterim.value)
+    if (textBeforeVoice.value) parts.push(textBeforeVoice.value)
+    if (voiceAccumulated.value) parts.push(voiceAccumulated.value)
+    if (voiceInterim.value) parts.push(voiceInterim.value)
     inputText.value = parts.join(' ')
   })
 
@@ -86,8 +80,8 @@ export function useSpeechRecognition() {
       'not-allowed': '未授权麦克风权限',
       'no-speech': '未检测到语音',
       'audio-capture': '无法访问麦克风',
-      'network': '网络错误，语音识别不可用',
-      'aborted': isSecureContext
+      network: '网络错误，语音识别不可用',
+      aborted: isSecureContext
         ? '语音识别已中止（请检查麦克风权限或网络）'
         : '语音识别已中止（需 HTTPS 或 localhost 访问）',
       'language-not-supported': '不支持该语言',
@@ -95,15 +89,13 @@ export function useSpeechRecognition() {
     }
     errorMessage.value = map[code] || `语音识别出错: ${code}`
 
-    if (errorMessage.value)
-      message.error(errorMessage.value)
+    if (errorMessage.value) message.error(errorMessage.value)
   })
 
   // -- Core operations --
   /** Start microphone and begin speech recognition */
   function startMic() {
-    if (isLoading.value || isVoiceSessionActive.value)
-      return
+    if (isLoading.value || isVoiceSessionActive.value) return
     textBeforeVoice.value = inputText.value
     voiceAccumulated.value = ''
     voiceInterim.value = ''
@@ -116,15 +108,12 @@ export function useSpeechRecognition() {
 
   /** Stop microphone, concatenate accumulated voice text, and return it */
   function stopMic(): string {
-    if (!isVoiceSessionActive.value)
-      return ''
+    if (!isVoiceSessionActive.value) return ''
     isVoiceSessionActive.value = false
 
     const parts: string[] = []
-    if (voiceAccumulated.value)
-      parts.push(voiceAccumulated.value)
-    if (voiceInterim.value)
-      parts.push(voiceInterim.value)
+    if (voiceAccumulated.value) parts.push(voiceAccumulated.value)
+    if (voiceInterim.value) parts.push(voiceInterim.value)
     const voiceText = parts.join(' ')
 
     vueUseStop()
@@ -138,8 +127,7 @@ export function useSpeechRecognition() {
 
   /** Cancel voice input and restore the text that was in the input before starting */
   function cancelMic() {
-    if (!isVoiceSessionActive.value)
-      return
+    if (!isVoiceSessionActive.value) return
     isVoiceSessionActive.value = false
     vueUseStop()
     inputText.value = textBeforeVoice.value
@@ -161,10 +149,8 @@ export function useSpeechRecognition() {
 
   // -- Computed --
   const micTitle = computed(() => {
-    if (!isSupported.value)
-      return '当前浏览器不支持语音识别'
-    if (isListening.value)
-      return '松手发送，滑出取消'
+    if (!isSupported.value) return '当前浏览器不支持语音识别'
+    if (isListening.value) return '松手发送，滑出取消'
     return '按住说话，松手发送（Ctrl+Shift+K 切换）'
   })
 

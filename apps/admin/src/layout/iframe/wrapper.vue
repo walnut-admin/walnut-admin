@@ -20,9 +20,7 @@ const appStoreTab = useAppStoreTab()
 const { currentRoute } = useAppRouter()
 
 const getIframeList = computed(() =>
-  appStoreTab.iframeList.filter(e =>
-    appStoreTab.tabs.some(tab => tab.name === e.name),
-  ),
+  appStoreTab.iframeList.filter((e) => appStoreTab.tabs.some((tab) => tab.name === e.name)),
 )
 
 const TransitionWrapper = defineComponent({
@@ -30,17 +28,18 @@ const TransitionWrapper = defineComponent({
     item: { type: Object as PropType<IStoreApp.Tab.Iframe>, required: true },
   },
   setup(props) {
-    return () => appSettingScope.getTransitionName(currentRoute.value)
-      ? (
-          <WTransition
-            transition-name={appSettingScope.getTransitionName(currentRoute.value)}
-            mode="out-in"
-            appear
-          >
-            <ReuseIframe item={props.item} />
-          </WTransition>
-        )
-      : <ReuseIframe item={props.item} />
+    return () =>
+      appSettingScope.getTransitionName(currentRoute.value) ? (
+        <WTransition
+          transition-name={appSettingScope.getTransitionName(currentRoute.value)}
+          mode="out-in"
+          appear
+        >
+          <ReuseIframe item={props.item} />
+        </WTransition>
+      ) : (
+        <ReuseIframe item={props.item} />
+      )
   },
 })
 </script>

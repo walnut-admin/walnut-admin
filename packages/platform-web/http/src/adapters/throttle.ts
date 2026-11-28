@@ -18,8 +18,7 @@ function parseResponseCode(data: any): number | null {
   try {
     const parsed = typeof data === 'string' ? JSON.parse(data) : data
     return parsed?.code ?? null
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -39,16 +38,14 @@ export function createThrottleAdapter(cacheTTLSeconds: number) {
               const response = await adapter(config)
               if (parseResponseCode(response.data) !== WalnutAdminConstAppResponseCode.SUCCESS) {
                 throttleAdapterCache.delete(index)
-              }
-              else {
+              } else {
                 throttleAdapterCache.set(index, {
                   timestamp: Date.now(),
                   value: Promise.resolve(response),
                 })
               }
               return response
-            }
-            catch (reason) {
+            } catch (reason) {
               throttleAdapterCache.delete(index)
               throw reason
             }
@@ -70,8 +67,7 @@ export function createThrottleAdapter(cacheTTLSeconds: number) {
         if (method === 'get') {
           if (now - cachedRecord.timestamp <= _throttle) {
             const responsePromise = cachedRecord.value
-            if (responsePromise)
-              return responsePromise
+            if (responsePromise) return responsePromise
           }
 
           return recordCacheWithRequest(index, config)

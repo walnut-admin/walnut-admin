@@ -51,17 +51,29 @@ export interface TableMeta {
   selfRef: string | null
 }
 
-export async function readTableMeta(pg: Client, tables: readonly string[]): Promise<Map<string, TableMeta>> {
-  const columns = (await pg.query<{ table_name: string, column_name: string, data_type: string, is_nullable: string, column_default: string | null }>(
-    `SELECT table_name, column_name, data_type, is_nullable, column_default
+export async function readTableMeta(
+  pg: Client,
+  tables: readonly string[],
+): Promise<Map<string, TableMeta>> {
+  const columns = (
+    await pg.query<{
+      table_name: string
+      column_name: string
+      data_type: string
+      is_nullable: string
+      column_default: string | null
+    }>(
+      `SELECT table_name, column_name, data_type, is_nullable, column_default
      FROM information_schema.columns
      WHERE table_schema = 'public' AND table_name = ANY($1)
      ORDER BY table_name, ordinal_position`,
-    [tables],
-  )).rows
+      [tables],
+    )
+  ).rows
 
-  const primaryKeys = (await pg.query<{ table_name: string, column_name: string }>(
-    `SELECT tc.table_name, kcu.column_name
+  const primaryKeys = (
+    await pg.query<{ table_name: string; column_name: string }>(
+      `SELECT tc.table_name, kcu.column_name
      FROM information_schema.table_constraints tc
      JOIN information_schema.key_column_usage kcu
        ON kcu.constraint_name = tc.constraint_name
@@ -69,11 +81,18 @@ export async function readTableMeta(pg: Client, tables: readonly string[]): Prom
       AND kcu.table_name = tc.table_name
      WHERE tc.constraint_type = 'PRIMARY KEY' AND tc.table_schema = 'public' AND tc.table_name = ANY($1)
      ORDER BY tc.table_name, kcu.ordinal_position`,
-    [tables],
-  )).rows
+      [tables],
+    )
+  ).rows
 
-  const foreignKeys = (await pg.query<{ table_name: string, column_name: string, ref_table: string, ref_column: string }>(
-    `SELECT tc.table_name, kcu.column_name, ccu.table_name AS ref_table, ccu.column_name AS ref_column
+  const foreignKeys = (
+    await pg.query<{
+      table_name: string
+      column_name: string
+      ref_table: string
+      ref_column: string
+    }>(
+      `SELECT tc.table_name, kcu.column_name, ccu.table_name AS ref_table, ccu.column_name AS ref_column
      FROM information_schema.table_constraints tc
      JOIN information_schema.key_column_usage kcu
        ON kcu.constraint_name = tc.constraint_name
@@ -83,28 +102,34 @@ export async function readTableMeta(pg: Client, tables: readonly string[]): Prom
        ON ccu.constraint_name = tc.constraint_name
       AND ccu.table_schema = tc.table_schema
      WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = 'public' AND tc.table_name = ANY($1)`,
-    [tables],
-  )).rows
+      [tables],
+    )
+  ).rows
 
   const meta = new Map<string, TableMeta>()
   for (const table of tables) {
-    const cols = columns.filter(row => row.table_name === table)
+    const cols = columns.filter((row) => row.table_name === table)
     if (cols.length === 0)
-      throw new PreconditionError(`PG 里没有表 ${table} —— 先跑 \`pnpm walnut migration:run\`（seed 目录里有它的文件）`)
+      throw new PreconditionError(
+        `PG 里没有表 ${table} —— 先跑 \`pnpm walnut migration:run\`（seed 目录里有它的文件）`,
+      )
     const fkRefs = new Map<string, string>()
     let selfRef: string | null = null
-    for (const fk of foreignKeys.filter(row => row.table_name === table)) {
+    for (const fk of foreignKeys.filter((row) => row.table_name === table)) {
       fkRefs.set(fk.column_name, fk.ref_table)
-      if (fk.ref_table === table)
-        selfRef = fk.column_name
+      if (fk.ref_table === table) selfRef = fk.column_name
     }
     meta.set(table, {
-      columns: cols.map(row => row.column_name),
+      columns: cols.map((row) => row.column_name),
       requiredColumns: cols
-        .filter(row => row.is_nullable === 'NO' && row.column_default === null)
-        .map(row => row.column_name),
-      jsonbColumns: new Set(cols.filter(row => row.data_type === 'jsonb').map(row => row.column_name)),
-      primaryKey: primaryKeys.filter(row => row.table_name === table).map(row => row.column_name),
+        .filter((row) => row.is_nullable === 'NO' && row.column_default === null)
+        .map((row) => row.column_name),
+      jsonbColumns: new Set(
+        cols.filter((row) => row.data_type === 'jsonb').map((row) => row.column_name),
+      ),
+      primaryKey: primaryKeys
+        .filter((row) => row.table_name === table)
+        .map((row) => row.column_name),
       fkRefs,
       selfRef,
     })
@@ -118,21 +143,22 @@ export async function readTableMeta(pg: Client, tables: readonly string[]): Prom
  * 只考虑**参与本次播种**的表之间的边（指向 sys_dept 这类未播种表的 FK 由 PG 兜底：值非空且父行
  * 不存在时 PG 会响亮报错，那是真脏数据，不该被静默跳过）。成环直接抛（seed 目录自相矛盾）。
  */
-export function orderTablesByFk(tables: readonly string[], meta: ReadonlyMap<string, TableMeta>): string[] {
+export function orderTablesByFk(
+  tables: readonly string[],
+  meta: ReadonlyMap<string, TableMeta>,
+): string[] {
   const picked = new Set(tables)
   const visited = new Set<string>()
   const visiting = new Set<string>()
   const ordered: string[] = []
 
   const visit = (table: string): void => {
-    if (visited.has(table))
-      return
+    if (visited.has(table)) return
     if (visiting.has(table))
       throw new ViolationError(`表的 FK 依赖成环：${[...visiting, table].join(' -> ')}`)
     visiting.add(table)
     for (const refTable of (meta.get(table)?.fkRefs ?? new Map()).values()) {
-      if (picked.has(refTable) && refTable !== table)
-        visit(refTable)
+      if (picked.has(refTable) && refTable !== table) visit(refTable)
     }
     visiting.delete(table)
     visited.add(table)
@@ -140,17 +166,14 @@ export function orderTablesByFk(tables: readonly string[], meta: ReadonlyMap<str
   }
 
   // 入参顺序 = 文件名字典序（确定性），保证同一份 seed 目录每次排出同一个顺序
-  for (const table of [...tables].sort())
-    visit(table)
+  for (const table of [...tables].sort()) visit(table)
   return ordered
 }
 
 /** jsonb 列的对象/数组 → JSON 文本（node-pg 会把 JS 数组当 PG 数组字面量，jsonb 不认） */
 export function prepareParam(value: unknown, isJsonb: boolean): unknown {
-  if (!isJsonb)
-    return value
-  if (value !== null && typeof value === 'object')
-    return JSON.stringify(value)
+  if (!isJsonb) return value
+  if (value !== null && typeof value === 'object') return JSON.stringify(value)
   return value
 }
 
@@ -164,15 +187,13 @@ export function sortRowsBySelfRefDepth(
   column: string,
 ): Record<string, unknown>[] {
   const byId = new Map<string, Record<string, unknown>>()
-  for (const row of rows)
-    byId.set(String(row.id), row)
+  for (const row of rows) byId.set(String(row.id), row)
 
   const depthCache = new Map<string, number>()
 
   const depthOf = (id: string, path: ReadonlySet<string>): number => {
     const cached = depthCache.get(id)
-    if (cached !== undefined)
-      return cached
+    if (cached !== undefined) return cached
     const row = byId.get(id)
     if (row === undefined)
       throw new ViolationError(`${column} 指向本次没有的行：${id} —— 先修 seed 数据`)
@@ -183,35 +204,57 @@ export function sortRowsBySelfRefDepth(
     }
     const parentKey = String(parent)
     if (path.has(parentKey))
-      throw new ViolationError(`${column} 链成环：${[...path, parentKey].join(' -> ')} —— 先修 seed 数据`)
+      throw new ViolationError(
+        `${column} 链成环：${[...path, parentKey].join(' -> ')} —— 先修 seed 数据`,
+      )
     const depth = 1 + depthOf(parentKey, new Set([...path, parentKey]))
     depthCache.set(id, depth)
     return depth
   }
 
   return [...rows]
-    .map((row, index) => ({ row, index, depth: depthOf(String(row.id), new Set([String(row.id)])) }))
+    .map((row, index) => ({
+      row,
+      index,
+      depth: depthOf(String(row.id), new Set([String(row.id)])),
+    }))
     .sort((a, b) => a.depth - b.depth || a.index - b.index)
-    .map(entry => entry.row)
+    .map((entry) => entry.row)
 }
 
 /** 业务表 upsert：按 `id` 冲突整行刷新（除 id 外全列） */
-export function buildBusinessUpsertSql(table: string, cols: readonly string[], rowCount: number): string {
-  const colList = cols.map(c => `"${c}"`).join(', ')
-  const rows = Array.from({ length: rowCount }, (_, r) =>
-    `(${cols.map((_, c) => `$${r * cols.length + c + 1}`).join(', ')})`)
-  const updates = cols.filter(c => c !== 'id').map(c => `"${c}" = EXCLUDED."${c}"`).join(', ')
+export function buildBusinessUpsertSql(
+  table: string,
+  cols: readonly string[],
+  rowCount: number,
+): string {
+  const colList = cols.map((c) => `"${c}"`).join(', ')
+  const rows = Array.from(
+    { length: rowCount },
+    (_, r) => `(${cols.map((_, c) => `$${r * cols.length + c + 1}`).join(', ')})`,
+  )
+  const updates = cols
+    .filter((c) => c !== 'id')
+    .map((c) => `"${c}" = EXCLUDED."${c}"`)
+    .join(', ')
   return `INSERT INTO ${table} (${colList}) VALUES ${rows.join(', ')} ON CONFLICT (id) DO UPDATE SET ${updates}`
 }
 
 /** junction 表插入：复合主键冲突即跳过（只补缺不回收） */
-export function buildJunctionInsertSql(table: string, cols: readonly string[], rowCount: number, primaryKey: readonly string[]): string {
+export function buildJunctionInsertSql(
+  table: string,
+  cols: readonly string[],
+  rowCount: number,
+  primaryKey: readonly string[],
+): string {
   if (primaryKey.length === 0)
     throw new ViolationError(`junction 表 ${table} 没有主键 —— ON CONFLICT 无从判重`)
-  const colList = cols.map(c => `"${c}"`).join(', ')
-  const rows = Array.from({ length: rowCount }, (_, r) =>
-    `(${cols.map((_, c) => `$${r * cols.length + c + 1}`).join(', ')})`)
-  return `INSERT INTO ${table} (${colList}) VALUES ${rows.join(', ')} ON CONFLICT (${primaryKey.map(c => `"${c}"`).join(', ')}) DO NOTHING`
+  const colList = cols.map((c) => `"${c}"`).join(', ')
+  const rows = Array.from(
+    { length: rowCount },
+    (_, r) => `(${cols.map((_, c) => `$${r * cols.length + c + 1}`).join(', ')})`,
+  )
+  return `INSERT INTO ${table} (${colList}) VALUES ${rows.join(', ')} ON CONFLICT (${primaryKey.map((c) => `"${c}"`).join(', ')}) DO NOTHING`
 }
 
 /**
@@ -224,27 +267,33 @@ export async function splitDanglingJunctionRows(
   table: string,
   rows: readonly Record<string, unknown>[],
   fkRefs: ReadonlyMap<string, string>,
-): Promise<{ valid: Record<string, unknown>[], dangling: { row: Record<string, unknown>, reason: string }[] }> {
-  if (rows.length === 0)
-    return { valid: [], dangling: [] }
+): Promise<{
+  valid: Record<string, unknown>[]
+  dangling: { row: Record<string, unknown>; reason: string }[]
+}> {
+  if (rows.length === 0) return { valid: [], dangling: [] }
 
   const existingByCol = new Map<string, Set<string>>()
   for (const [col, parentTable] of fkRefs) {
     const ids = await pg.query<{ id: string }>(`SELECT id FROM ${parentTable}`)
-    existingByCol.set(col, new Set(ids.rows.map(r => r.id)))
+    existingByCol.set(col, new Set(ids.rows.map((r) => r.id)))
   }
 
   const valid: Record<string, unknown>[] = []
-  const dangling: { row: Record<string, unknown>, reason: string }[] = []
+  const dangling: { row: Record<string, unknown>; reason: string }[] = []
   for (const row of rows) {
     const missing = [...fkRefs.keys()].filter((col) => {
       const ids = existingByCol.get(col)
       return ids !== undefined && !ids.has(String(row[col]))
     })
     if (missing.length > 0)
-      dangling.push({ row, reason: missing.map(col => `${col}=${String(row[col])} 在 ${fkRefs.get(col)} 里不存在`).join('; ') })
-    else
-      valid.push(row)
+      dangling.push({
+        row,
+        reason: missing
+          .map((col) => `${col}=${String(row[col])} 在 ${fkRefs.get(col)} 里不存在`)
+          .join('; '),
+      })
+    else valid.push(row)
   }
   return { valid, dangling }
 }
@@ -270,8 +319,7 @@ export function parseSeedPgArgs(argv: readonly string[]): SeedPgOptions {
     const arg = argv[i]
     const next = (): string => {
       const value = argv[++i]
-      if (value === undefined)
-        throw new PreconditionError(`${arg} 后面缺参数值`)
+      if (value === undefined) throw new PreconditionError(`${arg} 后面缺参数值`)
       return value
     }
     switch (arg) {
@@ -288,7 +336,10 @@ export function parseSeedPgArgs(argv: readonly string[]): SeedPgOptions {
         opts.password = next()
         break
       case '--only':
-        opts.only = next().split(',').map(s => s.trim()).filter(Boolean)
+        opts.only = next()
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
         break
       case '--pg-db':
         opts.pgDbName = next()
@@ -300,7 +351,9 @@ export function parseSeedPgArgs(argv: readonly string[]): SeedPgOptions {
         opts.seedDir = next()
         break
       default:
-        throw new PreconditionError(`未知参数 ${arg}（支持 --dry-run / --skip-app-keys / --admin / --password / --only / --pg-db / --env-file / --seed-dir）`)
+        throw new PreconditionError(
+          `未知参数 ${arg}（支持 --dry-run / --skip-app-keys / --admin / --password / --only / --pg-db / --env-file / --seed-dir）`,
+        )
     }
   }
   return opts
@@ -317,48 +370,48 @@ export interface SeedPlanEntry {
  * 排序 = FK 拓扑序（父表先播）。
  */
 export function planSeedTables(seedDir: string, only?: readonly string[]): SeedPlanEntry[] {
-  if (!existsSync(seedDir))
-    throw new PreconditionError(`找不到 seed 目录：${seedDir}`)
+  if (!existsSync(seedDir)) throw new PreconditionError(`找不到 seed 目录：${seedDir}`)
   const files = listSeedCollections(seedDir)
 
-  const unknown = only?.filter(name => !files.includes(name)) ?? []
+  const unknown = only?.filter((name) => !files.includes(name)) ?? []
   if (unknown.length > 0)
     throw new PreconditionError(`--only 里的集合不在 seed 目录：${unknown.join(', ')}`)
 
   const junctionOfParent = new Map<string, string>()
   for (const parent of SEED_TABLES) {
     // junction 与父集合的对应关系从文件名推：sys_user → sys_user_role、sys_role → sys_role_menu
-    const junction = JUNCTION_TABLES.find(table => table.startsWith(`${parent}_`))
-    if (junction !== undefined)
-      junctionOfParent.set(junction, parent)
+    const junction = JUNCTION_TABLES.find((table) => table.startsWith(`${parent}_`))
+    if (junction !== undefined) junctionOfParent.set(junction, parent)
   }
 
   const picked = new Set<string>()
   for (const name of files) {
     if (SEED_TABLES.includes(name) && (only === undefined || only.includes(name))) {
       picked.add(name)
-    }
-    else if (JUNCTION_TABLES.includes(name)) {
+    } else if (JUNCTION_TABLES.includes(name)) {
       const parent = junctionOfParent.get(name)
-      if (only === undefined || only.includes(name) || (parent !== undefined && only.includes(parent)))
+      if (
+        only === undefined ||
+        only.includes(name) ||
+        (parent !== undefined && only.includes(parent))
+      )
         picked.add(name)
-    }
-    else if (!SEED_TABLES.includes(name)) {
-      throw new PreconditionError(`seed 目录里有未登记的表文件 ${name}.json —— 先在 seed-reshape.ts 的 ROW_SPECS 里登记`)
+    } else if (!SEED_TABLES.includes(name)) {
+      throw new PreconditionError(
+        `seed 目录里有未登记的表文件 ${name}.json —— 先在 seed-reshape.ts 的 ROW_SPECS 里登记`,
+      )
     }
   }
-  if (picked.size === 0)
-    throw new PreconditionError(`seed 目录里没有可播的表（${seedDir}）`)
+  if (picked.size === 0) throw new PreconditionError(`seed 目录里没有可播的表（${seedDir}）`)
 
   // 拓扑序要元数据；这里先用文件名序做稳定兜底，readTableMeta 之后由 main 再排一次
-  return [...picked].sort().map(table => ({ table, file: join(seedDir, `${table}.json`) }))
+  return [...picked].sort().map((table) => ({ table, file: join(seedDir, `${table}.json`) }))
 }
 
 /** 读一个行形态的 seed 文件（纯 JSON：没有 `$oid` / `$date` 包装） */
 export function readSeedRows(file: string): Record<string, unknown>[] {
   const parsed = JSON.parse(readFileSync(file, 'utf8')) as unknown
-  if (!Array.isArray(parsed))
-    throw new PreconditionError(`${file} 必须是行数组（JSON array）`)
+  if (!Array.isArray(parsed)) throw new PreconditionError(`${file} 必须是行数组（JSON array）`)
   return parsed.map((row, index) => {
     if (row === null || typeof row !== 'object' || Array.isArray(row))
       throw new PreconditionError(`${file} 第 ${index} 行不是对象`)
@@ -370,22 +423,31 @@ export function readSeedRows(file: string): Record<string, unknown>[] {
  * 一行的列集必须**逐行一致**且都是真实列 —— 否则多行 VALUES 的列数会错位（PG 报的错很难懂），
  * 或者某列被静默漏掉。
  */
-export function resolveColumns(table: string, rows: readonly Record<string, unknown>[], meta: TableMeta): string[] {
+export function resolveColumns(
+  table: string,
+  rows: readonly Record<string, unknown>[],
+  meta: TableMeta,
+): string[] {
   const first = rows[0]
-  if (first === undefined)
-    return []
+  if (first === undefined) return []
   const cols = Object.keys(first)
   for (const [index, row] of rows.entries()) {
     const keys = Object.keys(row)
-    if (keys.length !== cols.length || keys.some(key => !cols.includes(key)))
-      throw new ViolationError(`${table} 第 ${index} 行的列集与首行不一致（列集必须逐行一致：${cols.join(', ')}）`)
+    if (keys.length !== cols.length || keys.some((key) => !cols.includes(key)))
+      throw new ViolationError(
+        `${table} 第 ${index} 行的列集与首行不一致（列集必须逐行一致：${cols.join(', ')}）`,
+      )
   }
-  const unknown = cols.filter(col => !meta.columns.includes(col))
+  const unknown = cols.filter((col) => !meta.columns.includes(col))
   if (unknown.length > 0)
-    throw new ViolationError(`${table} 的 seed 文件里有 PG 表中不存在的列：${unknown.join(', ')} —— 表结构变了就重新导出`)
-  const missing = meta.requiredColumns.filter(col => !cols.includes(col))
+    throw new ViolationError(
+      `${table} 的 seed 文件里有 PG 表中不存在的列：${unknown.join(', ')} —— 表结构变了就重新导出`,
+    )
+  const missing = meta.requiredColumns.filter((col) => !cols.includes(col))
   if (missing.length > 0)
-    throw new ViolationError(`${table} 的 seed 文件缺 NOT NULL 列：${missing.join(', ')} —— 表结构变了就重新导出`)
+    throw new ViolationError(
+      `${table} 的 seed 文件缺 NOT NULL 列：${missing.join(', ')} —— 表结构变了就重新导出`,
+    )
   return cols
 }
 
@@ -400,18 +462,24 @@ export interface SeedStats {
 }
 
 /** 播一张表（单条多行语句；行数远小于 PG 参数上限） */
-export async function seedTable(pg: Client, table: string, file: string, meta: TableMeta, dryRun: boolean): Promise<SeedStats> {
+export async function seedTable(
+  pg: Client,
+  table: string,
+  file: string,
+  meta: TableMeta,
+  dryRun: boolean,
+): Promise<SeedStats> {
   const rows = readSeedRows(file)
   const isJunction = !meta.primaryKey.includes('id')
-  if (isJunction)
-    return seedJunctionTable(pg, table, rows, meta, dryRun)
+  if (isJunction) return seedJunctionTable(pg, table, rows, meta, dryRun)
 
   const cols = resolveColumns(table, rows, meta)
-  if (dryRun || rows.length === 0)
-    return { table, rows: rows.length, upserted: 0, dangling: 0 }
+  if (dryRun || rows.length === 0) return { table, rows: rows.length, upserted: 0, dangling: 0 }
 
   const ordered = meta.selfRef === null ? rows : sortRowsBySelfRefDepth(rows, meta.selfRef)
-  const params = ordered.flatMap(row => cols.map(col => prepareParam(row[col], meta.jsonbColumns.has(col))))
+  const params = ordered.flatMap((row) =>
+    cols.map((col) => prepareParam(row[col], meta.jsonbColumns.has(col))),
+  )
   const result = await pg.query(buildBusinessUpsertSql(table, cols, ordered.length), params)
   return { table, rows: rows.length, upserted: result.rowCount ?? 0, dangling: 0 }
 }
@@ -424,26 +492,33 @@ async function seedJunctionTable(
   dryRun: boolean,
 ): Promise<SeedStats> {
   const cols = resolveColumns(table, rows, meta)
-  if (dryRun || rows.length === 0)
-    return { table, rows: rows.length, upserted: 0, dangling: 0 }
+  if (dryRun || rows.length === 0) return { table, rows: rows.length, upserted: 0, dangling: 0 }
 
   const { valid, dangling } = await splitDanglingJunctionRows(pg, table, rows, meta.fkRefs)
   if (valid.length === 0)
     return { table, rows: rows.length, upserted: 0, dangling: dangling.length }
 
-  const params = valid.flatMap(row => cols.map(col => row[col]))
-  const result = await pg.query(buildJunctionInsertSql(table, cols, valid.length, meta.primaryKey), params)
+  const params = valid.flatMap((row) => cols.map((col) => row[col]))
+  const result = await pg.query(
+    buildJunctionInsertSql(table, cols, valid.length, meta.primaryKey),
+    params,
+  )
   return { table, rows: rows.length, upserted: result.rowCount ?? 0, dangling: dangling.length }
 }
 
 /** app_key 现生成（PG 版）：库里没有 ACTIVE 的同类型密钥时才插入（id 走 DB 默认 v4） */
-export async function seedPgAppKeys(pg: Client, dryRun: boolean): Promise<{ inserted: number, wanted: number }> {
+export async function seedPgAppKeys(
+  pg: Client,
+  dryRun: boolean,
+): Promise<{ inserted: number; wanted: number }> {
   const wanted = generateAppKeys()
   let inserted = 0
   for (const keyDoc of wanted) {
-    const exist = await pg.query('SELECT 1 FROM app_key WHERE type = $1 AND status = $2 LIMIT 1', [keyDoc.type, 'ACTIVE'])
-    if (exist.rowCount !== 0 || dryRun)
-      continue
+    const exist = await pg.query('SELECT 1 FROM app_key WHERE type = $1 AND status = $2 LIMIT 1', [
+      keyDoc.type,
+      'ACTIVE',
+    ])
+    if (exist.rowCount !== 0 || dryRun) continue
     const row = {
       key: keyDoc.key,
       type: keyDoc.type,
@@ -457,8 +532,11 @@ export async function seedPgAppKeys(pg: Client, dryRun: boolean): Promise<{ inse
       updated_at: keyDoc.updatedAt,
     }
     const cols = Object.keys(row)
-    const params = cols.map(col => row[col as keyof typeof row])
-    await pg.query(`INSERT INTO app_key (${cols.map(c => `"${c}"`).join(', ')}) VALUES (${cols.map((_, i) => `$${i + 1}`).join(', ')})`, params)
+    const params = cols.map((col) => row[col as keyof typeof row])
+    await pg.query(
+      `INSERT INTO app_key (${cols.map((c) => `"${c}"`).join(', ')}) VALUES (${cols.map((_, i) => `$${i + 1}`).join(', ')})`,
+      params,
+    )
     inserted++
   }
   return { inserted, wanted: wanted.length }
@@ -475,12 +553,16 @@ export async function seedPgAdminCredential(
   pg: Client,
   admin: string,
   password: string,
-  keys: { serverSetup: string, identityEncryptionKey: string, identityHashSalt: string },
+  keys: { serverSetup: string; identityEncryptionKey: string; identityHashSalt: string },
 ): Promise<void> {
-  const found = await pg.query<{ id: string }>('SELECT id FROM sys_user WHERE user_name = $1', [admin])
+  const found = await pg.query<{ id: string }>('SELECT id FROM sys_user WHERE user_name = $1', [
+    admin,
+  ])
   const user = found.rows[0]
   if (user === undefined)
-    throw new PreconditionError(`PG 里没有账号 ${admin} —— 先跑 \`pnpm walnut db:seed:pg\`（它会播演示账号档案），或换一个已存在的 userName`)
+    throw new PreconditionError(
+      `PG 里没有账号 ${admin} —— 先跑 \`pnpm walnut db:seed:pg\`（它会播演示账号档案），或换一个已存在的 userName`,
+    )
 
   let identity
   try {
@@ -492,11 +574,10 @@ export async function seedPgAdminCredential(
       keys.identityEncryptionKey,
       keys.identityHashSalt,
     )
-  }
-  catch (error) {
+  } catch (error) {
     throw new PreconditionError(
-      `拿本环境的 AUTH_OPAQUE_SECRET / USER_ID_* 跑 OPAQUE 注册与加密失败（${error instanceof Error ? error.message : String(error)}）`
-      + '\n  · 它们必须是后端实际使用的那一份（--env-file 指向的 env 文件里的 AUTH_OPAQUE_SECRET / USER_ID_ENCRYPTION_KEY / USER_ID_HASH_SALT）',
+      `拿本环境的 AUTH_OPAQUE_SECRET / USER_ID_* 跑 OPAQUE 注册与加密失败（${error instanceof Error ? error.message : String(error)}）` +
+        '\n  · 它们必须是后端实际使用的那一份（--env-file 指向的 env 文件里的 AUTH_OPAQUE_SECRET / USER_ID_ENCRYPTION_KEY / USER_ID_HASH_SALT）',
     )
   }
 
@@ -514,22 +595,33 @@ export async function seedPgAdminCredential(
     metadata: identity.metadata,
   }
   const cols = Object.keys(row)
-  const params = cols.map(col => row[col as keyof typeof row])
-  const updates = cols.filter(c => c !== 'user_id' && c !== 'type' && c !== 'purpose')
-    .map(c => `"${c}" = EXCLUDED."${c}"`)
+  const params = cols.map((col) => row[col as keyof typeof row])
+  const updates = cols
+    .filter((c) => c !== 'user_id' && c !== 'type' && c !== 'purpose')
+    .map((c) => `"${c}" = EXCLUDED."${c}"`)
     .join(', ')
   await pg.query(
-    `INSERT INTO sys_user_identity (${cols.map(c => `"${c}"`).join(', ')}) VALUES (${cols.map((_, i) => `$${i + 1}`).join(', ')}) ON CONFLICT (user_id, type, purpose) DO UPDATE SET ${updates}, updated_at = now()`,
+    `INSERT INTO sys_user_identity (${cols.map((c) => `"${c}"`).join(', ')}) VALUES (${cols.map((_, i) => `$${i + 1}`).join(', ')}) ON CONFLICT (user_id, type, purpose) DO UPDATE SET ${updates}, updated_at = now()`,
     params,
   )
   out(`  sys_user_identity  覆盖 1（账号 ${admin} 的口令凭证）`)
 
   // ①：自验必须用**明文** record（库里那份是密文）
-  const proof = verifyPasswordIdentity(admin, password, identity.registrationRecord, keys.serverSetup)
+  const proof = verifyPasswordIdentity(
+    admin,
+    password,
+    identity.registrationRecord,
+    keys.serverSetup,
+  )
   if (!proof.ok) {
-    throw new ViolationError(`凭证写进去了，但登录握手没通过：${proof.reason} —— 通常说明 AUTH_OPAQUE_SECRET 与后端实际使用的不一致`)
+    throw new ViolationError(
+      `凭证写进去了，但登录握手没通过：${proof.reason} —— 通常说明 AUTH_OPAQUE_SECRET 与后端实际使用的不一致`,
+    )
   }
-  line('ok', `口令已验证：${admin} 用该口令能完成完整 OPAQUE 登录握手（会话密钥 ${proof.sessionKeyLength} 字节）`)
+  line(
+    'ok',
+    `口令已验证：${admin} 用该口令能完成完整 OPAQUE 登录握手（会话密钥 ${proof.sessionKeyLength} 字节）`,
+  )
 }
 
 /** 命令行主体 */
@@ -538,24 +630,41 @@ export async function main(): Promise<void> {
   const opts = parseSeedPgArgs(process.argv.slice(2))
   const seedDir = resolvePath(repoRoot, opts.seedDir)
   const plan = planSeedTables(seedDir, opts.only)
-  const { target } = resolvePgTarget(repoRoot, opts.envFile === '' ? undefined : opts.envFile, opts.pgDbName)
+  const { target } = resolvePgTarget(
+    repoRoot,
+    opts.envFile === '' ? undefined : opts.envFile,
+    opts.pgDbName,
+  )
 
   out(`seed 目录：${opts.seedDir}（${plan.length} 个表文件，FK 拓扑序装载）`)
-  out(`目标 PG 库：${target.database}${opts.dryRun ? '（dry-run，不写入）' : '（按主键 upsert，幂等可重放）'}`)
+  out(
+    `目标 PG 库：${target.database}${opts.dryRun ? '（dry-run，不写入）' : '（按主键 upsert，幂等可重放）'}`,
+  )
 
   const pg = new Client(target)
   await pg.connect()
   try {
     // 元数据是装载序、jsonb、必填列的唯一判据（不维护第二份注册表）
-    const meta = await readTableMeta(pg, plan.map(entry => entry.table))
-    const ordered = orderTablesByFk(plan.map(entry => entry.table), meta)
+    const meta = await readTableMeta(
+      pg,
+      plan.map((entry) => entry.table),
+    )
+    const ordered = orderTablesByFk(
+      plan.map((entry) => entry.table),
+      meta,
+    )
 
     const results: SeedStats[] = []
     for (const table of ordered) {
-      const entry = plan.find(item => item.table === table)
-      if (entry === undefined)
-        throw new PreconditionError(`装载计划里没有表 ${table}（内部错误）`)
-      const stats = await seedTable(pg, entry.table, entry.file, meta.get(entry.table) as TableMeta, opts.dryRun)
+      const entry = plan.find((item) => item.table === table)
+      if (entry === undefined) throw new PreconditionError(`装载计划里没有表 ${table}（内部错误）`)
+      const stats = await seedTable(
+        pg,
+        entry.table,
+        entry.file,
+        meta.get(entry.table) as TableMeta,
+        opts.dryRun,
+      )
       results.push(stats)
       const extra = stats.dangling > 0 ? ` / 丢弃悬空 ${stats.dangling}` : ''
       out(`  ${table.padEnd(16)} 文档 ${stats.rows} / upsert ${stats.upserted}${extra}`)
@@ -573,13 +682,11 @@ export async function main(): Promise<void> {
         throw new PreconditionError('--admin 需要配 --password（或环境变量 SEED_ADMIN_PASSWORD）')
       if (opts.dryRun)
         out(`  sys_user_identity  待写入（账号 ${opts.admin} 的口令凭证；dry-run 不生成也不验证）`)
-      else
-        await seedPgAdminCredential(pg, opts.admin, password, keys)
+      else await seedPgAdminCredential(pg, opts.admin, password, keys)
     }
 
     line('ok', opts.dryRun ? 'dry-run 完成（未写入）' : `PG 播种完成：${results.length} 个表`)
-  }
-  finally {
+  } finally {
     await pg.end()
   }
 }
@@ -592,8 +699,11 @@ export async function main(): Promise<void> {
 function readAdminCredentialKeys(
   repoRoot: string,
   envFileOverride: string,
-): { serverSetup: string, identityEncryptionKey: string, identityHashSalt: string } {
-  const { envFile } = resolvePgTarget(repoRoot, envFileOverride === '' ? undefined : envFileOverride)
+): { serverSetup: string; identityEncryptionKey: string; identityHashSalt: string } {
+  const { envFile } = resolvePgTarget(
+    repoRoot,
+    envFileOverride === '' ? undefined : envFileOverride,
+  )
   const text = readFileSync(envFile, 'utf8')
 
   const readKey = (key: string, hint: string): string => {
@@ -606,7 +716,13 @@ function readAdminCredentialKeys(
 
   return {
     serverSetup: readKey('AUTH_OPAQUE_SECRET', '口令凭证必须用**本环境**的 OPAQUE 密钥生成'),
-    identityEncryptionKey: readKey('USER_ID_ENCRYPTION_KEY', 'password 身份落库必须与后端使用同一把身份加密密钥'),
-    identityHashSalt: readKey('USER_ID_HASH_SALT', 'password 身份 valueHash 必须与后端使用同一份盐'),
+    identityEncryptionKey: readKey(
+      'USER_ID_ENCRYPTION_KEY',
+      'password 身份落库必须与后端使用同一把身份加密密钥',
+    ),
+    identityHashSalt: readKey(
+      'USER_ID_HASH_SALT',
+      'password 身份 valueHash 必须与后端使用同一份盐',
+    ),
   }
 }

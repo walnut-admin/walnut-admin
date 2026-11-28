@@ -39,4 +39,6 @@ export type IWalnutAdminConstCookieKeys = ValueOf<typeof WalnutAdminConstCookieK
 export const WalnutAdminConstDeviceCookieMaxAge = 30 * 24 * 60 * 60 * 1000
 
 /** 续期间隔 = 有效期的 80%（24 天）：一旦超过就重发，剩余寿命恒 > 20% */
-export const WalnutAdminConstDeviceCookieRenewInterval = Math.floor(WalnutAdminConstDeviceCookieMaxAge * 0.8)
+export const WalnutAdminConstDeviceCookieRenewInterval = Math.floor(
+  WalnutAdminConstDeviceCookieMaxAge * 0.8,
+)

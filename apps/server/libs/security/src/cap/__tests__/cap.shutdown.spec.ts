@@ -23,7 +23,10 @@ const ALL_HOOK_EVENTS = [...Object.keys(constants.signals), 'beforeExit', 'exit'
 
 function snapshot(): Record<string, ((...args: unknown[]) => unknown)[]> {
   return Object.fromEntries(
-    ALL_HOOK_EVENTS.map(event => [event, process.listeners(event) as unknown as ((...args: unknown[]) => unknown)[]]),
+    ALL_HOOK_EVENTS.map((event) => [
+      event,
+      process.listeners(event) as unknown as ((...args: unknown[]) => unknown)[],
+    ]),
   )
 }
 
@@ -34,7 +37,9 @@ describe('cap.shutdown：把 cap.js 的进程钩子从 process 上摘下来', ()
     const detached = createCapDetachedFromProcessHooks(() => new CapCtor({ noFSState: true }))
 
     expect(detached.cap).toBeInstanceOf(CapCtor)
-    expect(detached.hooks.map(hook => hook.event).sort()).toEqual([...WALNUT_ADMIN_CAP_PROCESS_EVENTS].sort())
+    expect(detached.hooks.map((hook) => hook.event).sort()).toEqual(
+      [...WALNUT_ADMIN_CAP_PROCESS_EVENTS].sort(),
+    )
 
     for (const hook of detached.hooks) {
       expect(process.listeners(hook.event)).not.toContain(hook.listener)
@@ -46,7 +51,7 @@ describe('cap.shutdown：把 cap.js 的进程钩子从 process 上摘下来', ()
 
   it('负向对照：被摘下的 SIGTERM 钩子若仍在进程上，cleanup 后会 process.exit(0)', async () => {
     const detached = createCapDetachedFromProcessHooks(() => new CapCtor({ noFSState: true }))
-    const sigterm = detached.hooks.find(hook => hook.event === 'SIGTERM')
+    const sigterm = detached.hooks.find((hook) => hook.event === 'SIGTERM')
 
     expect(sigterm).toBeDefined()
 
@@ -78,7 +83,9 @@ describe('cap.shutdown：把 cap.js 的进程钩子从 process 上摘下来', ()
 
     const cap = new CapCtor({ noFSState: true })
 
-    const added = ALL_HOOK_EVENTS.filter(event => process.listeners(event).length > before[event].length)
+    const added = ALL_HOOK_EVENTS.filter(
+      (event) => process.listeners(event).length > before[event].length,
+    )
 
     expect(added.sort()).toEqual([...WALNUT_ADMIN_CAP_PROCESS_EVENTS].sort())
 

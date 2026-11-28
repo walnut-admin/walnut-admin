@@ -1,10 +1,19 @@
 import type { CallHandler, ExecutionContext, INestApplication } from '@nestjs/common'
 import type { WalnutTxContext } from '@walnut-server/db'
 import type { DataSource, QueryRunner } from 'typeorm'
-import { WALNUT_DATA_SCOPE_RLS_SYSTEM_SETTINGS, WalnutTxInterceptor, withQueryRunnerTransaction, withWalnutRlsTransaction } from '@walnut-server/db'
+import {
+  WALNUT_DATA_SCOPE_RLS_SYSTEM_SETTINGS,
+  WalnutTxInterceptor,
+  withQueryRunnerTransaction,
+  withWalnutRlsTransaction,
+} from '@walnut-server/db'
 import { from, lastValueFrom, throwError } from 'rxjs'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { createIntegrationApp, getWalnutPgAdminDataSource, getWalnutPgDataSource } from '../helpers/create-integration-app'
+import {
+  createIntegrationApp,
+  getWalnutPgAdminDataSource,
+  getWalnutPgDataSource,
+} from '../helpers/create-integration-app'
 
 /**
  * **连接池污染**的真实 PG 复现与回归（libs/db/src/tx.interceptor.ts 失败路径）。
@@ -50,8 +59,8 @@ describe('连接池污染：WalnutTxInterceptor 失败路径「先 rollback 再 
         getResponse: () => ({}),
         getNext: () => undefined,
       }),
-      getClass: () => class PoolPollutionSpecHandler { },
-      getHandler: () => function poolPollutionSpecHandler() { },
+      getClass: () => class PoolPollutionSpecHandler {},
+      getHandler: () => function poolPollutionSpecHandler() {},
     } as unknown as ExecutionContext
   }
 
@@ -59,14 +68,14 @@ describe('连接池污染：WalnutTxInterceptor 失败路径「先 rollback 再 
    * 借一条**真实** runner，并在 `startTransaction` 成功后记下它的 backend pid ——
    * 后续判据全部按 pid 定点读服务端状态，不受池里其他连接的干扰。
    */
-  function borrowRunner(): { runner: QueryRunner, backendPid: () => number } {
+  function borrowRunner(): { runner: QueryRunner; backendPid: () => number } {
     const runner = pgDataSource.createQueryRunner()
     const originalStartTransaction = runner.startTransaction.bind(runner)
     let pid = 0
 
     runner.startTransaction = async () => {
       await originalStartTransaction()
-      const rows = await runner.query('SELECT pg_backend_pid() AS pid') as Array<{ pid: number }>
+      const rows = (await runner.query('SELECT pg_backend_pid() AS pid')) as Array<{ pid: number }>
       pid = Number(rows[0].pid)
     }
 
@@ -113,10 +122,11 @@ describe('连接池污染：WalnutTxInterceptor 失败路径「先 rollback 再 
       dataScopeRls: { mode: 'system', userId: '', deptIds: null },
     }
 
-    await expect(interceptor.intercept(
-      makeExecutionContext(request),
-      { handle: () => throwError(() => new Error('handler 不该被执行')) },
-    )).rejects.toThrow(TypeError)
+    await expect(
+      interceptor.intercept(makeExecutionContext(request), {
+        handle: () => throwError(() => new Error('handler 不该被执行')),
+      }),
+    ).rejects.toThrow(TypeError)
 
     // 服务端判据：这条 backend 已回到池里，并且**不在**事务中（bug 态是 idle in transaction）
     expect(await backendState(backendPid())).toBe('idle')
@@ -130,11 +140,14 @@ describe('连接池污染：WalnutTxInterceptor 失败路径「先 rollback 再 
 
     // handler 先用事务句柄真跑一条语句（模拟业务写），再抛错
     const next: CallHandler = {
-      handle: () => from((async () => {
-        const tx = (request as { txContext?: WalnutTxContext }).txContext
-        await tx!.em.query('SELECT 1')
-        throw new Error('handler boom')
-      })()),
+      handle: () =>
+        from(
+          (async () => {
+            const tx = (request as { txContext?: WalnutTxContext }).txContext
+            await tx!.em.query('SELECT 1')
+            throw new Error('handler boom')
+          })(),
+        ),
     }
 
     const result$ = await interceptor.intercept(makeExecutionContext(request), next)
@@ -173,15 +186,17 @@ describe('连接池污染：WalnutTxInterceptor 失败路径「先 rollback 再 
     const releases = countReleases(runner)
     let xid = ''
 
-    await expect(withWalnutRlsTransaction(
-      dataSourceOn(runner),
-      WALNUT_DATA_SCOPE_RLS_SYSTEM_SETTINGS,
-      async (manager) => {
-        const rows = await manager.query<Array<{ xid: string }>>('SELECT txid_current() AS xid')
-        xid = String(rows[0].xid)
-        throw new Error('helper boom')
-      },
-    )).rejects.toThrow('helper boom')
+    await expect(
+      withWalnutRlsTransaction(
+        dataSourceOn(runner),
+        WALNUT_DATA_SCOPE_RLS_SYSTEM_SETTINGS,
+        async (manager) => {
+          const rows = await manager.query<Array<{ xid: string }>>('SELECT txid_current() AS xid')
+          xid = String(rows[0].xid)
+          throw new Error('helper boom')
+        },
+      ),
+    ).rejects.toThrow('helper boom')
 
     // 零残留判据（服务端）：这个事务号在 PG 里的终态必须是 aborted，不是 committed
     const status = await adminPgDataSource.query<Array<{ status: string }>>(
@@ -198,15 +213,13 @@ describe('连接池污染：WalnutTxInterceptor 失败路径「先 rollback 再 
     const { runner, backendPid } = borrowRunner()
     const releases = countReleases(runner)
 
-    await expect(withQueryRunnerTransaction(
-      dataSourceOn(runner),
-      async () => 'never',
-      {
+    await expect(
+      withQueryRunnerTransaction(dataSourceOn(runner), async () => 'never', {
         setup: async () => {
           throw new Error('setup boom')
         },
-      },
-    )).rejects.toThrow('setup boom')
+      }),
+    ).rejects.toThrow('setup boom')
 
     // 旧写法把 connect / startTransaction / 设置写在 try 之外：这里会读到 idle in transaction
     expect(await backendState(backendPid())).toBe('idle')
@@ -227,10 +240,11 @@ describe('连接池污染：WalnutTxInterceptor 失败路径「先 rollback 再 
       dataScopeRls: { mode: 'system', userId: '', deptIds: null },
     }
 
-    await expect(interceptor.intercept(
-      makeExecutionContext(request),
-      { handle: () => throwError(() => new Error('handler 不该被执行')) },
-    )).rejects.toThrow(TypeError)
+    await expect(
+      interceptor.intercept(makeExecutionContext(request), {
+        handle: () => throwError(() => new Error('handler 不该被执行')),
+      }),
+    ).rejects.toThrow(TypeError)
 
     // 判据灵敏度自检：同一条连接、同一条查询 —— 这里必须是「带着未提交事务回池」
     expect(await backendState(backendPid())).toBe('idle in transaction')

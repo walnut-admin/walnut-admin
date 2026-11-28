@@ -12,7 +12,10 @@ import { OtpSharedService } from '@walnut-server/auth'
 
 import { AppTechRedisService } from '@walnut-server/cache'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
-import { SysUserIdentitySharedService, WalnutAdminConstSysUserIdentityPurpose } from '@walnut-server/identity'
+import {
+  SysUserIdentitySharedService,
+  WalnutAdminConstSysUserIdentityPurpose,
+} from '@walnut-server/identity'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { isNil } from 'lodash'
 
@@ -63,11 +66,7 @@ export class SecuritySensitiveService {
       expiresAt: now + this.EXPIRY_SECONDS * 1000,
     }
 
-    await this.redis.setEx(
-      key,
-      this.EXPIRY_SECONDS,
-      JSON.stringify(data),
-    )
+    await this.redis.setEx(key, this.EXPIRY_SECONDS, JSON.stringify(data))
   }
 
   /**
@@ -100,8 +99,7 @@ export class SecuritySensitiveService {
 
     try {
       return JSON.parse(data) as ISensitivePermissionData
-    }
-    catch {
+    } catch {
       return null
     }
   }
@@ -174,7 +172,11 @@ export class SecuritySensitiveService {
       securityPurpose,
       undefined,
     )
-    if (phoneIdentity?.verified && phoneIdentity.status && supportedMethods.includes(WalnutAdminConstVerifyMethod.SMS)) {
+    if (
+      phoneIdentity?.verified &&
+      phoneIdentity.status &&
+      supportedMethods.includes(WalnutAdminConstVerifyMethod.SMS)
+    ) {
       methods.push(WalnutAdminConstVerifyMethod.SMS)
     }
 
@@ -185,7 +187,11 @@ export class SecuritySensitiveService {
       securityPurpose,
       undefined,
     )
-    if (emailIdentity?.verified && emailIdentity.status && supportedMethods.includes(WalnutAdminConstVerifyMethod.EMAIL)) {
+    if (
+      emailIdentity?.verified &&
+      emailIdentity.status &&
+      supportedMethods.includes(WalnutAdminConstVerifyMethod.EMAIL)
+    ) {
       methods.push(WalnutAdminConstVerifyMethod.EMAIL)
     }
 
@@ -252,8 +258,7 @@ export class SecuritySensitiveService {
 
       // Verify code via OTP service
       return await this.otpSharedService.verifyCode('sms', identifier, code, userId)
-    }
-    catch {
+    } catch {
       return false
     }
   }
@@ -273,8 +278,7 @@ export class SecuritySensitiveService {
 
       // Verify code via OTP service
       return await this.otpSharedService.verifyCode('email', identifier, code, userId)
-    }
-    catch {
+    } catch {
       return false
     }
   }

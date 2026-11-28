@@ -61,7 +61,16 @@ import { describe, expect, it } from 'vitest'
 
 // ─── HTTP 谓词与路径形态 ─────────────────────────────────────────────────────────
 
-const HTTP_VERB_DECORATORS = ['Get', 'Post', 'Put', 'Patch', 'Delete', 'Options', 'Head', 'All'] as const
+const HTTP_VERB_DECORATORS = [
+  'Get',
+  'Post',
+  'Put',
+  'Patch',
+  'Delete',
+  'Options',
+  'Head',
+  'All',
+] as const
 
 type HttpVerbDecorator = (typeof HTTP_VERB_DECORATORS)[number]
 
@@ -117,28 +126,25 @@ function stripComments(text: string): string {
         stripped += text[++i] ?? ''
         continue
       }
-      if (char === quote)
-        quote = null
+      if (char === quote) quote = null
       continue
     }
 
-    if (char === '\'' || char === '"' || char === '`') {
+    if (char === "'" || char === '"' || char === '`') {
       quote = char
       stripped += char
       continue
     }
 
     if (char === '/' && text[i + 1] === '/') {
-      while (i < text.length && text[i] !== '\n')
-        i++
+      while (i < text.length && text[i] !== '\n') i++
       stripped += '\n'
       continue
     }
 
     if (char === '/' && text[i + 1] === '*') {
       i += 2
-      while (i < text.length && !(text[i] === '*' && text[i + 1] === '/'))
-        i++
+      while (i < text.length && !(text[i] === '*' && text[i + 1] === '/')) i++
       i++
       stripped += ' '
       continue
@@ -151,9 +157,9 @@ function stripComments(text: string): string {
 }
 
 /** 读取从 start 起的字符串字面量（单/双引号，处理反斜杠转义） */
-function readStringLiteral(text: string, start: number): { value: string, endIndex: number } {
+function readStringLiteral(text: string, start: number): { value: string; endIndex: number } {
   const quote = text[start]
-  if (quote !== '\'' && quote !== '"')
+  if (quote !== "'" && quote !== '"')
     expect.fail(`期望字符串字面量，实际字符：${JSON.stringify(text[start])}`)
 
   let value = ''
@@ -163,8 +169,7 @@ function readStringLiteral(text: string, start: number): { value: string, endInd
       i++
       continue
     }
-    if (text[i] === quote)
-      return { value, endIndex: i + 1 }
+    if (text[i] === quote) return { value, endIndex: i + 1 }
     value += text[i]
   }
 
@@ -180,14 +185,12 @@ function findMatchingParen(text: string, openParenIndex: number): number {
     const char = text[i]
 
     if (quote !== null) {
-      if (char === '\\')
-        i++
-      else if (char === quote)
-        quote = null
+      if (char === '\\') i++
+      else if (char === quote) quote = null
       continue
     }
 
-    if (char === '\'' || char === '"' || char === '`') {
+    if (char === "'" || char === '"' || char === '`') {
       quote = char
       continue
     }
@@ -199,8 +202,7 @@ function findMatchingParen(text: string, openParenIndex: number): number {
 
     if (char === ')') {
       depth--
-      if (depth === 0)
-        return i
+      if (depth === 0) return i
     }
   }
 
@@ -217,22 +219,23 @@ function readPathArgument(
   start: number,
   label: string,
   contractRefs: ReadonlyMap<string, string>,
-): { value: string, endIndex: number } {
-  if (text[start] === '\'' || text[start] === '"')
-    return readStringLiteral(text, start)
+): { value: string; endIndex: number } {
+  if (text[start] === "'" || text[start] === '"') return readStringLiteral(text, start)
 
   const reference = /^([A-Za-z_$][\w$]*)\.([A-Z][A-Z0-9_]*)\b/.exec(text.slice(start))
   if (reference === null) {
     expect.fail(
-      `${label} 的路径既不是字符串字面量也不是 Group.KEY 常量引用`
-      + '（模板串 / 变量 / 计算路径不在覆盖内；请扩展扫描器）',
+      `${label} 的路径既不是字符串字面量也不是 Group.KEY 常量引用` +
+        '（模板串 / 变量 / 计算路径不在覆盖内；请扩展扫描器）',
     )
   }
 
   const refName = `${reference[1]}.${reference[2]}`
   const resolved = contractRefs.get(refName)
   if (resolved === undefined) {
-    expect.fail(`${label} 引用了 contract/routes.ts 中不存在的常量 ${refName}（拼错 / 分组名写错？）`)
+    expect.fail(
+      `${label} 引用了 contract/routes.ts 中不存在的常量 ${refName}（拼错 / 分组名写错？）`,
+    )
   }
 
   return { value: resolved, endIndex: start + reference[0].length }
@@ -260,11 +263,9 @@ function parseCallArguments(
   const closeIndex = findMatchingParen(text, openParenIndex)
   let i = openParenIndex + 1
 
-  while (i < text.length && /\s/.test(text[i]))
-    i++
+  while (i < text.length && /\s/.test(text[i])) i++
 
-  if (i === closeIndex)
-    return { endIndex: closeIndex + 1 }
+  if (i === closeIndex) return { endIndex: closeIndex + 1 }
 
   if (text[i] === '[') {
     expect.fail(`${label} 用了数组路径形态（本守卫不支持；请扩展扫描器而不是绕过）`)
@@ -273,11 +274,9 @@ function parseCallArguments(
   const argument = readPathArgument(text, i, label, contractRefs)
   i = argument.endIndex
 
-  while (i < text.length && /\s/.test(text[i]))
-    i++
+  while (i < text.length && /\s/.test(text[i])) i++
 
-  if (i === closeIndex)
-    return { firstArgument: argument.value, endIndex: closeIndex + 1 }
+  if (i === closeIndex) return { firstArgument: argument.value, endIndex: closeIndex + 1 }
 
   if (text[i] !== ',') {
     expect.fail(`${label} 的路径表达式无法解析（只支持单字面量或字面量 + options）`)
@@ -289,8 +288,7 @@ function parseCallArguments(
 
 /** 装饰器里的路径只允许字面量段；内部双斜杠会让 Nest 原样保留，对账口径会失真 */
 function normalizeDecoratorPath(raw: string, label: string): string {
-  if (raw.includes('//'))
-    expect.fail(`${label} 的路径出现连续斜杠：${JSON.stringify(raw)}`)
+  if (raw.includes('//')) expect.fail(`${label} 的路径出现连续斜杠：${JSON.stringify(raw)}`)
   if (raw.includes('?') || raw.includes('#'))
     expect.fail(`${label} 的路径带 query / hash：${JSON.stringify(raw)}（路由定义不应包含它们）`)
   return raw
@@ -303,19 +301,17 @@ function normalizeDecoratorPath(raw: string, label: string): string {
  * 并去掉非根路径的尾斜杠。
  */
 function nestJoinPath(prefix: string, methodPath: string): string {
-  const stripEndSlash = (path: string): string => path.endsWith('/') ? path.slice(0, -1) : path
+  const stripEndSlash = (path: string): string => (path.endsWith('/') ? path.slice(0, -1) : path)
   const addLeadingSlash = (path: string): string => {
-    if (path === '')
-      return ''
+    if (path === '') return ''
     return path.startsWith('/') ? path : `/${path}`
   }
-  const concatPaths = (left: string, right: string): string => stripEndSlash(left) + addLeadingSlash(right)
+  const concatPaths = (left: string, right: string): string =>
+    stripEndSlash(left) + addLeadingSlash(right)
 
   let joined = ''
-  if (prefix !== '')
-    joined = concatPaths(joined, prefix)
-  if (methodPath !== '')
-    joined = concatPaths(joined, methodPath)
+  if (prefix !== '') joined = concatPaths(joined, prefix)
+  if (methodPath !== '') joined = concatPaths(joined, methodPath)
 
   const withLeading = addLeadingSlash(joined === '' ? '/' : joined)
   return withLeading === '/' ? withLeading : stripEndSlash(withLeading)
@@ -325,15 +321,13 @@ function nestJoinPath(prefix: string, methodPath: string): string {
 
 function listControllerFiles(dir: string): string[] {
   const found: string[] = []
-  if (!existsSync(dir))
-    return found
+  if (!existsSync(dir)) return found
 
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name)
     if (entry.isDirectory()) {
       found.push(...listControllerFiles(full))
-    }
-    else if (entry.isFile() && entry.name.endsWith('.controller.ts')) {
+    } else if (entry.isFile() && entry.name.endsWith('.controller.ts')) {
       found.push(full)
     }
   }
@@ -345,8 +339,8 @@ function listAllControllerFiles(): string[] {
   const appFiles = listControllerFiles(resolve(process.cwd(), 'apps/api/src'))
   const libsRoot = resolve(process.cwd(), 'libs')
   const libFiles = readdirSync(libsRoot, { withFileTypes: true })
-    .filter(entry => entry.isDirectory())
-    .flatMap(entry => listControllerFiles(join(libsRoot, entry.name, 'src')))
+    .filter((entry) => entry.isDirectory())
+    .flatMap((entry) => listControllerFiles(join(libsRoot, entry.name, 'src')))
 
   return [...appFiles, ...libFiles].sort()
 }
@@ -368,25 +362,23 @@ function readHandlerName(text: string, fromIndex: number): string {
   let index = fromIndex
 
   for (;;) {
-    while (index < text.length && /\s/.test(text[index]))
-      index++
+    while (index < text.length && /\s/.test(text[index])) index++
 
-    if (text[index] !== '@')
-      break
+    if (text[index] !== '@') break
 
     const nameMatch = /^@[$_a-z][\w$]*/i.exec(text.slice(index))
-    if (nameMatch === null)
-      break
+    if (nameMatch === null) break
     index += nameMatch[0].length
 
-    while (index < text.length && /\s/.test(text[index]))
-      index++
+    while (index < text.length && /\s/.test(text[index])) index++
 
-    if (text[index] === '(')
-      index = findMatchingParen(text, index) + 1
+    if (text[index] === '(') index = findMatchingParen(text, index) + 1
   }
 
-  const match = /^(?:(?:public|private|protected|static|async|readonly|override)\s+)*([A-Za-z_$][\w$]*)\s*\(/.exec(text.slice(index))
+  const match =
+    /^(?:(?:public|private|protected|static|async|readonly|override)\s+)*([A-Za-z_$][\w$]*)\s*\(/.exec(
+      text.slice(index),
+    )
   return match === null ? '<unknown>' : match[1]
 }
 
@@ -396,25 +388,37 @@ function readClassName(text: string, fromIndex: number): string {
   return match === null ? '<unknown>' : match[1]
 }
 
-function parseControllerFile(file: string, contractRefs: ReadonlyMap<string, string>): IControllerCatalogEntry {
+function parseControllerFile(
+  file: string,
+  contractRefs: ReadonlyMap<string, string>,
+): IControllerCatalogEntry {
   const label = relative(process.cwd(), file).split(sep).join('/')
   const text = stripComments(readFileSync(file, 'utf8'))
 
   const controllerMatches = [...text.matchAll(/@Controller\s*\(/g)]
   if (controllerMatches.length !== 1) {
     expect.fail(
-      `${label}: 应恰有 1 个 @Controller（实际 ${controllerMatches.length} 个）。`
-      + '多 controller 文件 / 注释残留会让本守卫失效，请拆分或扩展扫描器',
+      `${label}: 应恰有 1 个 @Controller（实际 ${controllerMatches.length} 个）。` +
+        '多 controller 文件 / 注释残留会让本守卫失效，请拆分或扩展扫描器',
     )
   }
 
   const [controllerMatch] = controllerMatches
   const controllerOpenParen = (controllerMatch.index ?? 0) + controllerMatch[0].length - 1
-  const controllerArgs = parseCallArguments(text, controllerOpenParen, `${label} 的 @Controller`, contractRefs)
-  const prefix = normalizeDecoratorPath(controllerArgs.firstArgument ?? '', `${label} 的 @Controller`)
+  const controllerArgs = parseCallArguments(
+    text,
+    controllerOpenParen,
+    `${label} 的 @Controller`,
+    contractRefs,
+  )
+  const prefix = normalizeDecoratorPath(
+    controllerArgs.firstArgument ?? '',
+    `${label} 的 @Controller`,
+  )
 
-  const compositeDecorators = COMPOSITE_ROUTE_HELPERS
-    .filter(helper => text.includes(`${helper}(`))
+  const compositeDecorators = COMPOSITE_ROUTE_HELPERS.filter((helper) =>
+    text.includes(`${helper}(`),
+  )
 
   const routes: IRouteEntry[] = []
   const routePattern = new RegExp(`@(${HTTP_VERB_DECORATORS.join('|')})\\s*\\(`, 'g')
@@ -444,14 +448,15 @@ function parseControllerFile(file: string, contractRefs: ReadonlyMap<string, str
 
 // ─── contract/routes.ts 解析 ────────────────────────────────────────────────────
 
-const CONTRACT_ROUTES_FILE = resolve(process.cwd(), '../../packages/platform-any/contract/src/routes.ts')
+const CONTRACT_ROUTES_FILE = resolve(
+  process.cwd(),
+  '../../packages/platform-any/contract/src/routes.ts',
+)
 
 /** 契约值必须是单字面量绝对路径：前面无 query/hash、无连续斜杠、非根无尾斜杠 */
 function normalizeContractPath(raw: string, label: string): string {
-  if (!raw.startsWith('/'))
-    expect.fail(`${label} 的值必须以 / 开头（实际 ${JSON.stringify(raw)}）`)
-  if (raw.includes('//'))
-    expect.fail(`${label} 的值出现连续斜杠：${JSON.stringify(raw)}`)
+  if (!raw.startsWith('/')) expect.fail(`${label} 的值必须以 / 开头（实际 ${JSON.stringify(raw)}）`)
+  if (raw.includes('//')) expect.fail(`${label} 的值出现连续斜杠：${JSON.stringify(raw)}`)
   if (raw.includes('?') || raw.includes('#'))
     expect.fail(`${label} 的值带 query / hash：${JSON.stringify(raw)}`)
   if (raw.length > 1 && raw.endsWith('/'))
@@ -475,14 +480,13 @@ function parseContractGroups(text: string): IContractGroup[] {
 
     for (const line of body.split(/\r?\n/)) {
       const trimmed = line.trim()
-      if (trimmed === '' || trimmed === ',')
-        continue
+      if (trimmed === '' || trimmed === ',') continue
 
       const entry = /^([A-Z][A-Z0-9_]*)\s*:\s*'([^']*)'\s*,?$/.exec(trimmed)
       if (entry === null) {
         expect.fail(
-          `contract/routes.ts 的 ${name} 分组里出现无法解析的条目：${trimmed}`
-          + '（本守卫只支持 KEY: \'字面量\' 单行形态；计算值 / spread 请扩展扫描器）',
+          `contract/routes.ts 的 ${name} 分组里出现无法解析的条目：${trimmed}` +
+            "（本守卫只支持 KEY: '字面量' 单行形态；计算值 / spread 请扩展扫描器）",
         )
       }
 
@@ -497,7 +501,9 @@ function parseContractGroups(text: string): IContractGroup[] {
   }
 
   if (groups.length === 0)
-    expect.fail('contract/routes.ts 里没有解析到任何 `export const XxxRoutes = { ... } as const` 分组')
+    expect.fail(
+      'contract/routes.ts 里没有解析到任何 `export const XxxRoutes = { ... } as const` 分组',
+    )
 
   return groups
 }
@@ -505,8 +511,7 @@ function parseContractGroups(text: string): IContractGroup[] {
 // ─── 对账判定（纯函数，供篡改自测复用）──────────────────────────────────────────
 
 function controllerPrefixOf(entry: IControllerCatalogEntry): string {
-  if (entry.prefix === '')
-    return '/'
+  if (entry.prefix === '') return '/'
   // Nest 的 addLeadingSlash：`@Controller('auth')` 的路由前缀是 `/auth`
   return entry.prefix.startsWith('/') ? entry.prefix : `/${entry.prefix}`
 }
@@ -520,8 +525,7 @@ function pathSegments(path: string): string[] {
 function matchesRoutePattern(concrete: string, pattern: string): boolean {
   const concreteSegments = pathSegments(concrete)
   const patternSegments = pathSegments(pattern)
-  if (concreteSegments.length !== patternSegments.length)
-    return false
+  if (concreteSegments.length !== patternSegments.length) return false
 
   return patternSegments.every((segment, index) =>
     segment.startsWith(':') ? concreteSegments[index] !== '' : segment === concreteSegments[index],
@@ -530,14 +534,11 @@ function matchesRoutePattern(concrete: string, pattern: string): boolean {
 
 /** a) 路由覆盖：精确相等，或某常量值为其段前缀（根 `/` 只做精确匹配，避免它覆盖全部路由） */
 function isRouteCovered(fullPath: string, contractValues: ReadonlySet<string>): boolean {
-  if (fullPath === '/')
-    return contractValues.has('/')
+  if (fullPath === '/') return contractValues.has('/')
 
   for (const value of contractValues) {
-    if (value === '/')
-      continue
-    if (fullPath === value || fullPath.startsWith(`${value}/`))
-      return true
+    if (value === '/') continue
+    if (fullPath === value || fullPath.startsWith(`${value}/`)) return true
   }
   return false
 }
@@ -548,29 +549,29 @@ function isContractValueAnchored(
   controllerPrefixes: ReadonlySet<string>,
   routeFullPaths: readonly string[],
 ): boolean {
-  if (controllerPrefixes.has(value))
-    return true
+  if (controllerPrefixes.has(value)) return true
 
-  if (value === '/')
-    return false
+  if (value === '/') return false
 
-  return routeFullPaths.some(route =>
-    route === value
-    || route.startsWith(`${value}/`)
-    || matchesRoutePattern(value, route),
+  return routeFullPaths.some(
+    (route) =>
+      route === value || route.startsWith(`${value}/`) || matchesRoutePattern(value, route),
   )
 }
 
-function collectPrefixProblems(catalog: IControllerCatalogEntry[], contractEntries: IContractEntry[]): string[] {
-  const contractValues = new Set(contractEntries.map(entry => entry.value))
+function collectPrefixProblems(
+  catalog: IControllerCatalogEntry[],
+  contractEntries: IContractEntry[],
+): string[] {
+  const contractValues = new Set(contractEntries.map((entry) => entry.value))
   const problems: string[] = []
 
   for (const entry of catalog) {
     const prefix = controllerPrefixOf(entry)
     if (!contractValues.has(prefix)) {
       problems.push(
-        `controller 前缀 ${prefix}（${entry.file}#${entry.className}）在 contract/routes.ts 中没有精确相等的常量；`
-        + '补一个前缀常量（U2a 只做前缀级，方法级命名端点按需再加）',
+        `controller 前缀 ${prefix}（${entry.file}#${entry.className}）在 contract/routes.ts 中没有精确相等的常量；` +
+          '补一个前缀常量（U2a 只做前缀级，方法级命名端点按需再加）',
       )
     }
   }
@@ -578,16 +579,19 @@ function collectPrefixProblems(catalog: IControllerCatalogEntry[], contractEntri
   return problems
 }
 
-function collectRouteCoverageProblems(catalog: IControllerCatalogEntry[], contractEntries: IContractEntry[]): string[] {
-  const contractValues = new Set(contractEntries.map(entry => entry.value))
+function collectRouteCoverageProblems(
+  catalog: IControllerCatalogEntry[],
+  contractEntries: IContractEntry[],
+): string[] {
+  const contractValues = new Set(contractEntries.map((entry) => entry.value))
   const problems: string[] = []
 
   for (const entry of catalog) {
     for (const route of entry.routes) {
       if (!isRouteCovered(route.fullPath, contractValues)) {
         problems.push(
-          `路由 ${route.verb} ${route.fullPath}（${entry.file}#${route.handler}）没有任何 contract 常量覆盖；`
-          + '补 controller 前缀常量或该方法的命名端点',
+          `路由 ${route.verb} ${route.fullPath}（${entry.file}#${route.handler}）没有任何 contract 常量覆盖；` +
+            '补 controller 前缀常量或该方法的命名端点',
         )
       }
     }
@@ -596,16 +600,19 @@ function collectRouteCoverageProblems(catalog: IControllerCatalogEntry[], contra
   return problems
 }
 
-function collectContractOrphanProblems(catalog: IControllerCatalogEntry[], contractEntries: IContractEntry[]): string[] {
+function collectContractOrphanProblems(
+  catalog: IControllerCatalogEntry[],
+  contractEntries: IContractEntry[],
+): string[] {
   const controllerPrefixes = new Set(catalog.map(controllerPrefixOf))
-  const routeFullPaths = catalog.flatMap(entry => entry.routes.map(route => route.fullPath))
+  const routeFullPaths = catalog.flatMap((entry) => entry.routes.map((route) => route.fullPath))
   const problems: string[] = []
 
   for (const entry of contractEntries) {
     if (!isContractValueAnchored(entry.value, controllerPrefixes, routeFullPaths)) {
       problems.push(
-        `contract 常量 ${entry.group}.${entry.key}=${entry.value} 不对应任何 controller 前缀 / 控制器字面量路由`
-        + '（反孤儿：先确认路由是否真的不存在，再决定改契约还是补路由）',
+        `contract 常量 ${entry.group}.${entry.key}=${entry.value} 不对应任何 controller 前缀 / 控制器字面量路由` +
+          '（反孤儿：先确认路由是否真的不存在，再决定改契约还是补路由）',
       )
     }
   }
@@ -632,19 +639,22 @@ function collectGroupStructureProblems(groups: IContractGroup[]): string[] {
   const seenValues = new Map<string, string>()
 
   for (const group of groups) {
-    if (group.entries.length === 0)
-      problems.push(`contract 分组 ${group.name} 是空分组`)
+    if (group.entries.length === 0) problems.push(`contract 分组 ${group.name} 是空分组`)
 
     const domains = ROUTE_GROUP_DOMAINS[group.name]
     if (domains === undefined) {
-      problems.push(`contract 分组 ${group.name} 未在 ROUTE_GROUP_DOMAINS 登记所属域名（分组结构抽查）`)
+      problems.push(
+        `contract 分组 ${group.name} 未在 ROUTE_GROUP_DOMAINS 登记所属域名（分组结构抽查）`,
+      )
     }
 
     for (const entry of group.entries) {
       if (domains !== undefined) {
-        const inDomain = domains.some(domain => domain === '/'
-          ? entry.value === '/'
-          : entry.value === domain || entry.value.startsWith(`${domain}/`))
+        const inDomain = domains.some((domain) =>
+          domain === '/'
+            ? entry.value === '/'
+            : entry.value === domain || entry.value.startsWith(`${domain}/`),
+        )
         if (!inDomain) {
           problems.push(
             `contract 常量 ${entry.group}.${entry.key}=${entry.value} 不在该分组域名 [${domains.join(', ')}] 下`,
@@ -655,8 +665,7 @@ function collectGroupStructureProblems(groups: IContractGroup[]): string[] {
       const previous = seenValues.get(entry.value)
       if (previous !== undefined) {
         problems.push(`contract 值 ${entry.value} 重复：${previous} 与 ${entry.group}.${entry.key}`)
-      }
-      else {
+      } else {
         seenValues.set(entry.value, `${entry.group}.${entry.key}`)
       }
     }
@@ -668,7 +677,7 @@ function collectGroupStructureProblems(groups: IContractGroup[]): string[] {
 /** 全部判定合并（篡改自测与各断言共用同一套逻辑，避免自测跑另一条空转路径） */
 function collectAllProblems(catalog: IControllerCatalogEntry[], contractText: string): string[] {
   const groups = parseContractGroups(contractText)
-  const entries = groups.flatMap(group => group.entries)
+  const entries = groups.flatMap((group) => group.entries)
 
   return [
     ...collectPrefixProblems(catalog, entries),
@@ -683,14 +692,17 @@ function collectAllProblems(catalog: IControllerCatalogEntry[], contractText: st
 describe('路由目录 drift 守卫（controller 字面量路由 ↔ contract/routes.ts，纯 fs + 正则）', () => {
   const contractText = readFileSync(CONTRACT_ROUTES_FILE, 'utf8')
   const groups = parseContractGroups(contractText)
-  const entries = groups.flatMap(group => group.entries)
+  const entries = groups.flatMap((group) => group.entries)
   // `Group.KEY` → 值：controller 装饰器现在允许直接引用契约常量（U2b），解析后再对账
-  const contractRefs = new Map(entries.map(entry => [`${entry.group}.${entry.key}`, entry.value]))
-  const catalog = listAllControllerFiles().map(file => parseControllerFile(file, contractRefs))
+  const contractRefs = new Map(entries.map((entry) => [`${entry.group}.${entry.key}`, entry.value]))
+  const catalog = listAllControllerFiles().map((file) => parseControllerFile(file, contractRefs))
 
   it('基础面非空（扫描面为空 / 解析全漏时，本守卫必须报警而不是静默通过）', () => {
     expect(catalog.length, '扫描到的 controller 文件数').toBeGreaterThan(0)
-    expect(catalog.flatMap(entry => entry.routes).length, '扫描到的字面量方法路由数').toBeGreaterThan(0)
+    expect(
+      catalog.flatMap((entry) => entry.routes).length,
+      '扫描到的字面量方法路由数',
+    ).toBeGreaterThan(0)
     expect(entries.length, 'contract/routes.ts 解析到的常量数').toBeGreaterThan(0)
 
     // 同一前缀两个 controller 会让「前缀常量」二义，且 Nest 里也是路由冲突
@@ -716,27 +728,29 @@ describe('路由目录 drift 守卫（controller 字面量路由 ↔ contract/ro
   })
 
   it('已知边界：复合装饰器 controller 的方法路由不在字面量扫描内，但仍须有前缀常量兜底', () => {
-    const compositeControllers = catalog.filter(entry => entry.compositeDecorators.length > 0)
+    const compositeControllers = catalog.filter((entry) => entry.compositeDecorators.length > 0)
     expect(compositeControllers.length, '检测到的复合装饰器 controller 数').toBeGreaterThan(0)
 
-    const contractValues = new Set(entries.map(entry => entry.value))
+    const contractValues = new Set(entries.map((entry) => entry.value))
     const missing = compositeControllers
       .map(controllerPrefixOf)
-      .filter(prefix => !contractValues.has(prefix))
+      .filter((prefix) => !contractValues.has(prefix))
     expect(missing, '复合装饰器 controller 缺前缀常量时，其生成路由在两侧都不可见').toEqual([])
   })
 
   it('对账自测：把 SystemRoutes.ROLE 改坏后必须报红（证明对账不是空转）', () => {
-    const tampered = contractText.replace('ROLE: \'/system/role\'', 'ROLE: \'/system/role-typo\'')
-    expect(tampered, '篡改锚点没命中（SystemRoutes.ROLE 改名了？同步本自测）').not.toBe(contractText)
+    const tampered = contractText.replace("ROLE: '/system/role'", "ROLE: '/system/role-typo'")
+    expect(tampered, '篡改锚点没命中（SystemRoutes.ROLE 改名了？同步本自测）').not.toBe(
+      contractText,
+    )
 
     const problems = collectAllProblems(catalog, tampered)
     expect(
-      problems.some(problem => problem.includes('controller 前缀 /system/role')),
+      problems.some((problem) => problem.includes('controller 前缀 /system/role')),
       `篡改后必须报「前缀缺常量」，实际：${problems.join(' | ')}`,
     ).toBe(true)
     expect(
-      problems.some(problem => problem.includes('SystemRoutes.ROLE=/system/role-typo')),
+      problems.some((problem) => problem.includes('SystemRoutes.ROLE=/system/role-typo')),
       `篡改后必须报「反孤儿」，实际：${problems.join(' | ')}`,
     ).toBe(true)
   })

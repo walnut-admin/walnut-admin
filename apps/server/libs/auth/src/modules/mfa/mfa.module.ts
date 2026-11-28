@@ -1,5 +1,9 @@
 import { Global, Module } from '@nestjs/common'
-import { SysUserDeviceSharedModule, SysUserMfaSharedModule, WALNUT_ADMIN_IDENTITY_MFA_POST_VERIFICATION } from '@walnut-server/identity'
+import {
+  SysUserDeviceSharedModule,
+  SysUserMfaSharedModule,
+  WALNUT_ADMIN_IDENTITY_MFA_POST_VERIFICATION,
+} from '@walnut-server/identity'
 import { AuthCookieModule } from '../cookie/cookie.module'
 import { AuthRefreshSharedModule } from '../refresh/shared/refresh.shared.module'
 import { AuthSharedModule } from '../shared/shared.module'
@@ -12,7 +16,14 @@ import { AuthMfaService } from './mfa.service'
  */
 @Global()
 @Module({
-  imports: [AuthSharedModule, SysUserMfaSharedModule, AuthRefreshSharedModule, SysUserDeviceSharedModule, SysUserMfaSharedModule, AuthCookieModule],
+  imports: [
+    AuthSharedModule,
+    SysUserMfaSharedModule,
+    AuthRefreshSharedModule,
+    SysUserDeviceSharedModule,
+    SysUserMfaSharedModule,
+    AuthCookieModule,
+  ],
   providers: [
     AuthMfaService,
     AuthMfaPostVerificationService,
@@ -21,6 +32,10 @@ import { AuthMfaService } from './mfa.service'
       useExisting: AuthMfaPostVerificationService,
     },
   ],
-  exports: [AuthMfaService, AuthMfaPostVerificationService, WALNUT_ADMIN_IDENTITY_MFA_POST_VERIFICATION],
+  exports: [
+    AuthMfaService,
+    AuthMfaPostVerificationService,
+    WALNUT_ADMIN_IDENTITY_MFA_POST_VERIFICATION,
+  ],
 })
 export class AuthMfaModule {}

@@ -1,13 +1,25 @@
 import { Controller, HttpCode, HttpStatus, Logger, Post, Request, UseGuards } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { AuthCookieService, AuthGoogleService, AuthSuccessDTO, WalnutAdminGuardJwtFree } from '@walnut-server/auth'
+import {
+  AuthCookieService,
+  AuthGoogleService,
+  AuthSuccessDTO,
+  WalnutAdminGuardJwtFree,
+} from '@walnut-server/auth'
 import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 
 import { IWalnutAdminConstAppSettingAuthOAuthGoogleKeys } from '@walnut-server/const/app/setting'
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { WalnutAdminDecoratorAuthLog, WalnutAdminDecoratorDataScopeSystemChannel, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorFunctionalGuard, WalnutAdminDecoratorUser, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import {
+  WalnutAdminDecoratorAuthLog,
+  WalnutAdminDecoratorDataScopeSystemChannel,
+  WalnutAdminDecoratorDeviceId,
+  WalnutAdminDecoratorFunctionalGuard,
+  WalnutAdminDecoratorUser,
+  WalnutAdminGuardSignFree,
+} from '@walnut-server/guards'
 import { AuthRoutes } from '@walnut/contract'
 import { AuthGoogleGuard } from './google.guard'
 
@@ -49,7 +61,8 @@ export class AuthGoogleController {
     @Request() req: IWalnutAdminExpressRequest,
   ) {
     // B7b 归一：refresh 写腿迁 PG —— 单 em
-    const { accessToken, refreshTokenJti, authSessionKey } = await this.authGoogleService.authWithGoogleFedCM(user, deviceId, ctx.em)
+    const { accessToken, refreshTokenJti, authSessionKey } =
+      await this.authGoogleService.authWithGoogleFedCM(user, deviceId, ctx.em)
 
     // set refresh token jti to cookie
     this.authCookieService.setRTJtiCookie(req, refreshTokenJti)

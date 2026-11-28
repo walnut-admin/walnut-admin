@@ -63,19 +63,18 @@ const mfaMethodsConfig = ref<MfaMethod[]>([
   },
 ])
 
-const getButtonCanClick = computed(() => mfaMethodsConfig.value.some(method => method.enabled))
+const getButtonCanClick = computed(() => mfaMethodsConfig.value.some((method) => method.enabled))
 
 async function onInit() {
   try {
     loading.value = true
     const res = await authMfaStatusAPI()
     mfaMethodsConfig.value = mfaMethodsConfig.value.map((i) => {
-      const target = res.find(item => item.type === i.key)
+      const target = res.find((item) => item.type === i.key)
       i.enabled = target?.enabled || false
       return i
     })
-  }
-  finally {
+  } finally {
     loading.value = false
   }
 }
@@ -87,8 +86,7 @@ async function onVerifyMfa() {
     const { accessToken } = await authMfaVerifyAPI(trusted.value)
     await userStoreAuth.ExecuteCoreFnAfterAuth(accessToken)
     appStoreRoute.removeDynamicAuthRoute(mainoutMfaRequiredRoute)
-  }
-  finally {
+  } finally {
     loading.value = false
   }
 }
@@ -102,7 +100,9 @@ onBeforeMount(async () => {
   <div class="max-w-4xl min-w-[280px] w-full">
     <!-- header -->
     <div class="mb-8 text-center">
-      <div class="mb-4 h-20 w-20 inline-flex items-center justify-center rounded-full bg-info text-white">
+      <div
+        class="mb-4 h-20 w-20 inline-flex items-center justify-center rounded-full bg-info text-white"
+      >
         <WIcon icon="carbon-security" height="32" />
       </div>
       <h1 class="mb-2 text-2xl font-bold sm:text-3xl">
@@ -134,7 +134,7 @@ onBeforeMount(async () => {
         class="relative cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-lg"
         :class="method.recommended ? 'ring-2 ring-blue-400' : ''"
         :data-testid="`mfa-required-method-${method.key}`"
-        @click="() => method.enabled ? noop : method.onBind!()"
+        @click="() => (method.enabled ? noop : method.onBind!())"
       >
         <n-tag
           v-if="method.enabled && method.recommended"
@@ -166,7 +166,9 @@ onBeforeMount(async () => {
         <div class="flex items-start gap-3 sm:gap-4">
           <!-- icon -->
           <div class="flex-shrink-0">
-            <div class="h-10 w-10 flex items-center justify-center rounded-lg from-blue-500 to-indigo-600 bg-gradient-to-br sm:h-12 sm:w-12">
+            <div
+              class="h-10 w-10 flex items-center justify-center rounded-lg from-blue-500 to-indigo-600 bg-gradient-to-br sm:h-12 sm:w-12"
+            >
               <WIcon :icon="method.icon" :height="20" class="text-white sm:h-6" />
             </div>
           </div>
@@ -185,7 +187,7 @@ onBeforeMount(async () => {
               size="small"
               class="w-full sm:w-auto"
               icon="carbon-arrow-right"
-              @click.self="() => method.enabled ? noop() : method.onBind!()"
+              @click.self="() => (method.enabled ? noop() : method.onBind!())"
             >
               {{ method.enabled ? $t('app.base.configed') : $t('app.base.configThis') }}
             </WButton>
@@ -195,7 +197,11 @@ onBeforeMount(async () => {
     </div>
 
     <!-- footer note -->
-    <n-alert type="warning" class="mt-6 overflow-hidden border border-amber-200 rounded-lg sm:mt-8" :title="$t('mfa.tip1')">
+    <n-alert
+      type="warning"
+      class="mt-6 overflow-hidden border border-amber-200 rounded-lg sm:mt-8"
+      :title="$t('mfa.tip1')"
+    >
       <div class="break-words text-xs sm:text-sm">
         {{ $t('mfa.tip2') }}
       </div>

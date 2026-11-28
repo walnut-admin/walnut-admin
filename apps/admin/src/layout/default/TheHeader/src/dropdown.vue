@@ -59,39 +59,26 @@ const dropdownOptions = computed<DropdownMixedOption[]>(() => [
 ])
 
 async function onSelect(val: string) {
-  if (val === '1')
-    openExternalLink(urls.doc)
+  if (val === '1') openExternalLink(urls.doc)
 
-  if (val === '2')
-    openExternalLink(homepage)
+  if (val === '2') openExternalLink(homepage)
 
-  if (val === '3')
-    switchRoleRef.value?.onOpen()
+  if (val === '3') switchRoleRef.value?.onOpen()
 
-  if (val === '98')
-    await useAppRouterPush({ name: 'Me' })
+  if (val === '98') await useAppRouterPush({ name: 'Me' })
 
   if (val === '99') {
     const { confirmed } = await useAppConfirm(t('app.user.signout.warning'))
 
-    if (confirmed)
-      await userStoreAuth.Signout()
+    if (confirmed) await userStoreAuth.Signout()
   }
 }
 </script>
 
 <template>
-  <n-dropdown
-    trigger="hover"
-    size="medium"
-    :options="dropdownOptions"
-    @select="onSelect"
-  >
+  <n-dropdown trigger="hover" size="medium" :options="dropdownOptions" @select="onSelect">
     <div class="hstack items-center justify-center" data-testid="header-user-dropdown">
-      <WAvatar
-        v-if="$route.name !== 'Me'"
-        :size="2"
-      />
+      <WAvatar v-if="$route.name !== 'Me'" :size="2" />
 
       <div class="my-auto pl-1 text-base font-semibold">
         {{ userStoreProfile.getDisplayName }}

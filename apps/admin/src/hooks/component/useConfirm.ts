@@ -11,7 +11,7 @@ export function useAppDialog() {
 export function useAppConfirm(msg: string, options?: DialogOptions) {
   const dialog = useAppDialog()
 
-  return new Promise<{ confirmed: boolean, inst: ReturnType<typeof dialog.warning> }>((resolve) => {
+  return new Promise<{ confirmed: boolean; inst: ReturnType<typeof dialog.warning> }>((resolve) => {
     const inst = dialog.warning({
       title: AppI18n().global?.t('app.base.warning'),
       content: msg,

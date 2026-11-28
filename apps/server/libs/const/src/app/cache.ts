@@ -36,9 +36,7 @@ export const WalnutAdminConstAppCacheKeys = {
   SYS_DEVICE_COOKIE_RENEW: 'SYSTEM:DEVICE:COOKIE_RENEW',
 } as const
 
-export type IWalnutAdminConstAppCacheKeys = ValueOf<
-  typeof WalnutAdminConstAppCacheKeys
->
+export type IWalnutAdminConstAppCacheKeys = ValueOf<typeof WalnutAdminConstAppCacheKeys>
 
 // global cache type
 export const WalnutAdminConstAppCacheType = {
@@ -50,9 +48,7 @@ export const WalnutAdminConstAppCacheType = {
   SYSTEM: 'system',
 } as const
 
-export type IWalnutAdminConstAppCacheType = ValueOf<
-  typeof WalnutAdminConstAppCacheType
->
+export type IWalnutAdminConstAppCacheType = ValueOf<typeof WalnutAdminConstAppCacheType>
 
 // system setting keys
 export const WalnutAdminConstAppSettingKeys = {
@@ -83,6 +79,4 @@ export const WalnutAdminConstAppSettingKeys = {
   APP_AUTH_GOOGLE: 'app.auth.google',
 } as const
 
-export type IWalnutAdminConstAppSettingKeys = ValueOf<
-  typeof WalnutAdminConstAppSettingKeys
->
+export type IWalnutAdminConstAppSettingKeys = ValueOf<typeof WalnutAdminConstAppSettingKeys>

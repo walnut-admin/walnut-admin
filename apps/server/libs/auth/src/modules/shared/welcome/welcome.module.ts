@@ -10,4 +10,4 @@ import { SharedWelcomeService } from './welcome.service'
   providers: [SharedWelcomeService],
   exports: [SharedWelcomeService],
 })
-export class SharedWelcomeModule { }
+export class SharedWelcomeModule {}

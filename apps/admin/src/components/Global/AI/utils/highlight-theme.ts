@@ -6,8 +6,7 @@ let darkLink: HTMLLinkElement | null = null
 let lightLink: HTMLLinkElement | null = null
 
 async function ensureCssLinks() {
-  if (cssLoaded)
-    return
+  if (cssLoaded) return
   cssLoaded = true
 
   const [darkModule, lightModule] = await Promise.all([
@@ -29,10 +28,8 @@ async function ensureCssLinks() {
 }
 
 function setTheme(dark: boolean) {
-  if (darkLink)
-    darkLink.media = dark ? 'all' : 'not all'
-  if (lightLink)
-    lightLink.media = dark ? 'not all' : 'all'
+  if (darkLink) darkLink.media = dark ? 'all' : 'not all'
+  if (lightLink) lightLink.media = dark ? 'not all' : 'all'
 }
 
 export async function loadHighlightCss() {

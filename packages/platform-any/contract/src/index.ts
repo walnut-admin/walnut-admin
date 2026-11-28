@@ -57,7 +57,14 @@ export {
 
 export { Role, RoleMode, type RoleModeType, type RoleType } from './role'
 
-export { AppRoutes, AuthRoutes, SecurityRoutes, SharedRoutes, SystemEndpointRoutes, SystemRoutes } from './routes'
+export {
+  AppRoutes,
+  AuthRoutes,
+  SecurityRoutes,
+  SharedRoutes,
+  SystemEndpointRoutes,
+  SystemRoutes,
+} from './routes'
 
 export {
   type IWalnutAdminConstAppSettingForceQuit,

@@ -57,17 +57,32 @@ const cases: ICase[] = [
   {
     name: 'POST /app/demo/list（api-spec demo.api-spec.ts:174）',
     dto: AppDemoDTOListRequest,
-    body: { filters: [{ field: 'demoString', op: 'like', value: 'api-r1' }], sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }], page: { page: 1, pageSize: 10 } },
+    body: {
+      filters: [{ field: 'demoString', op: 'like', value: 'api-r1' }],
+      sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
+      page: { page: 1, pageSize: 10 },
+    },
   },
   {
     name: 'POST /app/logger/list（logger.api-spec.ts:93 sort=fileMTime）',
     dto: AppLoggerDTOListRequest,
-    body: { filters: [{ field: 'fileName', op: 'like', value: 'api-r1' }], sort: [{ field: 'fileMTime', order: 'descend', priority: 1 }], page: { page: 1, pageSize: 10 } },
+    body: {
+      filters: [{ field: 'fileName', op: 'like', value: 'api-r1' }],
+      sort: [{ field: 'fileMTime', order: 'descend', priority: 1 }],
+      page: { page: 1, pageSize: 10 },
+    },
   },
   {
     name: 'POST /app/logger/list（logger.api-spec.ts:111 sort=[]）',
     dto: AppLoggerDTOListRequest,
-    body: { filters: [{ field: 'fileName', op: 'like', value: 'api-r1' }, { field: 'logType', op: 'eq', value: 'error' }], sort: [], page: { page: 1, pageSize: 10 } },
+    body: {
+      filters: [
+        { field: 'fileName', op: 'like', value: 'api-r1' },
+        { field: 'logType', op: 'eq', value: 'error' },
+      ],
+      sort: [],
+      page: { page: 1, pageSize: 10 },
+    },
   },
   {
     name: 'POST /app/logger/list（logger.api-spec.ts:181 filters=[]）',
@@ -77,19 +92,31 @@ const cases: ICase[] = [
   {
     name: 'POST /app/monitor/cache/list（monitor.api-spec.ts:103 sort=key）',
     dto: AppMonitorCacheDTOListRequest,
-    body: { filters: [{ field: 'key', op: 'like', value: 'APISPEC:r1' }], sort: [{ field: 'key', order: 'ascend', priority: 1 }], page: { page: 1, pageSize: 10 } },
+    body: {
+      filters: [{ field: 'key', op: 'like', value: 'APISPEC:r1' }],
+      sort: [{ field: 'key', order: 'ascend', priority: 1 }],
+      page: { page: 1, pageSize: 10 },
+    },
   },
   {
     name: 'POST /app/setting/list（setting.api-spec.ts:160）',
     dto: AppSettingDTOListRequest,
-    body: { filters: [{ field: 'settingKey', op: 'like', value: 'k.c1' }], sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }], page: { page: 1, pageSize: 10 } },
+    body: {
+      filters: [{ field: 'settingKey', op: 'like', value: 'k.c1' }],
+      sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
+      page: { page: 1, pageSize: 10 },
+    },
   },
 
   // ---- apps/api ----
   {
     name: 'POST /app/monitor/user/list（monitor-user.api-spec.ts:180）',
     dto: AppMonitorUserDTOListRequest,
-    body: { filters: [{ field: 'visitorId', op: 'like', value: 'visitor-r1' }], sort: [{ field: 'firstVisitAt', order: 'ascend', priority: 1 }], page: { page: 1, pageSize: 10 } },
+    body: {
+      filters: [{ field: 'visitorId', op: 'like', value: 'visitor-r1' }],
+      sort: [{ field: 'firstVisitAt', order: 'ascend', priority: 1 }],
+      page: { page: 1, pageSize: 10 },
+    },
   },
   {
     name: 'POST /app/monitor/user/list（monitor-user.api-spec.ts:291 filters=[]）',
@@ -99,19 +126,29 @@ const cases: ICase[] = [
   {
     name: 'POST /system/deleted/list（deleted.api-spec.ts:146 filters.content）',
     dto: SystemDeletedDTOListRequest,
-    body: { filters: [{ field: 'content', op: 'like', value: 'api-r1' }], page: { page: 1, pageSize: 50 } },
+    body: {
+      filters: [{ field: 'content', op: 'like', value: 'api-r1' }],
+      page: { page: 1, pageSize: 50 },
+    },
   },
   {
     name: 'POST /system/user/list（user.api-spec.ts:195）',
     dto: SysUserDTOListRequest,
-    body: { filters: [{ field: 'userName', op: 'like', value: 'api-r1-L1' }], sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }], page: { page: 1, pageSize: 10 } },
+    body: {
+      filters: [{ field: 'userName', op: 'like', value: 'api-r1-L1' }],
+      sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
+      page: { page: 1, pageSize: 10 },
+    },
   },
 
   // ---- libs/system ----
   {
     name: 'POST /system/dept/list（dept.api-spec.ts:197）',
     dto: SysDeptDTOListRequest,
-    body: { filters: [{ field: 'deptCode', op: 'like', value: 'P-R1' }], page: { page: 1, pageSize: 10 } },
+    body: {
+      filters: [{ field: 'deptCode', op: 'like', value: 'P-R1' }],
+      page: { page: 1, pageSize: 10 },
+    },
   },
   {
     name: 'POST /system/dept/list（dept.api-spec.ts:324 只带 page）',
@@ -121,67 +158,119 @@ const cases: ICase[] = [
   {
     name: 'POST /system/device/list（device.api-spec.ts:158）',
     dto: SysDeviceDTOListRequest,
-    body: { filters: [{ field: 'deviceId', op: 'like', value: 'dev-r1' }], sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }], page: { page: 1, pageSize: 10 } },
+    body: {
+      filters: [{ field: 'deviceId', op: 'like', value: 'dev-r1' }],
+      sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
+      page: { page: 1, pageSize: 10 },
+    },
   },
   {
     name: 'POST /system/dict/type/list（dict.api-spec.ts:202）',
     dto: SysDictTypeDTOListRequest,
-    body: { filters: [{ field: 'type', op: 'like', value: 't-r1' }], sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }], page: { page: 1, pageSize: 10 } },
+    body: {
+      filters: [{ field: 'type', op: 'like', value: 't-r1' }],
+      sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
+      page: { page: 1, pageSize: 10 },
+    },
   },
   {
     name: 'POST /system/dict/data/list（dict.api-spec.ts:274 filters.typeId=uuid）',
     dto: SysDictDataDTOListRequest,
-    body: { filters: [{ field: 'typeId', op: 'eq', value: '9f8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d' }], sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }], page: { page: 1, pageSize: 10 } },
+    body: {
+      filters: [{ field: 'typeId', op: 'eq', value: '9f8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d' }],
+      sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
+      page: { page: 1, pageSize: 10 },
+    },
   },
   {
     name: 'POST /system/employee/list（employee.api-spec.ts:135）',
     dto: SysEmployeeDTOListRequest,
-    body: { filters: [{ field: 'employeeNo', op: 'like', value: 'e-r1' }], page: { page: 1, pageSize: 10 } },
+    body: {
+      filters: [{ field: 'employeeNo', op: 'like', value: 'e-r1' }],
+      page: { page: 1, pageSize: 10 },
+    },
   },
   {
     name: 'POST /system/lang/list（lang.api-spec.ts:162）',
     dto: SysLangDTOListRequest,
-    body: { filters: [{ field: 'lang', op: 'like', value: 'en_US' }], sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }], page: { page: 1, pageSize: 10 } },
+    body: {
+      filters: [{ field: 'lang', op: 'like', value: 'en_US' }],
+      sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
+      page: { page: 1, pageSize: 10 },
+    },
   },
   {
     name: 'POST /system/locale/list（locale.api-spec.ts:219）',
     dto: SysLocaleDTOListRequest,
-    body: { filters: [{ field: 'key', op: 'like', value: 'api.spec.r1r1r1r1' }], sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }], page: { page: 1, pageSize: 2 } },
+    body: {
+      filters: [{ field: 'key', op: 'like', value: 'api.spec.r1r1r1r1' }],
+      sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
+      page: { page: 1, pageSize: 2 },
+    },
   },
   {
     name: 'POST /system/log/auth/list（log-auth.api-spec.ts:111）',
     dto: SysLogAuthDTOListRequest,
-    body: { filters: [{ field: 'deviceId', op: 'like', value: 'dev-r1' }], sort: [{ field: 'authenticatedAt', order: 'descend', priority: 1 }], page: { page: 1, pageSize: 50 } },
+    body: {
+      filters: [{ field: 'deviceId', op: 'like', value: 'dev-r1' }],
+      sort: [{ field: 'authenticatedAt', order: 'descend', priority: 1 }],
+      page: { page: 1, pageSize: 50 },
+    },
   },
   {
     name: 'POST /system/log/auth/list（log-auth.api-spec.ts:158 filters.type 数组）',
     dto: SysLogAuthDTOListRequest,
-    body: { filters: [{ field: 'deviceId', op: 'like', value: 'dev-r1' }, { field: 'type', op: 'in', value: ['opaque'] }], page: { page: 1, pageSize: 50 } },
+    body: {
+      filters: [
+        { field: 'deviceId', op: 'like', value: 'dev-r1' },
+        { field: 'type', op: 'in', value: ['opaque'] },
+      ],
+      page: { page: 1, pageSize: 50 },
+    },
   },
   {
     name: 'POST /system/log/operate/list（log-operate.api-spec.ts:102）',
     dto: SysLogOperateDTOListRequest,
-    body: { filters: [{ field: 'deviceId', op: 'like', value: 'dev-r1' }], sort: [{ field: 'operatedAt', order: 'descend', priority: 1 }], page: { page: 1, pageSize: 50 } },
+    body: {
+      filters: [{ field: 'deviceId', op: 'like', value: 'dev-r1' }],
+      sort: [{ field: 'operatedAt', order: 'descend', priority: 1 }],
+      page: { page: 1, pageSize: 50 },
+    },
   },
   {
     name: 'POST /system/menu/list（menu.api-spec.ts:348）',
     dto: SysMenuDTOListRequest,
-    body: { filters: [{ field: 'name', op: 'like', value: 'm-r1-L1' }], sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }], page: { page: 1, pageSize: 10 } },
+    body: {
+      filters: [{ field: 'name', op: 'like', value: 'm-r1-L1' }],
+      sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
+      page: { page: 1, pageSize: 10 },
+    },
   },
   {
     name: 'POST /system/post/list（post.api-spec.ts:113）',
     dto: SysPostDTOListRequest,
-    body: { filters: [{ field: 'postCode', op: 'like', value: 'p-r1' }], page: { page: 1, pageSize: 10 } },
+    body: {
+      filters: [{ field: 'postCode', op: 'like', value: 'p-r1' }],
+      page: { page: 1, pageSize: 10 },
+    },
   },
   {
     name: 'POST /system/role/list（role.api-spec.ts:262）',
     dto: SysRoleDTOListRequest,
-    body: { filters: [{ field: 'roleName', op: 'like', value: 'r-r1-L1' }], sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }], page: { page: 1, pageSize: 10 } },
+    body: {
+      filters: [{ field: 'roleName', op: 'like', value: 'r-r1-L1' }],
+      sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
+      page: { page: 1, pageSize: 10 },
+    },
   },
   {
     name: 'POST /system/role/list（real-data.api-spec.ts:250 filters=[] pageSize=100）',
     dto: SysRoleDTOListRequest,
-    body: { filters: [], sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }], page: { page: 1, pageSize: 100 } },
+    body: {
+      filters: [],
+      sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
+      page: { page: 1, pageSize: 100 },
+    },
   },
 ]
 
@@ -201,13 +290,16 @@ describe('list 三槽位嵌套校验 · 现存调用回归', () => {
 
     if (errors.length > 0) {
       // 输出可读的失败面，便于定位是哪个槽位/字段
-      const detail = errors.map(e => ({
+      const detail = errors.map((e) => ({
         property: e.property,
         constraints: Object.keys(e.constraints ?? {}),
-        children: (e.children ?? []).map(c => ({
+        children: (e.children ?? []).map((c) => ({
           property: c.property,
           constraints: Object.keys(c.constraints ?? {}),
-          grandchildren: (c.children ?? []).map(g => ({ property: g.property, constraints: Object.keys(g.constraints ?? {}) })),
+          grandchildren: (c.children ?? []).map((g) => ({
+            property: g.property,
+            constraints: Object.keys(g.constraints ?? {}),
+          })),
         })),
       }))
       throw new Error(`校验失败：${JSON.stringify(detail)}`)
@@ -233,25 +325,33 @@ describe('list 三槽位嵌套校验 · 现存调用回归', () => {
   })
 
   it('契约侧确认：page 越界/非整数会被 pageSize 的 max 与 int 拦住（新校验真正生效）', async () => {
-    const tooBig = await validateLikePipe(SysUserDTOListRequest, { page: { page: 1, pageSize: 99999 } })
-    expect(tooBig.flatMap(e => e.children ?? []).map(c => c.property)).toContain('pageSize')
+    const tooBig = await validateLikePipe(SysUserDTOListRequest, {
+      page: { page: 1, pageSize: 99999 },
+    })
+    expect(tooBig.flatMap((e) => e.children ?? []).map((c) => c.property)).toContain('pageSize')
 
-    const notInt = await validateLikePipe(SysUserDTOListRequest, { page: { page: 1.5, pageSize: 10 } })
-    expect(notInt.flatMap(e => e.children ?? []).map(c => c.property)).toContain('page')
+    const notInt = await validateLikePipe(SysUserDTOListRequest, {
+      page: { page: 1.5, pageSize: 10 },
+    })
+    expect(notInt.flatMap((e) => e.children ?? []).map((c) => c.property)).toContain('page')
   })
 
   it('sort[].priority 可缺省（R3 P2-4：历史行为允许缺省，builder 用 ?? 0 兜底）', async () => {
-    expect(await validateLikePipe(SysUserDTOListRequest, {
-      sort: [{ field: 'createdAt', order: 'ascend' }],
-      page: { page: 1, pageSize: 10 },
-    })).toHaveLength(0)
+    expect(
+      await validateLikePipe(SysUserDTOListRequest, {
+        sort: [{ field: 'createdAt', order: 'ascend' }],
+        page: { page: 1, pageSize: 10 },
+      }),
+    ).toHaveLength(0)
   })
 
   it('sort[].priority 显式给 0 也合法（缺省值即 0）', async () => {
-    expect(await validateLikePipe(SysUserDTOListRequest, {
-      sort: [{ field: 'createdAt', order: 'ascend', priority: 0 }],
-      page: { page: 1, pageSize: 10 },
-    })).toHaveLength(0)
+    expect(
+      await validateLikePipe(SysUserDTOListRequest, {
+        sort: [{ field: 'createdAt', order: 'ascend', priority: 0 }],
+        page: { page: 1, pageSize: 10 },
+      }),
+    ).toHaveLength(0)
   })
 
   it('sort[].priority 负数仍被拒（放宽不等于不校验）', async () => {
@@ -261,10 +361,8 @@ describe('list 三槽位嵌套校验 · 现存调用回归', () => {
     })
 
     const priorityError = errors
-      .find(e => e.property === 'sort')
-      ?.children?.[0]
-      ?.children
-      ?.find(c => c.property === 'priority')
+      .find((e) => e.property === 'sort')
+      ?.children?.[0]?.children?.find((c) => c.property === 'priority')
     expect(priorityError?.constraints?.min).toBeDefined()
   })
 
@@ -275,8 +373,8 @@ describe('list 三槽位嵌套校验 · 现存调用回归', () => {
     })
 
     // sort 是数组槽位：error → sort → "0" → field
-    const sortItem = errors.find(e => e.property === 'sort')?.children?.[0]
-    const fieldError = sortItem?.children?.find(c => c.property === 'field')
+    const sortItem = errors.find((e) => e.property === 'sort')?.children?.[0]
+    const fieldError = sortItem?.children?.find((c) => c.property === 'field')
     expect(fieldError?.constraints?.isIn).toBeDefined()
   })
 })
@@ -285,7 +383,7 @@ describe('filters 槽位 · 批次 4-A 新契约边界', () => {
   it('旧 query 槽位已被移除：顶层白名单直接拒（40099 的入口）', async () => {
     const errors = await validateLikePipe(SysUserDTOListRequest, { query: { userName: 'x' } })
 
-    expect(errors.map(e => e.property)).toContain('query')
+    expect(errors.map((e) => e.property)).toContain('query')
     expect(Object.keys(errors[0]?.constraints ?? {})).toContain('whitelistValidation')
   })
 
@@ -310,8 +408,8 @@ describe('filters 槽位 · 批次 4-A 新契约边界', () => {
       filters: [{ field: 'userName', op: 'gt', value: 'x' }],
     })
 
-    const item = errors.find(e => e.property === 'filters')?.children?.[0]
-    expect(item?.children?.find(c => c.property === 'op')?.constraints?.isEnum).toBeDefined()
+    const item = errors.find((e) => e.property === 'filters')?.children?.[0]
+    expect(item?.children?.find((c) => c.property === 'op')?.constraints?.isEnum).toBeDefined()
   })
 
   it('filters[] 里的未声明键被拒（forbidNonWhitelisted 下钻生效）', async () => {
@@ -319,7 +417,9 @@ describe('filters 槽位 · 批次 4-A 新契约边界', () => {
       filters: [{ field: 'userName', op: 'like', value: 'x', bogus: 1 }],
     })
 
-    const item = errors.find(e => e.property === 'filters')?.children?.[0]
-    expect(item?.children?.find(c => c.property === 'bogus')?.constraints?.whitelistValidation).toBeDefined()
+    const item = errors.find((e) => e.property === 'filters')?.children?.[0]
+    expect(
+      item?.children?.find((c) => c.property === 'bogus')?.constraints?.whitelistValidation,
+    ).toBeDefined()
   })
 })

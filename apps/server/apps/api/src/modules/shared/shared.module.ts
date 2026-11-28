@@ -17,6 +17,14 @@ import { AppTokenModule } from '@walnut-server/token'
  * 留着它就是在 shared 组合根上挂一条没有任何消费方的接线。
  */
 @Module({
-  imports: [AppTokenModule, SharedAliModule, SharedAreaModule, AppALSRequestModule, SharedBLPathModule, SharedIpModule, SharedMaskModule],
+  imports: [
+    AppTokenModule,
+    SharedAliModule,
+    SharedAreaModule,
+    AppALSRequestModule,
+    SharedBLPathModule,
+    SharedIpModule,
+    SharedMaskModule,
+  ],
 })
 export class SharedModule {}

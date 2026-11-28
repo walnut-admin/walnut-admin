@@ -56,7 +56,7 @@ export class SysUserMfaEntity {
   webauthnCounter: number
 
   // 数组元素 CHECK（IN usb/ble/nfc/internal/hybrid）在 migration，用数组包含谓词实现
-  @Column({ type: 'text', name: 'webauthn_transports', array: true, default: () => '\'{}\'' })
+  @Column({ type: 'text', name: 'webauthn_transports', array: true, default: () => "'{}'" })
   webauthnTransports: string[]
 
   // SMS 专用密文（schema select: false → 实体同款）；SMS MFA 未实现 —— 预留列，无写入路径（P3-23）
@@ -66,7 +66,13 @@ export class SysUserMfaEntity {
   // 备用码密文（schema select: false → 实体同款）。
   // P3-23（2026-10-29）：每项 = AES-GCM(SHA-256(固定域:userId:code)) —— 确定性哈希才能
   // 与用户输入比对（旧随机盐 HMAC 的存量项不可解密，需 unbind 后重新 bind）。
-  @Column({ type: 'text', name: 'backup_codes_ciphertext', array: true, default: () => '\'{}\'', select: false })
+  @Column({
+    type: 'text',
+    name: 'backup_codes_ciphertext',
+    array: true,
+    default: () => "'{}'",
+    select: false,
+  })
   backupCodesCiphertext: string[]
 
   @Column({ type: 'boolean', name: 'status', default: true })

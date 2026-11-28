@@ -14,7 +14,14 @@ export interface IWalnutAdminResponsePayload {
 }
 
 // base response structure
-function WalnutAdminResponseBase<T>(data: T, code: IWalnutAdminConstAppResponseCode, msg: string, requestId: string, _devMsg?: string, meta?: Recordable): IWalnutAdminResponseBase<T> {
+function WalnutAdminResponseBase<T>(
+  data: T,
+  code: IWalnutAdminConstAppResponseCode,
+  msg: string,
+  requestId: string,
+  _devMsg?: string,
+  meta?: Recordable,
+): IWalnutAdminResponseBase<T> {
   if (isDev) {
     return {
       data,
@@ -48,7 +55,14 @@ export function WalnutAdminResponseSuccess<T>(
   msg: string = `response.${WalnutAdminConstAppResponseCode.SUCCESS}`,
   meta?: Recordable,
 ) {
-  return WalnutAdminResponseBase<T>(data, WalnutAdminConstAppResponseCode.SUCCESS, msg, requestId, undefined, meta)
+  return WalnutAdminResponseBase<T>(
+    data,
+    WalnutAdminConstAppResponseCode.SUCCESS,
+    msg,
+    requestId,
+    undefined,
+    meta,
+  )
 }
 
 // exception
@@ -60,14 +74,7 @@ export function WalnutAdminResponseException<T>(payload: IWalnutAdminResponsePay
     _devMsg,
     meta,
   } = payload
-  return WalnutAdminResponseBase<T>(
-    null as T,
-    errCode,
-    errMsg,
-    requestId!,
-    _devMsg,
-    meta,
-  )
+  return WalnutAdminResponseBase<T>(null as T, errCode, errMsg, requestId!, _devMsg, meta)
 }
 
 // https://stackoverflow.com/questions/71975630/how-to-return-a-clean-message-for-nested-validation-error-on-nestjs

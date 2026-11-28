@@ -28,11 +28,7 @@ import { RequestHeaders } from '@walnut/contract/http'
 export class IpMiddleware implements NestMiddleware {
   constructor() {}
 
-  async use(
-    req: IWalnutAdminExpressRequest,
-    res: IWalnutAdminExpressResponse,
-    next: NextFunction,
-  ) {
+  async use(req: IWalnutAdminExpressRequest, res: IWalnutAdminExpressResponse, next: NextFunction) {
     const ip = requestIp.getClientIp(req)
 
     req.headers[RequestHeaders.IP] = ip

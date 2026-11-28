@@ -3,10 +3,10 @@
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/.cache/tsconfig.tsbuildinfo",
-    "baseUrl": ".",
+    // baseUrl 已移除：TS7 / tsrs 判它是 TS5102 硬错误，ignoreDeprecations 无效
     "paths": {
-      "@/*": ["src/*"],
-      "~/*": ["types/*"]
+      "@/*": ["./src/*"],
+      "~/*": ["./types/*"]
     },
     "typeRoots": ["./node_modules/@types/", "./types"],
     "types": []

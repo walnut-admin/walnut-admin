@@ -33,9 +33,7 @@ const loading = ref(false)
 
 const appStoreLocale = useAppStoreLocale()
 
-const getSkinName = computed(() =>
-  isDark.value ? 'tinymce-5-dark' : 'tinymce-5',
-)
+const getSkinName = computed(() => (isDark.value ? 'tinymce-5-dark' : 'tinymce-5'))
 
 const getLangName = computed(() => appStoreLocale.locale!)
 

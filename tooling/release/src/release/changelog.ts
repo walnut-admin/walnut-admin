@@ -44,7 +44,7 @@ interface ChangelogPackage {
 
 /** 有版本号的工作区包（= 该有 changelog 的那些；根包没有 version，故不在内） */
 function changelogPackages(): ChangelogPackage[] {
-  return versionedPackages().map(pkg => ({
+  return versionedPackages().map((pkg) => ({
     dir: pkg.dir,
     name: pkg.name,
     file: `${pkg.dir}/CHANGELOG.md`,
@@ -67,11 +67,11 @@ function changelogPackages(): ChangelogPackage[] {
 export function outsidePackagePatterns(packageDirs: string[], trackedFiles: string[]): string[] {
   const dirs = packageDirs.filter(Boolean)
   /** 这个顶层段里是否住着包目录 */
-  const holdsPackageDirs = (segment: string): boolean => dirs.some(dir => dir.startsWith(`${segment}/`))
+  const holdsPackageDirs = (segment: string): boolean =>
+    dirs.some((dir) => dir.startsWith(`${segment}/`))
   const patterns = new Set<string>()
   for (const file of trackedFiles) {
-    if (dirs.some(dir => file.startsWith(`${dir}/`)))
-      continue
+    if (dirs.some((dir) => file.startsWith(`${dir}/`))) continue
     const segment = file.split('/')[0]!
     patterns.add(!file.includes('/') || holdsPackageDirs(segment) ? file : `${segment}/**`)
   }
@@ -93,7 +93,9 @@ export function includePathsFor(dir: string, outsidePatterns: string[], mainDir:
  * `exclude-path` 优先于 `include-path`（git-cliff 文档明写），故这一对参数就是精确的「只认自己」。
  */
 export function excludePathsFor(dir: string, allDirs: string[]): string[] {
-  return allDirs.filter(other => other !== dir && other.startsWith(`${dir}/`)).map(other => `${other}/**`)
+  return allDirs
+    .filter((other) => other !== dir && other.startsWith(`${dir}/`))
+    .map((other) => `${other}/**`)
 }
 
 /** git-cliff 的公共参数：配置 + 纳入模式 + 排除模式（两种都可重复） */
@@ -101,14 +103,23 @@ function commonCliffArgs(includePaths: string[], excludePaths: string[] = []): s
   return [
     '--config',
     CLIFF_CONFIG_PATH,
-    ...includePaths.flatMap(pattern => ['--include-path', pattern]),
-    ...excludePaths.flatMap(pattern => ['--exclude-path', pattern]),
+    ...includePaths.flatMap((pattern) => ['--include-path', pattern]),
+    ...excludePaths.flatMap((pattern) => ['--exclude-path', pattern]),
   ]
 }
 
 /** 写 changelog 用的参数：**未打 tag 的提交** + 指定版本号（跑在打 tag 之前） */
-export function cliffArgsForChangelog(input: { version: string, includePaths: string[], excludePaths?: string[] }): string[] {
-  return ['--unreleased', '--tag', `v${input.version}`, ...commonCliffArgs(input.includePaths, input.excludePaths)]
+export function cliffArgsForChangelog(input: {
+  version: string
+  includePaths: string[]
+  excludePaths?: string[]
+}): string[] {
+  return [
+    '--unreleased',
+    '--tag',
+    `v${input.version}`,
+    ...commonCliffArgs(input.includePaths, input.excludePaths),
+  ]
 }
 
 /** Release 正文用的参数：不带 include-path ⇒ 整仓一份，天然无跨包重复 */
@@ -135,13 +146,16 @@ export function normalizeRendered(rendered: string): string {
  *   - 没有一级标题 ⇒ 原样接在后面。
  * 新包首次发版（文件不存在）只写 `标题 + 新段`。
  */
-export function composeChangelog(input: { existing: string, header: string, section: string }): string {
+export function composeChangelog(input: {
+  existing: string
+  header: string
+  section: string
+}): string {
   const { existing, header, section } = input
   let body: string
   if (existing.startsWith(header)) {
     body = existing.slice(header.length).replace(/^\n+/, '')
-  }
-  else {
+  } else {
     const lines = existing.split('\n')
     const foreignH1 = /^#\s/.test(lines[0] ?? '')
     body = (foreignH1 ? lines.slice(1).join('\n') : existing).replace(/^\n+/, '')
@@ -169,23 +183,20 @@ export function hasEntries(section: string): boolean {
  */
 export function assertCliffRemoteMatches(): void {
   const remote = gitRemoteUrl()
-  if (!remote)
-    return
+  if (!remote) return
   const repo = parseGithubRemote(remote)
-  if (!repo)
-    return
+  if (!repo) return
   let config: string
   try {
     config = fs.readFileSync(CLIFF_CONFIG_PATH, 'utf8')
-  }
-  catch (error: any) {
+  } catch (error: any) {
     throw new PreconditionError(`读不到 ${CLIFF_CONFIG_PATH}：${error?.message ?? error}`)
   }
   const expectedUrl = `https://github.com/${repo.owner}/${repo.repo}`
   if (!config.includes(expectedUrl)) {
     throw new PreconditionError(
-      `cliff.toml 里的仓库地址与 git remote 不一致（远程是 ${expectedUrl}）—— commit 链接会全部 404。`
-      + '模板里的链接是字面量（git-cliff 的 remote 只提供 PR 号/作者，不提供 URL），先改 cliff.toml 再发版',
+      `cliff.toml 里的仓库地址与 git remote 不一致（远程是 ${expectedUrl}）—— commit 链接会全部 404。` +
+        '模板里的链接是字面量（git-cliff 的 remote 只提供 PR 号/作者，不提供 URL），先改 cliff.toml 再发版',
     )
   }
 }
@@ -207,11 +218,9 @@ async function renderCliff(args: string[]): Promise<string> {
 export async function renderReleaseNotes(expectedVersion: string): Promise<string | null> {
   try {
     const section = await renderCliff(cliffArgsForReleaseNotes(expectedVersion))
-    if (!hasEntries(section) || !hasVersionSection(section, expectedVersion))
-      return null
+    if (!hasEntries(section) || !hasVersionSection(section, expectedVersion)) return null
     return section
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -229,82 +238,113 @@ export interface ChangelogOutcome {
  * 失败口径（**渲染失败一律 die(1)，不降级**）：这一步跑在提交/打 tag **之前**，此刻停下只是
  * 重跑一次；而放过去就是「tag 已发、这一版的 changelog 永远补不回来」。
  */
-export async function ensureChangelogs(ui: ReleaseUi, input: { version: string, dryRun?: boolean }): Promise<ChangelogOutcome[]> {
+export async function ensureChangelogs(
+  ui: ReleaseUi,
+  input: { version: string; dryRun?: boolean },
+): Promise<ChangelogOutcome[]> {
   const { version, dryRun = false } = input
   const packages = changelogPackages()
   if (packages.length === 0) {
-    ui.warn('没发现任何带版本号的 workspace 包 —— 跳过 changelog（这本身可疑，检查 pnpm-workspace.yaml 的 packages）')
+    ui.warn(
+      '没发现任何带版本号的 workspace 包 —— 跳过 changelog（这本身可疑，检查 pnpm-workspace.yaml 的 packages）',
+    )
     return []
   }
 
   assertCliffRemoteMatches()
 
-  const dirs = packages.map(pkg => pkg.dir)
+  const dirs = packages.map((pkg) => pkg.dir)
   const outside = outsidePackagePatterns(dirs, lsFilesStrict('*'))
   // 主应用是「包外改动」的落点，从配置读而不是再写一个字面量
   const mainDir = 'apps/admin'
 
   const outcomes: ChangelogOutcome[] = []
   const failures: string[] = []
-  let preview: { file: string, section: string } | null = null
+  let preview: { file: string; section: string } | null = null
 
   for (const pkg of packages) {
     const absolute = path.join(REPO_ROOT, pkg.file)
     const existing = fs.existsSync(absolute) ? fs.readFileSync(absolute, 'utf8') : ''
     // 幂等判据在演练里同样生效：否则演练报的「将写入 N 份」与真跑不一致
     if (hasVersionSection(existing, version)) {
-      outcomes.push({ dir: pkg.dir, file: pkg.file, action: 'skipped', detail: `已有 ${version} 段（幂等跳过）` })
+      outcomes.push({
+        dir: pkg.dir,
+        file: pkg.file,
+        action: 'skipped',
+        detail: `已有 ${version} 段（幂等跳过）`,
+      })
       continue
     }
 
     let section: string
     try {
-      section = await renderCliff(cliffArgsForChangelog({
-        version,
-        includePaths: includePathsFor(pkg.dir, outside, mainDir),
-        excludePaths: excludePathsFor(pkg.dir, dirs),
-      }))
-    }
-    catch (error: any) {
-      const why = String(error?.stderr ?? error?.message ?? error).trim().split('\n')[0] ?? '未知错误'
+      section = await renderCliff(
+        cliffArgsForChangelog({
+          version,
+          includePaths: includePathsFor(pkg.dir, outside, mainDir),
+          excludePaths: excludePathsFor(pkg.dir, dirs),
+        }),
+      )
+    } catch (error: any) {
+      const why =
+        String(error?.stderr ?? error?.message ?? error)
+          .trim()
+          .split('\n')[0] ?? '未知错误'
       failures.push(`${pkg.file}（${why}）`)
       outcomes.push({ dir: pkg.dir, file: pkg.file, action: 'skipped', detail: `渲染失败：${why}` })
       continue
     }
 
     if (!hasEntries(section)) {
-      outcomes.push({ dir: pkg.dir, file: pkg.file, action: 'skipped', detail: '本次没有该包的条目' })
+      outcomes.push({
+        dir: pkg.dir,
+        file: pkg.file,
+        action: 'skipped',
+        detail: '本次没有该包的条目',
+      })
       continue
     }
 
     preview ??= { file: pkg.file, section }
-    const count = section.split('\n').filter(line => line.startsWith('- ')).length
+    const count = section.split('\n').filter((line) => line.startsWith('- ')).length
     if (dryRun) {
-      outcomes.push({ dir: pkg.dir, file: pkg.file, action: 'written', detail: `将写入（${count} 条）` })
+      outcomes.push({
+        dir: pkg.dir,
+        file: pkg.file,
+        action: 'written',
+        detail: `将写入（${count} 条）`,
+      })
       continue
     }
     fs.writeFileSync(absolute, composeChangelog({ existing, header: `# ${pkg.name}`, section }))
     outcomes.push({ dir: pkg.dir, file: pkg.file, action: 'written', detail: `${count} 条` })
   }
 
-  const written = outcomes.filter(item => item.action === 'written')
-  const skipped = outcomes.filter(item => item.action === 'skipped')
-  ui.log(`${dryRun ? '（演练）' : ''}changelog：${written.length} 份${dryRun ? '将写入' : '已写入'}，${skipped.length} 份跳过`)
-  for (const item of skipped)
-    ui.log(`   · 跳过 ${item.file}：${item.detail}`)
+  const written = outcomes.filter((item) => item.action === 'written')
+  const skipped = outcomes.filter((item) => item.action === 'skipped')
+  ui.log(
+    `${dryRun ? '（演练）' : ''}changelog：${written.length} 份${dryRun ? '将写入' : '已写入'}，${skipped.length} 份跳过`,
+  )
+  for (const item of skipped) ui.log(`   · 跳过 ${item.file}：${item.detail}`)
 
   if (dryRun && preview) {
     ui.banner([
       `  🧪 --dry-run：changelog 预览（${preview.file}）`,
       '',
-      ...preview.section.split('\n').slice(0, 20).map(line => `   ${line}`),
+      ...preview.section
+        .split('\n')
+        .slice(0, 20)
+        .map((line) => `   ${line}`),
     ])
   }
 
   if (failures.length > 0) {
-    ui.die(1, `changelog 渲染失败 ${failures.length} 个包${dryRun ? '（--dry-run：未写盘）' : ''} —— 拒绝继续（tag 还没打）：`
-    + `\n   · ${failures.join('\n   · ')}`
-    + '\n   常见原因：`pnpm install` 没装全（git-cliff 的平台二进制在 optionalDependencies 里）、cliff.toml 被改坏、GitHub API 不可达（加 GITHUB_TOKEN 或稍后重试）。修好后重跑。')
+    ui.die(
+      1,
+      `changelog 渲染失败 ${failures.length} 个包${dryRun ? '（--dry-run：未写盘）' : ''} —— 拒绝继续（tag 还没打）：` +
+        `\n   · ${failures.join('\n   · ')}` +
+        '\n   常见原因：`pnpm install` 没装全（git-cliff 的平台二进制在 optionalDependencies 里）、cliff.toml 被改坏、GitHub API 不可达（加 GITHUB_TOKEN 或稍后重试）。修好后重跑。',
+    )
   }
 
   return outcomes

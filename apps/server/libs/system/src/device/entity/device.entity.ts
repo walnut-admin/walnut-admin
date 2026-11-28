@@ -42,7 +42,7 @@ export class SysDeviceEntity {
   locationInfo: Record<string, unknown> | null
 
   // 上限 5 条的 IP-定位历史，整体覆盖写；DDL 默认 '[]'::jsonb
-  @Column({ type: 'jsonb', name: 'location_history', default: () => '\'[]\'::jsonb' })
+  @Column({ type: 'jsonb', name: 'location_history', default: () => "'[]'::jsonb" })
   locationHistory: IDeviceLocationHistoryItem[]
 
   // sr.height / sr.width 拍平（数值列可能进统计）

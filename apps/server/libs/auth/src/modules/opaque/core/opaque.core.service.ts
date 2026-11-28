@@ -5,7 +5,11 @@ import * as opaque from '@serenity-kit/opaque'
 import { AppTechCacheOpaqueService, IOpaqueCacheScope } from '@walnut-server/cache'
 import { WalnutAdminConstAppEnv } from '@walnut-server/const/app/env'
 import { WalnutAdminExceptionInvalidCredential } from '@walnut-server/exceptions/business/auth'
-import { SysUserIdentityRepositoryService, SysUserIdentitySharedService, SysUserRepositoryService } from '@walnut-server/identity'
+import {
+  SysUserIdentityRepositoryService,
+  SysUserIdentitySharedService,
+  SysUserRepositoryService,
+} from '@walnut-server/identity'
 import { isNil } from 'lodash'
 import { AuthSharedService } from '../../shared/shared.service'
 
@@ -43,7 +47,7 @@ const OPAQUE_LOGIN_FAILURE = {
   CACHE_WRITE_FAILED: 'cache-write-failed',
 } as const
 
-type OpaqueLoginFailureReason = typeof OPAQUE_LOGIN_FAILURE[keyof typeof OPAQUE_LOGIN_FAILURE]
+type OpaqueLoginFailureReason = (typeof OPAQUE_LOGIN_FAILURE)[keyof typeof OPAQUE_LOGIN_FAILURE]
 
 /** 需要给出「修复命令」的凭证类失败（都是重跑 `db:seed:pg --admin` 能解决的） */
 const SEEDABLE_CREDENTIAL_FAILURES: ReadonlySet<OpaqueLoginFailureReason> = new Set([
@@ -81,6 +85,21 @@ export class AuthOpaqueCoreService {
     return this.serverSetup
   }
 
+  /**
+   * OPAQUE `server.startLogin` 的可替换接缝（2026-11）。
+   *
+   * 为什么需要它：`@serenity-kit/opaque` 的 `server` 对象是 `Object.freeze` 的，
+   * `vi.spyOn(opaque.server, 'startLogin')` 报 `Cannot redefine property`；而
+   * vitest `isolate: false` 下 `vi.mock` 是 **worker 级**的 —— 换整个包的 mock 会泄漏给
+   * 后续文件（真实密码学用例拿到假实现），或在包已被真实求值后静默失效。
+   * 单测用子类覆盖本方法注入固定返回值；生产路径恒为真实协议实现。
+   */
+  protected opaqueServerStartLogin(
+    args: Parameters<typeof opaque.server.startLogin>[0],
+  ): ReturnType<typeof opaque.server.startLogin> {
+    return opaque.server.startLogin(args)
+  }
+
   constructor(
     private readonly opaqueCacheService: AppTechCacheOpaqueService,
 
@@ -110,7 +129,13 @@ export class AuthOpaqueCoreService {
    * 但 `SERVER_STATE` 必须与登录流分命名空间（见 `AppTechCacheOpaqueService` 文件头），
    * 否则同 `(userName, deviceId)` 的两条流互相覆盖。
    */
-  async startLogin(userName: string, startLoginRequest: string, deviceId: string, em: EntityManager, scope: IOpaqueCacheScope = 'login') {
+  async startLogin(
+    userName: string,
+    startLoginRequest: string,
+    deviceId: string,
+    em: EntityManager,
+    scope: IOpaqueCacheScope = 'login',
+  ) {
     // Find user by username
     const user = await this.userRepo.findUserByUserName(userName, em)
 
@@ -135,19 +160,20 @@ export class AuthOpaqueCoreService {
     // 代价：不存在的 userName 会多占一个 30s 的 SERVER_STATE 键（与已存在用户同量级，
     // 且登录端点有限流）—— 换掉的是可被统计的枚举信道，值得。真正的身份验证仍在
     // finishLogin：那里的 session key 只可能来自一次成功的 OPAQUE 交换。
-    const encryptedPasswordIdentity = user === null
-      ? await this.userIdentityRepo.getValueByUserIdTypeAndPurpose(
-          OPAQUE_DUMMY_USER_ID,
-          'password',
-          'login',
-          em,
-        )
-      : await this.userIdentityRepo.getValueByUserIdTypeAndPurpose(
-          user.id,
-          'password',
-          'login',
-          em,
-        )
+    const encryptedPasswordIdentity =
+      user === null
+        ? await this.userIdentityRepo.getValueByUserIdTypeAndPurpose(
+            OPAQUE_DUMMY_USER_ID,
+            'password',
+            'login',
+            em,
+          )
+        : await this.userIdentityRepo.getValueByUserIdTypeAndPurpose(
+            user.id,
+            'password',
+            'login',
+            em,
+          )
 
     let passwordIdentity: string | null = null
     let loginResponse: string | undefined
@@ -166,31 +192,32 @@ export class AuthOpaqueCoreService {
       // 原样回来）。这里只记下失败原因，`registrationRecord` 保持 null 走 fake 记录，
       // 等量计算 + 等量写跑完之后再判失败（见方法末尾）。
       if (isNil(encryptedPasswordIdentity)) {
-        credentialFailure = user === null
-          ? OPAQUE_LOGIN_FAILURE.USER_NOT_FOUND
-          : OPAQUE_LOGIN_FAILURE.CREDENTIAL_MISSING
-      }
-      else {
+        credentialFailure =
+          user === null
+            ? OPAQUE_LOGIN_FAILURE.USER_NOT_FOUND
+            : OPAQUE_LOGIN_FAILURE.CREDENTIAL_MISSING
+      } else {
         try {
           passwordIdentity = this.userIdentitySharedService.decryptValue(encryptedPasswordIdentity)
-        }
-        catch (error) {
+        } catch (error) {
           credentialFailure = OPAQUE_LOGIN_FAILURE.CREDENTIAL_FORMAT_STALE
           credentialFailureDetail = error instanceof Error ? error.message : String(error)
         }
       }
 
       // Server creates login response using stored registration record（null ⇒ fake record）
-      const { loginResponse: computedLoginResponse, serverLoginState } = opaque.server.startLogin({
-        userIdentifier: userName,
-        registrationRecord: passwordIdentity,
-        serverSetup: this.getServerSetup(),
-        startLoginRequest,
-        identifiers: {
-          client: user?.userName ?? userName,
-          server: this.getAppName(),
-        },
-      })
+      // 经由可替换接缝调用（见 opaqueServerStartLogin 的注释）
+      const { loginResponse: computedLoginResponse, serverLoginState } =
+        this.opaqueServerStartLogin({
+          userIdentifier: userName,
+          registrationRecord: passwordIdentity,
+          serverSetup: this.getServerSetup(),
+          startLoginRequest,
+          identifiers: {
+            client: user?.userName ?? userName,
+            server: this.getAppName(),
+          },
+        })
 
       opaqueComputed = true
       loginResponse = computedLoginResponse
@@ -198,25 +225,32 @@ export class AuthOpaqueCoreService {
       // Cache server login state temporarily (30 seconds TTL)
       // This state is needed to complete the login in the next step
       // （F-45：假计算路径同样写这一条，保持 Redis 写次数一致）
-      await this.opaqueCacheService.setOpaqueServerStateCache(userName, deviceId, serverLoginState, scope)
-    }
-    catch (error: any) {
+      await this.opaqueCacheService.setOpaqueServerStateCache(
+        userName,
+        deviceId,
+        serverLoginState,
+        scope,
+      )
+    } catch (error: any) {
       // OPAQUE 计算 / 缓存写本身失败。分类只影响日志与（非生产）提示，响应仍是 40103。
       const reason: OpaqueLoginFailureReason = opaqueComputed
         ? OPAQUE_LOGIN_FAILURE.CACHE_WRITE_FAILED
-        : (passwordIdentity === null
-            ? OPAQUE_LOGIN_FAILURE.CLIENT_REQUEST_INVALID
-            : OPAQUE_LOGIN_FAILURE.CREDENTIAL_OPAQUE_INCOMPATIBLE)
+        : passwordIdentity === null
+          ? OPAQUE_LOGIN_FAILURE.CLIENT_REQUEST_INVALID
+          : OPAQUE_LOGIN_FAILURE.CREDENTIAL_OPAQUE_INCOMPATIBLE
       const detail = error instanceof Error ? error.message : String(error)
 
       if (reason === OPAQUE_LOGIN_FAILURE.CREDENTIAL_OPAQUE_INCOMPATIBLE) {
         this.warnCredentialProblem(userName, reason, detail)
-      }
-      else {
-        this.logger.error(`OPAQUE login start failed, userName: ${userName}, reason: ${reason}, error: ${detail}`)
+      } else {
+        this.logger.error(
+          `OPAQUE login start failed, userName: ${userName}, reason: ${reason}, error: ${detail}`,
+        )
       }
 
-      throw new WalnutAdminExceptionInvalidCredential(this.buildCredentialHintPayload(userName, reason))
+      throw new WalnutAdminExceptionInvalidCredential(
+        this.buildCredentialHintPayload(userName, reason),
+      )
     }
 
     // 失败判定必须留在等量计算与等量写之后（提前到这里侧信道就回来了）
@@ -231,13 +265,17 @@ export class AuthOpaqueCoreService {
     if (typeof loginResponse !== 'string' || loginResponse.length === 0) {
       const reason = credentialFailure ?? OPAQUE_LOGIN_FAILURE.CREDENTIAL_HANDSHAKE_UNDEFINED
       this.warnCredentialProblem(userName, reason, credentialFailureDetail)
-      throw new WalnutAdminExceptionInvalidCredential(this.buildCredentialHintPayload(userName, reason))
+      throw new WalnutAdminExceptionInvalidCredential(
+        this.buildCredentialHintPayload(userName, reason),
+      )
     }
 
     if (credentialFailure !== null || isNil(passwordIdentity)) {
       const reason = credentialFailure ?? OPAQUE_LOGIN_FAILURE.CREDENTIAL_MISSING
       this.warnCredentialProblem(userName, reason, credentialFailureDetail)
-      throw new WalnutAdminExceptionInvalidCredential(this.buildCredentialHintPayload(userName, reason))
+      throw new WalnutAdminExceptionInvalidCredential(
+        this.buildCredentialHintPayload(userName, reason),
+      )
     }
 
     // Return login response to be sent back to client
@@ -249,12 +287,16 @@ export class AuthOpaqueCoreService {
    *
    * 不含口令 / 密文 / 明文记录 —— 只有 userName、原因分类与修复命令。
    */
-  private warnCredentialProblem(userName: string, reason: OpaqueLoginFailureReason, detail?: string): void {
+  private warnCredentialProblem(
+    userName: string,
+    reason: OpaqueLoginFailureReason,
+    detail?: string,
+  ): void {
     const fix = `pnpm walnut db:seed:pg --admin ${userName} --password <新口令>`
     const detailPart = detail === undefined || detail === '' ? '' : `, detail: ${detail}`
     this.logger.warn(
-      `OPAQUE login start rejected, userName: ${userName}, reason: ${reason}${detailPart}`
-      + ` —— 该账号的口令凭据在本环境不可用，修复命令：${fix}`,
+      `OPAQUE login start rejected, userName: ${userName}, reason: ${reason}${detailPart}` +
+        ` —— 该账号的口令凭据在本环境不可用，修复命令：${fix}`,
     )
   }
 
@@ -265,17 +307,23 @@ export class AuthOpaqueCoreService {
    * 判断走 ConfigService（`NODE_ENV`），不用 `libs/const` 的模块求值常量 —— 后者在
    * 单测 / 多进程装配里不可注入，而这里需要按环境分别断言。
    */
-  private buildCredentialHintPayload(userName: string, reason: OpaqueLoginFailureReason): { meta: Record<string, string> } | undefined {
+  private buildCredentialHintPayload(
+    userName: string,
+    reason: OpaqueLoginFailureReason,
+  ): { meta: Record<string, string> } | undefined {
     const env = this.configService.get<string>('NODE_ENV')
-    const isNonProduction = env === WalnutAdminConstAppEnv.DEV || env === WalnutAdminConstAppEnv.STAGE
-    if (!isNonProduction || !SEEDABLE_CREDENTIAL_FAILURES.has(reason))
-      return undefined
+    const isNonProduction =
+      env === WalnutAdminConstAppEnv.DEV || env === WalnutAdminConstAppEnv.STAGE
+    if (!isNonProduction || !SEEDABLE_CREDENTIAL_FAILURES.has(reason)) return undefined
 
     const fix = `pnpm walnut db:seed:pg --admin ${userName} --password <新口令>`
     const explanations: Record<typeof reason, string> = {
-      [OPAQUE_LOGIN_FAILURE.CREDENTIAL_FORMAT_STALE]: '口令凭据格式陈旧（旧明文行或换过 USER_ID_ENCRYPTION_KEY），当前登录链无法解密',
-      [OPAQUE_LOGIN_FAILURE.CREDENTIAL_HANDSHAKE_UNDEFINED]: '口令凭据与当前 OPAQUE 协议参数不兼容（identifiers / AUTH_OPAQUE_SECRET 口径变化）',
-      [OPAQUE_LOGIN_FAILURE.CREDENTIAL_OPAQUE_INCOMPATIBLE]: '口令凭据记录无法被当前 OPAQUE 参数解析',
+      [OPAQUE_LOGIN_FAILURE.CREDENTIAL_FORMAT_STALE]:
+        '口令凭据格式陈旧（旧明文行或换过 USER_ID_ENCRYPTION_KEY），当前登录链无法解密',
+      [OPAQUE_LOGIN_FAILURE.CREDENTIAL_HANDSHAKE_UNDEFINED]:
+        '口令凭据与当前 OPAQUE 协议参数不兼容（identifiers / AUTH_OPAQUE_SECRET 口径变化）',
+      [OPAQUE_LOGIN_FAILURE.CREDENTIAL_OPAQUE_INCOMPATIBLE]:
+        '口令凭据记录无法被当前 OPAQUE 参数解析',
       [OPAQUE_LOGIN_FAILURE.CREDENTIAL_MISSING]: '该账号没有可用的 password 身份行',
       [OPAQUE_LOGIN_FAILURE.USER_NOT_FOUND]: '',
       [OPAQUE_LOGIN_FAILURE.CLIENT_REQUEST_INVALID]: '',
@@ -298,21 +346,18 @@ export class AuthOpaqueCoreService {
   async finishLogin(payload: IWalnutAdminAccessTokenPayload, deviceId: string, em?: EntityManager) {
     try {
       // Retrieve the session key established during OPAQUE validation
-      const sessionKey = await this.opaqueCacheService.getOpaqueSessionKeyCache(payload.userName, deviceId)
+      const sessionKey = await this.opaqueCacheService.getOpaqueSessionKeyCache(
+        payload.userName,
+        deviceId,
+      )
 
       if (isNil(sessionKey)) {
         throw new WalnutAdminExceptionInvalidCredential()
       }
 
       // Generate final authentication tokens with the OPAQUE-derived session key
-      return await this.authSharedService.generateAuthTokens(
-        payload,
-        deviceId,
-        em,
-        sessionKey,
-      )
-    }
-    finally {
+      return await this.authSharedService.generateAuthTokens(payload, deviceId, em, sessionKey)
+    } finally {
       // Clean up cached session key after token generation
       await this.opaqueCacheService.delOpaqueSessionKeyCache(payload.userName, deviceId)
     }
@@ -331,9 +376,19 @@ export class AuthOpaqueCoreService {
    *
    * 失败一律 40103（与登录同码，不区分「用户不存在 / 无口令凭据 / 口令错」）。
    */
-  async verifyLoginForUnlock(userName: string, finishLoginRequest: string, deviceId: string, em: EntityManager, scope: IOpaqueCacheScope = 'unlock'): Promise<{ userId: string }> {
+  async verifyLoginForUnlock(
+    userName: string,
+    finishLoginRequest: string,
+    deviceId: string,
+    em: EntityManager,
+    scope: IOpaqueCacheScope = 'unlock',
+  ): Promise<{ userId: string }> {
     // 1. Retrieve cached server login state（缺失 = start 未执行 / 已过期 / 已被消费）
-    const serverLoginState = await this.opaqueCacheService.getOpaqueServerStateCache(userName, deviceId, scope)
+    const serverLoginState = await this.opaqueCacheService.getOpaqueServerStateCache(
+      userName,
+      deviceId,
+      scope,
+    )
     if (isNil(serverLoginState)) {
       throw new WalnutAdminExceptionInvalidCredential()
     }
@@ -356,12 +411,10 @@ export class AuthOpaqueCoreService {
       })
 
       return { userId: user.id }
-    }
-    catch (error: any) {
+    } catch (error: any) {
       this.logger.error(`OPAQUE unlock verify failed, userName: ${userName}, error: ${error}`)
       throw new WalnutAdminExceptionInvalidCredential()
-    }
-    finally {
+    } finally {
       // 4. 单次消费：成功失败都清（与登录 finish 的 finally 同口径）
       await this.opaqueCacheService.delOpaqueServerStateCache(userName, deviceId, scope)
     }
@@ -382,8 +435,7 @@ export class AuthOpaqueCoreService {
       })
 
       return registrationResponse
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.error(`OPAQUE registration start failed, userName: ${userName}`, error)
       throw new WalnutAdminExceptionInvalidCredential()
     }
@@ -396,33 +448,31 @@ export class AuthOpaqueCoreService {
    * （补挂口令的同义操作），不存在则建 —— 不再按 userName 查重抛 DataExists，也不新建用户。
    * 并发补挂由 `(user_id, type, purpose)` 唯一索引 + ON CONFLICT 原子收敛。
    */
-  async finishRegister(
-    userId: string,
-    newPassword: string,
-    em?: EntityManager,
-  ) {
+  async finishRegister(userId: string, newPassword: string, em?: EntityManager) {
     try {
       // ①（2026-11）：password 身份不再裸存 registrationRecord —— value 走 AES-GCM
       // （AAD `sys_user_identity`）、valueHash 走盐化 HMAC，与 email/phone 身份同口径；
       // 读腿在 startLogin 解密。生产未上线，不做存量迁移（本地旧明文行需重跑
       // seed / 重新补挂口令，见提交说明与计划页追记）。
-      await this.userIdentityRepo.upsertIdentity({
-        userId,
-        type: 'password',
-        purpose: 'login',
-        value: this.userIdentitySharedService.encryptValue(newPassword),
-        valueHash: this.userIdentitySharedService.generateValueHash(newPassword),
-        maskedValue: '********',
-        verified: true,
-        verifiedAt: new Date(),
-        metadata: {},
-      }, em)
+      await this.userIdentityRepo.upsertIdentity(
+        {
+          userId,
+          type: 'password',
+          purpose: 'login',
+          value: this.userIdentitySharedService.encryptValue(newPassword),
+          valueHash: this.userIdentitySharedService.generateValueHash(newPassword),
+          maskedValue: '********',
+          verified: true,
+          verifiedAt: new Date(),
+          metadata: {},
+        },
+        em,
+      )
 
       this.logger.log(`Password credential upserted for userId: ${userId}`)
 
       return true
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.error(`OPAQUE registration finish failed, userId: ${userId}`, error)
       throw new WalnutAdminExceptionInvalidCredential()
     }
@@ -451,9 +501,10 @@ export class AuthOpaqueCoreService {
       })
 
       return registrationResponse
-    }
-    catch (error: any) {
-      this.logger.error(`OPAQUE change password start failed, userName: ${userName}, error: ${error}`)
+    } catch (error: any) {
+      this.logger.error(
+        `OPAQUE change password start failed, userName: ${userName}, error: ${error}`,
+      )
       throw new WalnutAdminExceptionInvalidCredential()
     }
   }
@@ -471,11 +522,7 @@ export class AuthOpaqueCoreService {
    *
    * B7a 签名适配：user/identity 读写腿迁 PG —— 事务句柄改收 `em`（ctx.em）。
    */
-  async finishChangePassword(
-    userName: string,
-    newPassword: string,
-    em: EntityManager,
-  ) {
+  async finishChangePassword(userName: string, newPassword: string, em: EntityManager) {
     const user = await this.userRepo.findUserByUserName(userName, em)
     if (!user) {
       throw new WalnutAdminExceptionInvalidCredential()
@@ -483,24 +530,28 @@ export class AuthOpaqueCoreService {
 
     try {
       // Upsert password identity（①：密文 + 盐化哈希，写集与 finishRegister 逐字一致）
-      await this.userIdentityRepo.upsertIdentity({
-        userId: user.id,
-        type: 'password',
-        purpose: 'login',
-        value: this.userIdentitySharedService.encryptValue(newPassword),
-        valueHash: this.userIdentitySharedService.generateValueHash(newPassword),
-        maskedValue: '********',
-        verified: true,
-        verifiedAt: new Date(),
-        metadata: {},
-      }, em)
+      await this.userIdentityRepo.upsertIdentity(
+        {
+          userId: user.id,
+          type: 'password',
+          purpose: 'login',
+          value: this.userIdentitySharedService.encryptValue(newPassword),
+          valueHash: this.userIdentitySharedService.generateValueHash(newPassword),
+          maskedValue: '********',
+          verified: true,
+          verifiedAt: new Date(),
+          metadata: {},
+        },
+        em,
+      )
 
       this.logger.log(`Password changed successfully for user: ${userName}`)
 
       return true
-    }
-    catch (error: any) {
-      this.logger.error(`OPAQUE change password finish failed, userName: ${userName}, error: ${error}`)
+    } catch (error: any) {
+      this.logger.error(
+        `OPAQUE change password finish failed, userName: ${userName}, error: ${error}`,
+      )
       throw new WalnutAdminExceptionInvalidCredential()
     }
   }

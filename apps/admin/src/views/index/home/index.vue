@@ -23,10 +23,7 @@ const { cards: chartCards, loading: chartCardLoading } = useChartCard()
         class="w-full rounded-2xl p-1 md:w-1/2 xl:w-1/3 md:pr-1"
       >
         <WTransition appear transition-name="fade-down" :duration="(index + 1) * 200">
-          <WHomeNumberCard
-            v-bind="item"
-            :loading="numberCardLoading"
-          />
+          <WHomeNumberCard v-bind="item" :loading="numberCardLoading" />
         </WTransition>
       </div>
     </div>
@@ -40,10 +37,7 @@ const { cards: chartCards, loading: chartCardLoading } = useChartCard()
       >
         <WTransition appear transition-name="fade-down" :duration="(index + 1) * 500">
           <!-- @vue-expect-error do not know why -->
-          <WHomeChartCard
-            v-bind="item"
-            :loading="chartCardLoading"
-          />
+          <WHomeChartCard v-bind="item" :loading="chartCardLoading" />
         </WTransition>
       </div>
     </div>

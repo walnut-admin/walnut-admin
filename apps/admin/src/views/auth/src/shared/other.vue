@@ -1,5 +1,9 @@
 <script lang="ts" setup>
-import type { IWalnutAdminSseClientData, IWalnutAdminSseEvents, IWalnutAdminSseOAuthPayload } from '@walnut/contract/sse'
+import type {
+  IWalnutAdminSseClientData,
+  IWalnutAdminSseEvents,
+  IWalnutAdminSseOAuthPayload,
+} from '@walnut/contract/sse'
 import type { Recordable } from 'easy-fns-ts'
 import { useEventListener } from '@vueuse/core'
 import { WalnutAdminSseEvents } from '@walnut/contract/sse'
@@ -52,7 +56,7 @@ const iconArr = computed(() =>
       title: t('app.auth.other.google'),
       show: appStoreBackendSettings.getGoogleEnabled,
     },
-  ].filter(i => i.show ?? true),
+  ].filter((i) => i.show ?? true),
 )
 
 async function onOAuth(type: string) {
@@ -85,17 +89,14 @@ async function onOAuth(type: string) {
         }
 
         eventSource.close()
-      }
-      else {
+      } else {
         eventSource.close()
         childWindow?.close()
         useAppMsgError(res.message)
       }
-    }
-    catch (error) {
+    } catch (error) {
       console.log(error)
-    }
-    finally {
+    } finally {
       userStoreAuth.setLoading(false)
     }
   }
@@ -140,13 +141,13 @@ onUnmounted(() => {
       </n-divider>
 
       <div class="w-full hstack justify-evenly children:cursor-pointer hover:children:text-primary">
-        <span
-          v-for="item in iconArr"
-          :key="item.key"
-          :title="item.title"
-        >
+        <span v-for="item in iconArr" :key="item.key" :title="item.title">
           <WIconButton
-            :button-props="{ text: true, disabled: userStoreAuth.getLoading, onClick: () => onClick(item.key) }"
+            :button-props="{
+              text: true,
+              disabled: userStoreAuth.getLoading,
+              onClick: () => onClick(item.key),
+            }"
             :icon-props="{ icon: item.icon, width: '20' }"
           />
         </span>

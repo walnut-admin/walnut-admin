@@ -23,7 +23,10 @@ export class AuthGoogleStrategy extends PassportStrategy(
 
   private keys: Record<string, CryptoKey> = {}
 
-  constructor(private readonly configService: ConfigService, private readonly authGoogleService: AuthGoogleService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly authGoogleService: AuthGoogleService,
+  ) {
     super({
       passReqToCallback: true,
       usernameField: 'credential',
@@ -47,8 +50,7 @@ export class AuthGoogleStrategy extends PassportStrategy(
       const headerB64 = idToken.split('.')[0]
       const headerJson = Buffer.from(headerB64, 'base64').toString()
       return JSON.parse(headerJson) as Recordable
-    }
-    catch (error: any) {
+    } catch (error: any) {
       this.logger.error(`decode idToken header failed: ${error}`)
       return null
     }
@@ -77,19 +79,14 @@ export class AuthGoogleStrategy extends PassportStrategy(
         audience: clientId,
       })
 
-      return payload as JWTPayload & { email: string, name: string }
-    }
-    catch (error: any) {
+      return payload as JWTPayload & { email: string; name: string }
+    } catch (error: any) {
       this.logger.error(`verify idToken failed: ${error}`)
       return null
     }
   }
 
-  async validate(
-    request: IWalnutAdminExpressRequest,
-    credential: string,
-    _password: string,
-  ) {
+  async validate(request: IWalnutAdminExpressRequest, credential: string, _password: string) {
     const ticket = await this.verify(credential)
 
     if (ticket === null) {

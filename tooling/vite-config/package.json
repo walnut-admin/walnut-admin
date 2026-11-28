@@ -1,28 +1,20 @@
 {
   "name": "@walnut/vite-config",
-  "type": "module",
   "version": "0.1.24",
   "private": true,
   "description": "Vite 配置层：插件表、开发代理、环境变量 schema 与构建期读写工具。调用方的 package.json 信息与 app 专属约定经 options 传入，包内不 import 任何 app 文件。",
   "license": "MIT",
+  "type": "module",
   "exports": {
     ".": "./src/index.ts",
     "./utils": "./src/utils/index.ts"
   },
-  "engines": {
-    "node": ">=24.15.0",
-    "pnpm": ">=12.0.0"
-  },
   "scripts": {
     "lint": "eslint . --concurrency=4",
     "lint:fix": "eslint . --fix --concurrency=4",
-    "types:check": "tsc --noEmit",
+    "types:check": "tsrs --noEmit --pretty",
     "test": "vitest run",
     "test:watch": "vitest"
-  },
-  "peerDependencies": {
-    "vite": "catalog:",
-    "vue": "catalog:"
   },
   "dependencies": {
     "@iconify/json": "catalog:",
@@ -62,11 +54,20 @@
     "@walnut/tsconfig": "workspace:*",
     "@walnut/vitest-config": "workspace:*",
     "eslint": "catalog:",
+    "tsrs": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:",
     "vue": "catalog:",
     "vue-tsc": "catalog:"
+  },
+  "peerDependencies": {
+    "vite": "catalog:",
+    "vue": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.15.0",
+    "pnpm": ">=12.0.0"
   },
   "walnut": {
     "platform": "any",

@@ -5,7 +5,7 @@ defineOptions({
   name: 'DeviceCard',
 })
 
-defineProps<{ device: SystemDevice, detailButtonAuth: string }>()
+defineProps<{ device: SystemDevice; detailButtonAuth: string }>()
 
 defineEmits<{ detail: [id?: string] }>()
 </script>
@@ -43,17 +43,11 @@ defineEmits<{ detail: [id?: string] }>()
     <div class="relative z-10 p-5">
       <!-- de -->
       <div class="mb-4 flex items-center justify-between">
-        <h3
-          class="truncate text-lg text-gray-800 font-semibold dark:text-gray-100"
-        >
+        <h3 class="truncate text-lg text-gray-800 font-semibold dark:text-gray-100">
           {{ device.deviceName }}
         </h3>
 
-        <NTag
-          size="small"
-          round
-          :type="device.active ? 'success' : 'default'"
-        >
+        <NTag size="small" round :type="device.active ? 'success' : 'default'">
           {{ device.active ? $t('app.base.online') : $t('app.base.offline') }}
         </NTag>
       </div>
@@ -106,7 +100,9 @@ defineEmits<{ detail: [id?: string] }>()
             <div class="whitespace-nowrap text-gray-500 dark:text-gray-400">
               {{ $t('app.base.sr') }}
             </div>
-            <div class="whitespace-nowrap whitespace-nowrap text-gray-800 font-medium dark:text-gray-100">
+            <div
+              class="whitespace-nowrap whitespace-nowrap text-gray-800 font-medium dark:text-gray-100"
+            >
               {{ device.sr?.width }}×{{ device.sr?.height }}
             </div>
           </div>
@@ -129,9 +125,7 @@ defineEmits<{ detail: [id?: string] }>()
       <!-- risk score -->
       <div class="mt-3 flex items-center gap-2 text-sm">
         <WIcon icon="mdi:shield-check" class="text-lg text-green-500" />
-        <span class="text-gray-500 dark:text-gray-400">
-          {{ $t('app.base.riskScore') }}：
-        </span>
+        <span class="text-gray-500 dark:text-gray-400"> {{ $t('app.base.riskScore') }}： </span>
         <span class="text-green-600 font-medium dark:text-green-400">
           {{ device.riskScore }}
         </span>
@@ -144,12 +138,7 @@ defineEmits<{ detail: [id?: string] }>()
     >
       <span>ID: {{ device.deviceId?.slice(-8) }}</span>
       <WAppAuthorize :value="detailButtonAuth">
-        <NButton
-          text
-          size="tiny"
-          type="primary"
-          @click="$emit('detail', device.id)"
-        >
+        <NButton text size="tiny" type="primary" @click="$emit('detail', device.id)">
           {{ $t('app.base.detail') }} →
         </NButton>
       </WAppAuthorize>

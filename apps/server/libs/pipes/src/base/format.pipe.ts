@@ -59,7 +59,10 @@ export class WalnutAdminPipePattern implements PipeTransform<unknown, string> {
 @Injectable()
 export class WalnutAdminPipeDeviceId extends WalnutAdminPipePattern {
   constructor() {
-    super({ test: isValidDeviceId }, `${WALNUT_DEVICE_ID_PREFIX}<32 lowercase hex> (server-issued device id)`)
+    super(
+      { test: isValidDeviceId },
+      `${WALNUT_DEVICE_ID_PREFIX}<32 lowercase hex> (server-issued device id)`,
+    )
   }
 }
 

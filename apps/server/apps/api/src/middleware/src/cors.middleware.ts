@@ -26,19 +26,15 @@ export class CorsMiddleware implements NestMiddleware {
       'middleware.cors.allowOrigin',
     )
 
-    const allowMethod = this.configService.get<string[]>(
-      'middleware.cors.allowMethod',
-    )
-    const allowHeader = this.configService.get<string[]>(
-      'middleware.cors.allowHeader',
-    )
+    const allowMethod = this.configService.get<string[]>('middleware.cors.allowMethod')
+    const allowHeader = this.configService.get<string[]>('middleware.cors.allowHeader')
 
     // 不变量的运行时告警（不是拒绝启动）：通配源 + 凭据在浏览器侧必然失败，
     // 静默下去只会表现为「跨源请求拿不到响应」，排查成本极高。
     if (allowOrigin === '*' || (Array.isArray(allowOrigin) && allowOrigin.includes('*'))) {
       new Logger(CorsMiddleware.name).warn(
-        'CORS allowOrigin 含通配 `*`，但 credentials: true —— 浏览器会拒绝带凭据的跨源响应。'
-        + ' 请改用显式源（APP_CORS_ALLOW_ORIGINS 逗号分隔）。',
+        'CORS allowOrigin 含通配 `*`，但 credentials: true —— 浏览器会拒绝带凭据的跨源响应。' +
+          ' 请改用显式源（APP_CORS_ALLOW_ORIGINS 逗号分隔）。',
       )
     }
 

@@ -1,5 +1,4 @@
 import type { DataScopeKey } from '@walnut/contract/data-scope'
-import type { ValueOf } from 'easy-fns-ts'
 import { DataScope as DataScopeContract } from '@walnut/contract/data-scope'
 
 /**
@@ -17,8 +16,6 @@ import { DataScope as DataScopeContract } from '@walnut/contract/data-scope'
  */
 export const WalnutAdminConstDataScope = DataScopeContract
 
-export type IWalnutAdminConstDataScope = ValueOf<typeof WalnutAdminConstDataScope>
-
 /**
  * 解析后的运行时模式串（描述符 `mode` 的取值）。值 = 档位键名，与数值档位一一对应：
  * `toWalnutDataScopeMode` 负责映射（common/repository/data-scope.ts）。
@@ -35,5 +32,3 @@ export const WalnutAdminConstDataScopeMode = {
   SELF: 'SELF',
   DEPT_OR_SELF: 'DEPT_OR_SELF',
 } as const satisfies { readonly [K in DataScopeKey]: K }
-
-export type IWalnutAdminConstDataScopeMode = ValueOf<typeof WalnutAdminConstDataScopeMode>

@@ -32,9 +32,9 @@ const [DefineBase, ReuseBase] = createReusableTemplate<{ item: TreeNodeItem<Syst
 const getChildren = computed((): TreeNodeItem<SystemMenu>[] | undefined => {
   const matched = findPath<SystemMenu>(
     appStoreMenu.menus,
-    n =>
-      n.name
-      === (currentRoute.value.meta.menuActiveName
+    (n) =>
+      n.name ===
+      (currentRoute.value.meta.menuActiveName
         ? currentRoute.value.meta.menuActiveName
         : currentRoute.value.name),
   )
@@ -53,7 +53,7 @@ const getChildren = computed((): TreeNodeItem<SystemMenu>[] | undefined => {
     } as SystemMenu)
   }
 
-  return matched?.filter(item => item.title)
+  return matched?.filter((item) => item.title)
 })
 
 function getDropdownOptions(arr?: TreeNodeItem<SystemMenu>[]): DropdownOption[] | undefined {
@@ -62,15 +62,22 @@ function getDropdownOptions(arr?: TreeNodeItem<SystemMenu>[]): DropdownOption[] 
   }
 
   return arr?.map(
-    i =>
+    (i) =>
       ({
         key: i.name,
         label: t(i.title as string),
         icon: userStorePreference.getBreadcrumbShowIcon
-          ? () => <WIcon icon={currentRoute.value.name === i.name ? i.meta?.activeIcon ?? i.icon! : i.icon!} height="20"></WIcon>
+          ? () => (
+              <WIcon
+                icon={
+                  currentRoute.value.name === i.name ? (i.meta?.activeIcon ?? i.icon!) : i.icon!
+                }
+                height="20"
+              ></WIcon>
+            )
           : null,
         children: getDropdownOptions(i.children),
-      } as DropdownOption),
+      }) as DropdownOption,
   )
 }
 
@@ -82,7 +89,12 @@ async function onDropdownSelect(key: string) {
 <template>
   <DefineBase v-slot="{ item }">
     <div class="flex flex-row flex-nowrap items-center">
-      <WIcon v-if="userStorePreference.getBreadcrumbShowIcon" :icon="item.meta?.activeIcon ?? item.icon!" height="20" class="mr-1" />
+      <WIcon
+        v-if="userStorePreference.getBreadcrumbShowIcon"
+        :icon="item.meta?.activeIcon ?? item.icon!"
+        height="20"
+        class="mr-1"
+      />
 
       {{ $t(item.title!) }}
     </div>
@@ -90,26 +102,30 @@ async function onDropdownSelect(key: string) {
 
   <WTransition appear :transition-name="appStoreSettingDev.getBreadcrumbTransition">
     <n-config-provider
-      :theme="(!isDark && userStorePreference.getHeaderInverted)
-        || isDark
-        ? darkTheme
-        : null"
+      :theme="(!isDark && userStorePreference.getHeaderInverted) || isDark ? darkTheme : null"
     >
       <n-breadcrumb
         v-if="appStoreSettingDev.getBreadcrumbShow"
-        :id="appStoreSettingDev.getBreadcrumbId" :separator="appStoreSettingDev.getBreadcrumbSeparator"
+        :id="appStoreSettingDev.getBreadcrumbId"
+        :separator="appStoreSettingDev.getBreadcrumbSeparator"
       >
         <n-breadcrumb-item v-for="item in getChildren" :key="item.id">
-          <n-config-provider
-            v-if="userStorePreference.getBreadcrumbShowDropdown"
-            :theme="getTheme"
-          >
-            <n-dropdown show-arrow :options="getDropdownOptions(item.children)" @select="onDropdownSelect">
+          <n-config-provider v-if="userStorePreference.getBreadcrumbShowDropdown" :theme="getTheme">
+            <n-dropdown
+              show-arrow
+              :options="getDropdownOptions(item.children)"
+              @select="onDropdownSelect"
+            >
               <ReuseBase :item="item" />
             </n-dropdown>
           </n-config-provider>
 
-          <WTransition v-else appear :transition-name="appStoreSettingDev.getBreadcrumbTransition" :duration="500">
+          <WTransition
+            v-else
+            appear
+            :transition-name="appStoreSettingDev.getBreadcrumbTransition"
+            :duration="500"
+          >
             <ReuseBase :item="item" />
           </WTransition>
         </n-breadcrumb-item>

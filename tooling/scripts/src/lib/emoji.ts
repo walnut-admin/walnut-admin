@@ -41,9 +41,12 @@ export interface EmojiHit {
 export function findEmoji(text: string): EmojiHit[] {
   const hits: EmojiHit[] = []
   text.split(/\r?\n/).forEach((line, index) => {
-    const matched = [...line.matchAll(EMOJI_RUN)].map(m => m[0]).filter(m => !NOT_EMOJI.test(m))
+    const matched = [...line.matchAll(EMOJI_RUN)].map((m) => m[0]).filter((m) => !NOT_EMOJI.test(m))
     if (matched.length > 0)
-      hits.push({ line: index + 1, chars: [...new Set(matched.map(m => m.trim()))].slice(0, 3).join(' ') })
+      hits.push({
+        line: index + 1,
+        chars: [...new Set(matched.map((m) => m.trim()))].slice(0, 3).join(' '),
+      })
   })
   return hits
 }
@@ -60,8 +63,7 @@ export function stripEmoji(text: string): string {
       let out = ''
       let last = 0
       for (const m of line.matchAll(EMOJI_RUN)) {
-        if (NOT_EMOJI.test(m[0]))
-          continue
+        if (NOT_EMOJI.test(m[0])) continue
         const start = m.index ?? 0
         const from = m[0].endsWith(' ') || line[start - 1] !== ' ' ? start : start - 1
         out += line.slice(last, from)

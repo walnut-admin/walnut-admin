@@ -4,7 +4,7 @@ import { scanSource, stripComments, templateEnd } from '../check-dynamic-imports
 
 /** 便捷断言：把一段源码喂进去，取 (kind:line) 列表 */
 function hits(src: string) {
-  return scanSource('apps/fake/x.ts', src).map(f => `${f.kind}:${f.line}`)
+  return scanSource('apps/fake/x.ts', src).map((f) => `${f.kind}:${f.line}`)
 }
 
 describe('stripComments —— 抹注释但保留字符串与偏移', () => {
@@ -32,7 +32,7 @@ describe('stripComments —— 抹注释但保留字符串与偏移', () => {
 
 describe('scanSource —— 只报「bundler 无法静态解析」的两种形态', () => {
   it('字符串字面量 import：放行', () => {
-    expect(hits('const a = () => import(\'./a\')')).toEqual([])
+    expect(hits("const a = () => import('./a')")).toEqual([])
     expect(hits('const a = () => import("./a")')).toEqual([])
   })
 
@@ -70,7 +70,8 @@ describe('scanSource —— 只报「bundler 无法静态解析」的两种形�
   })
 
   it('字符串正文里的 import() 不报（ESLint message 那类）', () => {
-    const src = 'const rule = { message: "libs 内禁止动态 import（含模板串）；确需按需加载时在评审中显式豁免。" }'
+    const src =
+      'const rule = { message: "libs 内禁止动态 import（含模板串）；确需按需加载时在评审中显式豁免。" }'
     expect(hits(src)).toEqual([])
     expect(hits('const msg = "禁止 import() 与 import(x)"')).toEqual([])
   })
@@ -82,7 +83,7 @@ describe('scanSource —— 只报「bundler 无法静态解析」的两种形�
   })
 
   it('import.meta.glob 不是 import() 形态，不报', () => {
-    expect(hits('const m = import.meta.glob(\'./views/**/*.vue\')')).toEqual([])
+    expect(hits("const m = import.meta.glob('./views/**/*.vue')")).toEqual([])
   })
 })
 

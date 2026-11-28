@@ -16,16 +16,21 @@ const attrs = useAttrs() as SelectProps
 
 const renderOption: RenderOption = ({ node, option, selected }) => {
   const label = (option as SelectOption).label
-  return (props.tooltip && label && label.length > props.tooltipThreshold)
-    ? (
-        <n-tooltip {...props.tooltipProps}>
-          {{
-            default: () => attrs.renderLabel ? attrs.renderLabel(option, selected) : <span>{(option as Recordable).label}</span>,
-            trigger: () => node,
-          }}
-        </n-tooltip>
-      )
-    : node
+  return props.tooltip && label && label.length > props.tooltipThreshold ? (
+    <n-tooltip {...props.tooltipProps}>
+      {{
+        default: () =>
+          attrs.renderLabel ? (
+            attrs.renderLabel(option, selected)
+          ) : (
+            <span>{(option as Recordable).label}</span>
+          ),
+        trigger: () => node,
+      }}
+    </n-tooltip>
+  ) : (
+    node
+  )
 }
 </script>
 

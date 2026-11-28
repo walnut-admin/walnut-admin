@@ -11,6 +11,4 @@ export const WalnutAdminConstAppHTTPMethods = {
   HEAD: 'HEAD',
 } as const
 
-export type IWalnutAdminConstAppHTTPMethods = ValueOf<
-  typeof WalnutAdminConstAppHTTPMethods
->
+export type IWalnutAdminConstAppHTTPMethods = ValueOf<typeof WalnutAdminConstAppHTTPMethods>

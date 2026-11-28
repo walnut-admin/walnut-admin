@@ -14,14 +14,14 @@ export function useMenuTree() {
   const menuActiveNamesOptions = ref<Pick<SystemMenu, 'title' | 'name'>[]>([])
 
   const getLeftMenu = computed((): TreeNodeItem<SystemMenuTree>[] => {
-    return formatTree<SystemMenuTree>(menuDataRef.value, node => ({
+    return formatTree<SystemMenuTree>(menuDataRef.value, (node) => ({
       ...node,
       title: node.title ? t(node.title) : node.title,
     }))
   })
 
   const getTreeSelect = computed((): TreeNodeItem<SystemMenuTree>[] => {
-    return formatTree<SystemMenuTree>(treeSelectDataRef.value, node => ({
+    return formatTree<SystemMenuTree>(treeSelectDataRef.value, (node) => ({
       ...node,
       title: node.title ? t(node.title) : node.title,
     }))

@@ -11,9 +11,8 @@ function createService(docExists: boolean) {
   const saved: unknown[] = []
   const repository = {
     find: async () => [],
-    findOne: async () => docExists
-      ? { settingKey: 'app.functional.role', settingValue: '{}' }
-      : null,
+    findOne: async () =>
+      docExists ? { settingKey: 'app.functional.role', settingValue: '{}' } : null,
     save: async (doc: unknown) => {
       saved.push(doc)
       return doc

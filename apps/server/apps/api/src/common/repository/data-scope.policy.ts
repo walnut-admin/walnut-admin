@@ -1,11 +1,20 @@
-import type { IWalnutAdminDataScopeDescriptor, IWalnutAdminDataScopeRlsSettings } from '@walnut-server/db'
+import type {
+  IWalnutAdminDataScopeDescriptor,
+  IWalnutAdminDataScopeRlsSettings,
+} from '@walnut-server/db'
 import type {
   IWalnutAdminDataScopeDeptUpdateDecision,
   IWalnutAdminDataScopeEntityConfig,
   IWalnutAdminDataScopePolicy,
   WalnutDataScopeFindWhere,
 } from '@walnut-server/repository'
-import type { EntityManager, EntityTarget, FindOptionsWhere, ObjectLiteral, SelectQueryBuilder } from 'typeorm'
+import type {
+  EntityManager,
+  EntityTarget,
+  FindOptionsWhere,
+  ObjectLiteral,
+  SelectQueryBuilder,
+} from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutPGConnectionName } from '@walnut-server/db'
@@ -44,7 +53,9 @@ export class WalnutAdminDataScopePolicyService implements IWalnutAdminDataScopeP
     private readonly dataSource: DataSource,
   ) {}
 
-  getEntityConfig(entityTarget: EntityTarget<ObjectLiteral> | undefined): IWalnutAdminDataScopeEntityConfig | undefined {
+  getEntityConfig(
+    entityTarget: EntityTarget<ObjectLiteral> | undefined,
+  ): IWalnutAdminDataScopeEntityConfig | undefined {
     return getWalnutDataScopeEntityConfig(entityTarget)
   }
 
@@ -85,7 +96,7 @@ export class WalnutAdminDataScopePolicyService implements IWalnutAdminDataScopeP
   buildRlsSettings(
     descriptor: IWalnutAdminDataScopeDescriptor | undefined,
     userId: string | undefined,
-    options: { systemChannel?: boolean, userDeptId?: string | null } = {},
+    options: { systemChannel?: boolean; userDeptId?: string | null } = {},
   ): IWalnutAdminDataScopeRlsSettings {
     return buildWalnutDataScopeRlsSettings(descriptor, userId, options)
   }
@@ -98,10 +109,12 @@ export class WalnutAdminDataScopePolicyService implements IWalnutAdminDataScopeP
     // 显式 bypass + 理由（原基类的系统通道直连，随批 5/7 迁移至此）：取创建者
     // sys_employee.dept_id 供 SELF/DEPT 谓词与行级回填使用，属数据权限本体逻辑，
     // 不是业务旁路。本目录在 eslint 数据权限直连规则里是豁免区。
-    const employee = await (em ?? this.dataSource.manager).getRepository(SysEmployeeEntity).findOne({
-      where: { userId },
-      select: { deptId: true },
-    })
+    const employee = await (em ?? this.dataSource.manager)
+      .getRepository(SysEmployeeEntity)
+      .findOne({
+        where: { userId },
+        select: { deptId: true },
+      })
 
     return employee?.deptId ?? null
   }

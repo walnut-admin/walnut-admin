@@ -9,15 +9,12 @@ import { SysUserOAuthRepositoryService } from './repo/user_oauth.repo.service'
  */
 @Injectable()
 export class SysUserOauthService {
-  constructor(
-    private readonly sysUserOAuthRepoService: SysUserOAuthRepositoryService,
-  ) {}
+  constructor(private readonly sysUserOAuthRepoService: SysUserOAuthRepositoryService) {}
 
   async create(dto: Partial<SysUserOauthEntity>) {
     const isExisted = await this.sysUserOAuthRepoService.existsByFields(dto)
 
-    if (isExisted)
-      return
+    if (isExisted) return
 
     return this.sysUserOAuthRepoService.createByFields(dto)
   }

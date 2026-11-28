@@ -29,13 +29,16 @@ export interface ConsumeInput {
 /**
  * 消费意图。成功返回后不变量：**fixed 组全组已对齐到同一个版本**。
  */
-export async function consumeIntents(ui: ReleaseUi, args: ReleaseArgs, input: ConsumeInput): Promise<string> {
+export async function consumeIntents(
+  ui: ReleaseUi,
+  args: ReleaseArgs,
+  input: ConsumeInput,
+): Promise<string> {
   const attempts = args.consumeAttempts
   let lastError: unknown = null
 
   for (let attempt = 1; attempt <= attempts; attempt++) {
-    if (attempt > 1)
-      ui.warn(`消费意图重试 ${attempt}/${attempts} …`)
+    if (attempt > 1) ui.warn(`消费意图重试 ${attempt}/${attempts} …`)
 
     try {
       await ui.runPnpmStep(
@@ -44,8 +47,7 @@ export async function consumeIntents(ui: ReleaseUi, args: ReleaseArgs, input: Co
       )
       lastError = null
       break
-    }
-    catch (error: any) {
+    } catch (error: any) {
       lastError = error
 
       // ── 半写入守卫 ────────────────────────────────────────────────────────
@@ -54,10 +56,8 @@ export async function consumeIntents(ui: ReleaseUi, args: ReleaseArgs, input: Co
       let moved: string | null = null
       try {
         const now = currentVersion()
-        if (now !== input.oldVersion)
-          moved = now
-      }
-      catch {
+        if (now !== input.oldVersion) moved = now
+      } catch {
         moved = null
       }
 
@@ -65,28 +65,30 @@ export async function consumeIntents(ui: ReleaseUi, args: ReleaseArgs, input: Co
         const misaligned = packagesNotAtVersion(moved)
         ui.log('❌ 消费意图中途失败，且工作区**已经部分写入**：')
         ui.log(`   已到 v${moved}`)
-        for (const item of misaligned.slice(0, 20))
-          ui.log(`   · 仍在旧版本：${item}`)
-        if (misaligned.length > 20)
-          ui.log(`   · … 另有 ${misaligned.length - 20} 个`)
-        ui.die(2, `工作区处于「半升级」状态（不是可发版状态）。拒绝重试：在已 bump 的版本上再 bump 一档会打出错的 tag。`
-        + '修法：git checkout -- . 把改动全部还原，重跑 pnpm release（意图会按需重新生成）。')
+        for (const item of misaligned.slice(0, 20)) ui.log(`   · 仍在旧版本：${item}`)
+        if (misaligned.length > 20) ui.log(`   · … 另有 ${misaligned.length - 20} 个`)
+        ui.die(
+          2,
+          `工作区处于「半升级」状态（不是可发版状态）。拒绝重试：在已 bump 的版本上再 bump 一档会打出错的 tag。` +
+            '修法：git checkout -- . 把改动全部还原，重跑 pnpm release（意图会按需重新生成）。',
+        )
       }
 
       const isLast = attempt === attempts
-      if (isLast)
-        break
+      if (isLast) break
 
-      ui.warn(`pnpm version -r 失败（一个包都没动，可安全重试）：${(error as Error)?.message?.split('\n')[0] ?? error}`)
+      ui.warn(
+        `pnpm version -r 失败（一个包都没动，可安全重试）：${(error as Error)?.message?.split('\n')[0] ?? error}`,
+      )
     }
   }
 
   if (lastError !== null) {
     throw new PreconditionError(
-      `pnpm version -r 连续 ${attempts} 次失败，且每次都没有改动任何包。\n`
-      + `   ${(lastError as Error)?.message ?? lastError}\n`
-      + `   已落盘的改动保留（若一个包都没动，则工作区仍是干净的）；提高重试次数：--consume-attempts <n>；`
-      + `单条预算经 ${CONSUME_TIMEOUT_ENV} 调整（默认 ${CONSUME_TIMEOUT_DEFAULT_MS / 60000} 分钟）。`,
+      `pnpm version -r 连续 ${attempts} 次失败，且每次都没有改动任何包。\n` +
+        `   ${(lastError as Error)?.message ?? lastError}\n` +
+        `   已落盘的改动保留（若一个包都没动，则工作区仍是干净的）；提高重试次数：--consume-attempts <n>；` +
+        `单条预算经 ${CONSUME_TIMEOUT_ENV} 调整（默认 ${CONSUME_TIMEOUT_DEFAULT_MS / 60000} 分钟）。`,
     )
   }
 
@@ -94,16 +96,18 @@ export async function consumeIntents(ui: ReleaseUi, args: ReleaseArgs, input: Co
   const consumedVersion = currentVersion()
   const drift = packagesNotAtVersion(consumedVersion)
   if (drift.length > 0) {
-    ui.die(1, `消费意图后 fixed 组没有对齐到同一个版本（基准 v${consumedVersion}）：`
-    + `\n   · ${drift.join('\n   · ')}`
-    + '\n   这说明 pnpm 的 fixed 组计算结果与实际写盘不一致（或有人并发改了 manifest）。'
-    + '请先查清再重跑；放弃本次发版：git checkout -- .')
+    ui.die(
+      1,
+      `消费意图后 fixed 组没有对齐到同一个版本（基准 v${consumedVersion}）：` +
+        `\n   · ${drift.join('\n   · ')}` +
+        '\n   这说明 pnpm 的 fixed 组计算结果与实际写盘不一致（或有人并发改了 manifest）。' +
+        '请先查清再重跑；放弃本次发版：git checkout -- .',
+    )
   }
 
   if (consumedVersion === input.oldVersion) {
     ui.log(`版本号未变更（仍是 v${consumedVersion}）—— 没有意图提及任何包`)
-  }
-  else {
+  } else {
     ui.log(`版本已消费：v${input.oldVersion} → v${consumedVersion}（全组 12 个包已对齐）`)
   }
 

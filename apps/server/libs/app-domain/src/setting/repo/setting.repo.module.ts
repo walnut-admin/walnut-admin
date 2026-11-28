@@ -15,9 +15,7 @@ import { AppSettingRepositoryService } from './setting.repo.service'
  */
 @Global()
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([AppSettingEntity], WalnutPGConnectionName),
-  ],
+  imports: [TypeOrmModule.forFeature([AppSettingEntity], WalnutPGConnectionName)],
   controllers: [],
   providers: [
     AppSettingRepositoryService,

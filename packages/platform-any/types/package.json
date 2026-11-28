@@ -1,16 +1,12 @@
 {
   "name": "@walnut/types",
-  "type": "module",
   "version": "0.1.24",
   "description": "Frontend-only type declarations — 后端 0 消费（2026-11 决策 D6 实测：apps/server 的依赖与 import 都是 0）",
   "license": "MIT",
+  "type": "module",
   "exports": {
     ".": "./src/index.d.ts",
     "./*": "./src/*.d.ts"
-  },
-  "engines": {
-    "node": ">=24.15.0",
-    "pnpm": ">=12.0.0"
   },
   "scripts": {
     "build": "echo 'types: pure source, no build needed'",
@@ -21,10 +17,13 @@
     "clean:all": "rimraf dist node_modules"
   },
   "devDependencies": {
-    "@walnut/eslint-config": "workspace:*",
     "@walnut/tsconfig": "workspace:*",
     "rimraf": "catalog:",
     "typescript": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.15.0",
+    "pnpm": ">=12.0.0"
   },
   "walnut": {
     "platform": "web",

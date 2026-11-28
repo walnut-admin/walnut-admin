@@ -31,9 +31,7 @@ const userStorePreference = useAppStoreUserPreference()
 
 const getSkinName = computed(() => (isDark.value ? 'dark' : undefined))
 
-const getLangName = computed(() =>
-  appStoreLocale.getLocale.split('_')[0].toUpperCase(),
-)
+const getLangName = computed(() => appStoreLocale.getLocale.split('_')[0].toUpperCase())
 
 useEventListener('resize', () => {
   chartInst.value?.resize()
@@ -51,8 +49,7 @@ function onInit() {
 
   const target = document.getElementById(chartId.value)!
 
-  if (!target)
-    return
+  if (!target) return
 
   // 直接 import 按需版（`on-demand.ts` 已经 `echarts.use(...)` 注册过用到的图表），
   // 不再走 `window.echarts` 那个隐式全局 —— 理由见 on-demand.ts 里的注释。

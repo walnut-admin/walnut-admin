@@ -1,8 +1,9 @@
 import { z } from 'zod'
 
 export function VITE_PROXY_VALIDATE() {
-  return z.preprocess((v: unknown) => typeof v === 'string' && JSON.parse(v), z.tuple(
-    [
+  return z.preprocess(
+    (v: unknown) => typeof v === 'string' && JSON.parse(v),
+    z.tuple([
       z.tuple([
         z.coerce.number(),
         z.string(),
@@ -17,8 +18,8 @@ export function VITE_PROXY_VALIDATE() {
         z.string(),
         z.string(),
       ]),
-    ],
-  ))
+    ]),
+  )
 }
 
 export function VITE_SENTRY_CONFIG() {

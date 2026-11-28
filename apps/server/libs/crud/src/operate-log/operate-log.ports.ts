@@ -1,5 +1,8 @@
 import type { IWalnutAdminConstAppHTTPMethods } from '@walnut-server/const/app/methods'
-import type { IWalnutAdminConstDecoratorLogOperateAction, IWalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
+import type {
+  IWalnutAdminConstDecoratorLogOperateAction,
+  IWalnutAdminConstDecoratorLogOperateType,
+} from '@walnut-server/const/decorator/logOperate'
 import type { Recordable } from 'easy-fns-ts'
 
 /**

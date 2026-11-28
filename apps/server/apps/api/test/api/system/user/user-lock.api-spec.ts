@@ -41,7 +41,9 @@ describe('C 段：system/user/lock read + lock/unlock me（真实 HTTP 全链）
       return
     }
     await api.pgDataSource.query('DELETE FROM sys_user_lock WHERE user_id = $1', [fixture.userId])
-    await api.pgDataSource.query('UPDATE sys_user_device SET locked = false WHERE user_id = $1', [fixture.userId])
+    await api.pgDataSource.query('UPDATE sys_user_device SET locked = false WHERE user_id = $1', [
+      fixture.userId,
+    ])
     // SECURITY_LOCK 缓存（lock 默认 cross-device → 全局键）不随库清，显式清防残留
     // （delByPattern 走 node-redis v5 的 del rest-args 语义会炸 —— 按已知键逐个删）
     const cacheService = app.get(AppTechCacheService)
@@ -99,7 +101,11 @@ describe('C 段：system/user/lock read + lock/unlock me（真实 HTTP 全链）
     expectOk(lockRes, 'user lock')
     expect(bodyOf<boolean>(lockRes).data).toBe(true)
 
-    const prefRows: Array<{ lock_route: { name?: string }, lock_cross_device: boolean, lock_idle_sec: number }> = await api.pgDataSource.query(
+    const prefRows: Array<{
+      lock_route: { name?: string }
+      lock_cross_device: boolean
+      lock_idle_sec: number
+    }> = await api.pgDataSource.query(
       'SELECT lock_route, lock_cross_device, lock_idle_sec FROM sys_user_lock WHERE user_id = $1',
       [fixture!.userId],
     )
@@ -157,7 +163,13 @@ describe('C 段：system/user/lock read + lock/unlock me（真实 HTTP 全链）
     expectOk(prefRes, 'lock preference update (security)')
     expect(bodyOf<boolean>(prefRes).data).toBe(true)
 
-    const prefRows: Array<{ lock_mode: string, lock_pwd_hash: string, lock_idle_sec: number, lock_security_sec: number, lock_cross_device: boolean }> = await api.pgDataSource.query(
+    const prefRows: Array<{
+      lock_mode: string
+      lock_pwd_hash: string
+      lock_idle_sec: number
+      lock_security_sec: number
+      lock_cross_device: boolean
+    }> = await api.pgDataSource.query(
       'SELECT lock_mode, lock_pwd_hash, lock_idle_sec, lock_security_sec, lock_cross_device FROM sys_user_lock WHERE user_id = $1',
       [fixture!.userId],
     )
@@ -209,7 +221,7 @@ describe('C 段：system/user/lock read + lock/unlock me（真实 HTTP 全链）
         'SELECT locked FROM sys_user_device WHERE user_id = $1',
         [fixture!.userId],
       )
-      expect(stillLocked.every(row => row.locked)).toBe(true)
+      expect(stillLocked.every((row) => row.locked)).toBe(true)
 
       // 对密码 → 解锁成功（全部设备）
       const unlockRes = await apiB.root('PATCH', apiB.apiPath('/system/user/lock/unlock'), {
@@ -222,9 +234,8 @@ describe('C 段：system/user/lock read + lock/unlock me（真实 HTTP 全链）
         'SELECT locked FROM sys_user_device WHERE user_id = $1',
         [fixture!.userId],
       )
-      expect(unlocked.every(row => row.locked === false)).toBe(true)
-    }
-    finally {
+      expect(unlocked.every((row) => row.locked === false)).toBe(true)
+    } finally {
       // 第二设备的 user_device / device 行与锁缓存清理（afterEach 只清本客户端设备键）
       await api.pgDataSource.query(
         'DELETE FROM sys_user_device WHERE user_id = $1 AND device_id = $2',
@@ -232,7 +243,9 @@ describe('C 段：system/user/lock read + lock/unlock me（真实 HTTP 全链）
       )
       await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [apiB.deviceId])
       const cacheService = app.get(AppTechCacheService)
-      await cacheService.del(`${WalnutAdminConstAppCacheKeys.SECURITY_LOCK}:${fixture!.userId}:${apiB.deviceId}`)
+      await cacheService.del(
+        `${WalnutAdminConstAppCacheKeys.SECURITY_LOCK}:${fixture!.userId}:${apiB.deviceId}`,
+      )
       // 只按第二设备 id 清缓存键：按 fixture.userId / seed 片段清会连带删掉设备 A 的
       // AUTH:SESSIONS 键，后续用例全部 40101
       await apiB.cleanupWalnutCacheKeys(apiB.deviceId)

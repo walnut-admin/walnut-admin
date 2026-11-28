@@ -1,6 +1,9 @@
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import { AppTechCacheAppSettingsService, AppTechCacheService } from '@walnut-server/cache'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+} from '@walnut-server/const/app/cache'
 
 /**
  * APP:SETTING 缓存的测试期改写（functional guard 系列）：
@@ -16,7 +19,9 @@ import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@wal
  */
 
 /** 读取当前 APP:SETTING 缓存原值（缺失时为 null） */
-export async function readAppSettingsCache(app: NestExpressApplication): Promise<Record<string, string> | null> {
+export async function readAppSettingsCache(
+  app: NestExpressApplication,
+): Promise<Record<string, string> | null> {
   return app.get(AppTechCacheAppSettingsService).getAppSettings() ?? null
 }
 
@@ -42,8 +47,7 @@ export async function overrideAppSettings(
       // memo，否则本进程后续 getAppSettings 会读到 restore 前的旧映射（guard 误关功能）
       await app.get(AppTechCacheService).del(WalnutAdminConstAppCacheKeys.APP_SETTING)
       app.get(AppTechCacheAppSettingsService).invalidateMemoForExternalCacheRemoval()
-    }
-    else {
+    } else {
       await service.setAppSettings(original, { t: WalnutAdminConstAppCacheType.BUILT_IN })
     }
   }

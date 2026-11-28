@@ -112,11 +112,7 @@ export class AppDemoDTOBase extends WalnutAdminCommonBasicModel {
     swaggerOptions: {
       title: 'this is title',
       description: 'this is description',
-      example: [
-        'this is an example',
-        'this is an example',
-        'this is an example',
-      ],
+      example: ['this is an example', 'this is an example', 'this is an example'],
     },
     validateOptions: {
       lower: true,
@@ -217,11 +213,7 @@ export class AppDemoDTOBase extends WalnutAdminCommonBasicModel {
     swaggerOptions: {
       title: 'this is title',
       description: 'this is description',
-      example: [
-        '2023-11-11 00:00:00',
-        '2023-11-11 00:00:00',
-        '2023-11-11 00:00:00',
-      ],
+      example: ['2023-11-11 00:00:00', '2023-11-11 00:00:00', '2023-11-11 00:00:00'],
     },
   })
   demoDateArray: Date[]
@@ -272,7 +264,6 @@ export class AppDemoDTOBase extends WalnutAdminCommonBasicModel {
         o3: true,
       },
     },
-
   })
   demoObject: {
     o1: string
@@ -289,7 +280,8 @@ export class AppDemoDTOBase extends WalnutAdminCommonBasicModel {
     transformOptions: { req: { booleanString: false } },
     swaggerOptions: {
       title: 'dept id',
-      description: 'owning dept for department-scoped data permissions; derived on create, update is stripped',
+      description:
+        'owning dept for department-scoped data permissions; derived on create, update is stripped',
       nullable: true,
       example: '0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c',
     },

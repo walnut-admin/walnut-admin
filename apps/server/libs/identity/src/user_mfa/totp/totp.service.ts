@@ -11,7 +11,10 @@ import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base
 import { isNil } from 'lodash'
 import { generateSecret, generateURI, verify } from 'otplib'
 import * as QRCode from 'qrcode'
-import { IIdentityMfaPostVerification, WALNUT_ADMIN_IDENTITY_MFA_POST_VERIFICATION } from '../../identity.ports'
+import {
+  IIdentityMfaPostVerification,
+  WALNUT_ADMIN_IDENTITY_MFA_POST_VERIFICATION,
+} from '../../identity.ports'
 import { SysUserRepositoryService } from '../../user/repo/user.repo.service'
 import { SysUserMfaEntity } from '../entity/user-mfa.entity'
 import { SysUserMfaHelperService } from '../mfa.shared.service'
@@ -85,10 +88,7 @@ export class SysUserMfaTotpService {
     })
 
     //  encrypt TOTP secret using crypto service
-    const encryptedSecret = this.cryptoService.encrypt(
-      secret,
-      this.MFA_ENCRYPTION_KEY,
-    )
+    const encryptedSecret = this.cryptoService.encrypt(secret, this.MFA_ENCRYPTION_KEY)
 
     //  cache TOTP secret using cache service
     await this.cacheMfaService.setTotpCache(userId, deviceId, encryptedSecret)
@@ -126,10 +126,7 @@ export class SysUserMfaTotpService {
     }
 
     //  decrypt TOTP secret using crypto service
-    const secret = this.cryptoService.decrypt(
-      encryptedSecret,
-      this.MFA_ENCRYPTION_KEY,
-    )
+    const secret = this.cryptoService.decrypt(encryptedSecret, this.MFA_ENCRYPTION_KEY)
 
     // verify TOTP code using v13 async API
     const result = await verify({
@@ -152,21 +149,24 @@ export class SysUserMfaTotpService {
     // 备用码不再是独立 backup_codes 行）。
     // P3-23（2026-10-29）：备用码改用确定性哈希（sha256(domain:userId:code)）后再逐项
     // AES-GCM 加密存 array —— 旧实现的随机盐 hash 校验时必然 miss（备用码不可用）。
-    await this.sysUserMfaRepo.createMfa({
-      userId,
-      type: 'totp',
-      deviceId,
-      name: dto.name,
-      totpSecretCiphertext: encryptedSecret,
-      backupCodesCiphertext: backupCodes.map(code =>
-        this.cryptoService.encrypt(
-          this.sysUserMfaDeviceHelperService.hashBackupCode(userId, code),
-          this.MFA_ENCRYPTION_KEY,
+    await this.sysUserMfaRepo.createMfa(
+      {
+        userId,
+        type: 'totp',
+        deviceId,
+        name: dto.name,
+        totpSecretCiphertext: encryptedSecret,
+        backupCodesCiphertext: backupCodes.map((code) =>
+          this.cryptoService.encrypt(
+            this.sysUserMfaDeviceHelperService.hashBackupCode(userId, code),
+            this.MFA_ENCRYPTION_KEY,
+          ),
         ),
-      ),
-      status: true,
-      lastUsedAt: new Date(),
-    }, em)
+        status: true,
+        lastUsedAt: new Date(),
+      },
+      em,
+    )
 
     // after commit, delete cache
     registerAfterCommitHook(async () => {
@@ -187,9 +187,19 @@ export class SysUserMfaTotpService {
    * （`business.auth.verifyCodeError`），不再有裸 Nest 异常。命中备用码后的响应与
    * TOTP 成功同形态（同一 post-verification，RT 轮换 + 新 AT）。
    */
-  async verifyTotp(jti: string, deviceId: string, user: IWalnutAdminAccessTokenPayload, dto: SysUserMfaDeviceVerifyTotpDTO, em?: EntityManager) {
+  async verifyTotp(
+    jti: string,
+    deviceId: string,
+    user: IWalnutAdminAccessTokenPayload,
+    dto: SysUserMfaDeviceVerifyTotpDTO,
+    em?: EntityManager,
+  ) {
     // 同一事务内读 secret + 备用码列表并加行锁：并发用同一枚备用码时只有一路能消费
-    const totpDevice = await this.sysUserMfaRepo.findTotpWithSecretAndBackupCodesByUserId(user.userId, em, !isNil(em))
+    const totpDevice = await this.sysUserMfaRepo.findTotpWithSecretAndBackupCodesByUserId(
+      user.userId,
+      em,
+      !isNil(em),
+    )
 
     if (!totpDevice || totpDevice.totpSecretCiphertext === null) {
       throw new WalnutAdminExceptionDataNotFound()
@@ -232,7 +242,14 @@ export class SysUserMfaTotpService {
 
     // post verification
     // B7b 归一：post verification 全链 PG —— 单 em 透传
-    return this.mfaPostVerification.handlePostVerification(dto.trusted, jti, user.sid!, user.userId, deviceId, em)
+    return this.mfaPostVerification.handlePostVerification(
+      dto.trusted,
+      jti,
+      user.sid!,
+      user.userId,
+      deviceId,
+      em,
+    )
   }
 
   /**
@@ -258,13 +275,14 @@ export class SysUserMfaTotpService {
 
       try {
         storedHash = this.cryptoService.decrypt(encryptedCodes[index], this.MFA_ENCRYPTION_KEY)
-      }
-      catch {
+      } catch {
         // 旧随机盐 HMAC（64 hex）不是本方案密文 —— 不可迁移，跳过
         continue
       }
 
-      if (!this.sysUserMfaDeviceHelperService.verifyBackupCodeHash(userId, formattedCode, storedHash)) {
+      if (
+        !this.sysUserMfaDeviceHelperService.verifyBackupCodeHash(userId, formattedCode, storedHash)
+      ) {
         continue
       }
 

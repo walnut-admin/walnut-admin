@@ -6,10 +6,7 @@ import { SysUserIdentityRepositoryModule } from '../repo/user_identity.repo.modu
 import { SysUserIdentitySharedService } from './user_identity.shared.service'
 
 @Module({
-  imports: [
-    SysUserIdentityRepositoryModule,
-    SysUserRepositoryModule,
-  ],
+  imports: [SysUserIdentityRepositoryModule, SysUserRepositoryModule],
   providers: [SysUserIdentitySharedService],
   exports: [SysUserIdentitySharedService],
 })

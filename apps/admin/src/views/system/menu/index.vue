@@ -34,14 +34,18 @@ const targetTreeItem = ref<string>('')
 const loading = ref(false)
 
 // state
-const { stateRef: formData, resetState: resetFormData, commit } = useState<IAppSystemMenuForm>({
-  'type': 'catalog',
+const {
+  stateRef: formData,
+  resetState: resetFormData,
+  commit,
+} = useState<IAppSystemMenuForm>({
+  type: 'catalog',
 
-  'path': null,
-  'name': null,
-  'component': null,
-  'title': null,
-  'icon': null,
+  path: null,
+  name: null,
+  component: null,
+  title: null,
+  icon: null,
 
   'meta.status': true,
   'meta.order': 0,
@@ -65,8 +69,7 @@ const { stateRef: formData, resetState: resetFormData, commit } = useState<IAppS
 
 commit()
 
-const { getLeftMenu, getTreeSelect, onInit, menuActiveNamesOptions }
-  = useMenuTree()
+const { getLeftMenu, getTreeSelect, onInit, menuActiveNamesOptions } = useMenuTree()
 
 const [registerTree] = useTree<SystemMenu>({
   presetPrefixIcon: true,
@@ -85,7 +88,7 @@ const [registerTree] = useTree<SystemMenu>({
       key: 'addChild',
       label: t('app.base.addChild'),
       icon: 'mdi:plus-circle-outline',
-      disabled: item => item.type === AppConstMenuType.ELEMENT,
+      disabled: (item) => item.type === AppConstMenuType.ELEMENT,
       onClick: (item) => {
         // reset form data first
         resetFormData()
@@ -129,9 +132,10 @@ const [registerTree] = useTree<SystemMenu>({
     disabled: computed(() => loading.value),
 
     filter: (pattern, node) => {
-      const text = node.type === AppConstMenuType.ELEMENT
-        ? ((node as unknown as SystemMenu).meta.permission as string)
-        : (node.title as string)
+      const text =
+        node.type === AppConstMenuType.ELEMENT
+          ? ((node as unknown as SystemMenu).meta.permission as string)
+          : (node.title as string)
 
       if (text && (text as string).toLowerCase().includes(pattern)) {
         return true
@@ -148,13 +152,7 @@ const [registerTree] = useTree<SystemMenu>({
 })
 
 // schemas
-const schemas = useMenuFormSchema(
-  actionType,
-  formData,
-  getTreeSelect,
-  menuActiveNamesOptions,
-  t,
-)
+const schemas = useMenuFormSchema(actionType, formData, getTreeSelect, menuActiveNamesOptions, t)
 
 // form
 const [register, { validate, restoreValidation }] = useForm<IAppSystemMenuForm>({
@@ -187,18 +185,18 @@ const [register, { validate, restoreValidation }] = useForm<IAppSystemMenuForm>(
             onClick: async () => {
               const isValid = await validate()
 
-              if (!isValid)
-                return
+              if (!isValid) return
 
               loading.value = true
 
               try {
                 // 泛型实参是 menuAPI 的生成真源 SystemMenu（@walnut/api-types），不是手写镜像
-                await menuAPI[actionType.value](pathsToObject<typeof formData.value, SystemMenu>(formData.value))
+                await menuAPI[actionType.value](
+                  pathsToObject<typeof formData.value, SystemMenu>(formData.value),
+                )
                 useAppMsgSuccess()
                 await onInit()
-              }
-              finally {
+              } finally {
                 loading.value = false
               }
             },
@@ -222,8 +220,7 @@ async function onUpdateTreeValue(v?: StringOrNumber | StringOrNumber[]) {
   if (!v) {
     actionType.value = 'create'
     resetFormData()
-  }
-  else {
+  } else {
     const res = await menuAPI.read(v as string)
     actionType.value = 'update'
     formData.value = objectToPaths(res, ['watermark'])
@@ -244,7 +241,11 @@ async function onUpdateTreeValue(v?: StringOrNumber | StringOrNumber[]) {
       >
         <template #default>
           <!-- @vue-generic {SystemMenu} -->
-          <WTree v-model:value="targetTreeItem" @hook="registerTree" @update:value="onUpdateTreeValue" />
+          <WTree
+            v-model:value="targetTreeItem"
+            @hook="registerTree"
+            @update:value="onUpdateTreeValue"
+          />
         </template>
       </n-card>
     </n-gi>

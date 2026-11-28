@@ -2,7 +2,7 @@ import { readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const distDir = join(import.meta.dirname, '..', 'dist')
-const files = readdirSync(distDir).filter(f => f.endsWith('.cjs') && f !== 'index.cjs')
+const files = readdirSync(distDir).filter((f) => f.endsWith('.cjs') && f !== 'index.cjs')
 
 // Generate barrel that re-exports everything from sub-modules
 const lines = ['"use strict";', '']

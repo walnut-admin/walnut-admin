@@ -42,7 +42,7 @@ const schemas = computed<WForm.Schema.Item<typeof formData.value>[]>(() => {
 
   const baseSchemas: WForm.Schema.Item<typeof formData.value>[] = [
     isPhone
-      ? {
+      ? ({
           type: 'Extra:PhoneNumberInput',
           formProp: {
             path: 'identifier',
@@ -77,8 +77,8 @@ const schemas = computed<WForm.Schema.Item<typeof formData.value>[]>(() => {
             transitionName: 'fade-down-big',
             duration: 500,
           },
-        } as WForm.Schema.Item<typeof formData.value>
-      : {
+        } as WForm.Schema.Item<typeof formData.value>)
+      : ({
           type: 'Extra:EmailInput',
           formProp: {
             path: 'identifier',
@@ -94,8 +94,7 @@ const schemas = computed<WForm.Schema.Item<typeof formData.value>[]>(() => {
                 type: 'string',
                 trigger: ['input', 'change'],
                 validator: (_rule: any, value: string) => {
-                  if (!isEmailAddress(value))
-                    return Promise.reject(t('app.base.emailAddress.rule'))
+                  if (!isEmailAddress(value)) return Promise.reject(t('app.base.emailAddress.rule'))
                   return Promise.resolve()
                 },
               },
@@ -109,7 +108,7 @@ const schemas = computed<WForm.Schema.Item<typeof formData.value>[]>(() => {
             transitionName: 'fade-up-big',
             duration: 500,
           },
-        } as WForm.Schema.Item<typeof formData.value>,
+        } as WForm.Schema.Item<typeof formData.value>),
   ]
 
   return baseSchemas

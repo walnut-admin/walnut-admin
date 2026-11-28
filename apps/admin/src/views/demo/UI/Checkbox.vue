@@ -24,10 +24,7 @@ const state = ref<Recordable>({
 
     <n-list>
       <n-list-item>
-        <WTitle
-          prefix="bar"
-          help-message="string/number will all feedback correctly"
-        >
+        <WTitle prefix="bar" help-message="string/number will all feedback correctly">
           Basic usage
         </WTitle>
 

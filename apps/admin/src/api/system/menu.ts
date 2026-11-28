@@ -12,9 +12,7 @@ export const menuAPI = new BaseAPI<SystemMenu>({
 
 // get tree data for menu page
 export function getMenuTreeAPI() {
-  return AppAxios.get<SystemMenuTreeResponse>(
-    {
-      url: SystemEndpointRoutes.MENU_TREE,
-    },
-  )
+  return AppAxios.get<SystemMenuTreeResponse>({
+    url: SystemEndpointRoutes.MENU_TREE,
+  })
 }

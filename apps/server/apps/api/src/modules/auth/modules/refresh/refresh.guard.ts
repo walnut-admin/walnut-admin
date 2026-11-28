@@ -9,12 +9,8 @@ import { WalnutAdminExceptionRefreshTokenExpired } from '@walnut-server/exceptio
 import { isNil } from 'lodash'
 
 @Injectable()
-export class JwtRefreshGuard extends AuthGuard(
-  WalnutAdminConstAppAuthStrategy.JWT_REFRESH_TOKEN,
-) {
-  constructor(
-    private readonly authRefreshSharedService: AuthRefreshSharedService,
-  ) {
+export class JwtRefreshGuard extends AuthGuard(WalnutAdminConstAppAuthStrategy.JWT_REFRESH_TOKEN) {
+  constructor(private readonly authRefreshSharedService: AuthRefreshSharedService) {
     super({
       property: 'RT',
     })

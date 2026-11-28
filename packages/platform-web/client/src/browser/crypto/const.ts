@@ -57,13 +57,15 @@ export type PEMKeyType = 'public' | 'private'
 /**
  * Result type for operations that may fail
  */
-export type CryptoResult<T> = {
-  success: true
-  data: T
-} | {
-  success: false
-  error: string
-}
+export type CryptoResult<T> =
+  | {
+      success: true
+      data: T
+    }
+  | {
+      success: false
+      error: string
+    }
 
 /**
  * AES-GCM encryption result (raw format)

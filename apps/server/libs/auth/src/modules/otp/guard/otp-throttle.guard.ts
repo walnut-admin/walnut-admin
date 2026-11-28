@@ -45,10 +45,9 @@ export class OtpThrottleGuard extends ThrottlerGuard {
     let { limit, ttl, blockDuration } = requestProps
 
     // Get the service from metadata (shared symbol exported by otp.decorator)
-    const TargetService = this.reflector.getAllAndOverride<Type<IWalnutAdminOtpThrottleConfigProvider>>(
-      OTP_THROTTLE_SERVICE_KEY,
-      [context.getHandler(), context.getClass()],
-    )
+    const TargetService = this.reflector.getAllAndOverride<
+      Type<IWalnutAdminOtpThrottleConfigProvider>
+    >(OTP_THROTTLE_SERVICE_KEY, [context.getHandler(), context.getClass()])
 
     if (!isNil(TargetService)) {
       const service = this.moduleRef.get<IWalnutAdminOtpThrottleConfigProvider>(TargetService, {
@@ -74,9 +73,10 @@ export class OtpThrottleGuard extends ThrottlerGuard {
               blockDuration = ttl
             }
 
-            this.logger.debug(`[OTP Throttle] ${type} ?limit=${limit}, ttl=${ttl}, blockDuration=${blockDuration}`)
-          }
-          catch (error) {
+            this.logger.debug(
+              `[OTP Throttle] ${type} ?limit=${limit}, ttl=${ttl}, blockDuration=${blockDuration}`,
+            )
+          } catch (error) {
             this.logger.error(`Failed to get throttle config for ${type}:`, error)
           }
         }

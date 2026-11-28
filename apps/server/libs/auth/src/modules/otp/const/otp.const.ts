@@ -3,7 +3,10 @@
  * One-Time Password authentication for Email and SMS
  */
 
-import type { IOtpType as IIdentityOtpType, IWalnutAdminConstSysUserIdentityType } from '@walnut-server/identity'
+import type {
+  IOtpType as IIdentityOtpType,
+  IWalnutAdminConstSysUserIdentityType,
+} from '@walnut-server/identity'
 import { WalnutAdminConstSysUserIdentityType } from '@walnut-server/identity'
 
 export const otpType = {

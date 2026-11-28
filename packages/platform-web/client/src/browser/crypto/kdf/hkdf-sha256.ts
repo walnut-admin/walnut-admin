@@ -8,13 +8,7 @@ export async function hkdfSha256(
   length: number,
 ): Promise<ArrayBuffer> {
   // 1. import IKM as CryptoKey
-  const key = await crypto.subtle.importKey(
-    'raw',
-    ikm,
-    { name: 'HKDF' },
-    false,
-    ['deriveBits'],
-  )
+  const key = await crypto.subtle.importKey('raw', ikm, { name: 'HKDF' }, false, ['deriveBits'])
 
   // 2. use Web Crypto API to derive key
   const derivedBits = await crypto.subtle.deriveBits(

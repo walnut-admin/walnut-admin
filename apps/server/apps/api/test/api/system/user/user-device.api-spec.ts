@@ -2,7 +2,10 @@ import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { WalnutRootUserFixture } from '../../helpers/auth-login'
 import { randomUUID } from 'node:crypto'
 import { AppTechCacheService } from '@walnut-server/cache'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import {
+  WalnutAdminConstAppCacheKeys,
+  WalnutAdminConstAppCacheType,
+} from '@walnut-server/const/app/cache'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from '../../helpers/api-client'
@@ -59,10 +62,14 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
 
   async function cleanSideRows() {
     await api.pgDataSource.query('DELETE FROM app_monitor_user WHERE visitor_id = $1', [visitorId])
-    await api.pgDataSource.query('DELETE FROM auth_refresh_token WHERE user_id = $1', [fixture?.userId])
+    await api.pgDataSource.query('DELETE FROM auth_refresh_token WHERE user_id = $1', [
+      fixture?.userId,
+    ])
     await api.pgDataSource.query('DELETE FROM sys_user_lock WHERE user_id = $1', [fixture?.userId])
     if (fixture !== null) {
-      await api.pgDataSource.query('UPDATE sys_user_device SET locked = false WHERE user_id = $1', [fixture.userId])
+      await api.pgDataSource.query('UPDATE sys_user_device SET locked = false WHERE user_id = $1', [
+        fixture.userId,
+      ])
       // SECURITY_LOCK 缓存（lock 默认 cross-device → 全局键）不随库清，显式清防 40118 残留
       // （P1-2 已修 delByPattern；这里按已知键逐个删仍是更直接的清场方式）
       const cacheService = app.get(AppTechCacheService)
@@ -71,10 +78,19 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
       await cacheService.del(`${lockKeys}:${fixture.userId}:${api.deviceId}`)
 
       if (victim !== null) {
-        await api.pgDataSource.query('DELETE FROM sys_user_device WHERE user_id = $1 AND device_id = $2', [fixture.userId, victim.deviceId])
-        await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [victim.deviceId])
-        await cacheService.del(`${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:${fixture.userId}:${victim.deviceId}`)
-        await cacheService.del(`${WalnutAdminConstAppCacheKeys.AUTH_MFA_VERIFIED}:${fixture.userId}:${victim.deviceId}`)
+        await api.pgDataSource.query(
+          'DELETE FROM sys_user_device WHERE user_id = $1 AND device_id = $2',
+          [fixture.userId, victim.deviceId],
+        )
+        await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [
+          victim.deviceId,
+        ])
+        await cacheService.del(
+          `${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:${fixture.userId}:${victim.deviceId}`,
+        )
+        await cacheService.del(
+          `${WalnutAdminConstAppCacheKeys.AUTH_MFA_VERIFIED}:${fixture.userId}:${victim.deviceId}`,
+        )
         victim = null
       }
     }
@@ -110,7 +126,7 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
     const res = await api.root('GET', api.apiPath('/system/user/device/list'))
     expectOk(res, 'user device list')
 
-    const list = bodyOf<{ data: UserDeviceListItem[], total: number }>(res).data
+    const list = bodyOf<{ data: UserDeviceListItem[]; total: number }>(res).data
     expect(list.total).toBe(1)
     const item = list.data[0]
     expect(item.deviceId).toBe(api.deviceId)
@@ -125,9 +141,13 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
 
   it('update-name → true 且持久化；list 回新名', async () => {
     const newName = `renamed-${seed8}`
-    const res = await api.root('PUT', api.apiPath(`/system/user/device/update-name/${api.deviceId}`), {
-      deviceName: newName,
-    })
+    const res = await api.root(
+      'PUT',
+      api.apiPath(`/system/user/device/update-name/${api.deviceId}`),
+      {
+        deviceName: newName,
+      },
+    )
     expectOk(res, 'user device update-name')
     expect(bodyOf<boolean>(res).data).toBe(true)
     const rows: Array<{ device_name: string | null }> = await api.pgDataSource.query(
@@ -141,9 +161,13 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
   })
 
   it('update-name 非法 deviceId → 40099（device_id 形态管道：服务端签发 d1_+32 hex；四个 :deviceId 端点同管道，代表性钉一处）', async () => {
-    const res = await api.root('PUT', api.apiPath('/system/user/device/update-name/not-a-device-id'), {
-      deviceName: 'x',
-    })
+    const res = await api.root(
+      'PUT',
+      api.apiPath('/system/user/device/update-name/not-a-device-id'),
+      {
+        deviceName: 'x',
+      },
+    )
     expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
   })
 
@@ -155,7 +179,11 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
     await insertMonitorRow()
 
     // 无 lock 偏好行：unlock 40401
-    const unlockNoPref = await api.root('PUT', api.apiPath(`/system/user/device/unlock/${api.deviceId}`), {})
+    const unlockNoPref = await api.root(
+      'PUT',
+      api.apiPath(`/system/user/device/unlock/${api.deviceId}`),
+      {},
+    )
     expect(bodyOf(unlockNoPref).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
 
     const lockRes = await api.root('PUT', api.apiPath(`/system/user/device/lock/${api.deviceId}`))
@@ -168,10 +196,11 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
     )
     expect(rows[0].locked).toBe(true)
 
-    const prefRows: Array<{ lock_mode: string, lock_route: unknown, lock_cross_device: boolean }> = await api.pgDataSource.query(
-      'SELECT lock_mode, lock_route, lock_cross_device FROM sys_user_lock WHERE user_id = $1',
-      [fixture!.userId],
-    )
+    const prefRows: Array<{ lock_mode: string; lock_route: unknown; lock_cross_device: boolean }> =
+      await api.pgDataSource.query(
+        'SELECT lock_mode, lock_route, lock_cross_device FROM sys_user_lock WHERE user_id = $1',
+        [fixture!.userId],
+      )
     expect(prefRows).toHaveLength(1)
     expect(prefRows[0].lock_mode).toBe('default')
     // 未带 lockRoute 落 DB 默认空对象；cross_device 走 DB 默认 true
@@ -180,7 +209,9 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
 
     // 锁定状态已进 SECURITY_LOCK 缓存（cross-device → 全局键）→ 非 LockFree 端点 40118
     const blockedRes = await api.root('GET', api.apiPath('/system/user/device/list'))
-    expect(bodyOf(blockedRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCOUNT_LOCKED)
+    expect(bodyOf(blockedRes).code).toBe(
+      WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCOUNT_LOCKED,
+    )
 
     // 复位锁定现场（等价「另一通道」已把 DB 与缓存都解锁）：P1-20 修复后删缓存不再
     // 等于解锁 —— 锁守卫 miss 会回源 sys_user_device.locked，仍 40118。因此这里同时把
@@ -194,7 +225,11 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
     await cacheService.del(`${lockKeys}:${fixture!.userId}:global`)
     await cacheService.del(`${lockKeys}:${fixture!.userId}:${api.deviceId}`)
 
-    const unlockRes = await api.root('PUT', api.apiPath(`/system/user/device/unlock/${api.deviceId}`), {})
+    const unlockRes = await api.root(
+      'PUT',
+      api.apiPath(`/system/user/device/unlock/${api.deviceId}`),
+      {},
+    )
     expectOk(unlockRes, 'user device unlock')
 
     rows = await api.pgDataSource.query(
@@ -235,32 +270,41 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
     const cacheService = app.get(AppTechCacheService)
     const permissionKey = `${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:${fixture!.userId}:${victim.deviceId}`
     const mfaKey = `${WalnutAdminConstAppCacheKeys.AUTH_MFA_VERIFIED}:${fixture!.userId}:${victim.deviceId}`
-    await cacheService.set(permissionKey, ['system:user:device:list'], { t: WalnutAdminConstAppCacheType.AUTH, ttl: 600 })
+    await cacheService.set(permissionKey, ['system:user:device:list'], {
+      t: WalnutAdminConstAppCacheType.AUTH,
+      ttl: 600,
+    })
     await victim.seedMfaVerifiedCache(fixture!.userId)
     expect(await api.hasWalnutCacheKey(permissionKey)).toBe(true)
     expect(await api.hasWalnutCacheKey(mfaKey)).toBe(true)
 
-    const res = await api.root('DELETE', api.apiPath(`/system/user/device/force-quit/${victim.deviceId}`))
+    const res = await api.root(
+      'DELETE',
+      api.apiPath(`/system/user/device/force-quit/${victim.deviceId}`),
+    )
     expectOk(res, 'user device force-quit')
     expect(bodyOf<boolean>(res).data).toBe(true)
 
-    const rtRows: Array<{ revoked: boolean, revoke_reason: string | null }> = await api.pgDataSource.query(
-      'SELECT revoked, revoke_reason FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
-      [fixture!.userId, victim.deviceId],
-    )
+    const rtRows: Array<{ revoked: boolean; revoke_reason: string | null }> =
+      await api.pgDataSource.query(
+        'SELECT revoked, revoke_reason FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
+        [fixture!.userId, victim.deviceId],
+      )
     expect(rtRows.length).toBe(2)
     // P1-9 已修（revoke-and-insert 配套，2026-10-27）：updateRevokedAndReason 改
     // update ... where userId+deviceId 全量撤销 —— 同维度多行 RT 踢完必须全部 revoked
     // （旧钉现状：findOne 只撤「查到的第一行」，其余行仍可换发）
-    const revokedRows = rtRows.filter(r => r.revoked)
+    const revokedRows = rtRows.filter((r) => r.revoked)
     expect(revokedRows).toHaveLength(2)
     // WalnutAdminConstRevokeRTType.userKickOther
-    expect(revokedRows.every(r => r.revoke_reason === 'userKickOther')).toBe(true)
+    expect(revokedRows.every((r) => r.revoke_reason === 'userKickOther')).toBe(true)
 
     // P2-12 翻转：此前只断言 RT revoked —— 会话键仍在，AT 到期前继续可用。
     // 现在 JWT validate（P0-4）查会话键，被踢设备的旧 AT 必须立即 40101。
     const victimAfterKick = await victim.root('GET', victim.apiPath('/system/user/device/list'))
-    expect(bodyOf(victimAfterKick).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+    expect(bodyOf(victimAfterKick).code).toBe(
+      WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
+    )
 
     // 权限 / MFA verified 缓存同事务后清扫
     expect(await api.hasWalnutCacheKey(permissionKey)).toBe(false)
@@ -268,7 +312,10 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
   })
 
   it('边界：force-quit 无 monitor 行 → 40401', async () => {
-    const res = await api.root('DELETE', api.apiPath(`/system/user/device/force-quit/${api.deviceId}`))
+    const res = await api.root(
+      'DELETE',
+      api.apiPath(`/system/user/device/force-quit/${api.deviceId}`),
+    )
     expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
   })
 

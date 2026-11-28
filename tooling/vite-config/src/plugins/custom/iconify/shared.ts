@@ -32,8 +32,7 @@ export function buildTrie(iconArr: string[]) {
   for (const icon of iconArr) {
     let node = trie
     for (const ch of icon) {
-      if (!node.has(ch))
-        node.set(ch, new Map())
+      if (!node.has(ch)) node.set(ch, new Map())
       node = node.get(ch)
     }
     node.set('_end', icon) // Record complete icon string
@@ -55,8 +54,7 @@ export function scanIcons(content: string, trie: Map<string, any>) {
     let j = i
     while (j < n && node.has(content[j])) {
       node = node.get(content[j++])
-      if (node.has('_end'))
-        found.add(node.get('_end')) // Found complete icon
+      if (node.has('_end')) found.add(node.get('_end')) // Found complete icon
     }
     // Skip non-word characters to prevent intermediate matching
     while (j < n && /[\w:]/.test(content[j])) j++

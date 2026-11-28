@@ -1,14 +1,12 @@
-import {
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  UseInterceptors,
-} from '@nestjs/common'
+import { Controller, Get, HttpCode, HttpStatus, UseInterceptors } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorHasRole, WalnutAdminInterceptorResponseLooseSerializer } from '@walnut-server/guards'
+import {
+  WalnutAdminDecoratorHasPermission,
+  WalnutAdminDecoratorHasRole,
+  WalnutAdminInterceptorResponseLooseSerializer,
+} from '@walnut-server/guards'
 
 import { AppRoutes, Role } from '@walnut/contract'
 
@@ -85,9 +83,7 @@ export class AppMonitorServerController {
     DTO: AppMonitorServerDTOSystem,
   })
   async getSys() {
-    return new AppMonitorServerDTOSystem(
-      await this.monitorServerService.system(),
-    )
+    return new AppMonitorServerDTOSystem(await this.monitorServerService.system())
   }
 
   @Get('disk')
@@ -99,9 +95,7 @@ export class AppMonitorServerController {
     isArray: true,
   })
   async getDisk() {
-    return (await this.monitorServerService.disk()).map(
-      i => new AppMonitorServerDTODisk(i),
-    )
+    return (await this.monitorServerService.disk()).map((i) => new AppMonitorServerDTODisk(i))
   }
 
   @Get('battery')
@@ -112,9 +106,7 @@ export class AppMonitorServerController {
     DTO: AppMonitorServerDTOBattery,
   })
   async getBattery() {
-    return new AppMonitorServerDTOBattery(
-      await this.monitorServerService.battery(),
-    )
+    return new AppMonitorServerDTOBattery(await this.monitorServerService.battery())
   }
 
   @Get('time')
@@ -136,8 +128,6 @@ export class AppMonitorServerController {
     DTO: AppMonitorServerDTONetwork,
   })
   async getNetwork() {
-    return new AppMonitorServerDTONetwork(
-      await this.monitorServerService.network(),
-    )
+    return new AppMonitorServerDTONetwork(await this.monitorServerService.network())
   }
 }

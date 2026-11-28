@@ -85,21 +85,18 @@ export function isOwnFile(
   root: string = REPO_ROOT,
   relative: (from: string, to: string) => string = path.relative,
 ): boolean {
-  if (fileName === undefined)
-    return false
-  if (!fileName.endsWith('.d.ts'))
-    return false
+  if (fileName === undefined) return false
+  if (!fileName.endsWith('.d.ts')) return false
   const rel = relative(root, fileName).replace(/\\/g, '/')
-  if (rel.startsWith('..'))
-    return false
+  if (rel.startsWith('..')) return false
   return !rel.split('/').includes('node_modules')
 }
 
 /** 只留我们自己的文件上的诊断。**纯函数**（`root` 可注入），用例直接喂它。 */
 export function ownFindings(diags: readonly DtsDiagLike[], root: string = REPO_ROOT): DtsFinding[] {
   return diags
-    .filter(d => isOwnFile(d.file, root))
-    .map(d => ({ file: d.file as string, line: d.line, message: d.message }))
+    .filter((d) => isOwnFile(d.file, root))
+    .map((d) => ({ file: d.file as string, line: d.line, message: d.message }))
 }
 
 /** `ts.Diagnostic` → 解耦后的形状（带 1-based 行号） */
@@ -116,9 +113,11 @@ export function main(): void {
   if (!fs.existsSync(configPath))
     throw new PreconditionError(`找不到 ${DTS_PROJECT} —— 拒绝把「读不到东西」当绿灯`)
 
-  const read = ts.readConfigFile(configPath, f => fs.readFileSync(f, 'utf8'))
+  const read = ts.readConfigFile(configPath, (f) => fs.readFileSync(f, 'utf8'))
   if (read.error !== undefined)
-    throw new PreconditionError(`${DTS_PROJECT} 读不出来：${ts.flattenDiagnosticMessageText(read.error.messageText, ' ')}`)
+    throw new PreconditionError(
+      `${DTS_PROJECT} 读不出来：${ts.flattenDiagnosticMessageText(read.error.messageText, ' ')}`,
+    )
 
   const parsed = ts.parseJsonConfigFileContent(read.config, ts.sys, path.dirname(configPath))
   if (parsed.fileNames.length === 0)
@@ -127,7 +126,9 @@ export function main(): void {
   const program = ts.createProgram(parsed.fileNames, parsed.options)
   const findings = ownFindings(ts.getPreEmitDiagnostics(program).map(toDiagLike))
 
-  out(`手写 .d.ts 检查：${parsed.fileNames.length} 个文件（skipLibCheck 关掉；依赖 .d.ts 的诊断不计）`)
+  out(
+    `手写 .d.ts 检查：${parsed.fileNames.length} 个文件（skipLibCheck 关掉；依赖 .d.ts 的诊断不计）`,
+  )
 
   if (findings.length === 0) {
     line('ok', '我们自己的 .d.ts 零错误 —— 没有被 skipLibCheck 藏起来的静默 any')
@@ -135,7 +136,10 @@ export function main(): void {
   }
 
   for (const f of findings)
-    lineErr('violation', `${path.relative(REPO_ROOT, f.file).replace(/\\/g, '/')}:${f.line}\n    ${f.message}`)
+    lineErr(
+      'violation',
+      `${path.relative(REPO_ROOT, f.file).replace(/\\/g, '/')}:${f.line}\n    ${f.message}`,
+    )
   err(`\n共 ${findings.length} 处。这些错误平时被 skipLibCheck 藏住，症状会跑到**消费方**去。`)
   throw new ViolationError(`手写 .d.ts 有 ${findings.length} 处类型错误（明细见上）`)
 }

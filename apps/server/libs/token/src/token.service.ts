@@ -16,7 +16,7 @@ export class AppTokenService implements IWalnutAdminTokenTtl {
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   /**
    * @description generate token jti
@@ -98,11 +98,11 @@ export class AppTokenService implements IWalnutAdminTokenTtl {
       // 实体列可空（user_name nullable），token 契约要 string —— Mongo 版运行时同样可能
       // 带 null，这里只做类型收窄不改行为
       userName: userName as string,
-      roleIds: roles_list?.map(i => i.id) || [],
-      roleNames: roles_list?.map(i => i.roleName.toString()) as RoleType[],
+      roleIds: roles_list?.map((i) => i.id) || [],
+      roleNames: roles_list?.map((i) => i.roleName.toString()) as RoleType[],
       currentRole: currentRole as string,
       roleMode,
-      currentRoleName: roles_list?.find(i => i.id === currentRole)?.roleName as RoleType,
+      currentRoleName: roles_list?.find((i) => i.id === currentRole)?.roleName as RoleType,
       mfaSetup,
       mfaVerified: isTrusted,
     }
@@ -122,8 +122,7 @@ export class AppTokenService implements IWalnutAdminTokenTtl {
         secret: this.getAccessTokenSecret(),
         ignoreExpiration: false,
       })
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.warn(error)
       return null
     }
@@ -135,8 +134,7 @@ export class AppTokenService implements IWalnutAdminTokenTtl {
   async decodeAccessToken(token: string): Promise<IWalnutAdminAccessTokenPayload | null> {
     try {
       return await this.jwtService.decode(token)
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.error(error)
       return null
     }

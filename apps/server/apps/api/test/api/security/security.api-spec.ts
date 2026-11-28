@@ -31,7 +31,7 @@ import { solveCapChallenge } from '../helpers/sign-handshake'
  */
 
 interface CapChallengeBody {
-  challenge: { c: number, s: number, d: number }
+  challenge: { c: number; s: number; d: number }
   token: string
   expires: number
 }
@@ -43,7 +43,7 @@ async function pollUntil(fn: () => Promise<boolean>, timeoutMs = 5000): Promise<
     if (await fn()) {
       return
     }
-    await new Promise(resolve => setTimeout(resolve, 50))
+    await new Promise((resolve) => setTimeout(resolve, 50))
   }
   expect(await fn()).toBe(true)
 }
@@ -82,7 +82,9 @@ describe('D 段：security rsa/public-key + cap challenge/redeem + sensitive che
       const redis = app.get(AppTechRedisService).getClient()
       await redis.del(`sensitive_op:${fixture.userId}:${api.deviceId}:basic`)
       await redis.del(`sensitive_op:${fixture.userId}:${api.deviceId}:account_critical`)
-      await api.pgDataSource.query('DELETE FROM sys_user_identity WHERE user_id = $1', [fixture.userId])
+      await api.pgDataSource.query('DELETE FROM sys_user_identity WHERE user_id = $1', [
+        fixture.userId,
+      ])
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
       await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [api.deviceId])
@@ -103,7 +105,11 @@ describe('D 段：security rsa/public-key + cap challenge/redeem + sensitive che
       `INSERT INTO app_key (key, type, version, status, valid_start, meta)
        VALUES ($1, 'RSA_PAIR', $2, 'ACTIVE', now(), $3::jsonb)
        RETURNING id`,
-      [`security-spec-${seed8}`, highVersion, JSON.stringify({ publicKeyPem, privateKeyPem: 'unused' })],
+      [
+        `security-spec-${seed8}`,
+        highVersion,
+        JSON.stringify({ publicKeyPem, privateKeyPem: 'unused' }),
+      ],
     )
     seededKeyIds.push(inserted[0].id)
 
@@ -127,7 +133,7 @@ describe('D 段：security rsa/public-key + cap challenge/redeem + sensitive che
       token: challengeBody.token,
       solutions,
     })
-    const redeemBody = redeemRes.body as { success?: boolean, token?: string, expires?: number }
+    const redeemBody = redeemRes.body as { success?: boolean; token?: string; expires?: number }
     expect(redeemBody.success).toBe(true)
     expect(typeof redeemBody.token).toBe('string')
     expect(redeemBody.expires).toBeGreaterThan(Date.now())
@@ -141,14 +147,16 @@ describe('D 段：security rsa/public-key + cap challenge/redeem + sensitive che
       token: challengeBody.token,
       solutions: challengeBody.challenge.c > 0 ? [999999] : [1],
     })
-    const redeemBody = redeemRes.body as { success?: boolean, message?: string }
+    const redeemBody = redeemRes.body as { success?: boolean; message?: string }
     expect(redeemBody.success).toBe(false)
   })
 
   it('sensitive check（无 security 身份）→ 40000（P1-5：探测腿容错跳过，无可用方式走受控 noVerifyMethodAvailable）', async () => {
     const res = await api.root('GET', api.apiPath('/security/sensitive/check?level=basic'))
     expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
-    expect((bodyOf(res) as unknown as { _devMsg?: string })._devMsg).toBe('business.auth.noVerifyMethodAvailable')
+    expect((bodyOf(res) as unknown as { _devMsg?: string })._devMsg).toBe(
+      'business.auth.noVerifyMethodAvailable',
+    )
   })
 
   it('sensitive check 枚举外 level/type → 40099（管道闸：修复前裸 query 直进 getOperationStrategy 解引用 undefined → 兜底 50000）', async () => {
@@ -156,7 +164,10 @@ describe('D 段：security rsa/public-key + cap challenge/redeem + sensitive che
     expect(bodyOf(bogusLevel).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
 
     // 可选 type 给了值也要过枚举（缺省不传仍放行 —— 下一用例的 level=basic 无 type 即该形态）
-    const bogusType = await api.root('GET', api.apiPath('/security/sensitive/check?level=basic&type=bogus'))
+    const bogusType = await api.root(
+      'GET',
+      api.apiPath('/security/sensitive/check?level=basic&type=bogus'),
+    )
     expect(bodyOf(bogusType).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
   })
 
@@ -165,13 +176,22 @@ describe('D 段：security rsa/public-key + cap challenge/redeem + sensitive che
     const identityShared = app.get(SysUserIdentitySharedService)
     await identityShared.createIdentity(fixture!.userId, 'emailAddress', 'security', securityEmail)
     await identityShared.verifyIdentity(fixture!.userId, 'emailAddress', 'security')
-    await identityShared.createIdentity(fixture!.userId, 'phoneNumber', 'security', `138${seed8.replaceAll('-', '').slice(0, 8)}`)
+    await identityShared.createIdentity(
+      fixture!.userId,
+      'phoneNumber',
+      'security',
+      `138${seed8.replaceAll('-', '').slice(0, 8)}`,
+    )
     await identityShared.verifyIdentity(fixture!.userId, 'phoneNumber', 'security')
 
     const res = await api.root('GET', api.apiPath('/security/sensitive/check?level=basic'))
     expectOk(res, 'sensitive check')
 
-    const data = bodyOf<{ needsVerification: boolean, availableMethods?: string[], preferredMethod?: string }>(res).data
+    const data = bodyOf<{
+      needsVerification: boolean
+      availableMethods?: string[]
+      preferredMethod?: string
+    }>(res).data
     expect(data.needsVerification).toBe(true)
     // P1-5：password 通道摘除（identity value 是 opaque record，无法明文比对）
     expect(data.availableMethods).not.toContain('password')
@@ -190,14 +210,21 @@ describe('D 段：security rsa/public-key + cap challenge/redeem + sensitive che
       credential: fixture!.password,
     })
     expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
-    expect((bodyOf(res) as unknown as { _devMsg?: string })._devMsg).toBe('business.auth.verifyMethodNotAllowed')
+    expect((bodyOf(res) as unknown as { _devMsg?: string })._devMsg).toBe(
+      'business.auth.verifyMethodNotAllowed',
+    )
 
     const redis = app.get(AppTechRedisService).getClient()
     expect(await redis.exists(`sensitive_op:${fixture!.userId}:${api.deviceId}:basic`)).toBe(0)
   })
 
   it('sensitive verify email 错码 → 40000 且不授权', async () => {
-    await verifyCodeService.setVerifyCodeForAuthUserCache(fixture!.userId, securityEmail, 456789, 300)
+    await verifyCodeService.setVerifyCodeForAuthUserCache(
+      fixture!.userId,
+      securityEmail,
+      456789,
+      300,
+    )
 
     const res = await api.root('POST', api.apiPath('/security/sensitive/verify'), {
       level: 'basic',
@@ -212,7 +239,12 @@ describe('D 段：security rsa/public-key + cap challenge/redeem + sensitive che
   })
 
   it('sensitive verify email 对码 → true + 授权键落 Redis；check 翻转 needsVerification=false + remainingSeconds', async () => {
-    await verifyCodeService.setVerifyCodeForAuthUserCache(fixture!.userId, securityEmail, 778899, 300)
+    await verifyCodeService.setVerifyCodeForAuthUserCache(
+      fixture!.userId,
+      securityEmail,
+      778899,
+      300,
+    )
 
     const res = await api.root('POST', api.apiPath('/security/sensitive/verify'), {
       level: 'basic',
@@ -224,11 +256,14 @@ describe('D 段：security rsa/public-key + cap challenge/redeem + sensitive che
     expect(bodyOf<boolean>(res).data).toBe(true)
 
     const redis = app.get(AppTechRedisService).getClient()
-    await pollUntil(async () => (await redis.exists(`sensitive_op:${fixture!.userId}:${api.deviceId}:basic`)) === 1)
+    await pollUntil(
+      async () =>
+        (await redis.exists(`sensitive_op:${fixture!.userId}:${api.deviceId}:basic`)) === 1,
+    )
 
     const checkRes = await api.root('GET', api.apiPath('/security/sensitive/check?level=basic'))
     expectOk(checkRes, 'sensitive check after grant')
-    const granted = bodyOf<{ needsVerification: boolean, remainingSeconds?: number }>(checkRes).data
+    const granted = bodyOf<{ needsVerification: boolean; remainingSeconds?: number }>(checkRes).data
     expect(granted.needsVerification).toBe(false)
     expect(granted.remainingSeconds).toBeGreaterThan(0)
   })
@@ -252,10 +287,16 @@ describe('D 段：security rsa/public-key + cap challenge/redeem + sensitive che
 
     // ① level 隔离：basic 的授权键不能让 account_critical 守卫放行 —— 40119 且 meta 带可验证面
     //    （identity status 的 operationType=email_status_toggle 策略覆盖为 EMAIL 通道）
-    const denied = await api.root('PUT', api.apiPath('/system/user/identity/status/emailAddress/security'), {
-      status: false,
-    })
-    expect(bodyOf(denied).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_SENSITIVE_VERIFICATION_REQUIRED)
+    const denied = await api.root(
+      'PUT',
+      api.apiPath('/system/user/identity/status/emailAddress/security'),
+      {
+        status: false,
+      },
+    )
+    expect(bodyOf(denied).code).toBe(
+      WalnutAdminConstAppResponseCode.UNAUTHORIZED_SENSITIVE_VERIFICATION_REQUIRED,
+    )
 
     // ①' 挑战描述符完整性（前端 40119 接线的 wire 契约）：verify 端点的两个必填入参
     //     level / operationType 必须随 meta 下发 —— 客户端推导不出它们（level/type 只在服务端
@@ -276,7 +317,12 @@ describe('D 段：security rsa/public-key + cap challenge/redeem + sensitive che
     expect(challenge.operationType).toBe('email_status_toggle')
 
     // ② verify account_critical（email 对码）→ 授权键落在 account_critical 级
-    await verifyCodeService.setVerifyCodeForAuthUserCache(fixture!.userId, securityEmail, 667788, 300)
+    await verifyCodeService.setVerifyCodeForAuthUserCache(
+      fixture!.userId,
+      securityEmail,
+      667788,
+      300,
+    )
     const verifyRes = await api.root('POST', api.apiPath('/security/sensitive/verify'), {
       level: 'account_critical',
       operationType: 'email_status_toggle',
@@ -287,9 +333,13 @@ describe('D 段：security rsa/public-key + cap challenge/redeem + sensitive che
     await pollUntil(async () => (await redis.exists(criticalKey)) === 1)
 
     // ③ 回打挂 RequireSensitive(account_critical) 的端点 → 20000，且业务腿真实执行（status=false 落库）
-    const okRes = await api.root('PUT', api.apiPath('/system/user/identity/status/emailAddress/security'), {
-      status: false,
-    })
+    const okRes = await api.root(
+      'PUT',
+      api.apiPath('/system/user/identity/status/emailAddress/security'),
+      {
+        status: false,
+      },
+    )
     expectOk(okRes, 'identity status with account_critical grant')
 
     const identityRows: Array<{ status: boolean }> = await api.pgDataSource.query(

@@ -62,11 +62,7 @@ function createService(row: Record<string, unknown> = {}) {
       cleared.push(cleared.length + 1)
     },
   }
-  const service = new SysMenuService(
-    repo as never,
-    menuShared as never,
-    {} as never,
-  )
+  const service = new SysMenuService(repo as never, menuShared as never, {} as never)
   return { repo, cleared, service }
 }
 
@@ -87,7 +83,7 @@ describe('menu service update：只写调用方提供的列（真 PATCH）', () 
     expect(payload).toEqual({ name: 'only-name' })
     expect(Object.keys(payload)).not.toContain('title')
     expect(Object.keys(payload)).not.toContain('path')
-    expect(Object.keys(payload).every(key => payload[key] !== null)).toBe(true)
+    expect(Object.keys(payload).every((key) => payload[key] !== null)).toBe(true)
     expect(cleared).toEqual([])
   })
 

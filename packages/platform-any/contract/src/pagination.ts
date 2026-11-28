@@ -40,7 +40,7 @@ export const FilterOpValues = {
 } as const
 
 /** Filter operator union */
-export type FilterOp = typeof FilterOpValues[keyof typeof FilterOpValues]
+export type FilterOp = (typeof FilterOpValues)[keyof typeof FilterOpValues]
 
 /**
  * Single filter parameter.

@@ -29,7 +29,7 @@ interface DemoRow {
   demoNumber?: number
   demoBoolean?: boolean
   demoEnum?: number
-  demoObject?: { o1?: string, o2?: number, o3?: boolean }
+  demoObject?: { o1?: string; o2?: number; o3?: boolean }
   demoPhoneNumber?: string
 }
 
@@ -89,7 +89,9 @@ describe('A 段试点：app/demo 标准 CRUD（真实 HTTP 全链）', () => {
   afterEach(async () => {
     if (createdIds.length > 0) {
       await api.pgDataSource.query('DELETE FROM app_demo WHERE id = ANY($1::uuid[])', [createdIds])
-      await api.pgDataSource.query('DELETE FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])', [createdIds])
+      await api.pgDataSource.query('DELETE FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])', [
+        createdIds,
+      ])
       createdIds = []
     }
   })
@@ -107,7 +109,11 @@ describe('A 段试点：app/demo 标准 CRUD（真实 HTTP 全链）', () => {
   })
 
   it('create → 20000，回带 uuid 主键', async () => {
-    const res = await api.root('POST', api.apiPath('/app/demo'), demoPayload(`${group}-${seed8}-C1`))
+    const res = await api.root(
+      'POST',
+      api.apiPath('/app/demo'),
+      demoPayload(`${group}-${seed8}-C1`),
+    )
     expectOk(res, 'demo create')
 
     const row = bodyOf<DemoRow>(res).data
@@ -116,7 +122,11 @@ describe('A 段试点：app/demo 标准 CRUD（真实 HTTP 全链）', () => {
   })
 
   it('read → 20000，字段回读一致', async () => {
-    const createRes = await api.root('POST', api.apiPath('/app/demo'), demoPayload(`${group}-${seed8}-R1`))
+    const createRes = await api.root(
+      'POST',
+      api.apiPath('/app/demo'),
+      demoPayload(`${group}-${seed8}-R1`),
+    )
     expectOk(createRes, 'demo create')
     const id = bodyOf<DemoRow>(createRes).data.id
     createdIds.push(id)
@@ -133,7 +143,11 @@ describe('A 段试点：app/demo 标准 CRUD（真实 HTTP 全链）', () => {
   })
 
   it('update → 20000，修改持久化', async () => {
-    const createRes = await api.root('POST', api.apiPath('/app/demo'), demoPayload(`${group}-${seed8}-U1`))
+    const createRes = await api.root(
+      'POST',
+      api.apiPath('/app/demo'),
+      demoPayload(`${group}-${seed8}-U1`),
+    )
     expectOk(createRes, 'demo create')
     const created = bodyOf<DemoRow>(createRes).data
     createdIds.push(created.id)
@@ -164,7 +178,11 @@ describe('A 段试点：app/demo 标准 CRUD（真实 HTTP 全链）', () => {
 
   it('list → 过滤命中本组 + 分页生效', async () => {
     for (const tag of ['L1', 'L2', 'L3']) {
-      const res = await api.root('POST', api.apiPath('/app/demo'), demoPayload(`${group}-${seed8}-${tag}`))
+      const res = await api.root(
+        'POST',
+        api.apiPath('/app/demo'),
+        demoPayload(`${group}-${seed8}-${tag}`),
+      )
       expectOk(res, `demo create ${tag}`)
       createdIds.push(bodyOf<DemoRow>(res).data.id)
     }
@@ -196,7 +214,11 @@ describe('A 段试点：app/demo 标准 CRUD（真实 HTTP 全链）', () => {
   })
 
   it('delete → 软删进回收站（sys_deleted 快照）+ read 404', async () => {
-    const createRes = await api.root('POST', api.apiPath('/app/demo'), demoPayload(`${group}-${seed8}-D1`))
+    const createRes = await api.root(
+      'POST',
+      api.apiPath('/app/demo'),
+      demoPayload(`${group}-${seed8}-D1`),
+    )
     expectOk(createRes, 'demo create')
     const id = bodyOf<DemoRow>(createRes).data.id
 
@@ -207,8 +229,8 @@ describe('A 段试点：app/demo 标准 CRUD（真实 HTTP 全链）', () => {
     expect(bodyOf(readRes).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
 
     // 软删快照行（B9 回收站）：deleted_id + 模型名 + deleted_by
-    const deletedRows: Array<{ deleted_id: string, model_name: string, deleted_by: string }>
-      = await api.pgDataSource.query(
+    const deletedRows: Array<{ deleted_id: string; model_name: string; deleted_by: string }> =
+      await api.pgDataSource.query(
         'SELECT deleted_id, model_name, deleted_by FROM sys_deleted WHERE deleted_id = $1',
         [id],
       )
@@ -220,7 +242,11 @@ describe('A 段试点：app/demo 标准 CRUD（真实 HTTP 全链）', () => {
   it('deleteMany → 批量软删，逐行消失', async () => {
     const ids: string[] = []
     for (const tag of ['M1', 'M2']) {
-      const res = await api.root('POST', api.apiPath('/app/demo'), demoPayload(`${group}-${seed8}-${tag}`))
+      const res = await api.root(
+        'POST',
+        api.apiPath('/app/demo'),
+        demoPayload(`${group}-${seed8}-${tag}`),
+      )
       expectOk(res, `demo create ${tag}`)
       ids.push(bodyOf<DemoRow>(res).data.id)
     }
@@ -242,12 +268,20 @@ describe('A 段试点：app/demo 标准 CRUD（真实 HTTP 全链）', () => {
     })
     expect(bodyOf(unknownField).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
 
-    const lowercase = await api.root('POST', api.apiPath('/app/demo'), demoPayload(`api-demo-${seed8}-lower`))
+    const lowercase = await api.root(
+      'POST',
+      api.apiPath('/app/demo'),
+      demoPayload(`api-demo-${seed8}-lower`),
+    )
     expect(bodyOf(lowercase).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
   })
 
   it('未登录 → 40101（JwtAccessGuard 拦在签名/权限之前）', async () => {
-    const res = await api.anon('POST', api.apiPath('/app/demo'), demoPayload(`${group}-${seed8}-ANON`))
+    const res = await api.anon(
+      'POST',
+      api.apiPath('/app/demo'),
+      demoPayload(`${group}-${seed8}-ANON`),
+    )
     expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
   })
 })

@@ -31,8 +31,7 @@ function onSuccess() {
 watch(
   () => props.value,
   (v) => {
-    if (v && userStorePermission.hasPermission(v))
-      onSuccess()
+    if (v && userStorePermission.hasPermission(v)) onSuccess()
   },
   {
     immediate: true,
@@ -63,8 +62,7 @@ function onKeyup() {
   if (inputValue.value !== props.value) {
     inputValid.value = false
     useAppMsgError(t('app.authorize.iptc.error'))
-  }
-  else {
+  } else {
     onSuccess()
   }
 }
@@ -77,9 +75,7 @@ function onKeyup() {
       class="relative flex items-center justify-center"
       :style="{ height: presetHeight, width: presetWidth }"
     >
-      <div
-        class="h-full w-full bg-gray-500/50 blur-sm brightness-80 contrast-50"
-      />
+      <div class="h-full w-full bg-gray-500/50 blur-sm brightness-80 contrast-50" />
 
       <n-form-item
         class="abs-center"

@@ -24,24 +24,19 @@
  */
 /** 形状判定：恰好只有 `$oid` / `$date` 一个键的对象才算包装 */
 function isWrapper(value: unknown, key: string): value is Record<string, string> {
-  if (value === null || typeof value !== 'object' || Array.isArray(value))
-    return false
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false
   const keys = Object.keys(value)
   return keys.length === 1 && keys[0] === key
 }
 
 /** Extended JSON → JS 值（`$oid` → 24 位 hex 字符串，`$date` → `Date`），递归 */
 export function fromExtendedJson(value: unknown): unknown {
-  if (Array.isArray(value))
-    return value.map(fromExtendedJson)
-  if (isWrapper(value, '$oid'))
-    return value.$oid
-  if (isWrapper(value, '$date'))
-    return new Date(value.$date)
+  if (Array.isArray(value)) return value.map(fromExtendedJson)
+  if (isWrapper(value, '$oid')) return value.$oid
+  if (isWrapper(value, '$date')) return new Date(value.$date)
   if (value !== null && typeof value === 'object') {
     const out: Record<string, unknown> = {}
-    for (const [k, v] of Object.entries(value))
-      out[k] = fromExtendedJson(v)
+    for (const [k, v] of Object.entries(value)) out[k] = fromExtendedJson(v)
     return out
   }
   return value
@@ -49,14 +44,11 @@ export function fromExtendedJson(value: unknown): unknown {
 
 /** JS 值 → Extended JSON，递归（`Date` → `{$date}`；uuid / hex 字符串原样） */
 export function toExtendedJson(value: unknown): unknown {
-  if (Array.isArray(value))
-    return value.map(toExtendedJson)
-  if (value instanceof Date)
-    return { $date: value.toISOString() }
+  if (Array.isArray(value)) return value.map(toExtendedJson)
+  if (value instanceof Date) return { $date: value.toISOString() }
   if (value !== null && typeof value === 'object') {
     const out: Record<string, unknown> = {}
-    for (const [k, v] of Object.entries(value))
-      out[k] = toExtendedJson(v)
+    for (const [k, v] of Object.entries(value)) out[k] = toExtendedJson(v)
     return out
   }
   return value
@@ -65,8 +57,7 @@ export function toExtendedJson(value: unknown): unknown {
 /** 解析一整个历史导出文件（必须是文档数组） */
 export function parseCollectionFile(text: string): Record<string, unknown>[] {
   const parsed = JSON.parse(text)
-  if (!Array.isArray(parsed))
-    throw new TypeError('集合文件必须是一个文档数组（JSON array）')
+  if (!Array.isArray(parsed)) throw new TypeError('集合文件必须是一个文档数组（JSON array）')
   return parsed.map(fromExtendedJson) as Record<string, unknown>[]
 }
 

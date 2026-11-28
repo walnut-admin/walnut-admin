@@ -1,24 +1,19 @@
 {
   "name": "walnut-admin",
-  "type": "module",
   "version": "0.0.1",
   "private": true,
-  "packageManager": "pnpm@12.5.1",
   "description": "Walnut Admin Monorepo",
+  "license": "MIT",
   "author": {
     "name": "Zhaocl1997",
     "email": "zhaocl97@foxmail.com",
     "url": "https://github.com/Zhaocl1997"
   },
-  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/walnut-admin/walnut-admin.git"
   },
-  "engines": {
-    "node": ">=24.15.0",
-    "pnpm": ">=12.0.0"
-  },
+  "type": "module",
   "scripts": {
     "walnut": "node tooling/scripts/bin/run.ts",
     "dev": "turbo dev --filter=@walnut/admin --filter=@walnut/server",
@@ -28,6 +23,7 @@
     "lint:root": "eslint *.ts *.json *.yaml --concurrency=4",
     "types:check": "turbo types:check",
     "test": "turbo test",
+    "check": "walnut-check",
     "prepush": "walnut-prepush",
     "setup-env": "walnut-setup-env decrypt",
     "release": "walnut-release"
@@ -47,12 +43,27 @@
     "lefthook": "catalog:",
     "lint-staged": "catalog:",
     "node-modules-inspector": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
     "syncpack": "catalog:",
     "taze": "catalog:",
     "turbo": "catalog:",
     "typescript": "catalog:"
   },
   "lint-staged": {
-    "*.{ts,vue,js}": "eslint --fix --concurrency=4"
-  }
+    "*.{ts,tsx,vue,js}": [
+      "oxlint --fix",
+      "eslint --fix --concurrency=4",
+      "oxfmt --write"
+    ],
+    "*.{json,yml,yaml}": [
+      "eslint --fix --concurrency=4",
+      "oxfmt --write"
+    ]
+  },
+  "engines": {
+    "node": ">=24.15.0",
+    "pnpm": ">=12.0.0"
+  },
+  "packageManager": "pnpm@12.5.1"
 }

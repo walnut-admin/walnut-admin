@@ -6,7 +6,7 @@ describe('singletonPromise', () => {
   it('deduplicates concurrent runs into a single execution', async () => {
     const sp = new SingletonPromise<number>()
     const task = vi.fn(async () => {
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await new Promise((resolve) => setTimeout(resolve, 10))
       return 42
     })
 

@@ -1,32 +1,81 @@
 <script lang="ts" setup>
-const props = defineProps<{ preset:
-  'author'
-  | 'antfu' | 'vue' | 'i18n'
-  | 'vite' | 'naive-ui' | 'unocss' | 'ts' | 'pinia' | 'vue-router' | 'vueuse' | 'axios' | 'iconify'
-  | 'lodash-es' | 'nanoid' | 'lru-cache' | 'ua-parse-js' | 'google-analytics' | 'web-vitals' | 'gtag-js'
-  | 'nestjs' | 'swc' | 'nestjs-i18n' | 'nestjs-jwt' | 'mongoose' | 'passport' | 'nestjs-passport'
-  | 'nestjs-config' | 'nestjs-bull' | 'nestjs-cache' | 'keyv' | 'redis' | 'nestjs-axios'
-  | 'express' | 'nestjs-socket' | 'nestjs-sse' | 'nestjs-swagger' | 'nestjs-throttler' | 'class-transformer' | 'class-validator'
-  | 'nestjs-task' | 'nestjs-event'
-  | 'fingerprintjs' | 'mongodb' | 'bcryptjs' | 'dayjs' | 'winston' | 'sentry' | 'murlock' }>()
+// preset 的联合类型与下面 urlMap 的键**必须一一对应** —— 所以 urlMap 标成
+// `Record<Preset, string>`：多一个键、少一个键都是编译错误。
+// 这样写是因为之前手写联合类型和 urlMap 已经漂移过一次：联合里写着 `'ua-parse-js'`，
+// 而 map 的键是 `'ua-parser-js'`（站点里用的正是后者），当时两者都对不上却没人发现
+// —— 用 `Record<string, string>` 时索引签名把这类错吞了。
+type Preset =
+  | 'author'
+  | 'antfu'
+  | 'vue'
+  | 'i18n'
+  | 'vite'
+  | 'naive-ui'
+  | 'unocss'
+  | 'ts'
+  | 'pinia'
+  | 'vue-router'
+  | 'vueuse'
+  | 'axios'
+  | 'iconify'
+  | 'lodash-es'
+  | 'nanoid'
+  | 'lru-cache'
+  | 'ua-parser-js'
+  | 'google-analytics'
+  | 'web-vitals'
+  | 'gtag-js'
+  | 'nestjs'
+  | 'swc'
+  | 'nestjs-i18n'
+  | 'nestjs-jwt'
+  | 'mongoose'
+  | 'passport'
+  | 'nestjs-passport'
+  | 'nestjs-config'
+  | 'nestjs-bull'
+  | 'nestjs-cache'
+  | 'keyv'
+  | 'redis'
+  | 'nestjs-axios'
+  | 'express'
+  | 'nestjs-socket'
+  | 'nestjs-sse'
+  | 'nestjs-swagger'
+  | 'nestjs-throttler'
+  | 'class-transformer'
+  | 'class-validator'
+  | 'nestjs-task'
+  | 'nestjs-event'
+  | 'fingerprintjs'
+  | 'mongodb'
+  | 'bcryptjs'
+  | 'dayjs'
+  | 'winston'
+  | 'sentry'
+  | 'murlock'
 
-const urlMap: Record<string, string> = {
-  'author': 'https://github.com/Zhaocl1997',
-  'antfu': 'https://github.com/antfu',
-  'vue': 'https://vuejs.org/',
-  'i18n': 'https://vue-i18n.intlify.dev/',
+const props = defineProps<{
+  preset: Preset
+}>()
 
-  'vite': 'https://vitejs.dev/',
+const urlMap: Record<Preset, string> = {
+  author: 'https://github.com/Zhaocl1997',
+  antfu: 'https://github.com/antfu',
+  vue: 'https://vuejs.org/',
+  i18n: 'https://vue-i18n.intlify.dev/',
+
+  vite: 'https://vitejs.dev/',
   'naive-ui': 'https://www.naiveui.com/',
-  'unocss': 'https://unocss.dev/',
-  'ts': 'https://www.typescriptlang.org/',
-  'pinia': 'https://pinia.vuejs.org/',
+  unocss: 'https://unocss.dev/',
+  ts: 'https://www.typescriptlang.org/',
+  pinia: 'https://pinia.vuejs.org/',
   'vue-router': 'https://router.vuejs.org/',
-  'vueuse': 'https://vueuse.org/',
-  'axios': 'https://axios-http.com/',
-  'iconify': 'https://iconify.design/',
+  vueuse: 'https://vueuse.org/',
+  axios: 'https://axios-http.com/',
+  iconify: 'https://iconify.design/',
   'lodash-es': 'https://lodash.com/',
-  'nanoid': 'https://zelark.github.io/nano-id-cc/',
+  nanoid: 'https://zelark.github.io/nano-id-cc/',
   'lru-cache': 'https://isaacs.github.io/node-lru-cache/',
   'ua-parser-js': 'https://uaparser.dev/',
 
@@ -34,20 +83,20 @@ const urlMap: Record<string, string> = {
   'web-vitals': 'https://web.dev/articles/vitals',
   'gtag-js': 'https://developers.google.com/tag-platform/gtagjs',
 
-  'nestjs': 'https://nestjs.com/',
-  'swc': 'https://swc.rs/',
+  nestjs: 'https://nestjs.com/',
+  swc: 'https://swc.rs/',
   'nestjs-i18n': 'https://nestjs-i18n.com/',
   'nestjs-jwt': 'https://docs.nestjs.com/security/authentication#jwt-token',
-  'mongoose': 'https://mongoosejs.com/',
-  'passport': 'https://www.passportjs.org/',
+  mongoose: 'https://mongoosejs.com/',
+  passport: 'https://www.passportjs.org/',
   'nestjs-passport': 'https://docs.nestjs.com/recipes/passport',
   'nestjs-config': 'https://docs.nestjs.com/techniques/configuration',
   'nestjs-bull': 'https://docs.nestjs.com/techniques/queues',
   'nestjs-cache': 'https://docs.nestjs.com/techniques/caching',
-  'keyv': 'https://keyv.org/',
-  'redis': 'https://redis.io/',
+  keyv: 'https://keyv.org/',
+  redis: 'https://redis.io/',
   'nestjs-axios': 'https://docs.nestjs.com/techniques/http-module',
-  'express': 'https://expressjs.com/',
+  express: 'https://expressjs.com/',
   'nestjs-socket': 'https://docs.nestjs.com/websockets/gateways',
   'nestjs-sse': 'https://docs.nestjs.com/techniques/server-sent-events',
   'nestjs-swagger': 'https://docs.nestjs.com/openapi/introduction',
@@ -57,13 +106,13 @@ const urlMap: Record<string, string> = {
   'nestjs-task': 'https://docs.nestjs.com/techniques/task-scheduling',
   'nestjs-event': 'https://docs.nestjs.com/techniques/events',
 
-  'fingerprintjs': 'https://fingerprint.com/',
-  'mongodb': 'https://www.mongodb.com/',
-  'bcryptjs': 'https://github.com/dcodeIO/bcrypt.js',
-  'dayjs': 'https://day.js.org/',
-  'winston': 'https://github.com/winstonjs/winston',
-  'sentry': 'https://sentry.io/',
-  'murlock': 'https://github.com/nodeca/murlock',
+  fingerprintjs: 'https://fingerprint.com/',
+  mongodb: 'https://www.mongodb.com/',
+  bcryptjs: 'https://github.com/dcodeIO/bcrypt.js',
+  dayjs: 'https://day.js.org/',
+  winston: 'https://github.com/winstonjs/winston',
+  sentry: 'https://sentry.io/',
+  murlock: 'https://github.com/nodeca/murlock',
 }
 
 const url = urlMap[props.preset]

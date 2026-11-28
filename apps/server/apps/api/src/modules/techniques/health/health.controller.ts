@@ -8,7 +8,10 @@ import {
   MemoryHealthIndicator,
 } from '@nestjs/terminus'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
-import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorHasRole } from '@walnut-server/guards'
+import {
+  WalnutAdminDecoratorHasPermission,
+  WalnutAdminDecoratorHasRole,
+} from '@walnut-server/guards'
 import { AppRoutes, Role } from '@walnut/contract'
 import { AppTechHealthProbeService } from './health.probe.service'
 import { AppTechHealthCheckOkResponse } from './health.swagger'

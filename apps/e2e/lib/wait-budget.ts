@@ -29,12 +29,17 @@ export function remainingBudget(budget: WaitBudget, now: number = Date.now()): n
  *
  * 返回值至少 1ms（Playwright 不接受 0 以外的语义：0 表示「无超时」，会把链路挂死）。
  */
-export function budgetStep(budget: WaitBudget, step: string, capMs: number, now: number = Date.now()): number {
+export function budgetStep(
+  budget: WaitBudget,
+  step: string,
+  capMs: number,
+  now: number = Date.now(),
+): number {
   const remaining = remainingBudget(budget, now)
   if (remaining <= 0) {
     throw new Error(
-      `[e2e/wait-budget] 已用完 ${Math.round(budget.totalMs / 1000)}s 总预算（在「${step}」之前）；`
-      + '单步超时不再单独计时 —— 现场由外层（loginViaUI）补齐',
+      `[e2e/wait-budget] 已用完 ${Math.round(budget.totalMs / 1000)}s 总预算（在「${step}」之前）；` +
+        '单步超时不再单独计时 —— 现场由外层（loginViaUI）补齐',
     )
   }
   return Math.max(1, Math.min(capMs, remaining))

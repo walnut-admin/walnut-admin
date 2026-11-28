@@ -16,4 +16,4 @@ import { SysUserSharedService } from './user.shared.service'
   providers: [SysUserSharedService],
   exports: [SysUserSharedService],
 })
-export class SysUserSharedModule { }
+export class SysUserSharedModule {}

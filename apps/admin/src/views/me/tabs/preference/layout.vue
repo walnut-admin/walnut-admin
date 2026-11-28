@@ -45,7 +45,7 @@ const [register] = useForm<typeof formModel.value>({
         path: 'layoutMode',
       },
       componentProp: {
-        options: Object.values(AppConstLayoutMode).map(i => ({
+        options: Object.values(AppConstLayoutMode).map((i) => ({
           value: i,
           label: i,
         })),
@@ -152,7 +152,7 @@ const [register] = useForm<typeof formModel.value>({
         label: computed(() => t('app.layout.tab.styleMode')),
       },
       componentProp: {
-        options: Object.values(AppConstTabStyleMode).map(i => ({
+        options: Object.values(AppConstTabStyleMode).map((i) => ({
           value: i,
           label: i,
         })),
@@ -169,7 +169,7 @@ const [register] = useForm<typeof formModel.value>({
         label: computed(() => t('app.layout.tab.closeMode')),
       },
       componentProp: {
-        options: Object.values(AppConstTabCloseMode).map(i => ({
+        options: Object.values(AppConstTabCloseMode).map((i) => ({
           value: i,
           label: i,
         })),
@@ -186,7 +186,7 @@ const [register] = useForm<typeof formModel.value>({
         label: computed(() => t('app.layout.tab.affixMode')),
       },
       componentProp: {
-        options: Object.values(AppConstTabAffixMode).map(i => ({
+        options: Object.values(AppConstTabAffixMode).map((i) => ({
           value: i,
           label: i,
         })),
@@ -227,7 +227,7 @@ const [register] = useForm<typeof formModel.value>({
         label: computed(() => t('app.layout.menu.collapseMode')),
       },
       componentProp: {
-        options: Object.values(AppConstCollapseMode).map(i => ({
+        options: Object.values(AppConstCollapseMode).map((i) => ({
           value: i,
           label: i,
         })),
@@ -272,8 +272,7 @@ const [register] = useForm<typeof formModel.value>({
           try {
             await updateLayoutPreferenceAPI(realFormData.value)
             useAppMsgSuccess()
-          }
-          finally {
+          } finally {
             loading.value = false
           }
         },

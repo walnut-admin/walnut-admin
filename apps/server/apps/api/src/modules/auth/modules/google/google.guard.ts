@@ -3,7 +3,9 @@ import { WalnutAdminConstAppAuthStrategy } from '@walnut-server/const/app/strate
 import { WalnutAdminGuardAuth } from '@walnut-server/guards'
 
 @Injectable()
-export class AuthGoogleGuard extends WalnutAdminGuardAuth(WalnutAdminConstAppAuthStrategy.OAUTH_GOOGLE_FED_CM) {
+export class AuthGoogleGuard extends WalnutAdminGuardAuth(
+  WalnutAdminConstAppAuthStrategy.OAUTH_GOOGLE_FED_CM,
+) {
   constructor() {
     super()
   }

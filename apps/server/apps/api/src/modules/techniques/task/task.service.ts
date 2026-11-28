@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
-import { AppKeyService, AppKeyTypeConst, AppSettingRepositoryService } from '@walnut-server/app-domain'
+import {
+  AppKeyService,
+  AppKeyTypeConst,
+  AppSettingRepositoryService,
+} from '@walnut-server/app-domain'
 import { AuthRefreshSharedService } from '@walnut-server/auth'
 import { AppTechCacheCronLockService } from '@walnut-server/cache'
 
@@ -38,14 +42,19 @@ export class AppTechTasksService {
     private readonly appMonitorUserSharedService: AppMonitorUserSharedService,
     private readonly sysUserMfaSharedService: SysUserMfaSharedService,
     private readonly cronLock: AppTechCacheCronLockService,
-  ) { }
+  ) {}
 
   /**
    * extract app settings into cache
    */
-  @Cron(CronExpression.EVERY_DAY_AT_2AM, { name: WalnutAdminConstAppCronTaskNames.APP_INIT_SETTINGS, waitForCompletion: true })
+  @Cron(CronExpression.EVERY_DAY_AT_2AM, {
+    name: WalnutAdminConstAppCronTaskNames.APP_INIT_SETTINGS,
+    waitForCompletion: true,
+  })
   async extractAppSetting() {
-    return this.cronLock.runExclusive('extractAppSetting', 600, async () => this.doExtractAppSetting())
+    return this.cronLock.runExclusive('extractAppSetting', 600, async () =>
+      this.doExtractAppSetting(),
+    )
   }
 
   /** bootstrap 无锁入口（见类注释；归属由组合根保证单份） */
@@ -62,9 +71,14 @@ export class AppTechTasksService {
   /**
    * extract locale messages into cache
    */
-  @Cron(CronExpression.EVERY_DAY_AT_2AM, { name: WalnutAdminConstAppCronTaskNames.SYS_INIT_LOCALE_MESSAGES, waitForCompletion: true })
+  @Cron(CronExpression.EVERY_DAY_AT_2AM, {
+    name: WalnutAdminConstAppCronTaskNames.SYS_INIT_LOCALE_MESSAGES,
+    waitForCompletion: true,
+  })
   async extractSysLocaleMessages() {
-    return this.cronLock.runExclusive('extractSysLocaleMessages', 600, async () => this.doExtractSysLocaleMessages())
+    return this.cronLock.runExclusive('extractSysLocaleMessages', 600, async () =>
+      this.doExtractSysLocaleMessages(),
+    )
   }
 
   /** bootstrap 无锁入口（见类注释） */
@@ -83,9 +97,14 @@ export class AppTechTasksService {
    *
    * 任务最长，TTL 给 900s。
    */
-  @Cron(CronExpression.EVERY_2_HOURS, { name: WalnutAdminConstAppCronTaskNames.AUTH_DELETE_REFRESH, waitForCompletion: true })
+  @Cron(CronExpression.EVERY_2_HOURS, {
+    name: WalnutAdminConstAppCronTaskNames.AUTH_DELETE_REFRESH,
+    waitForCompletion: true,
+  })
   async deleteExpiredRefreshToken() {
-    return this.cronLock.runExclusive('deleteExpiredRefreshToken', 900, async () => this.doDeleteExpiredRefreshToken())
+    return this.cronLock.runExclusive('deleteExpiredRefreshToken', 900, async () =>
+      this.doDeleteExpiredRefreshToken(),
+    )
   }
 
   /** bootstrap 无锁入口（见类注释） */
@@ -97,14 +116,21 @@ export class AppTechTasksService {
     this.logger.log('[CronTaskLog] Revoke Expired Refresh Token.')
     const revoked = await this.authRefreshSharedService.revokeExpiredRefreshTokenForCronJob()
     const expired = await this.appMonitorUserSharedService.updateAuthStateForCronJob(revoked)
-    this.logger.log(`[CronTaskLog] Revoke Expired Refresh Token, expired refresh token count: ${revoked.length}`)
-    this.logger.log(`[CronTaskLog] Monitor User Expired, expired monitor user count: ${expired.length}`)
+    this.logger.log(
+      `[CronTaskLog] Revoke Expired Refresh Token, expired refresh token count: ${revoked.length}`,
+    )
+    this.logger.log(
+      `[CronTaskLog] Monitor User Expired, expired monitor user count: ${expired.length}`,
+    )
   }
 
   /**
    * rotate app key
    */
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { name: WalnutAdminConstAppCronTaskNames.APP_ROTATE_KEY, waitForCompletion: true })
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, {
+    name: WalnutAdminConstAppCronTaskNames.APP_ROTATE_KEY,
+    waitForCompletion: true,
+  })
   async rotateAppKey() {
     return this.cronLock.runExclusive('rotateAppKey', 300, async () => this.doRotateAppKey())
   }
@@ -124,9 +150,14 @@ export class AppTechTasksService {
   /**
    * update device active status for cron jobs
    */
-  @Cron(CronExpression.EVERY_30_MINUTES, { name: WalnutAdminConstAppCronTaskNames.SYS_UPDATE_DEVICE_ACTIVE_STATUS, waitForCompletion: true })
+  @Cron(CronExpression.EVERY_30_MINUTES, {
+    name: WalnutAdminConstAppCronTaskNames.SYS_UPDATE_DEVICE_ACTIVE_STATUS,
+    waitForCompletion: true,
+  })
   async updateDeviceActiveStatus() {
-    return this.cronLock.runExclusive('updateDeviceActiveStatus', 300, async () => this.doUpdateDeviceActiveStatus())
+    return this.cronLock.runExclusive('updateDeviceActiveStatus', 300, async () =>
+      this.doUpdateDeviceActiveStatus(),
+    )
   }
 
   /** bootstrap 无锁入口（见类注释） */
@@ -136,17 +167,25 @@ export class AppTechTasksService {
 
   private async doUpdateDeviceActiveStatus() {
     this.logger.log('[CronTaskLog] Update Device Active Status.')
-    const { matchedCount, modifiedCount, staleCount } = await this.sysUserDeviceSharedService.updateDeviceActiveStatusForCronJob()
+    const { matchedCount, modifiedCount, staleCount } =
+      await this.sysUserDeviceSharedService.updateDeviceActiveStatusForCronJob()
     // 拍板-5：残留行只标 stale，不再物理删（计数口径 deletedCount → staleCount）
-    this.logger.log(`[CronTaskLog] Update Device Active Status, matched count: ${matchedCount}, modified count: ${modifiedCount}, stale count: ${staleCount}`)
+    this.logger.log(
+      `[CronTaskLog] Update Device Active Status, matched count: ${matchedCount}, modified count: ${modifiedCount}, stale count: ${staleCount}`,
+    )
   }
 
   /**
    * update mfa device active status for cron jobs
    */
-  @Cron(CronExpression.EVERY_DAY_AT_1AM, { name: WalnutAdminConstAppCronTaskNames.AUTH_MFA_SETUP, waitForCompletion: true })
+  @Cron(CronExpression.EVERY_DAY_AT_1AM, {
+    name: WalnutAdminConstAppCronTaskNames.AUTH_MFA_SETUP,
+    waitForCompletion: true,
+  })
   async updateMfaSetupStatus() {
-    return this.cronLock.runExclusive('updateMfaSetupStatus', 300, async () => this.doUpdateMfaSetupStatus())
+    return this.cronLock.runExclusive('updateMfaSetupStatus', 300, async () =>
+      this.doUpdateMfaSetupStatus(),
+    )
   }
 
   /** bootstrap 无锁入口（见类注释） */

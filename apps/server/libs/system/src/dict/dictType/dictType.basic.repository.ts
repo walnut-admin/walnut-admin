@@ -4,7 +4,12 @@ import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 
 import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
-import { applyPgListQuery, buildPgListQueryOptionsFromQb, WALNUT_PG_LIST_TOTAL_ALIAS, WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
+import {
+  applyPgListQuery,
+  buildPgListQueryOptionsFromQb,
+  WALNUT_PG_LIST_TOTAL_ALIAS,
+  WalnutAdminCommonPgBaseRepository,
+} from '@walnut-server/repository'
 import { SysDictDataEntity } from '../dictData/entity/dict-data.entity'
 import { SysDictTypeEntity } from './entity/dict-type.entity'
 
@@ -37,9 +42,8 @@ export class SysDictTypeBasicRepository extends WalnutAdminCommonPgBaseRepositor
     params: IWalnutAdminRequestList<T>,
     _customize?: (qb: SelectQueryBuilder<SysDictTypeEntity>) => void,
     em?: EntityManager,
-  ): Promise<{ data: ISysDictTypeListRow[], total: number }> {
-    const qb = this.getManager(em)
-      .createQueryBuilder(SysDictTypeEntity, 'entity')
+  ): Promise<{ data: ISysDictTypeListRow[]; total: number }> {
+    const qb = this.getManager(em).createQueryBuilder(SysDictTypeEntity, 'entity')
 
     applyPgListQuery(qb, 'entity', buildPgListQueryOptionsFromQb<T>(qb, params))
 

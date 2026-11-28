@@ -26,13 +26,15 @@ import { AppKeyTypeConst } from './key.const'
 export class AppKeyService implements IWalnutAdminKeyStore {
   private readonly logger = new Logger(AppKeyService.name)
 
-  constructor(
-    private readonly appKeyBasicRepo: AppKeyBasicRepository,
-  ) {}
+  constructor(private readonly appKeyBasicRepo: AppKeyBasicRepository) {}
 
   // 返回 undefined 与 Mongo 版推断一致（两个 if 分支都未命中时）——调用方
   // initFirst/rotate 直接透传，controller 侧plainToInstance 承接
-  private async generateNewKeyByType(type: AppKeyDTOSafe['type'], version: number, em?: EntityManager): Promise<AppKeyEntity | undefined> {
+  private async generateNewKeyByType(
+    type: AppKeyDTOSafe['type'],
+    version: number,
+    em?: EntityManager,
+  ): Promise<AppKeyEntity | undefined> {
     if (type === AppKeyTypeConst.RSA_PAIR) {
       const pair = generateKeyPairSync('rsa', {
         modulusLength: 2048,
@@ -168,8 +170,7 @@ export class AppKeyService implements IWalnutAdminKeyStore {
         this.logger.log(`Rotating expired key for type: ${type}`)
         await this.rotate(type, em)
       })
-    }
-    catch (e) {
+    } catch (e) {
       this.logger.error(`rotation failed`, e)
     }
   }

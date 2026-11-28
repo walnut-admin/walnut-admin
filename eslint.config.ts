@@ -5,7 +5,7 @@ import baseConfig from '@walnut/eslint-config/base'
 //
 // 这个文件的作用域**不止根目录**：大多数包没有自己的 `eslint.config.ts`，ESLint 会向上
 // 查到本文件 —— 它们全是 TS-only，base 正是它们该用的预设。自带配置的例外都有理由：
-// 3 个 app（server 用 nest 预设、admin/docs 用 vue 预设）、ui（vue 预设）、
-// api-types（生成物 schema.d.ts 豁免风格规则，见该包 eslint.config.ts 顶部注释）。
+// apps/{admin,docs} 用 vue 预设、apps/server 用 nest 预设、apps/e2e 与 api-types 用 base +
+// 各自的 `ignores`（e2e 排运行态产物；api-types 豁免生成物 `src/schema.d.ts`，理由见各文件顶部注释）。
 // 这类包的 `lint` 脚本输出由各自的配置决定；没有配置的包改这里等于改它们的 lint 行为。
 export default baseConfig()

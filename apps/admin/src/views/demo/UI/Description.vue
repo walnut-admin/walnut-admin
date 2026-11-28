@@ -130,12 +130,11 @@ const descs: ICompUIDescriptionsItem[] = [
   <WDemoCard title="Description Demo">
     <n-list>
       <n-list-item>
-        <WTitle prefix="bar" class="mb-2">
-          Basic Usage
-        </WTitle>
+        <WTitle prefix="bar" class="mb-2"> Basic Usage </WTitle>
 
         <WDescriptions
-          :items="descs" size="small"
+          :items="descs"
+          size="small"
           label-placement="left"
           bordered
           :column="2"
