@@ -56,11 +56,6 @@ export interface Finding {
   detail: string
 }
 
-export interface CatalogLockstep {
-  declared: Map<string, string>
-  locked: Map<string, { specifier?: string; version?: string }>
-}
-
 /** 取一个顶层键的正文行（到下一个顶层键为止），返回 `[起始行号(1-based), 行数组]` */
 export function topLevelSection(
   text: string,

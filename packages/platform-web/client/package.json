@@ -41,7 +41,6 @@
   "devDependencies": {
     "@types/lodash-es": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
-    "@walnut/eslint-config": "workspace:*",
     "@walnut/tsconfig": "workspace:*",
     "@walnut/vitest-config": "workspace:*",
     "jsdom": "catalog:",

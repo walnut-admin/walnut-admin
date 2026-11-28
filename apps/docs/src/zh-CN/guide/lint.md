@@ -21,17 +21,17 @@
 
 项目内集成了以下几种代码校验方式
 
-1. [eslint] 用于校验代码格式规范
+1. [eslint] 用于校验代码正确性与规范（格式化已交给 oxfmt）
 2. [commitlint] 用于校验 git 提交信息规范
 3. ~~[stylelint] 用于校验 css/less 规范~~（已移除）
-4. ~~[prettier] 代码格式化~~（已移除，格式化由 [eslint] 的 stylistic 规则承担）
+4. ~~[prettier] 代码格式化~~（已移除；格式化现由 oxfmt 承担，ESLint 的 stylistic 规则已关闭）
 
 ::: warning
 lint 不是必须的，但是很有必要，一个项目做大了以后或者参与人员过多后，就会出现各种风格迥异的代码，对后续的维护造成了一定的麻烦
 :::
 
 :::info
-[eslint] 功能很强大，完全可以替代 [prettier]。本项目现在确实只保留 [eslint]：格式化规则由 `@antfu/eslint-config` 内置的 stylistic 规则承担。如果要开新项目的同学可以直接用 [eslint]。
+[eslint] 仍是规则检查的主力，但**不再是格式化工具**：格式化由 oxfmt 承担（ESLint 侧 `stylistic: false`），lint 本身是 oxlint + ESLint 双轨。旧文档里「只保留 [eslint]」的口径属于多仓合并前的时代，别按它配置新项目。
 :::
 
 ## ESLint
@@ -93,7 +93,7 @@ lint 不是必须的，但是很有必要，一个项目做大了以后或者参
 强烈不推荐关闭 eslint 的校验
 :::
 
-在根 `package.json` 的 [`lint-staged`](https://github.com/walnut-admin/walnut-admin/blob/main/package.json) 块里删掉 eslint 那条即可。
+在根 `package.json` 的 [`lint-staged`](https://github.com/walnut-admin/walnut-admin/blob/main/package.json) 块里删掉 eslint 那条即可（同一数组里还有 oxfmt 的写入与 oxlint 的 `--fix`，它们是另外两条）。
 
 ## CommitLint
 
@@ -172,7 +172,7 @@ StyleLint 曾用于校验项目内部 css 的风格，加上编辑器的自动�
 
 ### 配置项
 
-项目已不再使用 stylelint（css 风格由 ESLint 的 stylistic 规则承担），原有的 `config/stylelint` 配置已随工具链收拢移除。
+项目已不再使用 stylelint（css 风格由 oxfmt 统一格式化；ESLint 的 stylistic 已关闭），原有的 `config/stylelint` 配置已随工具链收拢移除。
 
 ### vscode 配合
 
@@ -198,7 +198,7 @@ stylelint 已移除，无需关闭。
 
 ### 配置项
 
-项目不使用 Prettier：格式化规则由 ESLint（`@antfu/eslint-config` 内置的 stylistic 规则）统一承担，详见[ESLint 配置](../content/monorepo/eslint.md)。
+项目不使用 Prettier：格式化由 oxfmt 统一承担（ESLint 的 stylistic 已关闭），配置是根 `.oxfmtrc.json`，口径见[ESLint 配置](../content/monorepo/eslint.md)。
 
 ### vscode 配合
 
@@ -206,7 +206,7 @@ stylelint 已移除，无需关闭。
 
 ### 手动校验
 
-执行`pnpm lint:fix`，然后查看控制台即可。
+执行`pnpm walnut format:fix` 写入，`pnpm walnut format:check` 只读检查。
 
 ### 规则
 
@@ -253,7 +253,11 @@ git commit -m "xxx" --no-verify
 ```json
 {
   "lint-staged": {
-    "*.{ts,vue,js}": "eslint --fix --concurrency=4"
+    "*.{ts,vue,js}": [
+      "oxfmt --write",
+      "oxlint --fix",
+      "eslint --fix --concurrency=4"
+    ]
   }
 }
 ```

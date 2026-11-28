@@ -4,6 +4,15 @@
     "types": ["node"],
     "noEmit": true
   },
-  "include": [".vitepress/**/*.ts", ".vitepress/**/*.vue", "src/**/*.ts", "src/**/*.vue"],
+  // 类型检查面 = .vitepress（配置 + 主题 + 组件）、src 下的 .ts/.vue，以及**本目录的
+  // eslint.config.ts**（它在 `.vitepress/` 与 `src/` 之外，漏写就永远不进 program，
+  // 是 `echo skipped` 年代遗留下来的一处隐形空白）。
+  "include": [
+    ".vitepress/**/*.ts",
+    ".vitepress/**/*.vue",
+    "src/**/*.ts",
+    "src/**/*.vue",
+    "eslint.config.ts"
+  ],
   "exclude": ["node_modules", "dist", ".vitepress/cache", ".vitepress/dist"]
 }

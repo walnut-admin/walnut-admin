@@ -55,9 +55,6 @@ export const CAP_WIDGET_SELECTOR = 'cap-widget'
 
 /** `useAppStorageSync` 的键 = `WA__<KEY>`（getStorageKey 的默认前缀）+ superjson 包一层 `{v,e,_v}` */
 export const DEVICE_LOCAL_STORAGE_KEY = 'WA__GEO_IP_DEVICE_ID'
-export const ACCESS_TOKEN_LOCAL_STORAGE_KEY = 'WA__ACCESS_TOKEN'
-/** 登录会话键：请求拦截器按它是否存在选单/双因子签名，清登录态时必须和 AT 一起清 */
-export const AUTH_SESSION_LOCAL_STORAGE_KEY = 'WA__AUTH_SESSION_KEY'
 /**
  * 浏览器指纹（`useAppStorageSync(FINGERPRINT)`，当前用它的只有 socket 房间键、
  * monitor 心跳的 `visitorId` 与 WebAuthn 的设备名建议值）。**每个 E2E context 预置一个唯一值**，

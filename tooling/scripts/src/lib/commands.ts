@@ -641,7 +641,7 @@ export const COMMANDS: readonly Command[] = [
     id: 'knip',
     group: '依赖',
     label: '死代码检测',
-    why: '当前是有意维持的红（理由见 knip.config.ts 顶部注释）；改动前后对比输出，别拿它当门禁。',
+    why: '2026-11-28 起为绿（exit 0，判据见 knip.config.ts 顶部注释）；可作信息性检查，仍不是门禁。',
     argv: ['exec', 'cross-env', 'NODE_OPTIONS=--max-old-space-size=8192', 'knip'],
   },
   {

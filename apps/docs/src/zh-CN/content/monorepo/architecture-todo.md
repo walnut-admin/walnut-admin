@@ -19,7 +19,7 @@
 | ~~P1~~ | **没有任何东西在看这一面**（不是「哪里写错了」） | **当前为空** —— 已知的几面都有人看着：turbo tags 反向断言、根脚本形态、脚本入口两条 ESLint、动态 import、madge 0 环、四道文档门禁。2026-11-04 复核无新增 |
 | **P2** | 维护性 / 体验改善，成本有据 | TS 7 迁移准备 · store 工厂迁移 |
 | **P3** | 远期 / 条件触发 | 后端验证策略落地 · E2E 收尾（Phase 2/3） · 组件文档补写 · 两处安全观察 · `@walnut/i18n`/`@walnut/security` 新包 · Phase 4 组件自动注册 · `Global/AI` 评审缺陷 · 基建注释历史账 · env 模板三个 `VITE_*` · `list` 旧 `query` 兼容路径退役 · 设备缓存 TTL 兜底自愈 |
-| **搁置** | 等条件成熟（外部依赖，或已决定先不动） | `pnpm peers check` · knip · tag 发布链路端到端验证 · GitHub Environments · 国内 self-hosted runner · 锚点校验 |
+| **搁置** | 等条件成熟（外部依赖，或已决定先不动） | `pnpm peers check` · tag 发布链路端到端验证 · GitHub Environments · 国内 self-hosted runner · 锚点校验 |
 | **未裁决** | 连「做不做」都还没定 | `C4` / `C5` / `C6` + 2026-09-21 评审遗留的 4 条设计选型 |
 
 ---
@@ -218,7 +218,7 @@
 | tag 发布链路端到端验证 | **2026-09-23 的决定：首次发版不着急**。未验证的是镜像构建 → 推 TCR → 自动部署 → post-verify（本机无 Docker，只能等真跑一次 tag）。**解冻**：准备发第一个版本时；清单见 [CI/CD 与容器构建](./ci-cd) |
 | GitHub Environments | 已核实 deploy 作业**未**使用原生 `environment:`（只有作业级 `env:` + `workflow_call`/`workflow_dispatch` 的 `environment` 输入 + `concurrency`）。**解冻**：stage 服务器到位后再评估 |
 | 锚点（`#fragment`）校验 | **2026-09-23 实测后搁置**：VitePress 只查「目标页存在」，**不查 fragment**；能补的现成工具只有 `lychee`。当时全站带锚点的站内链接**实测 8 条**，为一个二进制 + 一个 CI 步骤换 8 条链接的校验，ROI 说不通。**解冻**：① 带锚点的站内链接涨到几十条；② 出现一次锚点静默失效的真实事故（读者点不到，构建照样绿）。📌 已经付过一次代价：那次手工核对当场查到 1 条坏的，且执行记录里「页内锚点全部可解析」那句从写下那天起就是错的 —— 这一面没有任何东西在替我们看着。另半条（prose 里几百处反引号仓库路径）**已经不做**，由 `pnpm walnut lint:docs-refs` 覆盖 |
-| knip（`pnpm walnut knip` exit 1） | **2026-09-23 的决定：先不动，只写明现状**。理由：本仓是模板项目，「未用导出」不等于死代码（`libs/decorators/src/transformer/**` 那批就是给使用者按需取用的 API 面）。**现状不写计数** —— 要读数就跑 `pnpm walnut knip`；判据与怎么看写在 `knip.config.ts` 顶部注释。**若将来要接门禁**：先用 `entry` / `includeEntryExports` 把「有意的公共面」显式标出来，只让真死代码亮红 |
+| knip | **2026-11-28 已收口为 `exit 0`**（此前按 2026-09-23 的「有意维持红」运行）。分类判据与配置理由写在 `knip.config.ts` 顶部：模板公共 API 按入口导出处理、不报；命令行入口 / barrel / `build/generate` 用 `entry` 显式点名；真死代码与无用依赖已清。**仍不进硬门禁**：接门禁前需把 `ignoreIssues` 与 `ignoreDependencies` 的短名单当定期复审的白名单 |
 | 国内 self-hosted runner（决策门） | **解冻**：仅当 tag 链路实测显示「tag 发布总时长 > 20 min 且跨境推送占大头」。runner 在美国、镜像仓库在腾讯云上海，跨境上传是旧流水线 78 分钟的主要嫌疑之一。**先看数据再决定** |
 
 ## 未裁决（等你一句话）

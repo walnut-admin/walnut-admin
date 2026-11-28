@@ -125,11 +125,6 @@ export const ALLOWED_MISSING_PACKAGES: Record<string, string> = {
   '@walnut/server-dist': '行业调研里的示例镜像名',
 }
 
-export interface DocRefs {
-  packages: Map<string, string[]>
-  paths: Map<string, string[]>
-}
-
 /**
  * 扫描面：全部跟踪（∪ 未跟踪）的 .md，排除冻结语料。
  *

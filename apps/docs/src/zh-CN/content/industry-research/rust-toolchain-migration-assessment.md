@@ -87,6 +87,11 @@
 
 admin 另有 `tsconfig.dts.json`（`skipLibCheck: false`）专门查手写 d.ts。docs 的 `types:check` 是显式的 echo skipped。
 
+> **2026-11-28 勘误（后于此评估，勿按本文旧结论执行）**：docs 的 `types:check` 已从 `echo skipped` 改为
+> `vue-tsc --noEmit`，首跑 **0 诊断**。§5.6 那条「docs（TS6 与 tsrs 同样因 `.vue` 报 3 条 TS2307，
+> `echo skipped` 维持正确）」只证明 **非 `vue-tsc` 的检查器认不了 `.vue` 导入**，不是「类型面无法收敛」——
+> 换成 `vue-tsc` 后那 3 条立刻消失。详见 [TypeScript 配置](/content/monorepo/typescript)。
+
 这三条路径对 TS7 的敏感度不同：`apps/admin`、`packages/platform-any/*` 与各 tooling 包都写了 `baseUrl: "."`，而 TS7 把 `baseUrl` 判成 **TS5102 硬错误**；server 恰好没有 `baseUrl`，且未显式声明的 `moduleResolution` 在 TS7 下隐式落到 bundler 解析 —— 这正是 server 能零改动通过 TS7 实测的原因（见 5.4）。
 
 ### 4.3 构建
@@ -479,6 +484,11 @@ tsrs 是 TS 7.1 的移植，所以下面大部分缺口与「原生 TS7」同源
 | 6 | catalog 双别名 | **作废**（TNB 全局接入使其失去意义） | 只剩「裸装 `typescript@7`」这一条等上游 |
 
 仍真正未决的只有一条：**TNB 诊断 diff 的「可归因」标准** —— 哪些差异算版本收紧（接受并修）、哪些算外壳 / 引擎缺陷（阻塞迁移）。建议用「TS6 checker + TS7 lib」交叉实验作为归因工具（5.6 的真 bug 就是这么证实的），但阈值需要在 P5c 里定下来。
+
+> **剩余项的真源不在这里**：本篇是 2026-11-27 的 as-of 快照，只保留当日判定；迁移全生命周期的
+> ✅ / 🔧 / 📋 / 🚫 四类遗留账、证据提交号与解除条件，统一维护在
+> [执行计划的「遗留账与跟进（Ledger）」](../plans/rust-toolchain-migration-execution.md)。
+> 上面的「唯一未决项」已由该 Ledger 的 A15（归因标准已落地）与 C03（TNB project-mode 上游 issue）接管。
 
 ## 12. 参考资料
 

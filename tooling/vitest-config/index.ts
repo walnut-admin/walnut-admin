@@ -51,5 +51,3 @@ export function defineWalnutVitestConfig(options: WalnutVitestConfigOptions = {}
     test: { ...test_, ...test },
   })
 }
-
-export default defineWalnutVitestConfig

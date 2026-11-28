@@ -22,7 +22,7 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm
 | 格式化 | oxfmt（`oxfmt --check` 是唯一真源；ESLint 已 `stylistic: false`、`eslint-config-prettier` 兜底） |
 | 版本管理 | pnpm 原生 release management（`versioning.fixed` 单一组：**全部 workspace 包**永远同版本，组成员数由 `versioning-config.test.ts` 机械拦） |
 | 变更日志 | git-cliff 逐包渲染 `CHANGELOG.md`（PR 链接 + 贡献者）；`pnpm release` 另生成根 `changelog-latest.md` |
-| 死代码检测 | Knip 6.29（**当前是红的且有意维持**，见 [Knip](./knip.md)） |
+| 死代码检测 | Knip 6.29（**2026-11-28 起 exit 0**；仍不进硬门禁，见 [Knip](./knip.md)） |
 | Git Hooks | lefthook（`lefthook.yml`）+ lint-staged |
 | 前端框架 | Vue 3 + Vite 8 + Naive UI + UnoCSS |
 | 后端框架 | NestJS 12 + SWC + PostgreSQL（TypeORM）+ Redis |

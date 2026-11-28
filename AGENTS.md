@@ -67,7 +67,7 @@ pnpm dev              # 前端 + 后端（前端 3100；后端需 PostgreSQL + R
 pnpm build            # 全量构建（packages → apps）
 pnpm lint / lint:fix  # ESLint（只查不格式化；格式化归 oxfmt，见纪律 12）
 pnpm lint:root        # 只 lint 根级配置（`turbo run lint:root` 的根任务要跑根上这个脚本）
-pnpm types:check      # 全仓类型检查（admin 用 vue-tsc/TNB 引擎；12 个包用 tsrs 7.1.0-beta.tsrs5；types、commitlint-config 仍 tsc；docs 跳过）
+pnpm types:check      # 全仓类型检查（admin/docs 用 vue-tsc/TNB 引擎；12 个包用 tsrs 7.1.0-beta.tsrs5；types、commitlint-config 仍 tsc）
 pnpm test             # vitest（哪些包有 test 任务以各包 package.json 为准）
 pnpm prepush          # 推送前门禁表（tooling/scripts/src/ci/prepush.ts，并行跑、每段报耗时）
 pnpm release          # 发版（pnpm 原生 release management + git-cliff，详见 docs 的 release.md）

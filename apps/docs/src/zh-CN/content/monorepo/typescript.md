@@ -87,7 +87,8 @@ Walnut Admin 是一个**异构工具链**的全栈 monorepo——前端用 ESM +
 2026-11-28 起 `types:check` 的检查器已整批转正（[ADR-0031](/content/adr/0031-rust-toolchain-migration.md)）：
 
 - **12 个包用 tsrs**（精确锁 `7.1.0-beta.tsrs5`）：`apps/server`、`apps/e2e`、`packages/platform-any/{contract,utils-core}`、`packages/platform-web/{client,http}`、`packages/generated/api-types`，以及 `tooling/{scripts,release,vite-config,vitest-config,eslint-config}`。
-- **admin 仍是 `vue-tsc --noEmit`**，经 TNB 的 classic 外壳走 tsgo 7.x 引擎；docs 是 `echo skipped`。
+- **admin 与 docs 都是 `vue-tsc --noEmit`**，经 TNB 的 classic 外壳走 tsgo 7.x 引擎。docs 用 `vue-tsc` 而**不是** tsrs/tsc 的原因是工具能力而不是偏好：只有 `vue-tsc` 认 `.vue` 的 import，纯 `tsc` / tsrs 对 `.vitepress/theme/index.ts` 里那三个组件导入一律报 `TS2307`（"Cannot find module '../components/X.vue'"）—— 那 3 条错误**不是**类型错误，是检查器不认 SFC。docs 的 `types:check` 曾因此长期是 `echo skipped`（"全是 .vue 报错，没法收敛"），2026-11-28 接上 `vue-tsc` 后首跑即 **0 诊断**。
+- docs 的类型检查面（`apps/docs/tsconfig.json` 的 `include`）：`.vitepress/**`（4 个配置 + 主题 + 3 个 `.vue` 组件）、`src/**` 下的 `.ts`/`.vue`，以及**本目录的 `eslint.config.ts`**。最后一项是在接 `vue-tsc` 时补上的 —— 它不在 `.vitepress/` 也不在 `src/`，此前的 `include` 漏了它，等于一个永远不进 program 的隐形空白。补上后立刻抓到一处真问题：`eslint.config.ts` 把规则写在顶层 `rules` 里，而 `@antfu/eslint-config@8` 的 `OptionsConfig` **没有**顶层 `rules`（运行时被工厂当未知键展开所以生效，类型上却不存在）⇒ 改为写进对应插件的 `overrides`。
 - `packages/platform-any/types` 与 `@walnut/commitlint-config` 仍用 `tsc --noEmit`（不在 tsrs 的转正名单里）。
 - 本地 `typecheck:watch` **永久保留 `tsc --noEmit --watch`**：tsrs 在 Windows 上的 watch 是 NotImplemented（退出码 5）。
 

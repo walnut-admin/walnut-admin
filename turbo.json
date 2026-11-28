@@ -23,8 +23,9 @@
   "cacheMaxSize": "5GB",
   // 并发上限。**Turbo 的默认值是 10** —— 本仓 12 核，而 `test` 任务下每个 vitest 进程默认
   // 又会按 CPU 数开 worker ⇒ 两级并发乘起来最坏能到 10×12 个进程。
-  // 收到 4 是与 `@walnut/vitest-config` 的 `maxWorkers: '50%'` **配套**的（那一条同时钉住
-  // 单任务的 worker 数）—— 两级必须一起收敛，只改一级等于没改。
+  // 收到 4 **只收敛 Turbo 这一级**：vitest 的 `maxWorkers` 刻意不设（本机 9.5–11s 无差异；
+  // 小核 CI 上 `'50%'` 会只剩 1 个 worker、反而可能欠配）。判据与两次实测见
+  // apps/docs/src/zh-CN/content/monorepo/turbo.md「不设 vitest 的 maxWorkers」。
   "concurrency": "4",
   "boundaries": {
     "tags": {

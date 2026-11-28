@@ -24,7 +24,7 @@
     "preview": "vitepress preview",
     "lint": "eslint . --concurrency=4",
     "lint:fix": "eslint . --fix --concurrency=4",
-    "types:check": "echo skipped",
+    "types:check": "vue-tsc --noEmit",
     "taze": "taze -i -w"
   },
   "dependencies": {
@@ -33,17 +33,16 @@
     "vue": "catalog:"
   },
   "devDependencies": {
-    "@mermaid-js/mermaid-mindmap": "catalog:",
     "@types/node": "catalog:",
     "@walnut/eslint-config": "workspace:*",
     "@walnut/tsconfig": "workspace:*",
     "eslint": "catalog:",
     "mermaid": "catalog:",
     "pagefind": "catalog:",
-    "segment": "catalog:",
     "taze": "catalog:",
     "typescript": "catalog:",
     "vitepress-plugin-pagefind": "catalog:",
-    "vitepress-plugin-tabs": "catalog:"
+    "vitepress-plugin-tabs": "catalog:",
+    "vue-tsc": "catalog:"
   }
 }

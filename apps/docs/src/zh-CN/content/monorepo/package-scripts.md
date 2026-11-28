@@ -97,7 +97,7 @@ pnpm walnut             # 人在终端里：上下键移动、空格勾选、回
 | 包类型 | build | types:check | dev |
 |--------|-------|-----------|-----|
 | Vue 应用 (`@walnut/admin`) | `vite build` | `vue-tsc --noEmit`（TNB 引擎） | `vite` |
-| 文档站 (`@walnut/docs`) | `vitepress build` | `echo skipped` | `vitepress` |
+| 文档站 (`@walnut/docs`) | `vitepress build` | `vue-tsc --noEmit`（TNB 引擎） | `vitepress` |
 | NestJS (`@walnut/server`) | `nest build`（SWC，按 `infra/nest/*.json`） | `tsrs --noEmit --pretty` | `nest start api --watch` |
 | 平台无关包 (`@walnut/utils`、`@walnut/contract`) | `tsdown`（产出 CJS dist；contract 之后还跑 `node scripts/build-barrel.ts`） | `tsrs --noEmit --pretty` | 无 `dev` 脚本 |
 | 源码直消费 (`@walnut/client`、`@walnut/http`) | 不构建（`echo` 占位） | `tsrs --noEmit --pretty` | 无 `dev` 脚本 |
@@ -106,7 +106,7 @@ pnpm walnut             # 人在终端里：上下键移动、空格勾选、回
 | `@walnut/commitlint-config` | 无 | `tsc --noEmit` | 无 `dev` 脚本 |
 | `@walnut/tsconfig` | 无（纯 JSON 预设） | `echo`（无源码可查） | 无 `dev` 脚本 |
 
-前端构建的特殊性：admin 的 `build` 就是纯 `vite build`（不再含 `vue-tsc`，Vite 构建本身不做类型检查），类型检查由独立的 `types:check` 任务（`vue-tsc --noEmit`，经 TNB 的 classic 外壳走 tsgo 7.x 引擎）承担。docs 的 `types:check` 是 `echo skipped`（文档站没有需要类型检查的 TS 逻辑）。12 个包的 `types:check` 已整批切到 `tsrs --noEmit --pretty`（2026-11-28 转正，[ADR-0031](/content/adr/0031-rust-toolchain-migration.md)）；本地 `typecheck:watch` 仍用 `tsc`——tsrs 在 Windows 上 watch 是 NotImplemented（退出码 5）。**没有 `build` 产物的包不是"漏了脚本"**：它们的 `build` 是一句 `echo` 占位，只为让 turbo 的 `build` 任务拓扑（`dependsOn: ["^build"]`）在整图上成立。
+前端构建的特殊性：admin 的 `build` 就是纯 `vite build`（不再含 `vue-tsc`，Vite 构建本身不做类型检查），类型检查由独立的 `types:check` 任务（`vue-tsc --noEmit`，经 TNB 的 classic 外壳走 tsgo 7.x 引擎）承担。docs 的 `types:check` 也是 `vue-tsc --noEmit`（2026-11-28 从 `echo skipped` 接上）：文档站**有**要查的 TS 逻辑 —— `.vitepress/config/**`、`.vitepress/theme/index.ts`、3 个 `.vue` 组件、以及 `eslint.config.ts`；不能用 `tsrs`/`tsc` 只是因为它们不认 `.vue` 导入（对主题里那三个组件会报 `TS2307`，见 [TypeScript 配置](/content/monorepo/typescript)）。12 个包的 `types:check` 已整批切到 `tsrs --noEmit --pretty`（2026-11-28 转正，[ADR-0031](/content/adr/0031-rust-toolchain-migration.md)）；本地 `typecheck:watch` 仍用 `tsc`——tsrs 在 Windows 上 watch 是 NotImplemented（退出码 5）。**没有 `build` 产物的包不是"漏了脚本"**：它们的 `build` 是一句 `echo` 占位，只为让 turbo 的 `build` 任务拓扑（`dependsOn: ["^build"]`）在整图上成立。
 
 ### 4. Git Hooks
 

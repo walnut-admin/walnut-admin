@@ -21,7 +21,6 @@
     "clean:all": "rimraf dist node_modules"
   },
   "devDependencies": {
-    "@walnut/eslint-config": "workspace:*",
     "@walnut/tsconfig": "workspace:*",
     "rimraf": "catalog:",
     "typescript": "catalog:"

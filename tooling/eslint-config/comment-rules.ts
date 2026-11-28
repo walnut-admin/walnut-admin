@@ -35,7 +35,7 @@ import type { Rule } from 'eslint'
  * 刻意**不含** `U+2190–U+21FF`（箭头 `→` `⇒`）与 `U+2200–U+22FF`（数学算子 `≤` `≠`）等排版符号
  * —— 它们不是 emoji，本仓注释大量在用，误报会把这条规则变成噪声源。
  *
- * 判定面是**手写的 Unicode 区块**（见下面 `EMOJI`），刻意**不用** `\p{Extended_Pictographic}` ——
+ * 判定面是**手写的 Unicode 区块**（见下面 `EMOJI_RUN`），刻意**不用** `\p{Extended_Pictographic}` ——
  * 后者宽得多：它把 `↔` 这类排版箭头也算 emoji（本仓注释在用），误报会让规则变成噪声源。
  * 同一份区块也用在 `pnpm lint:emoji` 那条跨文件类型的门禁里
  * （`tooling/scripts/src/lib/emoji-ranges.ts`，那份文件顶部写了为什么是两份实现）。
@@ -52,10 +52,6 @@ import type { Rule } from 'eslint'
 
 // 注：`eslint-disable-next-line` 必须贴着**正则字面量那一行**（不是 `const` 那一行）——
 // oxfmt 会把字面量换行到下一行，写在 `const` 上方会让指令落空（格式化后实测）。
-const EMOJI =
-  // eslint-disable-next-line no-misleading-character-class -- 变体选择符与零宽连接符是**有意**入类的（见上方说明）
-  /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{23E9}-\u{23FA}\uFE0F\u200D]/u
-
 /** 匹配 emoji 串（含紧跟的一个空格），用于自动修复；豁免理由同上 */
 const EMOJI_RUN =
   // eslint-disable-next-line no-misleading-character-class -- 同上
@@ -142,5 +138,4 @@ export function commentPolicyConfig() {
   }
 }
 
-export default plugin
-export { EMOJI, EMOJI_RUN, noEmojiInComments }
+export { noEmojiInComments }

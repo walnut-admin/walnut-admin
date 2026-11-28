@@ -248,9 +248,6 @@ catalogs:
     '@keyv/redis':
       specifier: 5.1.6
       version: 5.1.6
-    '@mermaid-js/mermaid-mindmap':
-      specifier: 9.3.0
-      version: 9.3.0
     '@nestjs-modules/mailer':
       specifier: 2.3.4
       version: 2.3.4
@@ -383,9 +380,6 @@ catalogs:
     '@types/gtag.js':
       specifier: 0.0.20
       version: 0.0.20
-    '@types/intro.js':
-      specifier: 5.1.5
-      version: 5.1.5
     '@types/lodash':
       specifier: 4.17.24
       version: 4.17.24
@@ -431,13 +425,7 @@ catalogs:
     '@types/supertest':
       specifier: 7.2.0
       version: 7.2.0
-    '@unocss/preset-icons':
-      specifier: 66.6.8
-      version: 66.6.8
     '@unocss/reset':
-      specifier: 66.6.8
-      version: 66.6.8
-    '@unocss/transformer-variant-group':
       specifier: 66.6.8
       version: 66.6.8
     '@vitejs/plugin-legacy':
@@ -456,9 +444,6 @@ catalogs:
       specifier: 14.3.0
       version: 14.3.0
     '@vueuse/integrations':
-      specifier: 14.3.0
-      version: 14.3.0
-    '@vueuse/router':
       specifier: 14.3.0
       version: 14.3.0
     '@zxcvbn-ts/core':
@@ -497,9 +482,6 @@ catalogs:
     colorizr:
       specifier: 5.0.1
       version: 5.0.1
-    compare-versions:
-      specifier: 6.1.1
-      version: 6.1.1
     compression:
       specifier: 1.8.1
       version: 1.8.1
@@ -581,9 +563,6 @@ catalogs:
     isbot:
       specifier: 5.1.37
       version: 5.1.37
-    javascript-obfuscator:
-      specifier: 5.4.2
-      version: 5.4.2
     jiti:
       specifier: 2.7.0
       version: 2.7.0
@@ -635,9 +614,6 @@ catalogs:
     mind-elixir:
       specifier: 5.11.0
       version: 5.11.0
-    mockjs:
-      specifier: 1.1.0
-      version: 1.1.0
     murlock:
       specifier: 4.4.0
       version: 4.4.0
@@ -719,18 +695,12 @@ catalogs:
     sass:
       specifier: 1.99.0
       version: 1.99.0
-    segment:
-      specifier: 0.1.3
-      version: 0.1.3
     serve-favicon:
       specifier: 2.5.1
       version: 2.5.1
     sharp:
       specifier: 0.34.5
       version: 0.34.5
-    sharp-ico:
-      specifier: 0.1.5
-      version: 0.1.5
     signature_pad:
       specifier: 5.1.3
       version: 5.1.3
@@ -1014,9 +984,6 @@ importers:
       '@vueuse/integrations':
         specifier: 'catalog:'
         version: 14.3.0(async-validator@4.2.5)(axios@1.16.0(debug@4.4.3(supports-color@10.2.2)))(change-case@5.4.4)(focus-trap@7.8.0)(fuse.js@7.3.0)(qrcode@1.5.4)(sortablejs@1.15.7)(vue@3.5.34(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2))
-      '@vueuse/router':
-        specifier: 'catalog:'
-        version: 14.3.0(vue-router@5.0.6(@vue/compiler-sfc@3.5.40)(esbuild@0.27.7)(pinia@3.0.4(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)(vue@3.5.34(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)))(rolldown@1.3.3)(rollup@4.60.3)(vite@8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))(vue@3.5.34(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2))(webpack@5.105.4(@swc/core@1.15.21)(cssnano@7.1.9(postcss@8.5.23))(csso@5.0.5)(esbuild@0.27.7)(lightningcss@1.33.0)(postcss@8.5.23)(uglify-js@3.19.3)))(vue@3.5.34(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2))
       '@walnut/api-types':
         specifier: workspace:*
         version: link:../../packages/generated/api-types
@@ -1053,15 +1020,9 @@ importers:
       colorizr:
         specifier: 'catalog:'
         version: 5.0.1
-      compare-versions:
-        specifier: 'catalog:'
-        version: 6.1.1
       cropperjs:
         specifier: 'catalog:'
         version: 2.1.1
-      detectincognitojs:
-        specifier: 'catalog:'
-        version: 1.6.2
       driver.js:
         specifier: 'catalog:'
         version: 1.4.0
@@ -1083,9 +1044,6 @@ importers:
       html-to-image:
         specifier: 'catalog:'
         version: 1.11.13
-      idb:
-        specifier: 'catalog:'
-        version: 8.0.3
       js-base64:
         specifier: 'catalog:'
         version: 3.7.8
@@ -1125,9 +1083,6 @@ importers:
       sortablejs:
         specifier: 'catalog:'
         version: 1.15.7
-      superjson:
-        specifier: 'catalog:'
-        version: 2.2.6
       untyper:
         specifier: 'catalog:'
         version: 1.0.0
@@ -1147,9 +1102,6 @@ importers:
         specifier: 'catalog:'
         version: 2.1.1(vue@3.5.34(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2))
     devDependencies:
-      '@iconify/json':
-        specifier: 'catalog:'
-        version: 2.2.470
       '@iconify/vue':
         specifier: 'catalog:'
         version: 5.0.1(vue@3.5.34(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2))
@@ -1162,9 +1114,6 @@ importers:
       '@types/gtag.js':
         specifier: 'catalog:'
         version: 0.0.20
-      '@types/intro.js':
-        specifier: 'catalog:'
-        version: 5.1.5
       '@types/lodash-es':
         specifier: 'catalog:'
         version: 4.17.12
@@ -1180,13 +1129,7 @@ importers:
       '@types/sortablejs':
         specifier: 'catalog:'
         version: 1.15.9
-      '@unocss/preset-icons':
-        specifier: 'catalog:'
-        version: 66.6.8
       '@unocss/reset':
-        specifier: 'catalog:'
-        version: 66.6.8
-      '@unocss/transformer-variant-group':
         specifier: 'catalog:'
         version: 66.6.8
       '@walnut/eslint-config':
@@ -1204,21 +1147,12 @@ importers:
       eslint:
         specifier: 'catalog:'
         version: 10.3.0(jiti@2.7.0)(supports-color@10.2.2)
-      javascript-obfuscator:
-        specifier: 'catalog:'
-        version: 5.4.2
-      mockjs:
-        specifier: 'catalog:'
-        version: 1.1.0
       rimraf:
         specifier: 'catalog:'
         version: 6.1.3
       sass:
         specifier: 'catalog:'
         version: 1.99.0
-      sharp-ico:
-        specifier: 'catalog:'
-        version: 0.1.5
       tinyglobby:
         specifier: 'catalog:'
         version: 0.2.16
@@ -1265,9 +1199,6 @@ importers:
         specifier: 'catalog:'
         version: 3.5.34(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)
     devDependencies:
-      '@mermaid-js/mermaid-mindmap':
-        specifier: 'catalog:'
-        version: 9.3.0
       '@types/node':
         specifier: 'catalog:'
         version: 25.5.0
@@ -1286,9 +1217,6 @@ importers:
       pagefind:
         specifier: 'catalog:'
         version: 1.3.0
-      segment:
-        specifier: 'catalog:'
-        version: 0.1.3
       taze:
         specifier: 'catalog:'
         version: 19.11.0
@@ -1301,6 +1229,9 @@ importers:
       vitepress-plugin-tabs:
         specifier: 'catalog:'
         version: 0.7.3(vitepress@1.6.3(@algolia/client-search@5.56.0)(@types/node@25.5.0)(async-validator@4.2.5)(axios@1.16.0(debug@4.4.3(supports-color@10.2.2)))(change-case@5.4.4)(fuse.js@7.3.0)(lightningcss@1.33.0)(postcss@8.5.23)(qrcode@1.5.4)(sass@1.99.0)(search-insights@2.17.3)(sortablejs@1.15.7)(terser@5.49.0)(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2))(vue@3.5.34(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2))
+      vue-tsc:
+        specifier: 'catalog:'
+        version: 3.3.14(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)
 
   apps/e2e:
     devDependencies:
@@ -1750,9 +1681,6 @@ importers:
 
   packages/platform-any/types:
     devDependencies:
-      '@walnut/eslint-config':
-        specifier: workspace:*
-        version: link:../../../tooling/eslint-config
       '@walnut/tsconfig':
         specifier: workspace:*
         version: link:../../../tooling/tsconfig
@@ -1768,9 +1696,6 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 25.5.0
-      '@walnut/eslint-config':
-        specifier: workspace:*
-        version: link:../../../tooling/eslint-config
       '@walnut/tsconfig':
         specifier: workspace:*
         version: link:../../../tooling/tsconfig
@@ -1832,9 +1757,6 @@ importers:
       '@vitejs/plugin-vue':
         specifier: 'catalog:'
         version: 6.0.6(vite@8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))(vue@3.5.34(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2))
-      '@walnut/eslint-config':
-        specifier: workspace:*
-        version: link:../../../tooling/eslint-config
       '@walnut/tsconfig':
         specifier: workspace:*
         version: link:../../../tooling/tsconfig
@@ -1887,9 +1809,6 @@ importers:
       '@types/lodash-es':
         specifier: 'catalog:'
         version: 4.17.12
-      '@walnut/eslint-config':
-        specifier: workspace:*
-        version: link:../../../tooling/eslint-config
       '@walnut/tsconfig':
         specifier: workspace:*
         version: link:../../../tooling/tsconfig
@@ -3014,9 +2933,6 @@ packages:
   '@borewit/text-codec@0.2.2':
     resolution: {integrity: sha512-DDaRehssg1aNrH4+2hnj1B7vnUGEjU6OIlyRdkMd0aUdIUvKXrJfXsy8LVtXAy7DRvYVluWbMspsRhz2lcW0mQ==}
 
-  '@braintree/sanitize-url@6.0.4':
-    resolution: {integrity: sha512-s3jaWicZd0pkP0jf5ysyHUI/RE7MHos6qlToFcGWXVp+ykHOy77OUMrfbgJ9it2C5bow7OIQwYYaHjk9XlBQ2A==}
-
   '@braintree/sanitize-url@7.1.2':
     resolution: {integrity: sha512-jigsZK+sMF/cuiB7sERuo9V7N9jx+dhmHHnQyDSVdpZwVutaBu7WvNYqMDLSgFgfB30n452TP3vjDAvFC973mA==}
 
@@ -3026,9 +2942,6 @@ packages:
 
   '@cacheable/utils@2.5.0':
     resolution: {integrity: sha512-buipgOVDkkPXNR5+xBpDw7Zk2n1EvU7qBJCNUcL7rhQ//kfpOXPAvQ511Os0vpLYJ1pZnvudNytkQt2hst3wqA==}
-
-  '@canvas/image-data@1.1.0':
-    resolution: {integrity: sha512-QdObRRjRbcXGmM1tmJ+MrHcaz1MftF2+W7YI+MsphnsCrmtyfS0d5qJbk0MeSbUeyM/jCb0hmnkXPsy026L7dA==}
 
   '@cap.js/server@4.0.5':
     resolution: {integrity: sha512-S902YIyGyiriNaexfqTzMy5ixxSb3/jYSJwr2gAY9d7XXoYftcifgij/11pjuiU72Ogm6XKZOggDB2DtjRMyww==}
@@ -4321,9 +4234,6 @@ packages:
 
   '@marijn/find-cluster-break@1.0.3':
     resolution: {integrity: sha512-FY+MKLBoTsLNJF/eLWaOsXGdz6uh3Iu1axjPf6TUq92IYumcTcXWHoS747JARLkcdlJ/Waiaxc5wQfFO8jC6NA==}
-
-  '@mermaid-js/mermaid-mindmap@9.3.0':
-    resolution: {integrity: sha512-IhtYSVBBRYviH1Ehu8gk69pMDF8DSRqXBRDMWrEfHoaMruHeaP2DXA3PBnuwsMaCdPQhlUUcy/7DBLAEIXvCAw==}
 
   '@mermaid-js/parser@0.6.3':
     resolution: {integrity: sha512-lnjOhe7zyHjc+If7yT4zoedx2vo4sHaTmtkl1+or8BRTnCtDmcTpAjpzDSfCZrshM5bCoz0GyidzadJAH1xobA==}
@@ -6795,9 +6705,6 @@ packages:
   '@types/http-errors@2.0.5':
     resolution: {integrity: sha512-r8Tayk8HJnX0FztbZN7oVqGccWgw98T/0neJphO91KkmOzug1KkofZURD4UaD5uH8AqcFLfdPErnBod0u71/qg==}
 
-  '@types/intro.js@5.1.5':
-    resolution: {integrity: sha512-TT1d8ayz07svlBcoqh26sNpQaU6bBpdFcCC+IMZHp46NNX2mYAHAVefM3wCmQSd4UWhhObeMjFByw2IaPKOXlw==}
-
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
@@ -7483,12 +7390,6 @@ packages:
 
   '@vueuse/metadata@9.13.0':
     resolution: {integrity: sha512-gdU7TKNAUVlXXLbaF+ZCfte8BjRJQWPCa2J55+7/h+yDtzw3vOoGQDRXzI6pyKyo6bXFT5/QoPE4hAknExjRLQ==}
-
-  '@vueuse/router@14.3.0':
-    resolution: {integrity: sha512-MK7YETFDPyDDF9aSP4W3TzUIHLZ+uq0n/t4VMxOP39e0qGbCZ21ZRsGE93ML84teKtCtPDlN+73CTk2e3xVl9w==}
-    peerDependencies:
-      vue: ^3.5.0
-      vue-router: ^4.0.0 || ^5.0.0
 
   '@vueuse/shared@12.8.2':
     resolution: {integrity: sha512-dznP38YzxZoNloI0qpEfpkms8knDtaoQ6Y/sfS0L7Yki4zh40LFHEhur0odJC6xTHG5dxWVPiUWBXn+wCG2s5w==}
@@ -8482,9 +8383,6 @@ packages:
   commondir@1.0.1:
     resolution: {integrity: sha512-W9pAhw0ja1Edb5GVdIF1mjZw/ASI0AlShXM83UUGe2DVr5TdAPEA1OA8m/g8zWp9x6On7gqufY+FatDbC3MDQg==}
 
-  compare-versions@6.1.1:
-    resolution: {integrity: sha512-4hm4VPpIecmlg59CHXnRDnqGplJFrbLG4aFEl5vl6cK1u76ws3LLvX7ikFnTDl5vo39sjWD6AaDPYodJp/NNHg==}
-
   complex.js@2.4.3:
     resolution: {integrity: sha512-UrQVSUur14tNX6tiP4y8T4w4FeJAX3bi2cIv0pu/DTLFNxoq7z2Yh83Vfzztj6Px3X/lubqQ9IrPp7Bpn6p4MQ==}
 
@@ -8975,14 +8873,6 @@ packages:
 
   decimal.js@10.6.0:
     resolution: {integrity: sha512-YpgQiITW3JXGntzdUmyUR1V812Hn8T1YVXhCu+wO3OpS4eU9l4YdD3qjyiKdV6mvV29zapkMeD390UVEf2lkUg==}
-
-  decode-bmp@0.2.1:
-    resolution: {integrity: sha512-NiOaGe+GN0KJqi2STf24hfMkFitDUaIoUU3eKvP/wAbLe8o6FuW5n/x7MHPR0HKvBokp6MQY/j7w8lewEeVCIA==}
-    engines: {node: '>=8.6.0'}
-
-  decode-ico@0.4.1:
-    resolution: {integrity: sha512-69NZfbKIzux1vBOd31al3XnMnH+2mqDhEgLdpygErm4d60N+UwA5Sq5WFjmEDQzumgB9fElojGwWG0vybVfFmA==}
-    engines: {node: '>=8.6'}
 
   decode-named-character-reference@1.3.0:
     resolution: {integrity: sha512-GtpQYB283KrPp6nRw50q3U9/VfOutZOe103qlN7BPP6Ad27xYnOIWv4lPzo8HCAL+mMZofJ9KEy30fq6MfaK6Q==}
@@ -10491,9 +10381,6 @@ packages:
       typescript:
         optional: true
 
-  ico-endec@0.1.6:
-    resolution: {integrity: sha512-ZdLU38ZoED3g1j3iEyzcQj+wAkY2xfWNkymszfJPoxucIUhK7NayQ+/C4Kv0nDFMIsbtbEHldv3V8PU494/ueQ==}
-
   iconv-lite@0.6.3:
     resolution: {integrity: sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==}
     engines: {node: '>=0.10.0'}
@@ -11854,10 +11741,6 @@ packages:
   mlly@1.8.2:
     resolution: {integrity: sha512-d+ObxMQFmbt10sretNDytwt85VrbkhhUA/JBGm1MPaWJ65Cl4wOgLaB1NYvJSZ0Ef03MMEU/0xpPMXUIQ29UfA==}
 
-  mockjs@1.1.0:
-    resolution: {integrity: sha512-eQsKcWzIaZzEZ07NuEyO4Nw65g0hdWAyurVol1IPl1gahRwY+svqzfgfey8U8dahLwG44d6/RwEzuK52rSa/JQ==}
-    hasBin: true
-
   modern-tar@0.7.7:
     resolution: {integrity: sha512-t9VmxaqrmANnEOBhpSDI6HD192Ge48k8vmWqQQL7hSFEqHEYwZbbsu49+aKLWZeRvFs3j1pMhXOqqF4kPlvjkQ==}
     engines: {node: '>=18.0.0'}
@@ -12106,9 +11989,6 @@ packages:
   nodemailer@9.0.3:
     resolution: {integrity: sha512-n+YP+NKwR5zRWa60k3GiQ6Q3B4KXCoAw40dAKeCtYn020iNN74aWK2liXIC3ZEATeGql7we3tE3t8QwhY0eskw==}
     engines: {node: '>=6.0.0'}
-
-  non-layered-tidy-tree-layout@2.0.2:
-    resolution: {integrity: sha512-gkXMxRzUH+PB0ax9dUN0yYF0S25BqeAYqhgMaLUFmpXLEk7Fcu8f4emJuOAY0V8kjDICxROIKsTAKsV/v355xw==}
 
   nopt@7.2.1:
     resolution: {integrity: sha512-taM24ViiimT/XntxbPyJQzCG+p4EKOpgD3mxFwW38mGjVUrfERQOeY4EDHjdnptttfHuHQXFx+lTP08Q+mLa/w==}
@@ -13406,10 +13286,6 @@ packages:
   seemly@0.3.10:
     resolution: {integrity: sha512-2+SMxtG1PcsL0uyhkumlOU6Qo9TAQ/WyH7tthnPIOQB05/12jz9naq6GZ6iZ6ApVsO3rr2gsnTf3++OV63kE1Q==}
 
-  segment@0.1.3:
-    resolution: {integrity: sha512-4Kjk38q0ykMIK5a+uo2MjTM2EECJaLLQOkdptceiYHTFZU/iciWXiFiGTG8Or/cfO2RqjlLw/s6rqijxAFSKFQ==}
-    engines: {node: '>= 0.4.0'}
-
   selderee@0.11.0:
     resolution: {integrity: sha512-5TF+l7p4+OsnP8BCCvSyZiSPc4x4//p5uPwK8TCnVPJYRmU2aYKMpOXvw8zM5a5JvuuCGN1jmsMwuU2W02ukfA==}
 
@@ -13459,9 +13335,6 @@ packages:
 
   setprototypeof@1.2.0:
     resolution: {integrity: sha512-E5LDX7Wrp85Kil5bhZv46j8jOeboKq5JMmYM3gVGdGH8xFpPWXUMsNrlODCrkoxMEeNi/XZIwuRvY4XNwYMJpw==}
-
-  sharp-ico@0.1.5:
-    resolution: {integrity: sha512-a3jODQl82NPp1d5OYb0wY+oFaPk7AvyxipIowCHk7pBsZCWgbe0yAkU2OOXdoH0ENyANhyOQbs9xkAiRHcF02Q==}
 
   sharp@0.34.5:
     resolution: {integrity: sha512-Ou9I5Ft9WNcCbXrU9cMgPBcCK8LiwLqcbywW3t4oDV37n1pzpuNLsYiAV8eODnjbtQlSDwZ2cUEeQz4E54Hltg==}
@@ -14101,9 +13974,6 @@ packages:
 
   to-arraybuffer@1.0.1:
     resolution: {integrity: sha512-okFlQcoGTi4LQBG/PgSYblw9VOyptsz2KJZqc6qtgGdes8VktzUQkj4BI2blit072iS8VODNcMA+tvnS9dnuMA==}
-
-  to-data-view@1.1.0:
-    resolution: {integrity: sha512-1eAdufMg6mwgmlojAx3QeMnzB/BTVp7Tbndi3U7ftcT2zCZadjxkkmLmd97zmaxWi+sgGcgWrokmpEoy0Dn0vQ==}
 
   to-regex-range@5.0.1:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
@@ -17246,8 +17116,6 @@ snapshots:
 
   '@borewit/text-codec@0.2.2': {}
 
-  '@braintree/sanitize-url@6.0.4': {}
-
   '@braintree/sanitize-url@7.1.2': {}
 
   '@bramus/specificity@2.4.2':
@@ -17258,8 +17126,6 @@ snapshots:
     dependencies:
       hashery: 1.5.1
       keyv: 5.6.0
-
-  '@canvas/image-data@1.1.0': {}
 
   '@cap.js/server@4.0.5': {}
 
@@ -18570,16 +18436,6 @@ snapshots:
   '@lukeed/csprng@1.1.0': {}
 
   '@marijn/find-cluster-break@1.0.3': {}
-
-  '@mermaid-js/mermaid-mindmap@9.3.0':
-    dependencies:
-      '@braintree/sanitize-url': 6.0.4
-      cytoscape: 3.34.0
-      cytoscape-cose-bilkent: 4.1.0(cytoscape@3.34.0)
-      cytoscape-fcose: 2.2.0(cytoscape@3.34.0)
-      d3: 7.9.0
-      khroma: 2.1.0
-      non-layered-tidy-tree-layout: 2.0.2
 
   '@mermaid-js/parser@0.6.3':
     dependencies:
@@ -20519,8 +20375,6 @@ snapshots:
 
   '@types/http-errors@2.0.5': {}
 
-  '@types/intro.js@5.1.5': {}
-
   '@types/json-schema@7.0.15': {}
 
   '@types/jsonwebtoken@9.0.10':
@@ -20779,7 +20633,7 @@ snapshots:
       '@typescript-eslint/types': 8.65.0
       '@typescript-eslint/visitor-keys': 8.65.0
       debug: 4.4.3(supports-color@10.2.2)
-      minimatch: 10.2.5
+      minimatch: 10.2.6
       semver: 7.8.5
       tinyglobby: 0.2.17
       ts-api-utils: 2.5.0(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)
@@ -20794,7 +20648,7 @@ snapshots:
       '@typescript-eslint/types': 8.65.0
       '@typescript-eslint/visitor-keys': 8.65.0
       debug: 4.4.3(supports-color@5.5.0)
-      minimatch: 10.2.5
+      minimatch: 10.2.6
       semver: 7.8.5
       tinyglobby: 0.2.17
       ts-api-utils: 2.5.0(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)
@@ -21438,12 +21292,6 @@ snapshots:
   '@vueuse/metadata@14.3.0': {}
 
   '@vueuse/metadata@9.13.0': {}
-
-  '@vueuse/router@14.3.0(vue-router@5.0.6(@vue/compiler-sfc@3.5.40)(esbuild@0.27.7)(pinia@3.0.4(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)(vue@3.5.34(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)))(rolldown@1.3.3)(rollup@4.60.3)(vite@8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))(vue@3.5.34(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2))(webpack@5.105.4(@swc/core@1.15.21)(cssnano@7.1.9(postcss@8.5.23))(csso@5.0.5)(esbuild@0.27.7)(lightningcss@1.33.0)(postcss@8.5.23)(uglify-js@3.19.3)))(vue@3.5.34(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2))':
-    dependencies:
-      '@vueuse/shared': 14.3.0(vue@3.5.34(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2))
-      vue: 3.5.34(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)
-      vue-router: 5.0.6(@vue/compiler-sfc@3.5.40)(esbuild@0.27.7)(pinia@3.0.4(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)(vue@3.5.34(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)))(rolldown@1.3.3)(rollup@4.60.3)(vite@8.4.0(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))(vue@3.5.34(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2))(webpack@5.105.4(@swc/core@1.15.21)(cssnano@7.1.9(postcss@8.5.23))(csso@5.0.5)(esbuild@0.27.7)(lightningcss@1.33.0)(postcss@8.5.23)(uglify-js@3.19.3))
 
   '@vueuse/shared@12.8.2(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)':
     dependencies:
@@ -22588,8 +22436,6 @@ snapshots:
 
   commondir@1.0.1: {}
 
-  compare-versions@6.1.1: {}
-
   complex.js@2.4.3: {}
 
   component-emitter@1.3.1: {}
@@ -23129,17 +22975,6 @@ snapshots:
   decamelize@5.0.1: {}
 
   decimal.js@10.6.0: {}
-
-  decode-bmp@0.2.1:
-    dependencies:
-      '@canvas/image-data': 1.1.0
-      to-data-view: 1.1.0
-
-  decode-ico@0.4.1:
-    dependencies:
-      '@canvas/image-data': 1.1.0
-      decode-bmp: 0.2.1
-      to-data-view: 1.1.0
 
   decode-named-character-reference@1.3.0:
     dependencies:
@@ -24979,8 +24814,6 @@ snapshots:
       '@babel/runtime': 7.29.7
     optionalDependencies:
       typescript: typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2
-
-  ico-endec@0.1.6: {}
 
   iconv-lite@0.6.3:
     dependencies:
@@ -26946,10 +26779,6 @@ snapshots:
       pkg-types: 1.3.1
       ufo: 1.6.4
 
-  mockjs@1.1.0:
-    dependencies:
-      commander: 15.0.0
-
   modern-tar@0.7.7: {}
 
   module-definition@6.0.2:
@@ -27246,8 +27075,6 @@ snapshots:
     optional: true
 
   nodemailer@9.0.3: {}
-
-  non-layered-tidy-tree-layout@2.0.2: {}
 
   nopt@7.2.1:
     dependencies:
@@ -28820,8 +28647,6 @@ snapshots:
 
   seemly@0.3.10: {}
 
-  segment@0.1.3: {}
-
   selderee@0.11.0:
     dependencies:
       parseley: 0.12.1
@@ -28921,12 +28746,6 @@ snapshots:
       has-property-descriptors: 1.0.2
 
   setprototypeof@1.2.0: {}
-
-  sharp-ico@0.1.5:
-    dependencies:
-      decode-ico: 0.4.1
-      ico-endec: 0.1.6
-      sharp: 0.34.5
 
   sharp@0.34.5:
     dependencies:
@@ -29616,8 +29435,6 @@ snapshots:
       tldts-core: 7.4.10
 
   to-arraybuffer@1.0.1: {}
-
-  to-data-view@1.1.0: {}
 
   to-regex-range@5.0.1:
     dependencies:
