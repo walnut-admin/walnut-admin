@@ -1,4 +1,6 @@
+import type * as OpaqueProtocol from '@serenity-kit/opaque'
 import type { EntityManager } from 'typeorm'
+import type { MockInstance } from 'vitest'
 import { Logger } from '@nestjs/common'
 import { WalnutAdminExceptionInvalidCredential } from '@walnut-server/exceptions/business/auth'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -9,9 +11,11 @@ import { AuthOpaqueCoreService } from '../opaque.core.service'
  * undefined / 空串）。类型上不可达，是服务端能观察到的、与「identifiers 旧口径」最接近的
  * 形态（真正的 identifiers 不一致发生在客户端 `client.finishLogin`，服务端拿不到信号）。
  *
- * 为什么单独一份文件：`opaque.server.startLogin` 是 ESM 的非可配置导出，`vi.spyOn` 会报
- * `Cannot redefine property`；而 `vi.mock` 是文件级 hoist 的，放进主用例文件会污染那批
- * **真实密码学**断言。这里把整个包换成最小替身，只钉这一条分支。
+ * 为什么不再 `vi.mock('@serenity-kit/opaque')`（2026-11）：vitest `isolate: false` 下
+ * 模块图在同一 worker 内跨文件共享，文件级模块 mock **不再是文件私有的** ——
+ * 若本文件先跑，假 OPAQUE 会泄漏给 opaque.core.service.spec 的真实密码学用例；
+ * 若真实包已被别的文件求值过，本文件的 mock 又不会生效（本用例会拿真 setup 算假记录）。
+ * 现在改为继承服务并覆盖 `opaqueServerStartLogin` 接缝：替身范围就是这一个类实例。
  */
 
 const APP_NAME = 'spec-app'
@@ -23,30 +27,23 @@ const mockState = vi.hoisted(() => ({
   loginResponse: undefined as string | undefined,
 }))
 
-vi.mock('@serenity-kit/opaque', () => ({
-  ready: Promise.resolve(),
-  client: {
-    startLogin: vi.fn(() => ({
-      clientLoginState: 'client-state',
-      startLoginRequest: 'start-request',
-    })),
-  },
-  server: {
-    createSetup: vi.fn(() => 'server-setup'),
-    startLogin: vi.fn(() => ({
+/** 只覆盖 OPAQUE 协议接缝，其余行为（日志 / 异常 / 缓存写）全走真实实现 */
+class HandshakeUndefinedCoreService extends AuthOpaqueCoreService {
+  protected override opaqueServerStartLogin(): ReturnType<typeof OpaqueProtocol.server.startLogin> {
+    return {
       serverLoginState: 'server-login-state',
       loginResponse: mockState.loginResponse,
-    })),
-  },
-}))
+    } as ReturnType<typeof OpaqueProtocol.server.startLogin>
+  }
+}
 
-const warnSpy = vi.spyOn(Logger.prototype, 'warn')
+let warnSpy: MockInstance<typeof Logger.prototype.warn>
 
 const EM = { marker: 'entity-manager' } as unknown as EntityManager
 
 function createService(nodeEnv: string) {
   const setOpaqueServerStateCache = vi.fn(async () => undefined)
-  const service = new AuthOpaqueCoreService(
+  const service = new HandshakeUndefinedCoreService(
     { setOpaqueServerStateCache } as never,
     {
       get: (key: string) =>
@@ -70,7 +67,8 @@ function createService(nodeEnv: string) {
 
 beforeEach(() => {
   mockState.loginResponse = undefined
-  warnSpy.mockClear()
+  // 共享预设的 restoreMocks 会在每个用例前还原原型 spy，所以这里按用例重建
+  warnSpy = vi.spyOn(Logger.prototype, 'warn')
 })
 
 describe('opaque.core.startLogin：OPAQUE 握手没有产出（方案 a）', () => {

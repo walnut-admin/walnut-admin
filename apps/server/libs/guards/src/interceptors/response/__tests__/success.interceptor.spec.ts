@@ -1,24 +1,34 @@
 import type { CallHandler, ExecutionContext } from '@nestjs/common'
 import type { Observable } from 'rxjs'
+import { I18nContext } from 'nestjs-i18n'
 import { firstValueFrom, of } from 'rxjs'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { WalnutAdminInterceptorResponseSuccess } from '../success.interceptor'
 
 /**
  * 风控降级的**可观测通道**（批次 8 / B2）—— 不敏感端点 fail-open 放行时，
  * 「本次请求风控不可用」必须落进响应壳，而不是只出现在日志里。
  *
- * 通道选型：`meta.riskDegraded`。理由：`_devMsg` 只在 `isDev` 落盘（生产看不到），
+ * 通道选型：`meta.riskDegraded`。理由：`_devMsg` 只在 isDev 落盘（生产看不到），
  * 加响应头前端拿不到，而 `meta` 是响应壳里**一直存在且当前没人用**的字段
  * （见 libs/utils/src/response.ts 的 WalnutAdminResponseSuccess）—— 缺省不传即零 diff。
  *
  * 负对照：把成功拦截器里 `const meta = ...` 那段删掉（或改回只传三个参数），
  * 用例 1 立刻红。
+ *
+ * i18n 的桩改为**按用例 spy + 自动 restore**（2026-11）：原先 `vi.mock('nestjs-i18n')`
+ * 换整个模块，`isolate: false` 下它要么因模块已被真实求值而失效（I18nContext.current()
+ * 返回 undefined），要么把假 `t` 泄漏给后续文件。spy 只改这一个静态方法，
+ * 共享预设的 `restoreMocks: true` 保证用例之间/文件之间不残留。
  */
 
-vi.mock('nestjs-i18n', () => ({
-  I18nContext: { current: () => ({ t: (key: string) => key }) },
-}))
+const i18nStub = {
+  t: (key: string) => key,
+} as unknown as NonNullable<ReturnType<typeof I18nContext.current>>
+
+beforeEach(() => {
+  vi.spyOn(I18nContext, 'current').mockReturnValue(i18nStub)
+})
 
 interface ISpecRequest {
   id: string

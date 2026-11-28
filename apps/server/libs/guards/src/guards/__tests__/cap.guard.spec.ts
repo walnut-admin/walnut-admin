@@ -1,4 +1,5 @@
 import type { ExecutionContext } from '@nestjs/common'
+import type { MockInstance } from 'vitest'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminExceptionRiskUnavailable } from '@walnut-server/exceptions/base/406'
 import {
@@ -25,14 +26,17 @@ import { WalnutAdminGuardCap } from '../cap.guard'
  *   ⇒ 真实链路是 `createHash().update(false)` 抛 ERR_INVALID_ARG_TYPE ⇒ body.code 50000。
  *   本文件用「`getCapTokenCache` 是否被调用」把它钉住（旧代码会带着 `false` 调进去）。
  * - 用例 3（不是 cap.js token）在旧代码里被 `catch` 吞成 false ⇒ 40116；现在是 40111。
+ *
+ * 桩法（2026-11）：不再 `vi.mock` 整个 cap.service 模块 —— `isolate: false` 下模块图
+ * 跨文件共享，模块级 mock 会泄漏给 cap.service.spec 等真实实现用例。改为每个用例前
+ * `vi.spyOn(AppCapJS, 'validateToken')`，共享预设的 `restoreMocks: true` 负责还原。
  */
 
-vi.mock('@walnut-server/security/cap/cap.service', () => ({
-  AppCapJS: { validateToken: vi.fn() },
-}))
+let validateTokenMock: MockInstance<typeof AppCapJS.validateToken>
 
-// eslint-disable-next-line ts/unbound-method -- AppCapJS 是 vi.mock 工厂替换的对象，属性即 vi.fn（不涉及 this 绑定）
-const validateTokenMock = AppCapJS.validateToken as unknown as ReturnType<typeof vi.fn>
+beforeEach(() => {
+  validateTokenMock = vi.spyOn(AppCapJS, 'validateToken')
+})
 
 interface CapGuardMocks {
   getCapTokenCache: ReturnType<typeof vi.fn>
@@ -92,11 +96,8 @@ async function caught(promise: Promise<unknown>): Promise<unknown> {
   )
 }
 
-// 模块级 mock 的调用历史会跨用例累积（validateTokenMock 是单例）——
-// 每条用例都从「零调用」开始，否则 `not.toHaveBeenCalled` 这类断言会读到上一条的残留
-beforeEach(() => {
-  validateTokenMock.mockReset()
-})
+// `validateTokenMock` 每例重建（见文件头 beforeEach），调用历史因此天然从零开始；
+// 这里不再需要「清上一条残留」的 mockReset —— restoreMocks 已在每个用例前还原 spy。
 
 describe('cap guard：畸形 cookie 不再 500（review CAP-4）', () => {
   it('签名错的 false（cookie-parser 的坏签名出口）+ shouldChallenge=true ⇒ 40116，且不进缓存/哈希', async () => {

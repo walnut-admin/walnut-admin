@@ -15,7 +15,7 @@ import { instrument } from '@socket.io/admin-ui'
 
 import { AppMonitorUserService } from '@walnut-server/app-domain'
 import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
-import { WalnutAdminConstAppEnv, WalnutAdminEnv } from '@walnut-server/const/app/env'
+import { WalnutAdminConstAppEnv } from '@walnut-server/const/app/env'
 import { Namespace } from 'socket.io'
 import {
   ISocket,
@@ -80,10 +80,14 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       adminUiPassword !== ''
 
     if (hasAdminUiCredentials) {
-      // mode 经 WalnutAdminEnv（libs/const/app/env）判定，不用裸 as：production 之外
-      // （development / stage / 测试）一律 development 模式
+      // mode 经 ConfigService 读 NODE_ENV 判定，不用裸 as：production 之外
+      // （development / stage / 测试）一律 development 模式。
+      // 与 libs/const 的 WalnutAdminEnv 同源（后者就是模块求值时读一次 process.env），
+      // 但从 ConfigService 取让单测能直接注入 NODE_ENV —— 模块求值常量在
+      // vitest `isolate: false` 的共享模块图里无法用 vi.mock 替换。
+      const nodeEnv = this.configService.get<string>('NODE_ENV')
       const mode: 'development' | 'production' =
-        WalnutAdminEnv === WalnutAdminConstAppEnv.PROD ? 'production' : 'development'
+        nodeEnv === WalnutAdminConstAppEnv.PROD ? 'production' : 'development'
 
       instrument(namespace.server, {
         auth: { type: 'basic', username: adminUiUser, password: adminUiPassword },

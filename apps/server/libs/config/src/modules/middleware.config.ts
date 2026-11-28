@@ -44,7 +44,18 @@ function readAllowOriginOverride() {
     .filter((origin) => origin.length > 0)
 }
 
-function resolveAllowOrigin() {
+/**
+ * 本配置依赖的运行环境判定。
+ *
+ * 为什么不直接读模块求值常量：`isProd` 在 import 时就定死，vitest `isolate: false` 下
+ * 模块图跨文件共享，`vi.mock` 换不掉已被求值的模块。把环境作为工厂参数注入后，单测按用例
+ * 声明环境，生产调用方走默认值（= 真实 isProd，行为零变化）。
+ */
+export interface IWalnutAdminMiddlewareConfigEnv {
+  isProd: boolean
+}
+
+function resolveAllowOrigin(isProd: boolean) {
   const override = readAllowOriginOverride()
 
   if (override.length > 0) {
@@ -55,38 +66,47 @@ function resolveAllowOrigin() {
   return isProd ? `https://www.${(pkg.config as Recordable).domain as string}` : DEV_ALLOW_ORIGINS
 }
 
-export default registerAs('middleware', () => ({
-  cors: {
-    allowMethod: [
-      WalnutAdminConstAppHTTPMethods.GET,
-      WalnutAdminConstAppHTTPMethods.POST,
-      WalnutAdminConstAppHTTPMethods.DELETE,
-      WalnutAdminConstAppHTTPMethods.PUT,
-      WalnutAdminConstAppHTTPMethods.PATCH,
-    ],
+/**
+ * 配置体构建器（导出供单测注入环境；`registerAs` 只是它的生产调用方）。
+ */
+export function buildMiddlewareConfig(
+  env: IWalnutAdminMiddlewareConfigEnv = { isProd },
+): Recordable {
+  return {
+    cors: {
+      allowMethod: [
+        WalnutAdminConstAppHTTPMethods.GET,
+        WalnutAdminConstAppHTTPMethods.POST,
+        WalnutAdminConstAppHTTPMethods.DELETE,
+        WalnutAdminConstAppHTTPMethods.PUT,
+        WalnutAdminConstAppHTTPMethods.PATCH,
+      ],
 
-    allowOrigin: resolveAllowOrigin(),
+      allowOrigin: resolveAllowOrigin(env.isProd),
 
-    allowHeader: [
-      'Accept',
-      'Accept-Language',
-      'Content-Language',
-      'Content-Type',
-      'Origin',
-      'Authorization',
-      'Access-Control-Request-Method',
-      'Access-Control-Request-Headers',
-      'Access-Control-Allow-Headers',
-      'Access-Control-Allow-Origin',
-      'Access-Control-Allow-Methods',
-      'Access-Control-Allow-Credentials',
-      'Access-Control-Expose-Headers',
-      'Access-Control-Max-Age',
-      'Referer',
-      'Host',
-      'X-Requested-With',
-      'X-Content-Type-Options',
-      ...Object.values(RequestHeaders),
-    ],
-  },
-}))
+      allowHeader: [
+        'Accept',
+        'Accept-Language',
+        'Content-Language',
+        'Content-Type',
+        'Origin',
+        'Authorization',
+        'Access-Control-Request-Method',
+        'Access-Control-Request-Headers',
+        'Access-Control-Allow-Headers',
+        'Access-Control-Allow-Origin',
+        'Access-Control-Allow-Methods',
+        'Access-Control-Allow-Credentials',
+        'Access-Control-Expose-Headers',
+        'Access-Control-Max-Age',
+        'Referer',
+        'Host',
+        'X-Requested-With',
+        'X-Content-Type-Options',
+        ...Object.values(RequestHeaders),
+      ],
+    },
+  }
+}
+
+export default registerAs('middleware', () => buildMiddlewareConfig())

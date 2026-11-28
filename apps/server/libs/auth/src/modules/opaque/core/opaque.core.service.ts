@@ -85,6 +85,21 @@ export class AuthOpaqueCoreService {
     return this.serverSetup
   }
 
+  /**
+   * OPAQUE `server.startLogin` 的可替换接缝（2026-11）。
+   *
+   * 为什么需要它：`@serenity-kit/opaque` 的 `server` 对象是 `Object.freeze` 的，
+   * `vi.spyOn(opaque.server, 'startLogin')` 报 `Cannot redefine property`；而
+   * vitest `isolate: false` 下 `vi.mock` 是 **worker 级**的 —— 换整个包的 mock 会泄漏给
+   * 后续文件（真实密码学用例拿到假实现），或在包已被真实求值后静默失效。
+   * 单测用子类覆盖本方法注入固定返回值；生产路径恒为真实协议实现。
+   */
+  protected opaqueServerStartLogin(
+    args: Parameters<typeof opaque.server.startLogin>[0],
+  ): ReturnType<typeof opaque.server.startLogin> {
+    return opaque.server.startLogin(args)
+  }
+
   constructor(
     private readonly opaqueCacheService: AppTechCacheOpaqueService,
 
@@ -191,16 +206,18 @@ export class AuthOpaqueCoreService {
       }
 
       // Server creates login response using stored registration record（null ⇒ fake record）
-      const { loginResponse: computedLoginResponse, serverLoginState } = opaque.server.startLogin({
-        userIdentifier: userName,
-        registrationRecord: passwordIdentity,
-        serverSetup: this.getServerSetup(),
-        startLoginRequest,
-        identifiers: {
-          client: user?.userName ?? userName,
-          server: this.getAppName(),
-        },
-      })
+      // 经由可替换接缝调用（见 opaqueServerStartLogin 的注释）
+      const { loginResponse: computedLoginResponse, serverLoginState } =
+        this.opaqueServerStartLogin({
+          userIdentifier: userName,
+          registrationRecord: passwordIdentity,
+          serverSetup: this.getServerSetup(),
+          startLoginRequest,
+          identifiers: {
+            client: user?.userName ?? userName,
+            server: this.getAppName(),
+          },
+        })
 
       opaqueComputed = true
       loginResponse = computedLoginResponse

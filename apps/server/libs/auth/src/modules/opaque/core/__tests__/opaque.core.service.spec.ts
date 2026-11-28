@@ -1,4 +1,5 @@
 import type { EntityManager } from 'typeorm'
+import type { MockInstance } from 'vitest'
 import { Buffer } from 'node:buffer'
 import { Logger } from '@nestjs/common'
 import * as opaque from '@serenity-kit/opaque'
@@ -31,7 +32,7 @@ let serverSetup = ''
 let registrationRecord = ''
 
 /** 方案 a 的 warn 日志断言面（Nest Logger 是实例方法，按原型 spy 能抓到服务里的那一个） */
-const warnSpy = vi.spyOn(Logger.prototype, 'warn')
+let warnSpy: MockInstance<typeof Logger.prototype.warn>
 
 /** 造一份**真实**的 registration record（等价于用户注册时落库的那一条） */
 function createRegistrationRecord(password: string) {
@@ -59,7 +60,8 @@ beforeAll(async () => {
 })
 
 beforeEach(() => {
-  warnSpy.mockClear()
+  // 共享预设的 restoreMocks 会在每个用例前还原原型 spy，所以按用例重建（不再是 mockClear）
+  warnSpy = vi.spyOn(Logger.prototype, 'warn')
 })
 
 const EM = { marker: 'entity-manager' } as unknown as EntityManager

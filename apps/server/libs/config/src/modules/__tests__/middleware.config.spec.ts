@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import middlewareConfig from '../middleware.config'
+import { buildMiddlewareConfig } from '../middleware.config'
 
 /**
  * F-43（CORS 源白名单）：`middleware.config.ts` 的 `cors.allowOrigin` 此前在非 prod
@@ -12,23 +12,11 @@ import middlewareConfig from '../middleware.config'
  * 3) prod 仍是 www 单源（改造前后一致，没有把生产放开）；
  * 4) prod 也接受 env 覆盖（多域名部署场景）。
  *
- * 环境判定 isProd 是模块求值期常量；libs 内禁止动态 import，所以这里用 vi.mock 把
- * `@walnut-server/config/utils/env` 换成可按用例改写的 getter（工厂函数本身是
- * registerAs 的惰性回调，每次调用都会重新读 process.env —— override 用例因此无需换模块）。
+ * 环境判定改为**显式注入**（2026-11）：原先 `vi.mock('@walnut-server/config/utils/env')`
+ * 靠模块级 getter 改 isProd，但 `isolate: false` 下模块图跨文件共享，mock 会随 worker 的
+ * 求值顺序失效或泄漏。现在用例把 `{ isProd }` 传给 buildMiddlewareConfig，
+ * `APP_CORS_ALLOW_ORIGINS` 仍用 `vi.stubEnv`（预设的统一钩子会复位）。
  */
-
-const envMock = vi.hoisted(() => ({ isProd: false }))
-
-vi.mock('@walnut-server/config/utils/env', () => ({
-  get isDev() {
-    return !envMock.isProd
-  },
-  get isProd() {
-    return envMock.isProd
-  },
-  isStage: false,
-  WalnutAdminEnv: 'test',
-}))
 
 interface ICorsConfig {
   allowOrigin: string | string[] | boolean
@@ -37,20 +25,17 @@ interface ICorsConfig {
 }
 
 function loadCorsConfig(options: { prod?: boolean; override?: string } = {}): ICorsConfig {
-  envMock.isProd = options.prod ?? false
-
   if (options.override === undefined) {
     vi.stubEnv('APP_CORS_ALLOW_ORIGINS', '')
   } else {
     vi.stubEnv('APP_CORS_ALLOW_ORIGINS', options.override)
   }
 
-  return (middlewareConfig() as { cors: ICorsConfig }).cors
+  return buildMiddlewareConfig({ isProd: options.prod ?? false }).cors as ICorsConfig
 }
 
 afterEach(() => {
   vi.unstubAllEnvs()
-  envMock.isProd = false
 })
 
 describe('middleware.cors.allowOrigin：显式源白名单（F-43）', () => {
